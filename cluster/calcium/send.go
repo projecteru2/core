@@ -28,7 +28,7 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 			_ = c.pool.Invoke(func(ID string) func() {
 				return func() {
 					defer wg.Done()
-					if err := c.withWorkloadLocked(ctx, ID, func(ctx context.Context, workload *types.Workload) error {
+					if err := c.withWorkloadLocked(ctx, ID, false, func(ctx context.Context, workload *types.Workload) error {
 						for _, file := range opts.Files {
 							err := c.doSendFileToWorkload(ctx, workload.Engine, workload.ID, file)
 							logger.Error(ctx, err)

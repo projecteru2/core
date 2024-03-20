@@ -74,7 +74,7 @@ func (c *Calcium) newWorkloadSender(ctx context.Context, ID string, resp chan *t
 				utils.SentryGo(func(ID, name string, size int64, content io.Reader, uid, gid int, mode int64) func() {
 					return func() {
 						defer wg.Done()
-						if err := sender.calcium.withWorkloadLocked(ctx, ID, func(ctx context.Context, workload *types.Workload) error {
+						if err := sender.calcium.withWorkloadLocked(ctx, ID, false, func(ctx context.Context, workload *types.Workload) error {
 							err := errors.WithStack(workload.Engine.VirtualizationCopyChunkTo(ctx, ID, name, size, content, uid, gid, mode))
 							resp <- &types.SendMessage{ID: ID, Path: name, Error: err}
 							return nil

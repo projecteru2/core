@@ -36,7 +36,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 					if err := c.withNodePodLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
 						for _, workloadID := range workloadIDs {
 							ret := &types.RemoveWorkloadMessage{WorkloadID: workloadID, Success: true, Hook: []*bytes.Buffer{}}
-							if err := c.withWorkloadLocked(ctx, workloadID, func(ctx context.Context, workload *types.Workload) error {
+							if err := c.withWorkloadLocked(ctx, workloadID, false, func(ctx context.Context, workload *types.Workload) error {
 								return utils.Txn(
 									ctx,
 									// if

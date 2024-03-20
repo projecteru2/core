@@ -59,13 +59,13 @@ func TestWithWorkloadsLocked(t *testing.T) {
 	// failed to get lock
 	lock.On("Lock", mock.Anything).Return(context.Background(), types.ErrMockError).Once()
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{{}}, nil).Once()
-	err := c.withWorkloadsLocked(ctx, []string{"c1", "c2"}, func(ctx context.Context, workloads map[string]*types.Workload) error { return nil })
+	err := c.withWorkloadsLocked(ctx, false, []string{"c1", "c2"}, func(ctx context.Context, workloads map[string]*types.Workload) error { return nil })
 	assert.Error(t, err)
 	// success
 	lock.On("Lock", mock.Anything).Return(ctx, nil)
 	// failed by getworkload
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
-	err = c.withWorkloadsLocked(ctx, []string{"c1", "c2"}, func(ctx context.Context, workloads map[string]*types.Workload) error { return nil })
+	err = c.withWorkloadsLocked(ctx, false, []string{"c1", "c2"}, func(ctx context.Context, workloads map[string]*types.Workload) error { return nil })
 	assert.Error(t, err)
 	engine := &enginemocks.API{}
 	workload := &types.Workload{
@@ -74,7 +74,7 @@ func TestWithWorkloadsLocked(t *testing.T) {
 	}
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
 	// success
-	err = c.withWorkloadsLocked(ctx, []string{"c1", "c1"}, func(ctx context.Context, workloads map[string]*types.Workload) error {
+	err = c.withWorkloadsLocked(ctx, false, []string{"c1", "c1"}, func(ctx context.Context, workloads map[string]*types.Workload) error {
 		assert.Len(t, workloads, 1)
 		return nil
 	})
@@ -92,13 +92,13 @@ func TestWithWorkloadLocked(t *testing.T) {
 	// failed to get lock
 	lock.On("Lock", mock.Anything).Return(context.Background(), types.ErrMockError).Once()
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{{}}, nil).Once()
-	err := c.withWorkloadLocked(ctx, "c1", func(ctx context.Context, workload *types.Workload) error { return nil })
+	err := c.withWorkloadLocked(ctx, "c1", false, func(ctx context.Context, workload *types.Workload) error { return nil })
 	assert.Error(t, err)
 	// success
 	lock.On("Lock", mock.Anything).Return(ctx, nil)
 	// failed by getworkload
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
-	err = c.withWorkloadLocked(ctx, "c1", func(ctx context.Context, workload *types.Workload) error { return nil })
+	err = c.withWorkloadLocked(ctx, "c1", false, func(ctx context.Context, workload *types.Workload) error { return nil })
 	assert.Error(t, err)
 	engine := &enginemocks.API{}
 	workload := &types.Workload{
@@ -107,7 +107,7 @@ func TestWithWorkloadLocked(t *testing.T) {
 	}
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
 	// success
-	err = c.withWorkloadLocked(ctx, "c1", func(ctx context.Context, workload *types.Workload) error {
+	err = c.withWorkloadLocked(ctx, "c1", false, func(ctx context.Context, workload *types.Workload) error {
 		assert.Equal(t, workload.ID, "c1")
 		return nil
 	})

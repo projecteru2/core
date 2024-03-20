@@ -54,8 +54,8 @@ func (c *Calcium) doUnlockAll(ctx context.Context, locks map[string]lock.Distrib
 	}
 }
 
-func (c *Calcium) withWorkloadLocked(ctx context.Context, ID string, f func(context.Context, *types.Workload) error) error {
-	return c.withWorkloadsLocked(ctx, []string{ID}, func(ctx context.Context, workloads map[string]*types.Workload) error {
+func (c *Calcium) withWorkloadLocked(ctx context.Context, ID string, ignoreLock bool, f func(context.Context, *types.Workload) error) error {
+	return c.withWorkloadsLocked(ctx, ignoreLock, []string{ID}, func(ctx context.Context, workloads map[string]*types.Workload) error {
 		if c, ok := workloads[ID]; ok {
 			return f(ctx, c)
 		}
@@ -63,7 +63,7 @@ func (c *Calcium) withWorkloadLocked(ctx context.Context, ID string, f func(cont
 	})
 }
 
-func (c *Calcium) withWorkloadsLocked(ctx context.Context, IDs []string, f func(context.Context, map[string]*types.Workload) error) error {
+func (c *Calcium) withWorkloadsLocked(ctx context.Context, ignoreLock bool, IDs []string, f func(context.Context, map[string]*types.Workload) error) error {
 	workloads := map[string]*types.Workload{}
 	locks := map[string]lock.DistributedLock{}
 	logger := log.WithFunc("calcium.withWorkloadsLocked")
@@ -83,12 +83,14 @@ func (c *Calcium) withWorkloadsLocked(ctx context.Context, IDs []string, f func(
 	}
 	var lock lock.DistributedLock
 	for _, workload := range cs {
-		lock, ctx, err = c.doLock(ctx, fmt.Sprintf(cluster.WorkloadLock, workload.ID), c.config.LockTimeout)
-		if err != nil {
-			return err
+		if !ignoreLock {
+			lock, ctx, err = c.doLock(ctx, fmt.Sprintf(cluster.WorkloadLock, workload.ID), c.config.LockTimeout)
+			if err != nil {
+				return err
+			}
+			logger.Debugf(ctx, "Workload %s locked", workload.ID)
+			locks[workload.ID] = lock
 		}
-		logger.Debugf(ctx, "Workload %s locked", workload.ID)
-		locks[workload.ID] = lock
 		workloads[workload.ID] = workload
 	}
 	return f(ctx, workloads)

@@ -15,20 +15,10 @@ func (c *Calcium) RawEngine(ctx context.Context, opts *types.RawEngineOptions) (
 	wg.Add(1)
 	_ = c.pool.Invoke(func() {
 		defer wg.Done()
-		if opts.IgnoreLock {
-			var workload *types.Workload
-			if workload, err = c.store.GetWorkload(ctx, ID); err != nil {
-				return
-			}
+		if err = c.withWorkloadLocked(ctx, ID, opts.IgnoreLock, func(ctx context.Context, workload *types.Workload) error {
 			msg, err = workload.RawEngine(ctx, opts)
-		} else {
-			err = c.withWorkloadLocked(ctx, ID, func(ctx context.Context, workload *types.Workload) error {
-				msg, err = workload.RawEngine(ctx, opts)
-				return err
-			})
-		}
-
-		if err == nil {
+			return err
+		}); err == nil {
 			logger.Infof(ctx, "Workload %s", ID)
 			logger.Infof(ctx, "%+v", msg)
 		}
