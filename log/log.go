@@ -59,6 +59,11 @@ func SetupLog(ctx context.Context, cfg *types.ServerLogConfig, dsn string) error
 	return nil
 }
 
+// GetGlobalLogger returns global logger
+func GetGlobalLogger() *zerolog.Logger {
+	return &globalLogger
+}
+
 // Fatalf forwards to sentry
 func Fatalf(ctx context.Context, err error, format string, args ...any) {
 	fatalf(ctx, err, format, nil, args...)
