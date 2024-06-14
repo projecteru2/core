@@ -461,7 +461,7 @@ func toRPCWorkloads(ctx context.Context, workloads []*types.Workload, labels map
 	return ret
 }
 
-func toRPCWorkload(ctx context.Context, c *types.Workload) (*pb.Workload, error) {
+func toRPCWorkload(ctx context.Context, c *types.Workload) (*pb.Workload, error) { // nolint
 	publish := map[string]string{}
 	if c.StatusMeta != nil && len(c.StatusMeta.Networks) != 0 {
 		meta := utils.DecodeMetaInLabel(ctx, c.Labels)
