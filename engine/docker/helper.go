@@ -299,7 +299,7 @@ func GetIP(ctx context.Context, daemonHost string) string {
 	return u.Hostname()
 }
 
-func makeDockerClient(_ context.Context, config coretypes.Config, client *http.Client, endpoint string) (engine.API, error) {
+func makeDockerClient(_ context.Context, config coretypes.Config, client *http.Client, endpoint string) (*Engine, error) {
 	cli, err := dockerapi.NewClientWithOpts(
 		dockerapi.WithHost(endpoint),
 		dockerapi.WithVersion(config.Docker.APIVersion),
@@ -307,7 +307,7 @@ func makeDockerClient(_ context.Context, config coretypes.Config, client *http.C
 	if err != nil {
 		return nil, err
 	}
-	return &Engine{cli, config}, nil
+	return &Engine{client: cli, config: config}, nil
 }
 
 func useCNI(labels map[string]string) bool {

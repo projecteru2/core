@@ -36,11 +36,19 @@ func (wc *writeCloser) Close() error {
 }
 
 // MakeClient make a mock client
-func MakeClient(_ context.Context, _ coretypes.Config, _, _, _, _, _ string) (engine.API, error) {
+func MakeClient(_ context.Context, _ coretypes.Config, nodename, endpoint, ca, cert, key string) (engine.API, error) {
 	e := &enginemocks.API{}
+	parmas := &enginetypes.Params{
+		Nodename: nodename,
+		Endpoint: endpoint,
+		CA:       ca,
+		Cert:     cert,
+		Key:      key,
+	}
 	// info
 	e.On("Info", mock.Anything).Return(&enginetypes.Info{NCPU: 100, MemTotal: units.GiB * 100, StorageTotal: units.GiB * 100}, nil)
 	e.On("Ping", mock.Anything).Return(nil)
+	e.On("GetParams").Return(parmas, nil)
 	// exec
 	var execID string
 	e.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return(

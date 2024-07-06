@@ -13,6 +13,7 @@ import (
 	enginefactory "github.com/projecteru2/core/engine/factory"
 	"github.com/projecteru2/core/engine/fake"
 	"github.com/projecteru2/core/engine/mocks/fakeengine"
+	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
@@ -312,7 +313,14 @@ func (r *Rediaron) doGetNodes(
 		if err := json.Unmarshal([]byte(value), node); err != nil {
 			return nil, err
 		}
-		node.Engine = &fake.EngineWithErr{DefaultErr: types.ErrNilEngine}
+		ep := enginetypes.Params{
+			Nodename: node.Name,
+			Endpoint: node.Endpoint,
+			CA:       node.Ca,
+			Cert:     node.Cert,
+			Key:      node.Key,
+		}
+		node.Engine = &fake.EngineWithErr{DefaultErr: types.ErrNilEngine, EP: &ep}
 		if utils.LabelsFilter(node.Labels, labels) {
 			allNodes = append(allNodes, node)
 		}

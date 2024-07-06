@@ -39,3 +39,12 @@ func (c *EngineCache) Get(endpoint string) engine.API {
 func (c *EngineCache) Delete(host string, _ ...string) {
 	c.cache.Delete(host)
 }
+
+func (c *EngineCache) Items() map[string]engine.API {
+	items := c.cache.Items()
+	ans := make(map[string]engine.API, len(items))
+	for k, v := range items {
+		ans[k] = v.Object.(engine.API)
+	}
+	return ans
+}

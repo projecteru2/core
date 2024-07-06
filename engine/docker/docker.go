@@ -27,6 +27,7 @@ const (
 type Engine struct {
 	client dockerapi.APIClient
 	config coretypes.Config
+	ep     *enginetypes.Params
 }
 
 // MakeClient make docker cli
@@ -45,7 +46,18 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 	}
 
 	logger.Debugf(ctx, "Create new http.Client for %s, %s", endpoint, config.Docker.APIVersion)
-	return makeDockerClient(ctx, config, client, endpoint)
+	e, err := makeDockerClient(ctx, config, client, endpoint)
+	if err != nil {
+		return nil, err
+	}
+	e.ep = &enginetypes.Params{
+		Nodename: nodename,
+		Endpoint: endpoint,
+		CA:       ca,
+		Cert:     cert,
+		Key:      key,
+	}
+	return e, nil
 }
 
 // Info show node info
@@ -57,6 +69,10 @@ func (e *Engine) Info(ctx context.Context) (*enginetypes.Info, error) {
 		return nil, err
 	}
 	return &enginetypes.Info{Type: Type, ID: r.ID, NCPU: r.NCPU, MemTotal: r.MemTotal}, nil
+}
+
+func (e *Engine) GetParams() *enginetypes.Params {
+	return e.ep
 }
 
 // Ping test connection

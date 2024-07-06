@@ -39,10 +39,11 @@ const (
 type Virt struct {
 	client virtapi.Client
 	config coretypes.Config
+	ep     *enginetypes.Params
 }
 
 // MakeClient makes a virt. client which wraps yavirt API client.
-func MakeClient(_ context.Context, config coretypes.Config, nodename, endpoint, ca, _, _ string) (engine.API, error) {
+func MakeClient(_ context.Context, config coretypes.Config, nodename, endpoint, ca, cert, key string) (engine.API, error) {
 	var uri string
 	switch {
 	case strings.HasPrefix(endpoint, GRPCPrefixKey):
@@ -69,7 +70,14 @@ func MakeClient(_ context.Context, config coretypes.Config, nodename, endpoint, 
 	if err != nil {
 		return nil, err
 	}
-	return &Virt{cli, config}, nil
+	ep := &enginetypes.Params{
+		Nodename: nodename,
+		Endpoint: endpoint,
+		CA:       ca,
+		Cert:     cert,
+		Key:      key,
+	}
+	return &Virt{client: cli, config: config, ep: ep}, nil
 }
 
 // Info shows a connected node's information.
@@ -87,6 +95,10 @@ func (v *Virt) Info(ctx context.Context) (*enginetypes.Info, error) {
 		StorageTotal: resp.Storage,
 		Resources:    resp.Resources,
 	}, nil
+}
+
+func (v *Virt) GetParams() *enginetypes.Params {
+	return v.ep
 }
 
 // Ping tests connection.
