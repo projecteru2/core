@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/alphadose/haxmap"
 	"github.com/cockroachdb/errors"
 	"github.com/panjf2000/ants/v2"
 
@@ -37,7 +38,7 @@ var (
 
 // EngineCache .
 type EngineCache struct {
-	cache  *utils.EngineCache
+	cache  *haxmap.Map[string, engine.API]
 	pool   *ants.PoolWithFunc
 	config types.Config
 	stor   store.Store
@@ -47,7 +48,7 @@ type EngineCache struct {
 func NewEngineCache(config types.Config, stor store.Store) *EngineCache {
 	pool, _ := utils.NewPool(config.MaxConcurrency)
 	return &EngineCache{
-		cache:  utils.NewEngineCache(12*time.Hour, 10*time.Minute),
+		cache:  haxmap.New[string, engine.API](),
 		pool:   pool,
 		config: config,
 		stor:   stor,
@@ -69,7 +70,10 @@ func InitEngineCache(ctx context.Context, config types.Config, stor store.Store)
 
 // Get .
 func (e *EngineCache) Get(key string) engine.API {
-	return e.cache.Get(key)
+	if api, found := e.cache.Get(key); found {
+		return api
+	}
+	return nil
 }
 
 // Set .
@@ -79,7 +83,7 @@ func (e *EngineCache) Set(key string, client engine.API) {
 
 // Delete .
 func (e *EngineCache) Delete(key string) {
-	e.cache.Delete(key)
+	e.cache.Del(key)
 }
 
 // checkAlive checks if the engine in cache is available
@@ -96,8 +100,7 @@ func (e *EngineCache) checkAlive(ctx context.Context) {
 		}
 
 		wg := &sync.WaitGroup{}
-		itmes := e.cache.Items()
-		for _, v := range itmes {
+		e.cache.ForEach(func(_ string, v engine.API) bool {
 			wg.Add(1)
 			params := v.GetParams()
 			_ = e.pool.Invoke(func() {
@@ -125,7 +128,8 @@ func (e *EngineCache) checkAlive(ctx context.Context) {
 				}
 				logger.Debugf(ctx, "engine %+v is available", cacheKey)
 			})
-		}
+			return true
+		})
 		wg.Wait()
 		time.Sleep(e.config.ConnectionTimeout)
 	}
@@ -155,15 +159,15 @@ func (e *EngineCache) checkNodeStatus(ctx context.Context) {
 				}
 				continue
 			}
-			items := e.cache.Items()
 			// a node may have multiple engines, so we need check all key here
-			for _, e := range items {
-				ep := e.GetParams()
+			e.cache.ForEach(func(_ string, v engine.API) bool {
+				ep := v.GetParams()
 				if ep.Nodename == ns.Nodename {
 					logger.Infof(ctx, "remove engine %+v from cache", ep.CacheKey())
 					RemoveEngineFromCache(ctx, ep.Endpoint, ep.CA, ep.Cert, ep.Key)
 				}
-			}
+				return true
+			})
 		}
 	}
 }
