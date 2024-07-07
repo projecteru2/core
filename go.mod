@@ -22,7 +22,6 @@ require (
 	github.com/muroq/redislock v0.0.0-20210327061935-5425e33e6f9f
 	github.com/opencontainers/image-spec v1.1.0-rc2.0.20221005185240-3a7f492d3f1b
 	github.com/panjf2000/ants/v2 v2.7.3
-	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/projecteru2/libyavirt v0.0.0-20230921032447-a617cf0c746c
 	github.com/prometheus/client_golang v1.15.0
