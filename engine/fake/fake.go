@@ -13,11 +13,16 @@ import (
 // EngineWithErr use to mock the nil engine
 type EngineWithErr struct {
 	DefaultErr error
+	EP         *enginetypes.Params
 }
 
 // Info .
 func (f *EngineWithErr) Info(_ context.Context) (*enginetypes.Info, error) {
 	return nil, f.DefaultErr
+}
+
+func (f *EngineWithErr) GetParams() *enginetypes.Params {
+	return f.EP
 }
 
 // Ping .

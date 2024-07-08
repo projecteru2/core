@@ -15,6 +15,7 @@ type API interface {
 	Info(ctx context.Context) (*enginetypes.Info, error)
 	Ping(ctx context.Context) error
 	CloseConn() error
+	GetParams() *enginetypes.Params
 
 	Execute(ctx context.Context, ID string, config *enginetypes.ExecConfig) (execID string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error)
 	ExecResize(ctx context.Context, execID string, height, width uint) (err error)
