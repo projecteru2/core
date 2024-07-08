@@ -70,10 +70,8 @@ func InitEngineCache(ctx context.Context, config types.Config, stor store.Store)
 
 // Get .
 func (e *EngineCache) Get(key string) engine.API {
-	if api, found := e.cache.Get(key); found {
-		return api
-	}
-	return nil
+	api, _ := e.cache.Get(key)
+	return api
 }
 
 // Set .
