@@ -87,7 +87,12 @@ func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 		return utils.Txn(ctx,
 			// if: remove node metadata
 			func(ctx context.Context) error {
-				return c.store.RemoveNode(ctx, node)
+				if err := c.store.RemoveNode(ctx, node); err != nil {
+					return err
+				}
+				// remove node status, we don't care the result
+				_ = c.store.SetNodeStatus(ctx, node, -1)
+				return nil
 			},
 			// then: remove node resource metadata
 			func(ctx context.Context) error {
