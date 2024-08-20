@@ -151,13 +151,14 @@ func (e *EngineCache) checkNodeStatus(ctx context.Context) {
 		ch := e.stor.NodeStatusStream(ctx)
 
 		for ns := range ch {
-			// GetNode will call GetEngine, so GetNode updates the engine cache automatically
-			if _, err := e.stor.GetNode(ctx, ns.Nodename); err != nil {
-				if errors.Is(err, types.ErrInvaildCount) {
-					logger.Infof(ctx, "remove metrics for invalid node %s", ns.Nodename)
-					metrics.Client.RemoveInvalidNodes(ns.Nodename)
-				}
-				logger.Warnf(ctx, "failed to get node %s: %s", ns.Nodename, err)
+			// don't need to add new entry to engine cache for alive node here,
+			// because NodeStatusStream calls GetNode, and GetNode will call GetEngine,
+			// so NodeStatusStream will update the engine cache for alive node automatically.
+			if errors.Is(ns.Error, types.ErrInvaildCount) {
+				// ns.Error is the error returned by GetNode which is called by NodeStatusStream
+				// so here is a good place to update metrics cache
+				logger.Infof(ctx, "remove metrics for invalid node %s", ns.Nodename)
+				metrics.Client.RemoveInvalidNodes(ns.Nodename)
 			}
 
 			if !ns.Alive {
