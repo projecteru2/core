@@ -18,6 +18,7 @@ import (
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/engine/virt"
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/metrics"
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -150,22 +151,26 @@ func (e *EngineCache) checkNodeStatus(ctx context.Context) {
 		ch := e.stor.NodeStatusStream(ctx)
 
 		for ns := range ch {
-			if ns.Alive {
-				// GetNode will call GetEngine, so GetNode updates the engine cache automatically
-				if _, err := e.stor.GetNode(ctx, ns.Nodename); err != nil {
-					logger.Warnf(ctx, "failed to get node %s: %s", ns.Nodename, err)
+			// GetNode will call GetEngine, so GetNode updates the engine cache automatically
+			if _, err := e.stor.GetNode(ctx, ns.Nodename); err != nil {
+				if errors.Is(err, types.ErrInvaildCount) {
+					logger.Infof(ctx, "remove metrics for invalid node %s", ns.Nodename)
+					metrics.Client.RemoveInvalidNodes(ns.Nodename)
 				}
-				continue
+				logger.Warnf(ctx, "failed to get node %s: %s", ns.Nodename, err)
 			}
-			// a node may have multiple engines, so we need check all key here
-			e.cache.ForEach(func(_ string, v engine.API) bool {
-				ep := v.GetParams()
-				if ep.Nodename == ns.Nodename {
-					logger.Infof(ctx, "remove engine %+v from cache", ep.CacheKey())
-					RemoveEngineFromCache(ctx, ep.Endpoint, ep.CA, ep.Cert, ep.Key)
-				}
-				return true
-			})
+
+			if !ns.Alive {
+				// a node may have multiple engines, so we need check all key here
+				e.cache.ForEach(func(_ string, v engine.API) bool {
+					ep := v.GetParams()
+					if ep.Nodename == ns.Nodename {
+						logger.Infof(ctx, "remove engine %+v from cache", ep.CacheKey())
+						RemoveEngineFromCache(ctx, ep.Endpoint, ep.CA, ep.Cert, ep.Key)
+					}
+					return true
+				})
+			}
 		}
 	}
 }
