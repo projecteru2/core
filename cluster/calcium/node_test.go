@@ -90,12 +90,14 @@ func TestRemoveNode(t *testing.T) {
 
 	// fail by store.RemoveNode
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Workload{}, nil)
+	store.On("SetNodeStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
 	store.On("RemoveNode", mock.Anything, mock.Anything).Return(types.ErrMockError).Once()
 	assert.Error(t, c.RemoveNode(ctx, name))
 
 	// success
+	store.On("SetNodeStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
 	store.On("RemoveNode", mock.Anything, mock.Anything).Return(nil)
-	store.On("SetNodeStatus", mock.Anything, mock.Anything, int64(-1)).Return(nil)
+	store.On("SetNodeStatus", mock.Anything, mock.Anything, int64(-1)).Return(nil).Once()
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("RemoveNode", mock.Anything, mock.Anything).Return(nil)
 	assert.NoError(t, c.RemoveNode(ctx, name))
