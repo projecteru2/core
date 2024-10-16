@@ -225,7 +225,7 @@ func InitMetrics(ctx context.Context, config types.Config, metricsDescriptions [
 
 	Client.Collectors[podNodeStatusName] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: podNodeStatusName,
-		Help: "number of up nodes",
+		Help: "node status",
 	}, []string{"hostname", "podname", "nodename"})
 
 	once.Do(func() {
