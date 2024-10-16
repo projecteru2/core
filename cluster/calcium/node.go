@@ -87,6 +87,12 @@ func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 		return utils.Txn(ctx,
 			// if: remove node metadata
 			func(ctx context.Context) error {
+				// we need set node status here, consider the following scenery:
+				// the node is down, so the node status doesn't exist in ETCD,
+				// if we don't set node status here, other core instances will not be notified when the node is removed
+				if err = c.store.SetNodeStatus(ctx, node, 90); err != nil {
+					logger.Warnf(ctx, "failed to set node status: %s", err)
+				}
 				if err := c.store.RemoveNode(ctx, node); err != nil {
 					return err
 				}
