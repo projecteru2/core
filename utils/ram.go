@@ -20,7 +20,7 @@ func ParseRAMInHuman(ram string) (int64, error) {
 	flag := int64(1)
 	if strings.HasPrefix(ram, "-") {
 		flag = int64(-1)
-		ram = strings.TrimLeft(ram, "-")
+		ram = strings.TrimPrefix(ram, "-")
 	}
 	ramInBytes, err = units.RAMInBytes(ram)
 	if err != nil {
