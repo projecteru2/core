@@ -2,11 +2,29 @@ package calcium
 
 import (
 	"context"
+	"sync"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
+
+func perNode[T any](c *Calcium, nodes []*types.Node, work func(*types.Node, chan<- T)) chan T {
+	ch := make(chan T)
+	_ = c.pool.Invoke(func() {
+		defer close(ch)
+		wg := &sync.WaitGroup{}
+		wg.Add(len(nodes))
+		defer wg.Wait()
+		for _, node := range nodes {
+			_ = c.pool.Invoke(func() {
+				defer wg.Done()
+				work(node, ch)
+			})
+		}
+	})
+	return ch
+}
 
 func distributionInspect(ctx context.Context, node *types.Node, image string, digests []string) bool {
 	logger := log.WithFunc("calcium.distributionInspect")

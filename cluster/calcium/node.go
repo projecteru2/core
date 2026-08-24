@@ -4,7 +4,6 @@ import (
 	"cmp"
 	"context"
 	"slices"
-	"sync"
 
 	enginefactory "github.com/projecteru2/core/engine/factory"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -113,31 +112,18 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 		logger.Error(ctx, err)
 		return nil, err
 	}
-	ch := make(chan *types.Node)
-
-	_ = c.pool.Invoke(func() {
-		defer close(ch)
-		wg := &sync.WaitGroup{}
-		wg.Add(len(nodes))
-		defer wg.Wait()
-		for _, node := range nodes {
-			_ = c.pool.Invoke(func() {
-				defer wg.Done()
-				var err error
-				if node.ResourceInfo.Capacity, node.ResourceInfo.Usage, node.ResourceInfo.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false); err != nil {
-					logger.Errorf(ctx, err, "failed to get node %s resource info", node.Name)
-				}
-				if opts.CallInfo {
-					if err := node.Info(ctx); err != nil {
-						logger.Errorf(ctx, err, "failed to get node %s info", node.Name)
-					}
-				}
-				ch <- node
-			})
+	return perNode(c, nodes, func(node *types.Node, ch chan<- *types.Node) {
+		var err error
+		if node.ResourceInfo.Capacity, node.ResourceInfo.Usage, node.ResourceInfo.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false); err != nil {
+			logger.Errorf(ctx, err, "failed to get node %s resource info", node.Name)
 		}
-	})
-
-	return ch, nil
+		if opts.CallInfo {
+			if err := node.Info(ctx); err != nil {
+				logger.Errorf(ctx, err, "failed to get node %s info", node.Name)
+			}
+		}
+		ch <- node
+	}), nil
 }
 
 func (c *Calcium) GetNode(ctx context.Context, nodename string) (node *types.Node, err error) {

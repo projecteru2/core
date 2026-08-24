@@ -3,7 +3,6 @@ package calcium
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/strategy"
@@ -17,29 +16,16 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (chan *types.
 		logger.Error(ctx, err)
 		return nil, err
 	}
-	ch := make(chan *types.NodeResourceInfo)
-
-	_ = c.pool.Invoke(func() {
-		defer close(ch)
-		wg := &sync.WaitGroup{}
-		wg.Add(len(nodes))
-		defer wg.Wait()
-		for _, node := range nodes {
-			_ = c.pool.Invoke(func() {
-				defer wg.Done()
-				nr, err := c.doGetNodeResource(ctx, node.Name, false, false)
-				if err != nil {
-					logger.Error(ctx, err)
-					nr = &types.NodeResourceInfo{
-						Name: node.Name, Diffs: []string{err.Error()},
-					}
-				}
-				ch <- nr
-			})
+	return perNode(c, nodes, func(node *types.Node, ch chan<- *types.NodeResourceInfo) {
+		nr, err := c.doGetNodeResource(ctx, node.Name, false, false)
+		if err != nil {
+			logger.Error(ctx, err)
+			nr = &types.NodeResourceInfo{
+				Name: node.Name, Diffs: []string{err.Error()},
+			}
 		}
-	})
-
-	return ch, nil
+		ch <- nr
+	}), nil
 }
 
 func (c *Calcium) NodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResourceInfo, error) {
