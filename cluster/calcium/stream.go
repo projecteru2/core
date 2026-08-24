@@ -61,7 +61,7 @@ func (c *Calcium) processVirtualizationInStream(
 	inStream io.WriteCloser,
 	inCh <-chan []byte,
 	resizeFunc func(height, width uint) error,
-) <-chan struct{} { //nolint
+) <-chan struct{} { //nolint:unparam
 	logger := log.WithFunc("calcium.processVirtualizationInStream")
 	specialPrefixCallback := map[string]func([]byte){
 		string(winchCommand): func(body []byte) {
@@ -156,7 +156,7 @@ func (c *Calcium) processBuildImageStream(ctx context.Context, reader io.ReadClo
 			err := decoder.Decode(message)
 			if err != nil {
 				if err != io.EOF {
-					malformed, _ := io.ReadAll(decoder.Buffered()) // TODO err check
+					malformed, _ := io.ReadAll(decoder.Buffered())
 					log.WithFunc("calcium.processBuildImageStream").Errorf(ctx, err, "decode image message failed, buffered: %s", string(malformed))
 					message.Error = err.Error()
 					ch <- message

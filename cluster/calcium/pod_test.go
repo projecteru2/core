@@ -36,7 +36,6 @@ func TestRemovePod(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 
-	// failed by validating
 	assert.Error(t, c.RemovePod(ctx, ""))
 
 	store := c.store.(*storemocks.Store)

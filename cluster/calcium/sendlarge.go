@@ -12,19 +12,16 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-// SendLargeFile send large files by stream to workload
 func (c *Calcium) SendLargeFile(ctx context.Context, inputChan chan *types.SendLargeFileOptions) chan *types.SendMessage {
 	resp := make(chan *types.SendMessage)
 	wg := &sync.WaitGroup{}
 	utils.SentryGo(func() {
 		defer close(resp)
 		senders := make(map[string]*workloadSender)
-		// for each file
 		for data := range inputChan {
 			for _, id := range data.IDs {
 				if _, ok := senders[id]; !ok {
 					log.Debugf(ctx, "[SendLargeFile] create sender for %s", id)
-					// for each container, let's create a new sender to send identical file chunk, each chunk will include the metadata of this file
 					wg.Add(1)
 					sender := c.newWorkloadSender(ctx, id, resp, wg)
 					senders[id] = sender
@@ -73,9 +70,8 @@ func (c *Calcium) newWorkloadSender(ctx context.Context, ID string, resp chan *t
 				log.Warnf(ctx, "[newWorkloadExecutor] receive different files %s, %s", curFile, data.Dst)
 				break
 			}
-			// ready to send
 			if curFile == "" {
-				log.Debugf(ctx, "[newWorkloadExecutor]Receive new file %s to %s", curFile, sender.id)
+				log.Debugf(ctx, "[newWorkloadExecutor] receive new file %s to %s", data.Dst, sender.id)
 				curFile = data.Dst
 				pr, pw := io.Pipe()
 				writer = pw

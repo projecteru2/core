@@ -35,7 +35,6 @@ func TestCreateWorkloadValidating(t *testing.T) {
 		},
 		NodeFilter: &types.NodeFilter{},
 	}
-	// failed by validating
 	opts.Name = ""
 	_, err := c.CreateWorkload(ctx, opts)
 	assert.Error(t, err)
@@ -90,7 +89,6 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	mwal.On("Log", mock.Anything, mock.Anything).Return(commit, nil)
 	node1, node2 := nodes[0], nodes[1]
 
-	// doAllocResource fails: GetNodesDeployCapacity
 	rmgr.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(
 		nil, 0, types.ErrMockError,
 	).Once()
@@ -121,7 +119,6 @@ func TestCreateWorkloadTxn(t *testing.T) {
 		}, 20, nil,
 	)
 
-	// doAllocResource fails: GetDeployStatus
 	store.On("GetDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.Wrap(context.DeadlineExceeded, "GetDeployStatus")).Once()
 	ch, err = c.CreateWorkload(ctx, opts)
 	assert.Nil(t, err)
@@ -136,7 +133,6 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	walCommitted.Store(false)
 	store.On("GetDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(map[string]int{}, nil)
 
-	// doAllocResource fails: Alloc
 	rmgr.On("Alloc", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		nil, nil, types.ErrMockError,
 	).Once()
@@ -185,7 +181,6 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	assert.EqualValues(t, 2, cnt)
 	assert.True(t, walCommitted.Load())
 
-	// doDeployOneWorkload fails: VirtualizationCreate
 	engine.On("ImageLocalDigests", mock.Anything, mock.Anything).Return([]string{""}, nil)
 	engine.On("ImageRemoteDigest", mock.Anything, mock.Anything).Return("", nil)
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(nil, errors.Wrap(context.DeadlineExceeded, "VirtualizationCreate")).Twice()
@@ -204,7 +199,6 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	assert.EqualValues(t, 2, cnt)
 	assert.True(t, walCommitted.Load())
 
-	// doCreateAndStartWorkload fails: AddWorkload
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationCreated{ID: "c1"}, nil)
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
 	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{}, nil)
@@ -222,7 +216,6 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	assert.EqualValues(t, 2, cnt)
 	assert.True(t, walCommitted.Load())
 
-	// doCreateAndStartWorkload fails: first time AddWorkload failed
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationCreated{ID: "c1"}, nil)
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
 	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{}, nil)
@@ -278,7 +271,6 @@ func TestCreateWorkloadIngorePullTxn(t *testing.T) {
 	mwal.On("Log", mock.Anything, mock.Anything).Return(commit, nil)
 	node1, node2 := nodes[0], nodes[1]
 
-	// doAllocResource fails: GetNodesDeployCapacity
 	rmgr.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(
 		nil, 0, types.ErrMockError,
 	).Once()
@@ -309,7 +301,6 @@ func TestCreateWorkloadIngorePullTxn(t *testing.T) {
 		}, 20, nil,
 	)
 
-	// doAllocResource fails: GetDeployStatus
 	store.On("GetDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.Wrap(context.DeadlineExceeded, "GetDeployStatus")).Once()
 	ch, err = c.CreateWorkload(ctx, opts)
 	assert.Nil(t, err)
@@ -324,7 +315,6 @@ func TestCreateWorkloadIngorePullTxn(t *testing.T) {
 	walCommitted.Store(false)
 	store.On("GetDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(map[string]int{}, nil)
 
-	// doAllocResource fails: Alloc
 	rmgr.On("Alloc", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		nil, nil, types.ErrMockError,
 	).Once()
@@ -360,22 +350,8 @@ func TestCreateWorkloadIngorePullTxn(t *testing.T) {
 		}, nil,
 	)
 	engine := node1.Engine.(*enginemocks.API)
-	// engine.On("ImageLocalDigests", mock.Anything, mock.Anything).Return(nil, errors.Wrap(context.DeadlineExceeded, "ImageLocalDigest")).Twice()
-	// engine.On("ImagePull", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.Wrap(context.DeadlineExceeded, "ImagePull")).Twice()
 	store.On("DeleteProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	// ch, err = c.CreateWorkload(ctx, opts)
-	// assert.Nil(t, err)
-	// cnt = 0
-	// for m := range ch {
-	// 	cnt++
-	// 	assert.Error(t, m.Error, "ImagePull")
-	// }
-	// assert.EqualValues(t, 2, cnt)
-	// assert.True(t, walCommitted.Load())
 
-	// doDeployOneWorkload fails: VirtualizationCreate
-	// engine.On("ImageLocalDigests", mock.Anything, mock.Anything).Return([]string{""}, nil)
-	// engine.On("ImageRemoteDigest", mock.Anything, mock.Anything).Return("", nil)
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(nil, errors.Wrap(context.DeadlineExceeded, "VirtualizationCreate")).Twice()
 	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
@@ -392,7 +368,6 @@ func TestCreateWorkloadIngorePullTxn(t *testing.T) {
 	assert.EqualValues(t, 2, cnt)
 	assert.True(t, walCommitted.Load())
 
-	// doCreateAndStartWorkload fails: AddWorkload
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationCreated{ID: "c1"}, nil)
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
 	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{}, nil)
@@ -410,7 +385,6 @@ func TestCreateWorkloadIngorePullTxn(t *testing.T) {
 	assert.EqualValues(t, 2, cnt)
 	assert.True(t, walCommitted.Load())
 
-	// doCreateAndStartWorkload fails: first time AddWorkload failed
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationCreated{ID: "c1"}, nil)
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
 	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{}, nil)
@@ -455,18 +429,15 @@ func newCreateWorkloadCluster(_ *testing.T) (*Calcium, []*types.Node) {
 	}
 	nodes := []*types.Node{node1, node2}
 
-	// for processing
 	store := c.store.(*storemocks.Store)
 	store.On("CreateProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("DeleteProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
-	// for lock
 	lock := &lockmocks.DistributedLock{}
 	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 
-	// for get node
 	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nodes, nil)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(
 		func(_ context.Context, name string) (node *types.Node) {

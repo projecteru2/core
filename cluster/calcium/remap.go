@@ -13,8 +13,7 @@ type remapMsg struct {
 	err error
 }
 
-// RemapResourceAndLog called on changes of resource binding, such as cpu binding
-// as an internal api, remap doesn't lock node, the responsibility of that should be taken on by caller
+// RemapResourceAndLog remaps node resources after a binding change and logs the outcome.
 func (c *Calcium) RemapResourceAndLog(ctx context.Context, logger *log.Fields, node *types.Node) {
 	ctx, cancel := context.WithTimeout(utils.NewInheritCtx(ctx), c.config.GlobalTimeout)
 	defer cancel()
@@ -35,6 +34,7 @@ func (c *Calcium) RemapResourceAndLog(ctx context.Context, logger *log.Fields, n
 	}
 }
 
+// the caller must hold the node lock
 func (c *Calcium) doRemapResource(ctx context.Context, node *types.Node) (ch chan *remapMsg, err error) {
 	workloads, err := c.store.ListNodeWorkloads(ctx, node.Name, nil)
 	if err != nil {

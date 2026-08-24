@@ -50,13 +50,11 @@ func TestListWorkloads(t *testing.T) {
 		{ID: ID},
 	}
 
-	// failed by ListWorkloads
 	store := c.store.(*storemocks.Store)
 	store.On("ListWorkloads", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	_, err := c.ListWorkloads(ctx, &types.ListWorkloadsOptions{Appname: "", Entrypoint: "", Nodename: ""})
 	assert.Error(t, err)
 
-	// success
 	store.On("ListWorkloads", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(workloads, nil)
 	cs, err := c.ListWorkloads(ctx, &types.ListWorkloadsOptions{Appname: "", Entrypoint: "", Nodename: ""})
 	assert.NoError(t, err)

@@ -21,7 +21,6 @@ func TestGetNodeStatus(t *testing.T) {
 		Podname:  "test",
 		Alive:    true,
 	}
-	// failed
 	store.On("GetNodeStatus", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	_, err := c.GetNodeStatus(ctx, "test")
 	assert.Error(t, err)
@@ -45,10 +44,8 @@ func TestSetNodeStatus(t *testing.T) {
 			Endpoint: "ep",
 		},
 	}
-	// failed by GetNode
 	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	assert.Error(t, c.SetNodeStatus(ctx, node.Name, 10))
-	// failed by SetWorkloadStatus
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
 	store.On("SetNodeStatus",
 		mock.Anything,
@@ -56,7 +53,6 @@ func TestSetNodeStatus(t *testing.T) {
 		mock.Anything,
 	).Return(types.ErrMockError).Once()
 	assert.Error(t, c.SetNodeStatus(ctx, node.Name, 10))
-	// success
 	store.On("SetNodeStatus",
 		mock.Anything,
 		mock.Anything,
@@ -93,11 +89,9 @@ func TestGetWorkloadsStatus(t *testing.T) {
 	store := c.store.(*storemocks.Store)
 	cs := &types.StatusMeta{}
 
-	// failed GetWorkloadStatus
 	store.On("GetWorkloadStatus", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	_, err := c.GetWorkloadsStatus(ctx, []string{"a"})
 	assert.Error(t, err)
-	// success
 	store.On("GetWorkloadStatus", mock.Anything, mock.Anything).Return(cs, nil)
 	r, err := c.GetWorkloadsStatus(ctx, []string{"a"})
 	assert.NoError(t, err)
@@ -110,12 +104,10 @@ func TestSetWorkloadsStatus(t *testing.T) {
 	ctx := context.Background()
 	store := c.store.(*storemocks.Store)
 
-	// no meta, generate by id
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	_, err := c.SetWorkloadsStatus(ctx, []*types.StatusMeta{{ID: "123"}}, nil)
 	assert.Error(t, err)
 
-	// failed by workload name
 	workload := &types.Workload{
 		ID:   "123",
 		Name: "invalid",
@@ -124,7 +116,6 @@ func TestSetWorkloadsStatus(t *testing.T) {
 	_, err = c.SetWorkloadsStatus(ctx, []*types.StatusMeta{{ID: "123"}}, nil)
 	assert.Error(t, err)
 
-	// failed by SetworkloadStatus
 	workload.Name = "a_b_c"
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
 	store.On("SetWorkloadStatus",
@@ -135,7 +126,6 @@ func TestSetWorkloadsStatus(t *testing.T) {
 	_, err = c.SetWorkloadsStatus(ctx, []*types.StatusMeta{{ID: "123"}}, nil)
 	assert.Error(t, err)
 
-	// success
 	store.On("SetWorkloadStatus",
 		mock.Anything,
 		mock.Anything,

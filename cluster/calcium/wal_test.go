@@ -48,7 +48,6 @@ func TestHandleCreateWorkloadNoHandle(t *testing.T) {
 	c.wal.Recover(context.Background())
 	store.AssertExpectations(t)
 
-	// Recovers nothing.
 	c.wal.Recover(context.Background())
 }
 
@@ -102,7 +101,6 @@ func TestHandleCreateWorkloadError(t *testing.T) {
 	store.AssertExpectations(t)
 	engine.AssertExpectations(t)
 
-	// Nothing recovered.
 	c.wal.Recover(context.Background())
 }
 
@@ -131,7 +129,7 @@ func TestHandleCreateWorkloadHandled(t *testing.T) {
 	wrk := &types.Workload{
 		ID:       wrkid,
 		Nodename: node.Name,
-		Engine:   nil, // explicitly set a nil as it will be evaluated by CreateWorkloadHandler.Handle.
+		Engine:   nil,
 	}
 
 	store := c.store.(*storemocks.Store)
@@ -150,7 +148,6 @@ func TestHandleCreateWorkloadHandled(t *testing.T) {
 	store.AssertExpectations(t)
 	eng.AssertExpectations(t)
 
-	// Recovers nothing.
 	c.wal.Recover(context.Background())
 }
 
@@ -221,7 +218,6 @@ func TestHandleCreateLambda(t *testing.T) {
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 
 	c.wal.Recover(context.Background())
-	// Recovered nothing.
 	c.wal.Recover(context.Background())
 	time.Sleep(500 * time.Millisecond)
 	store.AssertExpectations(t)

@@ -45,7 +45,6 @@ func TestServiceStatusStreamWithMultipleRegisteringAsExpired(t *testing.T) {
 	raw := make(chan struct{})
 	var expiry <-chan struct{} = raw
 	store.On("RegisterService", mock.Anything, mock.Anything, mock.Anything).Return(expiry, func() {}, nil).Once()
-	// Once the original one expired, the new calling's expiry must also be a brand new <-chan.
 	store.On("RegisterService", mock.Anything, mock.Anything, mock.Anything).Return(make(<-chan struct{}), func() {}, nil).Once()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -53,9 +52,7 @@ func TestServiceStatusStreamWithMultipleRegisteringAsExpired(t *testing.T) {
 	_, err := c.RegisterService(ctx)
 	assert.NoError(t, err)
 
-	// Triggers the original one expired.
 	close(raw)
-	// Waiting for the second calling of store.RegisterService.
 	time.Sleep(time.Millisecond)
 	store.AssertExpectations(t)
 }

@@ -26,36 +26,34 @@ func distributionInspect(ctx context.Context, node *types.Node, image string, di
 	return false
 }
 
-// Pull an image
 func pullImage(ctx context.Context, node *types.Node, image string) error {
 	logger := log.WithFunc("calcium.pullImage").WithField("node", node.Name).WithField("image", image)
-	logger.Info(ctx, "Pulling image")
+	logger.Info(ctx, "pulling image")
 	if image == "" {
 		return types.ErrNoImage
 	}
 
-	// check local
 	exists := false
 	digests, err := node.Engine.ImageLocalDigests(ctx, image)
 	if err != nil {
-		logger.Errorf(ctx, err, "Check image failed %+v", err)
+		logger.Error(ctx, err, "check image failed")
 	} else {
-		logger.Debug(ctx, "Local Image exists")
+		logger.Debug(ctx, "local image exists")
 		exists = true
 	}
 
 	if exists && distributionInspect(ctx, node, image, digests) {
-		logger.Debug(ctx, "Image cached, skip pulling")
+		logger.Debug(ctx, "image cached, skip pulling")
 		return nil
 	}
 
-	logger.Info(ctx, "Image not cached, pulling")
+	logger.Info(ctx, "image not cached, pulling")
 	rc, err := node.Engine.ImagePull(ctx, image, false)
 	defer utils.EnsureReaderClosed(ctx, rc)
 	if err != nil {
-		logger.Errorf(ctx, err, "Error during pulling image %s", image)
+		logger.Errorf(ctx, err, "failed to pull image %s", image)
 		return err
 	}
-	logger.Infof(ctx, "Done pulling image %s", image)
+	logger.Infof(ctx, "done pulling image %s", image)
 	return nil
 }

@@ -12,8 +12,6 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-// RemoveWorkload remove workloads
-// returns a channel that contains removing responses
 func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) (chan *types.RemoveWorkloadMessage, error) {
 	logger := log.WithFunc("calcium.RemoveWorkload").WithField("IDs", IDs).WithField("force", force)
 
@@ -39,19 +37,16 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 							if workloadErr := c.withWorkloadLocked(ctx, workloadID, false, func(ctx context.Context, workload *types.Workload) error {
 								return utils.Txn(
 									ctx,
-									// if
 									func(ctx context.Context) (err error) {
 										_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []resourcetypes.Resources{workload.Resources}, true, plugins.Decr)
 										return err
 									},
-									// then
 									func(ctx context.Context) (err error) {
 										if err = c.doRemoveWorkload(ctx, workload, force); err == nil {
-											logger.Infof(ctx, "Workload %s removed", workload.ID)
+											logger.Infof(ctx, "workload %s removed", workload.ID)
 										}
 										return err
 									},
-									// rollback
 									func(ctx context.Context, failedByCond bool) (err error) {
 										if failedByCond {
 											return nil
@@ -62,7 +57,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 									c.config.GlobalTimeout,
 								)
 							}); workloadErr != nil {
-								logger.WithField("id", workloadID).Error(ctx, workloadErr, "failed to lock workload")
+								logger.WithField("id", workloadID).Error(ctx, workloadErr, "failed to remove workload")
 								ret.Hook = append(ret.Hook, bytes.NewBufferString(workloadErr.Error()))
 								ret.Success = false
 							}
@@ -81,24 +76,20 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 	return ch, nil
 }
 
-// RemoveWorkloadSync .
 func (c *Calcium) RemoveWorkloadSync(ctx context.Context, IDs []string) error {
 	return c.doRemoveWorkloadSync(ctx, IDs)
 }
 
-// semantic: instance removed on err == nil, instance remained on err != nil
+// removes the instance on nil error; leaves it in place otherwise
 func (c *Calcium) doRemoveWorkload(ctx context.Context, workload *types.Workload, force bool) error {
 	return utils.Txn(
 		ctx,
-		// if
 		func(ctx context.Context) error {
 			return c.store.RemoveWorkload(ctx, workload)
 		},
-		// then
 		func(ctx context.Context) error {
 			return workload.Remove(ctx, force)
 		},
-		// rollback
 		func(ctx context.Context, failedByCond bool) error {
 			if failedByCond {
 				return nil
@@ -109,7 +100,6 @@ func (c *Calcium) doRemoveWorkload(ctx context.Context, workload *types.Workload
 	)
 }
 
-// 同步地删除容器, 在某些需要等待的场合异常有用!
 func (c *Calcium) doRemoveWorkloadSync(ctx context.Context, IDs []string) error {
 	ch, err := c.RemoveWorkload(ctx, IDs, true)
 	if err != nil {
@@ -117,8 +107,7 @@ func (c *Calcium) doRemoveWorkloadSync(ctx context.Context, IDs []string) error 
 	}
 
 	for m := range ch {
-		// TODO deal with failed
-		log.WithFunc("calcium.doRemoveWorkloadSync").Debugf(ctx, "Removed %s", m.WorkloadID)
+		log.WithFunc("calcium.doRemoveWorkloadSync").Debugf(ctx, "removed %s", m.WorkloadID)
 	}
 	return nil
 }

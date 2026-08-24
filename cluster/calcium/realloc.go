@@ -11,7 +11,6 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-// ReallocResource updates workload resource dynamically
 func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOptions) (err error) {
 	logger := log.WithFunc("calcium.ReallocResource").WithField("opts", opts)
 	logger.Infof(ctx, "realloc workload %+v with options %+v", opts.ID, opts.Resources)
@@ -19,7 +18,6 @@ func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOption
 	if err != nil {
 		return err
 	}
-	// copy origin workload
 	originWorkload := *workload
 	return c.withNodePodLocked(ctx, workload.Nodename, func(ctx context.Context, node *types.Node) error {
 		return c.withWorkloadLocked(ctx, opts.ID, false, func(ctx context.Context, workload *types.Workload) error {
@@ -39,10 +37,8 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 	logger := log.WithFunc("calcium.doReallocOnNode").WithField("opts", opts)
 	err = utils.Txn(
 		ctx,
-		// if: update workload resource
 		func(ctx context.Context) error {
-			// note here will change the node resource meta (stored in resource plugin)
-			// todo: add wal here
+			// Realloc mutates node resource meta in the resource plugin
 			engineParams, deltaResources, resources, err = c.rmgr.Realloc(ctx, workload.Nodename, workload.Resources, opts.Resources)
 			if err != nil {
 				return err
@@ -52,11 +48,9 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 			workload.Resources = resources
 			return c.store.UpdateWorkload(ctx, workload)
 		},
-		// then: update virtualization
 		func(ctx context.Context) error {
 			return node.Engine.VirtualizationUpdateResource(ctx, opts.ID, engineParams)
 		},
-		// rollback: revert the resource changes and rollback workload meta
 		func(ctx context.Context, failureByCond bool) error {
 			if failureByCond {
 				return nil

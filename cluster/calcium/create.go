@@ -21,7 +21,6 @@ import (
 	"github.com/projecteru2/core/wal"
 )
 
-// CreateWorkload use options to create workloads
 func (c *Calcium) CreateWorkload(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateWorkloadMessage, error) {
 	logger := log.WithFunc("calcium.CreateWorkload").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
@@ -30,8 +29,7 @@ func (c *Calcium) CreateWorkload(ctx context.Context, opts *types.DeployOptions)
 	}
 	opts.ProcessIdent = utils.RandomString(16)
 	logger = logger.WithField("ident", opts.ProcessIdent)
-	logger.Infof(ctx, "Creating workload ident %s with options:\n%s", opts.ProcessIdent, litter.Options{Compact: true}.Sdump(opts))
-	// Count 要大于0
+	logger.Infof(ctx, "creating workload ident %s with options:\n%s", opts.ProcessIdent, litter.Options{Compact: true}.Sdump(opts))
 	if opts.Count <= 0 {
 		err := errors.Wrapf(types.ErrInvaildDeployCount, "count: %d", opts.Count)
 		logger.Error(ctx, err)
@@ -41,20 +39,15 @@ func (c *Calcium) CreateWorkload(ctx context.Context, opts *types.DeployOptions)
 	return c.doCreateWorkloads(ctx, opts), nil
 }
 
-// transaction: resource metadata consistency
 func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptions) chan *types.CreateWorkloadMessage {
 	logger := log.WithFunc("calcium.doCreateWorkloads").WithField("ident", opts.ProcessIdent)
 	ch := make(chan *types.CreateWorkloadMessage)
-	// RFC 计算当前 app 部署情况的时候需要保证同一时间只有这个 app 的这个 entrypoint 在跑
-	// 因此需要在这里加个全局锁，直到部署完毕才释放
-	// 通过 Processing 状态跟踪达成 18 Oct, 2018
+	// processing records make concurrent deploys of the same entrypoint visible to each other
 
 	var (
-		deployMap   map[string]int
-		rollbackMap map[string][]int
-		// map[nodename][]Resources
-		engineParamsMap = map[string][]resourcetypes.Resources{}
-		// map[nodename][]Resources
+		deployMap            map[string]int
+		rollbackMap          map[string][]int
+		engineParamsMap      = map[string][]resourcetypes.Resources{}
 		workloadResourcesMap = map[string][]resourcetypes.Resources{}
 	)
 
@@ -94,7 +87,6 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 		_ = utils.Txn(
 			ctx,
 
-			// if: alloc resources
 			func(ctx context.Context) (err error) {
 				defer func() {
 					if err != nil {
@@ -122,7 +114,6 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 						return err
 					}
 
-					// commit changes
 					processingCommits = make(map[string]wal.Commit)
 					for nodename, deploy := range deployMap {
 						nodes = append(nodes, nodeMap[nodename])
@@ -141,13 +132,11 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 				})
 			},
 
-			// then: deploy workloads
 			func(ctx context.Context) (err error) {
 				rollbackMap, err = c.doDeployWorkloads(ctx, ch, opts, engineParamsMap, workloadResourcesMap, deployMap)
 				return err
 			},
 
-			// rollback: give back resources
 			func(ctx context.Context, failedOnCond bool) (err error) {
 				if failedOnCond {
 					return err
@@ -217,7 +206,6 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context,
 	return rollbackMap, err
 }
 
-// deploy scheduled workloads on one node
 func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
 	ch chan *types.CreateWorkloadMessage,
 	nodename string,
@@ -271,9 +259,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
 	}
 	wg.Wait()
 
-	// remap 就不搞进事务了吧, 回滚代价太大了
-	// 放任 remap 失败的后果是, share pool 没有更新, 这个后果姑且认为是可以承受的
-	// 而且 remap 是一个幂等操作, 就算这次 remap 失败, 下次 remap 也能收敛到正确到状态
+	// remap stays outside the txn: it is idempotent and converges on the next run
 	_ = c.pool.Invoke(func() { c.RemapResourceAndLog(ctx, logger, node) })
 
 	return indices, err
@@ -291,7 +277,6 @@ func (c *Calcium) doGetAndPrepareNode(ctx context.Context, nodename, image strin
 	return node, err
 }
 
-// transaction: workload metadata consistency
 func (c *Calcium) doDeployOneWorkload(
 	ctx context.Context,
 	node *types.Node,
@@ -300,7 +285,7 @@ func (c *Calcium) doDeployOneWorkload(
 	createOpts *enginetypes.VirtualizationCreateOptions,
 	decrProcessing bool,
 ) (err error) {
-	logger := log.WithFunc("calcium.doDeployWorkload").WithField("node", node.Name).WithField("ident", opts.ProcessIdent).WithField("msg", msg)
+	logger := log.WithFunc("calcium.doDeployOneWorkload").WithField("node", node.Name).WithField("ident", opts.ProcessIdent).WithField("msg", msg)
 	workload := &types.Workload{
 		Resources:    msg.Resources,
 		EngineParams: msg.EngineParams,
@@ -321,13 +306,12 @@ func (c *Calcium) doDeployOneWorkload(
 	defer func() {
 		if commit != nil {
 			if err := commit(); err != nil {
-				logger.Errorf(ctx, err, "Commit WAL %s failed", eventWorkloadCreated)
+				logger.Errorf(ctx, err, "commit wal %s failed", eventWorkloadCreated)
 			}
 		}
 	}()
 	return utils.Txn(
 		ctx,
-		// create workload
 		func(ctx context.Context) error {
 			created, err := node.Engine.VirtualizationCreate(ctx, createOpts)
 			if err != nil {
@@ -337,9 +321,7 @@ func (c *Calcium) doDeployOneWorkload(
 
 			maps.Copy(workload.Labels, created.Labels)
 
-			// We couldn't WAL the workload ID above VirtualizationCreate temporarily,
-			// so there's a time gap window, once the core process crashes between
-			// VirtualizationCreate and logCreateWorkload then the worload is leaky.
+			// a crash between VirtualizationCreate and this log leaks the workload
 			commit, err = c.wal.Log(eventWorkloadCreated, &types.Workload{
 				ID:       workload.ID,
 				Nodename: workload.Nodename,
@@ -353,13 +335,11 @@ func (c *Calcium) doDeployOneWorkload(
 			if !decrProcessing {
 				processing = nil
 			}
-			// add workload metadata first
 			if err = c.store.AddWorkload(ctx, workload, processing); err != nil {
 				return err
 			}
 			logger.Infof(ctx, "workload %s metadata created", workload.ID)
 
-			// Copy data to workload
 			if len(opts.Files) > 0 {
 				for _, file := range opts.Files {
 					if err = c.doSendFileToWorkload(ctx, node.Engine, workload.ID, file); err != nil {
@@ -368,7 +348,6 @@ func (c *Calcium) doDeployOneWorkload(
 				}
 			}
 
-			// deal with hook
 			if len(opts.AfterCreate) > 0 {
 				if workload.Hook != nil {
 					workload.Hook = &types.Hook{
@@ -383,30 +362,24 @@ func (c *Calcium) doDeployOneWorkload(
 				}
 			}
 
-			// start workload
 			msg.Hook, err = c.doStartWorkload(ctx, workload, opts.IgnoreHook)
 			if err != nil {
 				return err
 			}
 
-			// reset workload.hook
 			workload.Hook = opts.Entrypoint.Hook
 
-			// inspect real meta
 			var workloadInfo *enginetypes.VirtualizationInfo
-			workloadInfo, err = workload.Inspect(ctx) // 补充静态元数据
+			workloadInfo, err = workload.Inspect(ctx)
 			if err != nil {
 				return err
 			}
 
-			// update meta
 			if workloadInfo.Networks != nil {
 				msg.Publish = utils.MakePublishInfo(workloadInfo.Networks, opts.Entrypoint.Publish)
 			}
 
-			// if workload metadata changed, then update
 			if workloadInfo.User != workload.User {
-				// reset users
 				workload.User = workloadInfo.User
 
 				if err := c.store.UpdateWorkload(ctx, workload); err != nil {
@@ -422,9 +395,8 @@ func (c *Calcium) doDeployOneWorkload(
 			return nil
 		},
 
-		// remove workload
 		func(ctx context.Context, _ bool) error {
-			logger.Infof(ctx, "failed to deploy workload %s, rollback", workload.ID)
+			logger.Warnf(ctx, "failed to deploy workload %s, rollback", workload.ID)
 			if workload.ID == "" {
 				return nil
 			}
@@ -441,7 +413,6 @@ func (c *Calcium) doDeployOneWorkload(
 
 func (c *Calcium) doMakeWorkloadOptions(ctx context.Context, no int, msg *types.CreateWorkloadMessage, opts *types.DeployOptions, node *types.Node) *enginetypes.VirtualizationCreateOptions {
 	createOpts := &enginetypes.VirtualizationCreateOptions{}
-	// general
 	createOpts.EngineParams = msg.EngineParams
 	createOpts.RawArgs = opts.RawArgs
 	createOpts.Lambda = opts.Lambda
@@ -453,7 +424,6 @@ func (c *Calcium) doMakeWorkloadOptions(ctx context.Context, no int, msg *types.
 	createOpts.Debug = opts.Debug
 	createOpts.Networks = opts.Networks
 
-	// entry
 	entry := opts.Entrypoint
 	createOpts.WorkingDir = entry.Dir
 	createOpts.Privileged = entry.Privileged
@@ -465,20 +435,15 @@ func (c *Calcium) doMakeWorkloadOptions(ctx context.Context, no int, msg *types.
 		createOpts.LogConfig = map[string]string{}
 		maps.Copy(createOpts.LogConfig, entry.Log.Config)
 	}
-	// name
 	suffix := utils.RandomString(6)
 	createOpts.Name = utils.MakeWorkloadName(opts.Name, opts.Entrypoint.Name, suffix)
 	msg.WorkloadName = createOpts.Name
-	// command and user
-	// extra args is dynamically
 	createOpts.Cmd = opts.Entrypoint.Commands
-	// env
 	env := append(opts.Env, fmt.Sprintf("APP_NAME=%s", opts.Name)) //nolint
 	env = append(env, fmt.Sprintf("ERU_POD=%s", opts.Podname))
 	env = append(env, fmt.Sprintf("ERU_NODE_NAME=%s", node.Name))
 	env = append(env, fmt.Sprintf("ERU_WORKLOAD_SEQ=%d", no))
 	createOpts.Env = env
-	// basic labels, bind to LabelMeta
 	createOpts.Labels = map[string]string{
 		cluster.ERUMark: "1",
 		cluster.LabelMeta: utils.EncodeMetaInLabel(ctx, &types.LabelMeta{

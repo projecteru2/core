@@ -9,7 +9,6 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-// LogStream log stream for one workload
 func (c *Calcium) LogStream(ctx context.Context, opts *types.LogStreamOptions) (chan *types.LogStreamMessage, error) {
 	logger := log.WithFunc("calcium.LogStream").WithField("opts", opts)
 	ch := make(chan *types.LogStreamMessage)

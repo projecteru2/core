@@ -43,7 +43,6 @@ func TestDissociateWorkload(t *testing.T) {
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		nil, nil, nil, nil,
 	)
-	// failed by lock
 	store.On("GetNode", mock.Anything, "node1").Return(node1, nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch, err := c.DissociateWorkload(ctx, []string{"c1"})
@@ -54,7 +53,6 @@ func TestDissociateWorkload(t *testing.T) {
 	store.AssertExpectations(t)
 
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	// failed by RemoveWorkload
 	rmgr.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		resourcetypes.Resources{},
 		resourcetypes.Resources{},
@@ -72,7 +70,6 @@ func TestDissociateWorkload(t *testing.T) {
 
 	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
 
-	// success
 	ch, err = c.DissociateWorkload(ctx, []string{"c1"})
 	assert.NoError(t, err)
 	for r := range ch {

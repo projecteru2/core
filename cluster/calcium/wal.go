@@ -22,9 +22,11 @@ const (
 	eventWorkloadCreated           = "create-workload"   // created but yet to start
 	eventWorkloadResourceAllocated = "allocate-workload" // resource updated in node meta but yet to create all workloads
 	eventProcessingCreated         = "create-processing" // processing created but yet to delete
+
+	replayTimeout = 32 * time.Second
 )
 
-// CreateLambdaHandler indicates event handler for creating lambda.
+// CreateLambdaHandler waits for a replayed lambda workload and removes it.
 type CreateLambdaHandler struct {
 	typ     string
 	config  types.Config
@@ -41,17 +43,14 @@ func newCreateLambdaHandler(config types.Config, calcium cluster.Cluster, store 
 	}
 }
 
-// Event .
 func (h *CreateLambdaHandler) Typ() string {
 	return h.typ
 }
 
-// Check .
 func (h *CreateLambdaHandler) Check(context.Context, any) (bool, error) {
 	return true, nil
 }
 
-// Encode .
 func (h *CreateLambdaHandler) Encode(raw any) ([]byte, error) {
 	workloadID, ok := raw.(string)
 	if !ok {
@@ -60,45 +59,43 @@ func (h *CreateLambdaHandler) Encode(raw any) ([]byte, error) {
 	return []byte(workloadID), nil
 }
 
-// Decode .
 func (h *CreateLambdaHandler) Decode(bs []byte) (any, error) {
 	return string(bs), nil
 }
 
-// Handle .
 func (h *CreateLambdaHandler) Handle(ctx context.Context, raw any) error {
 	workloadID, ok := raw.(string)
 	if !ok {
 		return errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
 	}
 
-	logger := log.WithFunc("wal.CreateLambdaHandler.Handle").WithField("ID", workloadID)
+	logger := log.WithFunc("calcium.CreateLambdaHandler.Handle").WithField("ID", workloadID)
 	go func() {
 		workload, err := h.calcium.GetWorkload(ctx, workloadID)
 		if err != nil {
-			logger.Error(ctx, err, "Get workload failed")
+			logger.Error(ctx, err, "get workload failed")
 			return
 		}
 
 		r, err := workload.Engine.VirtualizationWait(ctx, workloadID, "")
 		if err != nil {
-			logger.Error(ctx, err, "Wait failed")
+			logger.Error(ctx, err, "wait failed")
 			return
 		}
 		if r.Code != 0 {
-			logger.Errorf(ctx, nil, "Run failed: %s", r.Message)
+			logger.Warnf(ctx, "lambda run failed: %s", r.Message)
 		}
 
 		if err := h.calcium.RemoveWorkloadSync(ctx, []string{workloadID}); err != nil {
-			logger.Error(ctx, err, "Remove failed")
+			logger.Error(ctx, err, "remove failed")
 		}
-		logger.Infof(ctx, "waited and removed")
+		logger.Info(ctx, "waited and removed")
 	}()
 
 	return nil
 }
 
-// CreateWorkloadHandler indicates event handler for creating workload.
+// CreateWorkloadHandler removes a workload left behind by an interrupted create.
 type CreateWorkloadHandler struct {
 	typ     string
 	config  types.Config
@@ -115,12 +112,10 @@ func newCreateWorkloadHandler(config types.Config, calcium cluster.Cluster, stor
 	}
 }
 
-// Event .
 func (h *CreateWorkloadHandler) Typ() string {
 	return h.typ
 }
 
-// Check .
 func (h *CreateWorkloadHandler) Check(_ context.Context, raw any) (handle bool, err error) {
 	_, ok := raw.(*types.Workload)
 	if !ok {
@@ -129,7 +124,6 @@ func (h *CreateWorkloadHandler) Check(_ context.Context, raw any) (handle bool, 
 	return true, nil
 }
 
-// Encode .
 func (h *CreateWorkloadHandler) Encode(raw any) ([]byte, error) {
 	wrk, ok := raw.(*types.Workload)
 	if !ok {
@@ -138,17 +132,15 @@ func (h *CreateWorkloadHandler) Encode(raw any) ([]byte, error) {
 	return json.Marshal(wrk)
 }
 
-// Decode .
 func (h *CreateWorkloadHandler) Decode(bs []byte) (any, error) {
 	wrk := &types.Workload{}
 	err := json.Unmarshal(bs, wrk)
 	return wrk, err
 }
 
-// Handle will remove instance, remove meta, restore resource
 func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw any) (err error) {
 	wrk, _ := raw.(*types.Workload)
-	logger := log.WithFunc("wal.CreateWorkloadHandler.Handle").WithField("ID", wrk.ID).WithField("node", wrk.Nodename)
+	logger := log.WithFunc("calcium.CreateWorkloadHandler.Handle").WithField("ID", wrk.ID).WithField("node", wrk.Nodename)
 
 	ctx, cancel := getReplayContext(ctx)
 	defer cancel()
@@ -157,7 +149,6 @@ func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw any) (err error)
 		return h.calcium.RemoveWorkloadSync(ctx, []string{wrk.ID})
 	}
 
-	// workload meta doesn't exist
 	node, err := h.calcium.GetNode(ctx, wrk.Nodename)
 	if err != nil {
 		logger.Error(ctx, err)
@@ -168,11 +159,11 @@ func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw any) (err error)
 		return err
 	}
 
-	logger.Infof(ctx, "workload removed")
+	logger.Info(ctx, "workload removed")
 	return nil
 }
 
-// WorkloadResourceAllocatedHandler .
+// WorkloadResourceAllocatedHandler replays a dangling resource allocation by refreshing node resources.
 type WorkloadResourceAllocatedHandler struct {
 	typ     string
 	config  types.Config
@@ -192,12 +183,10 @@ func newWorkloadResourceAllocatedHandler(config types.Config, calcium cluster.Cl
 	}
 }
 
-// Event .
 func (h *WorkloadResourceAllocatedHandler) Typ() string {
 	return h.typ
 }
 
-// Check .
 func (h *WorkloadResourceAllocatedHandler) Check(_ context.Context, raw any) (bool, error) {
 	if _, ok := raw.([]*types.Node); !ok {
 		return false, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
@@ -205,7 +194,6 @@ func (h *WorkloadResourceAllocatedHandler) Check(_ context.Context, raw any) (bo
 	return true, nil
 }
 
-// Encode .
 func (h *WorkloadResourceAllocatedHandler) Encode(raw any) ([]byte, error) {
 	nodes, ok := raw.([]*types.Node)
 	if !ok {
@@ -214,16 +202,14 @@ func (h *WorkloadResourceAllocatedHandler) Encode(raw any) ([]byte, error) {
 	return json.Marshal(nodes)
 }
 
-// Decode .
 func (h *WorkloadResourceAllocatedHandler) Decode(bytes []byte) (any, error) {
 	nodes := []*types.Node{}
 	return nodes, json.Unmarshal(bytes, &nodes)
 }
 
-// Handle .
 func (h *WorkloadResourceAllocatedHandler) Handle(ctx context.Context, raw any) (err error) {
 	nodes, _ := raw.([]*types.Node)
-	logger := log.WithFunc("wal.WorkloadResourceAllocatedHandler.Handle").WithField("event", eventWorkloadResourceAllocated)
+	logger := log.WithFunc("calcium.WorkloadResourceAllocatedHandler.Handle").WithField("event", eventWorkloadResourceAllocated)
 
 	ctx, cancel := getReplayContext(ctx)
 	defer cancel()
@@ -245,7 +231,7 @@ func (h *WorkloadResourceAllocatedHandler) Handle(ctx context.Context, raw any) 
 	return nil
 }
 
-// ProcessingCreatedHandler .
+// ProcessingCreatedHandler deletes processing records left by an interrupted deploy.
 type ProcessingCreatedHandler struct {
 	typ     string
 	config  types.Config
@@ -262,12 +248,10 @@ func newProcessingCreatedHandler(config types.Config, calcium cluster.Cluster, s
 	}
 }
 
-// Event .
 func (h *ProcessingCreatedHandler) Typ() string {
 	return h.typ
 }
 
-// Check .
 func (h ProcessingCreatedHandler) Check(_ context.Context, raw any) (bool, error) {
 	if _, ok := raw.(*types.Processing); !ok {
 		return false, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
@@ -275,7 +259,6 @@ func (h ProcessingCreatedHandler) Check(_ context.Context, raw any) (bool, error
 	return true, nil
 }
 
-// Encode .
 func (h *ProcessingCreatedHandler) Encode(raw any) ([]byte, error) {
 	processing, ok := raw.(*types.Processing)
 	if !ok {
@@ -284,16 +267,14 @@ func (h *ProcessingCreatedHandler) Encode(raw any) ([]byte, error) {
 	return json.Marshal(processing)
 }
 
-// Decode .
 func (h *ProcessingCreatedHandler) Decode(bs []byte) (any, error) {
 	processing := &types.Processing{}
 	return processing, json.Unmarshal(bs, processing)
 }
 
-// Handle .
 func (h *ProcessingCreatedHandler) Handle(ctx context.Context, raw any) (err error) {
 	processing, _ := raw.(*types.Processing)
-	logger := log.WithFunc("wal.ProcessingCreatedHandler.Handle").WithField("event", eventProcessingCreated).WithField("ident", processing.Ident)
+	logger := log.WithFunc("calcium.ProcessingCreatedHandler.Handle").WithField("event", eventProcessingCreated).WithField("ident", processing.Ident)
 
 	ctx, cancel := getReplayContext(ctx)
 	defer cancel()
@@ -302,7 +283,7 @@ func (h *ProcessingCreatedHandler) Handle(ctx context.Context, raw any) (err err
 		logger.Error(ctx, err)
 		return err
 	}
-	logger.Infof(ctx, "obsolete processing deleted")
+	logger.Info(ctx, "obsolete processing deleted")
 	return err
 }
 
@@ -320,5 +301,5 @@ func enableWAL(config types.Config, calcium cluster.Cluster, store store.Store) 
 }
 
 func getReplayContext(ctx context.Context) (context.Context, context.CancelFunc) {
-	return context.WithTimeout(ctx, time.Second*32) // TODO why 32?
+	return context.WithTimeout(ctx, replayTimeout)
 }

@@ -17,7 +17,6 @@ import (
 
 const exitDataPrefix = "[exitcode] "
 
-// RunAndWait implement lambda
 func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inCh <-chan []byte) ([]string, <-chan *types.AttachWorkloadMessage, error) {
 	workloadIDs := []string{}
 
@@ -27,15 +26,14 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		return workloadIDs, nil, err
 	}
 	opts.Lambda = true
-	// count = 1 && OpenStdin
 	if opts.OpenStdin && (opts.Count != 1 || opts.DeployStrategy != strategy.Auto) {
-		logger.Errorf(ctx, types.ErrRunAndWaitCountOneWithStdin, "Count %d method %s", opts.Count, opts.DeployStrategy)
+		logger.Errorf(ctx, types.ErrRunAndWaitCountOneWithStdin, "count %d method %s", opts.Count, opts.DeployStrategy)
 		return workloadIDs, nil, types.ErrRunAndWaitCountOneWithStdin
 	}
 
 	createChan, err := c.CreateWorkload(ctx, opts)
 	if err != nil {
-		logger.Error(ctx, err, "Create workload error")
+		logger.Error(ctx, err, "create workload")
 		return workloadIDs, nil, err
 	}
 
@@ -45,18 +43,14 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 	)
 
 	lambda := func(message *types.CreateWorkloadMessage) (attachMessage *types.AttachWorkloadMessage) {
-		// should Done this waitgroup anyway
 		defer wg.Done()
 
 		defer func() {
 			runMsgCh <- attachMessage
 		}()
 
-		// if workload is empty, which means error occurred when created workload
-		// we don't need to remove this non-existing workload
-		// so just send the error message and return
 		if message.Error != nil || message.WorkloadID == "" {
-			logger.Error(ctx, message.Error, "Create workload failed")
+			logger.Error(ctx, message.Error, "create workload failed")
 			return &types.AttachWorkloadMessage{
 				WorkloadID:    "",
 				Data:          []byte(fmt.Sprintf("Create workload failed %+v", message.Error)),
@@ -75,27 +69,23 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		}
 		defer func() {
 			if commitErr := commit(); commitErr != nil {
-				logger.Errorf(ctx, commitErr, "Commit WAL %s failed: %s", eventCreateLambda, message.WorkloadID)
+				logger.Errorf(ctx, commitErr, "commit wal %s failed: %s", eventCreateLambda, message.WorkloadID)
 			}
 		}()
 
-		// the workload should be removed if it exists
-		// no matter the workload exits successfully or not
 		defer func() {
 			removeCtx, cancel := context.WithCancel(utils.NewInheritCtx(ctx))
 			defer cancel()
 			if removeErr := c.doRemoveWorkloadSync(removeCtx, []string{message.WorkloadID}); removeErr != nil {
-				logger.Error(removeCtx, removeErr, "Remove lambda workload failed")
+				logger.Error(removeCtx, removeErr, "remove lambda workload failed")
 			} else {
-				logger.Infof(removeCtx, "Workload %s finished and removed", utils.ShortID(message.WorkloadID))
+				logger.Infof(removeCtx, "workload %s finished and removed", utils.ShortID(message.WorkloadID))
 			}
 		}()
 
-		// if we can't get the workload but message has workload field
-		// this is weird, we return the error directly and try to delete data
 		workload, err := c.GetWorkload(ctx, message.WorkloadID)
 		if err != nil {
-			logger.Error(ctx, err, "Get workload failed")
+			logger.Error(ctx, err, "get workload failed")
 			return &types.AttachWorkloadMessage{
 				WorkloadID:    message.WorkloadID,
 				Data:          []byte(fmt.Sprintf("Get workload %s failed %+v", message.WorkloadID, err)),
@@ -103,9 +93,6 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 			}
 		}
 
-		// for other cases, we have the workload and it works fine
-		// then we need to forward log, and finally delete the workload
-		// of course all the error messages will be sent back
 		var stdout, stderr io.ReadCloser
 		if stdout, stderr, err = workload.Engine.VirtualizationLogs(ctx, &enginetypes.VirtualizationLogStreamOptions{
 			ID:     message.WorkloadID,
@@ -113,7 +100,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 			Stdout: true,
 			Stderr: true,
 		}); err != nil {
-			logger.Errorf(ctx, err, "Can't fetch log of workload %s", message.WorkloadID)
+			logger.Errorf(ctx, err, "cannot fetch log of workload %s", message.WorkloadID)
 			return &types.AttachWorkloadMessage{
 				WorkloadID:    message.WorkloadID,
 				Data:          []byte(fmt.Sprintf("Fetch log for workload %s failed %+v", message.WorkloadID, err)),
@@ -123,12 +110,11 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 
 		splitFunc, split := bufio.ScanLines, byte('\n')
 
-		// use attach if use stdin
 		if opts.OpenStdin {
 			var inStream io.WriteCloser
 			stdout, stderr, inStream, err = workload.Engine.VirtualizationAttach(ctx, message.WorkloadID, true, true)
 			if err != nil {
-				logger.Errorf(ctx, err, "Can't attach workload %s", message.WorkloadID)
+				logger.Errorf(ctx, err, "cannot attach workload %s", message.WorkloadID)
 				return &types.AttachWorkloadMessage{
 					WorkloadID:    message.WorkloadID,
 					Data:          []byte(fmt.Sprintf("Attach to workload %s failed %+v", message.WorkloadID, err)),
@@ -151,7 +137,6 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 			}
 		}
 
-		// wait and forward exitcode
 		r, err := workload.Engine.VirtualizationWait(ctx, message.WorkloadID, "")
 		if err != nil {
 			logger.Errorf(ctx, err, "%s wait failed", utils.ShortID(message.WorkloadID))
@@ -163,7 +148,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		}
 
 		if r.Code != 0 {
-			logger.Errorf(ctx, err, "%s run failed %s", utils.ShortID(message.WorkloadID), r.Message)
+			logger.Warnf(ctx, "%s run failed: %s", utils.ShortID(message.WorkloadID), r.Message)
 		}
 
 		exitData := []byte(exitDataPrefix + strconv.Itoa(int(r.Code)))
@@ -175,7 +160,6 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 	}
 
 	for message := range createChan {
-		// iterate over messages to store workload IDs
 		workloadIDs = append(workloadIDs, message.WorkloadID)
 		wg.Add(1)
 		_ = c.pool.Invoke(func(msg *types.CreateWorkloadMessage) func() {
@@ -189,7 +173,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		defer close(runMsgCh)
 		wg.Wait()
 
-		logger.Infof(ctx, "%+v", "Finish run and wait for workloads")
+		logger.Info(ctx, "finish run and wait for workloads")
 	})
 
 	return workloadIDs, runMsgCh, nil

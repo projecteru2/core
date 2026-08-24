@@ -11,7 +11,6 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-// ControlWorkload control workloads status
 func (c *Calcium) ControlWorkload(ctx context.Context, IDs []string, typ string, force bool) (chan *types.ControlWorkloadMessage, error) {
 	logger := log.WithFunc("calcium.ControlWorkload").WithField("IDs", IDs).WithField("typ", typ).WithField("force", force)
 	ch := make(chan *types.ControlWorkloadMessage)
@@ -53,9 +52,8 @@ func (c *Calcium) ControlWorkload(ctx context.Context, IDs []string, typ string,
 					return types.ErrInvaildControlType
 				})
 				if err == nil {
-					logger.Infof(ctx, "Workload %s %s", ID, typ)
-					logger.Infof(ctx, "%+v", "Hook Output:")
-					logger.Infof(ctx, "%+v", string(utils.MergeHookOutputs(message)))
+					logger.Infof(ctx, "workload %s %s", ID, typ)
+					logger.Info(ctx, string(utils.MergeHookOutputs(message)))
 				}
 				logger.Error(ctx, err)
 				ch <- &types.ControlWorkloadMessage{
@@ -74,7 +72,6 @@ func (c *Calcium) doStartWorkload(ctx context.Context, workload *types.Workload,
 	if err = workload.Start(ctx); err != nil {
 		return message, err
 	}
-	// TODO healthcheck first
 	if workload.Hook != nil && len(workload.Hook.AfterStart) > 0 {
 		message, err = c.doHook(
 			ctx,
@@ -101,9 +98,7 @@ func (c *Calcium) doStopWorkload(ctx context.Context, workload *types.Workload, 
 		}
 	}
 
-	// 这里 block 的问题很严重，按照目前的配置是 5 分钟一级的 block
-	// 一个简单的处理方法是相信 ctx 不相信 engine 自身的处理
-	// 另外我怀疑 engine 自己的 timeout 实现是完全的等 timeout 而非结束了就退出
+	// engine stop can block for the whole configured timeout; ctx is the only reliable bound
 	if err = workload.Stop(ctx, force); err != nil {
 		message = append(message, bytes.NewBufferString(err.Error()))
 	}

@@ -10,7 +10,7 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-// InitMetrics .
+// InitMetrics registers resource plugin metric descriptions and starts the metrics client.
 func (c *Calcium) InitMetrics(ctx context.Context) {
 	logger := log.WithFunc("calcium.InitMetrics")
 	metricsDescriptions, err := c.rmgr.GetMetricsDescription(ctx)

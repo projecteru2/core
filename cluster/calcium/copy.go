@@ -8,7 +8,6 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-// Copy uses VirtualizationCopyFrom cp to copy specified things and send to remote
 func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *types.CopyMessage, error) {
 	logger := log.WithFunc("calcium.Copy").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
@@ -23,9 +22,8 @@ func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 		wg := sync.WaitGroup{}
 		wg.Add(len(opts.Targets))
 		defer wg.Wait()
-		logger.Infof(ctx, "Copy %d workloads files", len(opts.Targets))
+		logger.Infof(ctx, "copy %d workload files", len(opts.Targets))
 
-		// workload one by one
 		for ID, paths := range opts.Targets {
 			_ = c.pool.Invoke(func(ID string, paths []string) func() {
 				return func() {

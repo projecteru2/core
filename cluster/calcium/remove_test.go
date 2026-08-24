@@ -34,13 +34,11 @@ func TestRemoveWorkload(t *testing.T) {
 	)
 	rmgr.On("GetNodeMetrics", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*plugintypes.Metrics{}, nil)
 
-	// failed by GetWorkload
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch, err := c.RemoveWorkload(ctx, []string{"xx"}, false)
 	assert.True(t, errors.Is(err, types.ErrMockError))
 	store.AssertExpectations(t)
 
-	// failed by GetNode
 	workload := &types.Workload{
 		ID:       "xx",
 		Name:     "test",
@@ -56,7 +54,6 @@ func TestRemoveWorkload(t *testing.T) {
 	time.Sleep(time.Second)
 	store.AssertExpectations(t)
 
-	// failed by Remove
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	node := &types.Node{
 		NodeMeta: types.NodeMeta{
@@ -75,7 +72,6 @@ func TestRemoveWorkload(t *testing.T) {
 	time.Sleep(time.Second)
 	store.AssertExpectations(t)
 
-	// success
 	engine := &enginemocks.API{}
 	workload.Engine = engine
 	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)

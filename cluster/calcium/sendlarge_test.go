@@ -49,7 +49,6 @@ func TestSendLarge(t *testing.T) {
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(
 		[]*types.Workload{{ID: "cid", Engine: engine}}, nil,
 	)
-	// failed by engine
 	content, _ := io.ReadAll(tmpfile)
 	opts.Chunk = content
 	engine.err = types.ErrMockError

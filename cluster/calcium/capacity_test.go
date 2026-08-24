@@ -49,7 +49,6 @@ func TestCalculateCapacity(t *testing.T) {
 		Count: 3,
 	}
 
-	// failed by call plugin
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(
 		nil, 0, types.ErrMockError,
@@ -57,7 +56,6 @@ func TestCalculateCapacity(t *testing.T) {
 	_, err := c.CalculateCapacity(ctx, opts)
 	assert.Error(t, err)
 
-	// failed by get deploy status
 	nrim := map[string]*plugintypes.NodeDeployCapacity{
 		name: {
 			Capacity: 10,
@@ -73,31 +71,25 @@ func TestCalculateCapacity(t *testing.T) {
 	_, err = c.CalculateCapacity(ctx, opts)
 	assert.Error(t, err)
 
-	// failed by get deploy strategy
 	store.On("GetDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(map[string]int{name: 0}, nil)
 	opts.Count = -1
 	_, err = c.CalculateCapacity(ctx, opts)
 	assert.Error(t, err)
 
-	// success
 	opts.Count = 1
 	_, err = c.CalculateCapacity(ctx, opts)
 	assert.NoError(t, err)
 
-	// strategy: dummy
 	opts.DeployStrategy = strategy.Dummy
 
-	// failed by GetNodesDeployCapacity
 	rmgr.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(nil, 0, types.ErrMockError).Once()
 	_, err = c.CalculateCapacity(ctx, opts)
 	assert.Error(t, err)
 
-	// failed by total <= 0
 	rmgr.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(nil, -1, nil).Once()
 	_, err = c.CalculateCapacity(ctx, opts)
 	assert.Error(t, err)
 
-	// success
 	rmgr.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(
 		nrim, 10, nil,
 	)

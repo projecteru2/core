@@ -7,7 +7,6 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-// AddPod add pod
 func (c *Calcium) AddPod(ctx context.Context, podname, desc string) (*types.Pod, error) {
 	logger := log.WithFunc("calcium.AddPod").WithField("podname", podname)
 	if podname == "" {
@@ -19,7 +18,6 @@ func (c *Calcium) AddPod(ctx context.Context, podname, desc string) (*types.Pod,
 	return pod, err
 }
 
-// RemovePod remove pod
 func (c *Calcium) RemovePod(ctx context.Context, podname string) error {
 	logger := log.WithFunc("calcium.RemovePod").WithField("podname", podname)
 	if podname == "" {
@@ -32,15 +30,12 @@ func (c *Calcium) RemovePod(ctx context.Context, podname string) error {
 		All:     true,
 	}
 	return c.withNodesPodLocked(ctx, nodeFilter, func(ctx context.Context, _ map[string]*types.Node) error {
-		// TODO dissociate workload to node
-		// TODO should remove node first
 		err := c.store.RemovePod(ctx, podname)
 		logger.Error(ctx, err)
 		return err
 	})
 }
 
-// GetPod get one pod
 func (c *Calcium) GetPod(ctx context.Context, podname string) (*types.Pod, error) {
 	logger := log.WithFunc("calcium.GetPod").WithField("podname", podname)
 	if podname == "" {
@@ -52,7 +47,6 @@ func (c *Calcium) GetPod(ctx context.Context, podname string) (*types.Pod, error
 	return pod, err
 }
 
-// ListPods show pods
 func (c *Calcium) ListPods(ctx context.Context) ([]*types.Pod, error) {
 	pods, err := c.store.GetAllPods(ctx)
 	log.WithFunc("calcium.ListPods").Error(ctx, err)

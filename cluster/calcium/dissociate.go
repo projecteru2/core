@@ -10,9 +10,8 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-// DissociateWorkload dissociate workload from eru, return it resource but not modity it
 func (c *Calcium) DissociateWorkload(ctx context.Context, IDs []string) (chan *types.DissociateWorkloadMessage, error) {
-	logger := log.WithFunc("caliucm.DissociateWorkload").WithField("IDs", IDs)
+	logger := log.WithFunc("calcium.DissociateWorkload").WithField("IDs", IDs)
 
 	nodeWorkloadGroup, err := c.groupWorkloadsByNode(ctx, IDs)
 	if err != nil {
@@ -31,16 +30,13 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, IDs []string) (chan *t
 					if workloadErr := c.withWorkloadLocked(ctx, workloadID, false, func(ctx context.Context, workload *types.Workload) error {
 						return utils.Txn(
 							ctx,
-							// if
 							func(ctx context.Context) (err error) {
 								_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []resourcetypes.Resources{workload.Resources}, true, plugins.Decr)
 								return err
 							},
-							// then
 							func(ctx context.Context) error {
 								return c.store.RemoveWorkload(ctx, workload)
 							},
-							// rollback
 							func(ctx context.Context, failedByCond bool) (err error) {
 								if failedByCond {
 									return nil
@@ -51,7 +47,7 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, IDs []string) (chan *t
 							c.config.GlobalTimeout,
 						)
 					}); workloadErr != nil {
-						logger.WithField("id", workloadID).Error(ctx, workloadErr, "failed to lock workload")
+						logger.WithField("id", workloadID).Error(ctx, workloadErr, "failed to dissociate workload")
 						msg.Error = workloadErr
 					}
 					ch <- msg

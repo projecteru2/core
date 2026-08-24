@@ -8,54 +8,38 @@ import (
 )
 
 const (
-	// Gitlab for gitlab
-	Gitlab = "gitlab"
-	// Github for github
-	Github = "github"
-	// CPUPeriodBase for cpu period base
+	Gitlab        = "gitlab"
+	Github        = "github"
 	CPUPeriodBase = 100000
-	// ERUMark mark workload controlled by eru
+	// ERUMark labels a workload as controlled by eru.
 	ERUMark = "ERU"
-	// LabelMeta store publish and health things
+	// LabelMeta holds the encoded publish and healthcheck metadata.
 	LabelMeta = "ERU_META"
-	// LabelCoreID is used to label a container with its identifier
+	// LabelCoreID labels a workload with its owning core identifier.
 	LabelCoreID = "eru.coreid"
-	// LabelNodeName is used to label a container with the nodename
-	LabelNodeName = "eru.nodename"
-	// WorkloadStop for stop workload
-	WorkloadStop = "stop"
-	// WorkloadStart for start workload
-	WorkloadStart = "start"
-	// WorkloadRestart for restart workload
-	WorkloadRestart = "restart"
-	// WorkloadSuspend for suspending workload
-	WorkloadSuspend = "suspend"
-	// WorkloadResume for resuming workload
-	WorkloadResume = "resume"
-	// WorkloadLock for lock workload
-	WorkloadLock = "clock_%s"
-	// PodLock for lock pod
-	PodLock = "plock_%s"
-	// NodeOperationLock for lock node operation
+	// LabelNodeName labels a workload with its nodename.
+	LabelNodeName     = "eru.nodename"
+	WorkloadStop      = "stop"
+	WorkloadStart     = "start"
+	WorkloadRestart   = "restart"
+	WorkloadSuspend   = "suspend"
+	WorkloadResume    = "resume"
+	WorkloadLock      = "clock_%s"
+	PodLock           = "plock_%s"
 	NodeOperationLock = "cnode_op_%s_%s"
 )
 
-// Cluster define all interface
+// Cluster is the eru cluster API implemented by calcium.
 type Cluster interface {
-	// meta service
 	WatchServiceStatus(context.Context) (<-chan types.ServiceStatus, error)
-	// meta networks
 	ListNetworks(ctx context.Context, podname, driver string) ([]*enginetypes.Network, error)
 	ConnectNetwork(ctx context.Context, network, target, ipv4, ipv6 string) ([]string, error)
 	DisconnectNetwork(ctx context.Context, network, target string, force bool) error
-	// meta pod
 	AddPod(ctx context.Context, podname, desc string) (*types.Pod, error)
 	RemovePod(ctx context.Context, podname string) error
 	GetPod(ctx context.Context, podname string) (*types.Pod, error)
 	ListPods(ctx context.Context) ([]*types.Pod, error)
-	// pod resource
 	PodResource(ctx context.Context, podname string) (chan *types.NodeResourceInfo, error)
-	// meta node
 	AddNode(context.Context, *types.AddNodeOptions) (*types.Node, error)
 	RemoveNode(ctx context.Context, nodename string) error
 	ListPodNodes(context.Context, *types.ListNodesOptions) (<-chan *types.Node, error)
@@ -65,11 +49,8 @@ type Cluster interface {
 	SetNodeStatus(ctx context.Context, nodename string, ttl int64) error
 	GetNodeStatus(ctx context.Context, nodename string) (*types.NodeStatus, error)
 	NodeStatusStream(ctx context.Context) chan *types.NodeStatus
-	// node resource
 	NodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResourceInfo, error)
-	// calculate capacity
 	CalculateCapacity(context.Context, *types.DeployOptions) (*types.CapacityMessage, error)
-	// meta workloads
 	GetWorkload(ctx context.Context, id string) (*types.Workload, error)
 	GetWorkloads(ctx context.Context, IDs []string) ([]*types.Workload, error)
 	ListWorkloads(ctx context.Context, opts *types.ListWorkloadsOptions) ([]*types.Workload, error)
@@ -77,16 +58,13 @@ type Cluster interface {
 	GetWorkloadsStatus(ctx context.Context, IDs []string) ([]*types.StatusMeta, error)
 	SetWorkloadsStatus(ctx context.Context, status []*types.StatusMeta, ttls map[string]int64) ([]*types.StatusMeta, error)
 	WorkloadStatusStream(ctx context.Context, appname, entrypoint, nodename string, labels map[string]string) chan *types.WorkloadStatus
-	// file methods
 	Copy(ctx context.Context, opts *types.CopyOptions) (chan *types.CopyMessage, error)
 	Send(ctx context.Context, opts *types.SendOptions) (chan *types.SendMessage, error)
 	SendLargeFile(ctx context.Context, opts chan *types.SendLargeFileOptions) chan *types.SendMessage
-	// image methods
 	BuildImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error)
 	CacheImage(ctx context.Context, opts *types.ImageOptions) (chan *types.CacheImageMessage, error)
 	RemoveImage(ctx context.Context, opts *types.ImageOptions) (chan *types.RemoveImageMessage, error)
 	ListImage(ctx context.Context, opts *types.ImageOptions) (chan *types.ListImageMessage, error)
-	// workload methods
 	CreateWorkload(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateWorkloadMessage, error)
 	ReplaceWorkload(ctx context.Context, opts *types.ReplaceOptions) (chan *types.ReplaceWorkloadMessage, error)
 	RemoveWorkload(ctx context.Context, IDs []string, force bool) (chan *types.RemoveWorkloadMessage, error)
@@ -98,10 +76,8 @@ type Cluster interface {
 	LogStream(ctx context.Context, opts *types.LogStreamOptions) (chan *types.LogStreamMessage, error)
 	RunAndWait(ctx context.Context, opts *types.DeployOptions, inCh <-chan []byte) ([]string, <-chan *types.AttachWorkloadMessage, error)
 	RawEngine(ctx context.Context, opts *types.RawEngineOptions) (*types.RawEngineMessage, error)
-	// finalizer
 	Finalizer()
 
-	// GetIdentifier returns the identifier for this cluster
-	// identifier will be used to label a container, to announce the container belongs to this cluster
+	// GetIdentifier returns the identifier used to label workloads owned by this cluster.
 	GetIdentifier() string
 }

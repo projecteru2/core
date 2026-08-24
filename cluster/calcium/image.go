@@ -9,9 +9,6 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-// CacheImage cache Image
-// 在podname上cache这个image
-// 实际上就是在所有的node上去pull一次
 func (c *Calcium) CacheImage(ctx context.Context, opts *types.ImageOptions) (chan *types.CacheImageMessage, error) {
 	logger := log.WithFunc("calcium.CacheImage").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
@@ -61,7 +58,6 @@ func (c *Calcium) CacheImage(ctx context.Context, opts *types.ImageOptions) (cha
 	return ch, nil
 }
 
-// RemoveImage remove images
 func (c *Calcium) RemoveImage(ctx context.Context, opts *types.ImageOptions) (chan *types.RemoveImageMessage, error) {
 	logger := log.WithFunc("calcium.RemoveImage").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
@@ -109,9 +105,9 @@ func (c *Calcium) RemoveImage(ctx context.Context, opts *types.ImageOptions) (ch
 				}
 				if opts.Prune {
 					if err := node.Engine.ImagesPrune(ctx); err != nil {
-						logger.Errorf(ctx, err, "Prune %s pod %s node failed", opts.Podname, node.Name)
+						logger.Errorf(ctx, err, "failed to prune images on node %s of pod %s", node.Name, opts.Podname)
 					} else {
-						logger.Infof(ctx, "Prune %s pod %s node", opts.Podname, node.Name)
+						logger.Infof(ctx, "pruned images on node %s of pod %s", node.Name, opts.Podname)
 					}
 				}
 			})
@@ -121,7 +117,6 @@ func (c *Calcium) RemoveImage(ctx context.Context, opts *types.ImageOptions) (ch
 	return ch, nil
 }
 
-// ListImage list Image on a pod or some nodes.
 func (c *Calcium) ListImage(ctx context.Context, opts *types.ImageOptions) (chan *types.ListImageMessage, error) {
 	logger := log.WithFunc("calcium.ListImage").WithField("opts", opts)
 

@@ -21,7 +21,6 @@ const (
 	repo = "https://test/repo.git"
 )
 
-// test no tags
 func TestBuild(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
@@ -53,21 +52,17 @@ func TestBuild(t *testing.T) {
 		User: "test",
 		Tags: []string{"tag1", "tag2"},
 	}
-	// failed by no source
 	c.source = nil
 	_, err := c.BuildImage(ctx, opts)
 	assert.Error(t, err)
-	// failed by buildpod not set
 	c = NewTestCluster()
 	_, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	c.config.Docker.BuildPod = "test"
-	// failed by ListPodNodes failed
 	store := c.store.(*storemocks.Store)
 	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrInvaildWorkloadMeta).Once()
 	ch, err := c.BuildImage(ctx, opts)
 	assert.Error(t, err)
-	// failed by no nodes
 	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{}, nil).Once()
 	ch, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
@@ -81,14 +76,12 @@ func TestBuild(t *testing.T) {
 		Engine:    engine,
 	}
 	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
-	// failed by plugin error
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 	rmgr.On("GetMostIdleNode", mock.Anything, mock.Anything).Return("", types.ErrInvaildCount).Once()
 	ch, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	rmgr.On("GetMostIdleNode", mock.Anything, mock.Anything).Return("test", nil)
-	// create image
 	c.config.Docker.Hub = "test.com"
 	c.config.Docker.Namespace = "test"
 
@@ -106,18 +99,15 @@ func TestBuild(t *testing.T) {
 	buildImageRespReader := io.NopCloser(bytes.NewReader(buildImageResp))
 	buildImageRespReader2 := io.NopCloser(bytes.NewReader(buildImageResp2))
 	engine.On("BuildRefs", mock.Anything, mock.Anything, mock.Anything).Return([]string{"t1", "t2"})
-	// failed by build context
 	engine.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return("", nil, types.ErrInvaildCount).Once()
 	ch, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	b := io.NopCloser(bytes.NewReader([]byte{}))
 	engine.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return("", b, nil)
-	// failed by ImageBuild
 	opts.BuildMethod = types.BuildFromRaw
 	engine.On("ImageBuild", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNilEngine).Once()
 	ch, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
-	// build from exist not implemented
 	opts.BuildMethod = types.BuildFromExist
 	opts.ExistID = "123"
 	engine.On("ImageBuildFromExist", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return("", types.ErrEngineNotImplemented).Once()
@@ -125,11 +115,9 @@ func TestBuild(t *testing.T) {
 	store.On("GetNode", mock.Anything, mock.Anything).Return(&types.Node{Engine: engine}, nil)
 	ch, err = c.BuildImage(ctx, opts)
 	assert.EqualError(t, err, types.ErrEngineNotImplemented.Error())
-	// unknown build method
 	opts.BuildMethod = types.BuildFromUnknown
 	ch, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
-	// correct
 	engine.On("ImageBuild", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(buildImageRespReader, nil)
 	engine.On("ImagePush", mock.Anything, mock.Anything).Return(buildImageRespReader2, nil)
 	engine.On("ImageRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]string{}, nil)

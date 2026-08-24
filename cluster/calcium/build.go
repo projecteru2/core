@@ -17,21 +17,18 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-// BuildImage will build image
 func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (ch chan *types.BuildImageMessage, err error) {
 	logger := log.WithFunc("calcium.BuildImage").WithField("opts", opts)
-	// Disable build API if scm not set
 	if c.source == nil {
 		return nil, types.ErrNoSCMSetting
 	}
-	// select nodes
 	node, err := c.selectBuildNode(ctx)
 	if err != nil {
 		logger.Error(ctx, err)
 		return nil, err
 	}
 
-	logger.Infof(ctx, "Building image at pod %s node %s", node.Podname, node.Name)
+	logger.Infof(ctx, "building image at pod %s node %s", node.Podname, node.Name)
 
 	var (
 		refs []string
@@ -57,13 +54,10 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (ch 
 }
 
 func (c *Calcium) selectBuildNode(ctx context.Context) (*types.Node, error) {
-	// get pod from config
-	// TODO can choose multiple pod here for other engine support
 	if c.config.Docker.BuildPod == "" {
 		return nil, types.ErrNoBuildPod
 	}
 
-	// get nodes
 	nodes, err := c.store.GetNodesByPod(ctx, &types.NodeFilter{Podname: c.config.Docker.BuildPod})
 	if err != nil {
 		return nil, err
@@ -72,7 +66,6 @@ func (c *Calcium) selectBuildNode(ctx context.Context) (*types.Node, error) {
 	if len(nodes) == 0 {
 		return nil, types.ErrInsufficientCapacity
 	}
-	// get idle max node
 	return c.getMostIdleNode(ctx, nodes)
 }
 
@@ -135,7 +128,7 @@ func (c *Calcium) buildFromExist(ctx context.Context, opts *types.BuildOptions) 
 
 func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, node *types.Node, tags []string) (chan *types.BuildImageMessage, error) { //nolint:unparam
 	logger := log.WithFunc("calcium.pushImageAndClean").WithField("node", node).WithField("tags", tags)
-	logger.Infof(ctx, "Pushing image at pod %s node %s", node.Podname, node.Name)
+	logger.Infof(ctx, "pushing image at pod %s node %s", node.Podname, node.Name)
 	return c.withImageBuiltChannel(func(ch chan *types.BuildImageMessage) {
 		defer func() {
 			_ = resp.Close()
@@ -155,8 +148,8 @@ func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, nod
 					lastMessage.Error = err.Error()
 					break
 				}
-				malformed, _ := io.ReadAll(decoder.Buffered()) // TODO err check
-				logger.Errorf(ctx, err, "Decode build image message failed, buffered: %+v", malformed)
+				malformed, _ := io.ReadAll(decoder.Buffered())
+				logger.Errorf(ctx, err, "decode build image message failed, buffered: %s", malformed)
 				return
 			}
 			ch <- message
@@ -164,14 +157,13 @@ func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, nod
 		}
 
 		if lastMessage.Error != "" {
-			logger.Errorf(ctx, errors.New(lastMessage.Error), "Build image failed %+v", lastMessage.ErrorDetail.Message)
+			logger.Errorf(ctx, errors.New(lastMessage.Error), "build image failed: %s", lastMessage.ErrorDetail.Message)
 			return
 		}
 
-		// push and clean
 		for i := range tags {
 			tag := tags[i]
-			logger.Infof(ctx, "Push image %s", tag)
+			logger.Infof(ctx, "push image %s", tag)
 			rc, err := node.Engine.ImagePush(ctx, tag)
 			if err != nil {
 				logger.Error(ctx, err)
@@ -185,9 +177,6 @@ func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, nod
 
 			ch <- &types.BuildImageMessage{Stream: fmt.Sprintf("finished %s\n", tag), Status: "finished", Progress: tag}
 		}
-		// 无论如何都删掉build机器的
-		// 事实上他不会跟cached pod一样
-		// 一样就砍死
 		_ = c.pool.Invoke(func() {
 			cleanupNodeImages(ctx, node, tags, c.config.GlobalTimeout)
 		})
@@ -218,13 +207,13 @@ func cleanupNodeImages(ctx context.Context, node *types.Node, IDs []string, ttl 
 	defer cancel()
 	for _, ID := range IDs {
 		if _, err := node.Engine.ImageRemove(ctx, ID, false, true); err != nil {
-			logger.Error(ctx, err, "Remove image error")
+			logger.Error(ctx, err, "remove image")
 		}
 	}
 	if spaceReclaimed, err := node.Engine.ImageBuildCachePrune(ctx, true); err != nil {
-		logger.Error(ctx, err, "Remove build image cache error")
+		logger.Error(ctx, err, "remove build image cache")
 	} else {
-		logger.Infof(ctx, "Clean cached image and release space %d", spaceReclaimed)
+		logger.Infof(ctx, "clean cached image and release space %d", spaceReclaimed)
 	}
 }
 

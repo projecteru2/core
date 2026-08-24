@@ -15,8 +15,6 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-// AddNode adds a node
-// node with resource info
 func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*types.Node, error) {
 	logger := log.WithFunc("calcium.AddNode").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
@@ -27,12 +25,10 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 	var node *types.Node
 	var err error
 
-	// check if the node is alive
 	client, err := enginefactory.GetEngine(ctx, c.config, opts.Nodename, opts.Endpoint, opts.Ca, opts.Cert, opts.Key)
 	if err != nil {
 		return nil, err
 	}
-	// get node info
 	nodeInfo, err := client.Info(ctx)
 	if err != nil {
 		return nil, err
@@ -40,12 +36,10 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 
 	return node, utils.Txn(
 		ctx,
-		// if: add node resource with resource plugins
 		func(ctx context.Context) error {
 			res, err = c.rmgr.AddNode(ctx, opts.Nodename, opts.Resources, nodeInfo)
 			return err
 		},
-		// then: add node meta in store
 		func(ctx context.Context) error {
 			node, err = c.store.AddNode(ctx, opts)
 			if err != nil {
@@ -55,7 +49,6 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 			_ = c.pool.Invoke(func() { c.doSendNodeMetrics(context.TODO(), node) })
 			return nil
 		},
-		// rollback: remove node with resource plugins
 		func(ctx context.Context, failureByCond bool) error {
 			if failureByCond {
 				return nil
@@ -66,7 +59,6 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 	)
 }
 
-// RemoveNode remove a node
 func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 	logger := log.WithFunc("calcium.RemoveNode").WithField("node", nodename)
 	if nodename == "" {
@@ -79,29 +71,24 @@ func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 			logger.Error(ctx, err)
 			return err
 		}
-		// need drain first
 		if len(workloads) > 0 {
 			logger.Error(ctx, types.ErrNodeNotEmpty)
 			return types.ErrNodeNotEmpty
 		}
 
 		return utils.Txn(ctx,
-			// if: remove node metadata
 			func(ctx context.Context) error {
-				// we need set node status here, consider the following scenery:
-				// the node is down, so the node status doesn't exist in ETCD,
-				// if we don't set node status here, other core instances will not be notified when the node is removed
+				// a down node has no status key, so peers miss the removal unless one is written first
 				if err = c.store.SetNodeStatus(ctx, node, 90); err != nil {
 					logger.Warnf(ctx, "failed to set node status: %s", err)
 				}
 				if err := c.store.RemoveNode(ctx, node); err != nil {
 					return err
 				}
-				// remove node status, we don't care the result
+				// ttl -1 deletes the status key
 				_ = c.store.SetNodeStatus(ctx, node, -1)
 				return nil
 			},
-			// then: remove node resource metadata
 			func(ctx context.Context) error {
 				if err := c.rmgr.RemoveNode(ctx, nodename); err != nil {
 					return err
@@ -110,7 +97,6 @@ func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 				metrics.Client.RemoveInvalidNodes(nodename)
 				return nil
 			},
-			// rollback: do nothing
 			func(_ context.Context, _ bool) error {
 				return nil
 			},
@@ -118,8 +104,6 @@ func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 	})
 }
 
-// ListPodNodes list nodes belong to pod
-// node with resource info
 func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions) (<-chan *types.Node, error) {
 	logger := log.WithFunc("calcium.ListPodNodes").WithField("podname", opts.Podname).WithField("labels", opts.Labels).WithField("all", opts.All).WithField("info", opts.CallInfo)
 	nf := &types.NodeFilter{Podname: opts.Podname, Labels: opts.Labels, All: opts.All}
@@ -148,11 +132,11 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 				defer wg.Done()
 				var err error
 				if node.ResourceInfo.Capacity, node.ResourceInfo.Usage, node.ResourceInfo.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false); err != nil {
-					logger.Errorf(ctx, err, "failed to get node %+v resource info", node.Name)
+					logger.Errorf(ctx, err, "failed to get node %s resource info", node.Name)
 				}
 				if opts.CallInfo {
 					if err := node.Info(ctx); err != nil {
-						logger.Errorf(ctx, err, "failed to get node %+v info", node.Name)
+						logger.Errorf(ctx, err, "failed to get node %s info", node.Name)
 					}
 				}
 				ch <- node
@@ -163,8 +147,6 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 	return ch, nil
 }
 
-// GetNode get node
-// node with resource info
 func (c *Calcium) GetNode(ctx context.Context, nodename string) (node *types.Node, err error) {
 	logger := log.WithFunc("calcium.GetNode").WithField("node", nodename)
 	if nodename == "" {
@@ -182,7 +164,6 @@ func (c *Calcium) GetNode(ctx context.Context, nodename string) (node *types.Nod
 	return node, nil
 }
 
-// GetNodeEngineInfo get node engine
 func (c *Calcium) GetNodeEngineInfo(ctx context.Context, nodename string) (*enginetypes.Info, error) {
 	logger := log.WithFunc("calcium.GetNodeEngineInfo").WithField("node", nodename)
 	if nodename == "" {
@@ -199,8 +180,6 @@ func (c *Calcium) GetNodeEngineInfo(ctx context.Context, nodename string) (*engi
 	return engineInfo, err
 }
 
-// SetNode set node available or not
-// node with resource info
 func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*types.Node, error) {
 	logger := log.WithFunc("calcium.SetNode").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
@@ -210,7 +189,6 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 	var n *types.Node
 	return n, c.withNodePodLocked(ctx, opts.Nodename, func(ctx context.Context, node *types.Node) error {
 		logger.Info(ctx, "set node")
-		// update resource map
 		var err error
 		node.ResourceInfo.Capacity, node.ResourceInfo.Usage, node.ResourceInfo.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false)
 		if err != nil {
@@ -227,22 +205,18 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 			c.setAllWorkloadsOnNodeDown(ctx, n.Name)
 		}
 
-		// update node endpoint
 		if opts.Endpoint != "" {
 			n.Endpoint = opts.Endpoint
 		}
-		// update ca / cert / key
 		n.Ca = opts.Ca
 		n.Cert = opts.Cert
 		n.Key = opts.Key
-		// update key value
 		if len(opts.Labels) != 0 {
 			n.Labels = opts.Labels
 		}
 
 		var origin resourcetypes.Resources
 		return utils.Txn(ctx,
-			// if: update node resource capacity success
 			func(ctx context.Context) error {
 				if len(opts.Resources) == 0 {
 					return nil
@@ -250,22 +224,17 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 				origin, _, err = c.rmgr.SetNodeResourceCapacity(ctx, n.Name, nil, opts.Resources, opts.Delta, plugins.Incr)
 				return err
 			},
-			// then: update node metadata
 			func(ctx context.Context) error {
 				defer enginefactory.RemoveEngineFromCache(ctx, node.Endpoint, node.Ca, node.Cert, node.Key)
 				if updateErr := c.store.UpdateNodes(ctx, n); updateErr != nil {
 					return updateErr
 				}
-				// update resource
-				// actually we can ignore err here, if update success
+				// capacity refresh is best effort; the store write already succeeded
 				n.ResourceInfo.Capacity, n.ResourceInfo.Usage, n.ResourceInfo.Diffs, _ = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false)
-				// use send to update the usage
 				_ = c.pool.Invoke(func() { c.doSendNodeMetrics(context.TODO(), n) })
-				// remap all container
 				_ = c.pool.Invoke(func() { c.RemapResourceAndLog(ctx, logger, node) })
 				return nil
 			},
-			// rollback: update node resource capacity in reverse
 			func(ctx context.Context, failureByCond bool) error {
 				if failureByCond {
 					return nil
@@ -280,19 +249,13 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 	})
 }
 
-// filterNodes filters nodes using NodeFilter nf
-// the filtering logic is introduced along with NodeFilter
-// NOTE: when nf.Includes is set, they don't need to belong to podname
-// update on 2021-06-21: sort and unique locks to avoid deadlock
-// node without resource info if batch get
+// includes bypass the podname filter
 func (c *Calcium) filterNodes(ctx context.Context, nodeFilter *types.NodeFilter) (ns []*types.Node, err error) {
 	defer func() {
 		if len(ns) == 0 {
 			return
 		}
-		// sorted by nodenames
 		nodenames := utils.Map(ns, func(node *types.Node) string { return node.Name })
-		// unique
 		p := utils.Unique(nodenames, func(i int) string { return nodenames[i] })
 		ns = ns[:p]
 	}()
@@ -334,7 +297,7 @@ func (c *Calcium) setAllWorkloadsOnNodeDown(ctx context.Context, nodename string
 	workloads, err := c.store.ListNodeWorkloads(ctx, nodename, nil)
 	logger := log.WithFunc("calcium.setAllWorkloadsOnNodeDown").WithField("node", nodename)
 	if err != nil {
-		logger.Errorf(ctx, err, "failed to list node workloads, node %+v", nodename)
+		logger.Errorf(ctx, err, "failed to list node workloads, node %s", nodename)
 		return
 	}
 
@@ -351,12 +314,10 @@ func (c *Calcium) setAllWorkloadsOnNodeDown(ctx context.Context, nodename string
 		workload.StatusMeta.Running = false
 		workload.StatusMeta.Healthy = false
 
-		// Set these attributes to set workload status
 		workload.StatusMeta.Appname = appname
 		workload.StatusMeta.Nodename = workload.Nodename
 		workload.StatusMeta.Entrypoint = entrypoint
 
-		// mark workload which belongs to this node as unhealthy
 		if err = c.store.SetWorkloadStatus(ctx, workload.StatusMeta, 0); err != nil {
 			logger.Errorf(ctx, err, "set workload %s on node %s as inactive failed", workload.ID, nodename)
 		} else {

@@ -19,8 +19,7 @@ func (c *Calcium) RawEngine(ctx context.Context, opts *types.RawEngineOptions) (
 			msg, err = workload.RawEngine(ctx, opts)
 			return err
 		}); err == nil {
-			logger.Infof(ctx, "Workload %s", ID)
-			logger.Infof(ctx, "%+v", msg)
+			logger.Infof(ctx, "workload %s raw engine result: %+v", ID, msg)
 		}
 	})
 	wg.Wait()

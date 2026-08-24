@@ -23,7 +23,7 @@ func (c *Calcium) doLock(ctx context.Context, name string, timeout time.Duration
 			defer cancel()
 			rollbackCtx = utils.InheritTracingInfo(rollbackCtx, ctx)
 			if e := lock.Unlock(rollbackCtx); e != nil {
-				log.WithFunc("calcium.doLock").Errorf(rollbackCtx, err, "failed to unlock %s", name)
+				log.WithFunc("calcium.doLock").Errorf(rollbackCtx, e, "failed to unlock %s", name)
 			}
 		}
 	}()
@@ -32,15 +32,14 @@ func (c *Calcium) doLock(ctx context.Context, name string, timeout time.Duration
 }
 
 func (c *Calcium) doUnlock(ctx context.Context, lock lock.DistributedLock, msg string) error {
-	log.WithFunc("calcium.doUnlock").Debugf(ctx, "Unlock %s", msg)
+	log.WithFunc("calcium.doUnlock").Debugf(ctx, "unlock %s", msg)
 	return lock.Unlock(ctx)
 }
 
 func (c *Calcium) doUnlockAll(ctx context.Context, locks map[string]lock.DistributedLock, order ...string) {
 	logger := log.WithFunc("calcium.doUnlockAll")
-	// unlock in the reverse order
 	if len(order) != len(locks) {
-		logger.Warn(ctx, "order length not match lock map")
+		logger.Warn(ctx, "order length does not match lock map")
 		order = []string{}
 		for key := range locks {
 			order = append(order, key)
@@ -48,7 +47,7 @@ func (c *Calcium) doUnlockAll(ctx context.Context, locks map[string]lock.Distrib
 	}
 	for _, key := range order {
 		if err := c.doUnlock(ctx, locks[key], key); err != nil {
-			logger.Errorf(ctx, err, "Unlock %s failed", key)
+			logger.Errorf(ctx, err, "failed to unlock %s", key)
 			continue
 		}
 	}
@@ -68,11 +67,10 @@ func (c *Calcium) withWorkloadsLocked(ctx context.Context, ignoreLock bool, IDs 
 	locks := map[string]lock.DistributedLock{}
 	logger := log.WithFunc("calcium.withWorkloadsLocked")
 
-	// sort + unique
 	sort.Strings(IDs)
 	IDs = IDs[:utils.Unique(IDs, func(i int) string { return IDs[i] })]
 
-	defer logger.Debugf(ctx, "Workloads %+v unlocked", IDs)
+	defer logger.Debugf(ctx, "workloads %+v unlocked", IDs)
 	defer func() {
 		utils.Reverse(IDs)
 		c.doUnlockAll(utils.NewInheritCtx(ctx), locks, IDs...)
@@ -88,7 +86,7 @@ func (c *Calcium) withWorkloadsLocked(ctx context.Context, ignoreLock bool, IDs 
 			if err != nil {
 				return err
 			}
-			logger.Debugf(ctx, "Workload %s locked", workload.ID)
+			logger.Debugf(ctx, "workload %s locked", workload.ID)
 			locks[workload.ID] = lock
 		}
 		workloads[workload.ID] = workload
