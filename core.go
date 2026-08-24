@@ -81,7 +81,7 @@ func serve(ctx context.Context, _ *cli.Command) error {
 	}
 
 	if config.Auth.Username != "" {
-		logger.Info(ctx, "cluster auth enabled")
+		logger.Infof(ctx, "cluster auth enabled for %s", config.Auth.Username)
 		auth := auth.NewAuth(config.Auth)
 		opts = append(opts, grpc.StreamInterceptor(auth.StreamInterceptor), grpc.UnaryInterceptor(auth.UnaryInterceptor))
 	}
