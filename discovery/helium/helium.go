@@ -23,7 +23,6 @@ type entry struct {
 	cancel context.CancelFunc
 }
 
-// Helium .
 type Helium struct {
 	sync.Once
 	store     store.Store
@@ -32,7 +31,6 @@ type Helium struct {
 	unsubChan chan uint32
 }
 
-// New .
 func New(ctx context.Context, config types.GRPCConfig, store store.Store) *Helium {
 	h := &Helium{
 		interval:  config.ServiceDiscoveryPushInterval,
@@ -49,7 +47,6 @@ func New(ctx context.Context, config types.GRPCConfig, store store.Store) *Heliu
 	return h
 }
 
-// Subscribe .
 func (h *Helium) Subscribe(ctx context.Context) (uuid.UUID, <-chan types.ServiceStatus) {
 	ID := uuid.New()
 	key := ID.ID()
@@ -63,7 +60,6 @@ func (h *Helium) Subscribe(ctx context.Context) (uuid.UUID, <-chan types.Service
 	return ID, ch
 }
 
-// Unsubscribe .
 func (h *Helium) Unsubscribe(ID uuid.UUID) {
 	h.unsubChan <- ID.ID()
 }

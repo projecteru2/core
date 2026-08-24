@@ -67,7 +67,6 @@ func TestPanic(t *testing.T) {
 			uuid, _ := service.Subscribe(ctx)
 			time.Sleep(time.Second)
 			service.Unsubscribe(uuid)
-			// close(chStatus)
 		}()
 	}
 

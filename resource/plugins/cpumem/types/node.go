@@ -13,7 +13,7 @@ import (
 	coreutils "github.com/projecteru2/core/utils"
 )
 
-// NodeResource indicate node cpumem resource
+// NodeResource is the cpu and memory of one node.
 type NodeResource struct {
 	CPU        float64    `json:"cpu" mapstructure:"cpu"`
 	CPUMap     CPUMap     `json:"cpu_map" mapstructure:"cpu_map"`
@@ -22,12 +22,10 @@ type NodeResource struct {
 	NUMA       NUMA       `json:"numa" mapstructure:"numa"`
 }
 
-// Parse .
 func (r *NodeResource) Parse(rawParams resourcetypes.RawParams) error {
 	return mapstructure.Decode(rawParams, r)
 }
 
-// DeepCopy .
 func (r *NodeResource) DeepCopy() *NodeResource {
 	res := &NodeResource{
 		CPU:        r.CPU,
@@ -49,7 +47,6 @@ func (r *NodeResource) DeepCopy() *NodeResource {
 	return res
 }
 
-// Add .
 func (r *NodeResource) Add(r1 *NodeResource) {
 	r.CPU = coreutils.Round(r.CPU + r1.CPU)
 	r.CPUMap.Add(r1.CPUMap)
@@ -64,7 +61,6 @@ func (r *NodeResource) Add(r1 *NodeResource) {
 	}
 }
 
-// Sub .
 func (r *NodeResource) Sub(r1 *NodeResource) {
 	r.CPU = coreutils.Round(r.CPU - r1.CPU)
 	r.CPUMap.Sub(r1.CPUMap)
@@ -75,13 +71,12 @@ func (r *NodeResource) Sub(r1 *NodeResource) {
 	}
 }
 
-// NodeResourceInfo indicate cpumem capacity and usage
+// NodeResourceInfo pairs a node's cpumem capacity with its usage.
 type NodeResourceInfo struct {
 	Capacity *NodeResource `json:"capacity"`
 	Usage    *NodeResource `json:"usage"`
 }
 
-// DeepCopy .
 func (n *NodeResourceInfo) DeepCopy() *NodeResourceInfo {
 	return &NodeResourceInfo{
 		Capacity: n.Capacity.DeepCopy(),
@@ -89,7 +84,6 @@ func (n *NodeResourceInfo) DeepCopy() *NodeResourceInfo {
 	}
 }
 
-// RemoveEmptyCores .
 func (n *NodeResourceInfo) RemoveEmptyCores() {
 	for cpu := range n.Capacity.CPUMap {
 		if n.Capacity.CPUMap[cpu] == 0 && n.Usage.CPUMap[cpu] == 0 {
@@ -156,7 +150,7 @@ func (n *NodeResourceInfo) Validate() error {
 		}
 	}
 
-	// remove nil CPUMap / NUMA / NUMAMemory
+	// DeepCopy replaces the nil CPUMap, NUMA and NUMAMemory with empty ones
 	n.Capacity = n.Capacity.DeepCopy()
 	n.Usage = n.Usage.DeepCopy()
 
@@ -170,7 +164,7 @@ func (n *NodeResourceInfo) GetAvailableResource() *NodeResource {
 	return availableResource
 }
 
-// NodeResourceRequest includes all possible fields passed by eru-core for editing node, it not parsed!
+// NodeResourceRequest carries every raw field eru-core may pass when editing a node.
 type NodeResourceRequest struct {
 	CPUMap     CPUMap
 	Memory     int64
@@ -185,7 +179,7 @@ func (n *NodeResourceRequest) Parse(config coretypes.Config, rawParams resourcet
 		n.CPUMap = CPUMap{}
 	}
 
-	if cpu := rawParams.Int64("cpu"); cpu > 0 { //nolint
+	if cpu := rawParams.Int64("cpu"); cpu > 0 {
 		share := rawParams.Int64("share")
 		if share == 0 {
 			share = int64(config.Scheduler.ShareBase)

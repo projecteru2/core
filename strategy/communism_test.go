@@ -72,7 +72,6 @@ func TestCommunismPlanCapacityPriority(t *testing.T) {
 	assert.EqualValues(t, 1, deploy["2"])
 	assert.EqualValues(t, 1, deploy["1"])
 
-	// test limit
 	nodes = genNodesByCapCount([]int{3, 4, 5, 10}, []int{3, 5, 7, 10})
 	deploy, err = CommunismPlan(context.Background(), nodes, 3, 10, 5)
 	assert.Contains(t, err.Error(), "reached nodelimit, a node can host at most 5 instances")
@@ -80,37 +79,6 @@ func TestCommunismPlanCapacityPriority(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//
-//func randomDeployStatus(scheduleInfos []resourcetypes.ScheduleInfo, maxDeployed int) (sis []Info) {
-//	s := rand.NewSource(int64(1024))
-//	r := rand.New(s)
-//	for range scheduleInfos {
-//		sis = append(sis, Info{
-//			Capacity: maxDeployed,
-//			Count:    r.Intn(maxDeployed),
-//		})
-//	}
-//	return
-//}
-
-//	func Benchmark_CommunismPlan(b *testing.B) {
-//		b.StopTimer()
-//		var count = 10000
-//		var maxDeployed = 1024
-//		var volTotal = maxDeployed * count
-//		var need = volTotal - 1
-//		// Simulate `count` nodes with difference deploy status, each one can deploy `maxDeployed` workloads
-//		// and then we deploy `need` workloads
-//		for i := 0; i < b.N; i++ {
-//			// 24 core, 128G memory, 10 pieces per core
-//			t := utils.GenerateScheduleInfos(count, 1, 1, 0, 10)
-//			hugePod := randomDeployStatus(t, maxDeployed)
-//			b.StartTimer()
-//			_, err := CommunismPlan(context.Background(), hugePod, need, 100, 0)
-//			b.StopTimer()
-//			assert.NoError(b, err)
-//		}
-//	}
 func genNodesByCapCount(caps, counts []int) (infos []Info) {
 	for i := range caps {
 		infos = append(infos, Info{

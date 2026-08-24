@@ -13,7 +13,6 @@ import (
 	coretypes "github.com/projecteru2/core/types"
 )
 
-// CalculateDeploy .
 func (p Plugin) CalculateDeploy(ctx context.Context, nodename string, deployCount int, resourceRequest plugintypes.WorkloadResourceRequest) (*plugintypes.CalculateDeployResponse, error) {
 	logger := log.WithFunc("resource.cpumem.CalculateDeploy").WithField("node", nodename)
 	req := &cpumemtypes.WorkloadResourceRequest{}
@@ -50,7 +49,6 @@ func (p Plugin) CalculateDeploy(ctx context.Context, nodename string, deployCoun
 	}, resp)
 }
 
-// CalculateRealloc .
 func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource plugintypes.WorkloadResource, resourceRequest plugintypes.WorkloadResourceRequest) (*plugintypes.CalculateReallocResponse, error) {
 	req := &cpumemtypes.WorkloadResourceRequest{}
 	if err := req.Parse(resourceRequest); err != nil {
@@ -71,7 +69,7 @@ func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource 
 		return nil, err
 	}
 
-	// put resources back into the resource pool
+	// the origin usage returns to the pool before the new total is computed
 	nodeResourceInfo.Usage.Sub(&cpumemtypes.NodeResource{
 		CPU:        originResource.CPURequest,
 		CPUMap:     originResource.CPUMap,
@@ -91,7 +89,6 @@ func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource 
 		return nil, err
 	}
 
-	// if cpu was specified before, try to ensure cpu affinity
 	var cpuMap cpumemtypes.CPUMap
 	var numaNodeID string
 	var numaMemory cpumemtypes.NUMAMemory
@@ -140,7 +137,6 @@ func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource 
 	}, resp)
 }
 
-// CalculateRemap .
 func (p Plugin) CalculateRemap(ctx context.Context, nodename string, workloadsResource map[string]plugintypes.WorkloadResource) (*plugintypes.CalculateRemapResponse, error) {
 	resp := &plugintypes.CalculateRemapResponse{}
 	engineParamsMap := map[string]*cpumemtypes.EngineParams{}
@@ -181,7 +177,6 @@ func (p Plugin) CalculateRemap(ctx context.Context, nodename string, workloadsRe
 	}
 
 	for ID, workloadResource := range workloadResourceMap {
-		// only process workloads without cpu binding
 		if len(workloadResource.CPUMap) == 0 {
 			engineParamsMap[ID] = &cpumemtypes.EngineParams{
 				CPU:      workloadResource.CPULimit,

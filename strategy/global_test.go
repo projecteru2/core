@@ -10,7 +10,6 @@ import (
 )
 
 func TestGlobalPlan1(t *testing.T) {
-	// normal case
 	n1 := Info{
 		Nodename: "n1",
 		Usage:    0.8,
@@ -34,7 +33,6 @@ func TestGlobalPlan1(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, r, map[string]int{"n1": 1, "n2": 2})
 
-	// normal case 2
 	n1 = Info{
 		Nodename: "n1",
 		Usage:    0.8,
@@ -57,7 +55,6 @@ func TestGlobalPlan1(t *testing.T) {
 	r, err = GlobalPlan(context.Background(), arg, 3, 100, 0)
 	assert.Equal(t, r, map[string]int{"n1": 2, "n2": 1})
 
-	// insufficient total
 	n1 = Info{
 		Nodename: "n1",
 		Usage:    0.8,
@@ -80,7 +77,6 @@ func TestGlobalPlan1(t *testing.T) {
 	r, err = GlobalPlan(context.Background(), arg, 100, 6, 0)
 	assert.ErrorIs(t, err, types.ErrInsufficientResource)
 
-	// fake total
 	n1 = Info{
 		Nodename: "n1",
 		Usage:    0.8,
@@ -103,7 +99,6 @@ func TestGlobalPlan1(t *testing.T) {
 	r, err = GlobalPlan(context.Background(), arg, 10, 100, 0)
 	assert.ErrorIs(t, err, types.ErrInsufficientResource)
 
-	// small rate
 	n1 = Info{
 		Nodename: "n1",
 		Usage:    0.8,
@@ -127,7 +122,6 @@ func TestGlobalPlan1(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, r, map[string]int{"n2": 10})
 
-	// old test case 2
 	n1 = Info{
 		Nodename: "n1",
 		Usage:    1.6,
@@ -145,7 +139,6 @@ func TestGlobalPlan1(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, r, map[string]int{"n2": 2})
 
-	// old test case 3
 	n1 = Info{
 		Nodename: "n1",
 		Usage:    0.5259232954545454,
@@ -157,7 +150,6 @@ func TestGlobalPlan1(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, r["n1"], 1)
 
-	// old test case 4
 	n1 = Info{
 		Nodename: "n1",
 		Usage:    1,

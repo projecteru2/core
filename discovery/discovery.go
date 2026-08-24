@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// Service .
 type Service interface {
 	Subscribe(ctx context.Context) (uuid.UUID, <-chan types.ServiceStatus)
 	Unsubscribe(ID uuid.UUID)

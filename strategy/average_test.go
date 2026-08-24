@@ -12,7 +12,6 @@ import (
 )
 
 func TestAveragePlan(t *testing.T) {
-	// 正常的
 	nodes := deployedNodes()
 	r, err := AveragePlan(context.Background(), nodes, 1, 0, 0)
 	assert.NoError(t, err)
@@ -23,16 +22,13 @@ func TestAveragePlan(t *testing.T) {
 	sort.Ints(finalCounts)
 	assert.ElementsMatch(t, []int{3, 4, 6, 8}, finalCounts)
 
-	// nodes len < limit
 	nodes = deployedNodes()
 	_, err = AveragePlan(context.Background(), nodes, 100, 0, 5)
 	assert.Error(t, err)
-	// 超过 cap
 	nodes = deployedNodes()
 	_, err = AveragePlan(context.Background(), nodes, 100, 0, 0)
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, types.ErrInsufficientCapacity))
-	// 正常 limit
 	nodes = deployedNodes()
 	_, err = AveragePlan(context.Background(), nodes, 1, 1, 1)
 	assert.NoError(t, err)

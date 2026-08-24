@@ -29,11 +29,9 @@ func TestAddNode(t *testing.T) {
 
 	info := &enginetypes.Info{NCPU: 2, MemTotal: 4 * units.GB}
 
-	// existent node
 	_, err := cm.AddNode(ctx, node, req, info)
 	assert.Equal(t, err, coretypes.ErrNodeExists)
 
-	// normal case
 	r, err := cm.AddNode(ctx, nodeForAdd, req, info)
 	assert.Nil(t, err)
 	assert.Equal(t, r.Capacity["memory"], int64(4*units.GB*rate/10))
@@ -63,16 +61,13 @@ func TestGetNodesDeployCapacityWithCPUBind(t *testing.T) {
 		"memory-request": "1",
 	}
 
-	// non-existent node
 	_, err := cm.GetNodesDeployCapacity(ctx, []string{"xxx"}, req)
 	assert.True(t, errors.Is(err, coretypes.ErrInvaildCount))
 
-	// normal
 	r, err := cm.GetNodesDeployCapacity(ctx, nodes, req)
 	assert.Nil(t, err)
 	assert.True(t, r.Total >= 1)
 
-	// more cpu
 	req = plugintypes.WorkloadResourceRequest{
 		"cpu-bind":       true,
 		"cpu-request":    2,
@@ -82,7 +77,6 @@ func TestGetNodesDeployCapacityWithCPUBind(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, r.Total < 3)
 
-	// more
 	req = plugintypes.WorkloadResourceRequest{
 		"cpu-bind":       true,
 		"cpu-request":    3,
@@ -92,7 +86,6 @@ func TestGetNodesDeployCapacityWithCPUBind(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, r.Total < 2)
 
-	// less
 	req = plugintypes.WorkloadResourceRequest{
 		"cpu-bind":       true,
 		"cpu-request":    1,
@@ -102,7 +95,6 @@ func TestGetNodesDeployCapacityWithCPUBind(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, r.Total < 5)
 
-	// complex
 	nodes = generateNodes(ctx, t, cm, 1, 4, 12*units.GB, 100, 10)
 	nodes = append(nodes, generateNodes(ctx, t, cm, 1, 14, 12*units.GB, 100, 11)...)
 	nodes = append(nodes, generateNodes(ctx, t, cm, 1, 12, 12*units.GB, 100, 12)...)
@@ -157,7 +149,6 @@ func TestGetNodesDeployCapacityWithMaxShareLimit(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, r.Total, 2)
 
-	// numa node
 	resource := plugintypes.NodeResource{
 		"cpu": 4.0,
 		"cpu_map": map[string]int64{
@@ -187,11 +178,9 @@ func TestGetNodesDeployCapacityWithMemory(t *testing.T) {
 		"memory-request": "-1",
 	}
 
-	// negative memory
 	_, err := cm.GetNodesDeployCapacity(ctx, nodes, req)
 	assert.True(t, errors.Is(err, types.ErrInvalidMemory))
 
-	// cpu + mem
 	req = plugintypes.WorkloadResourceRequest{
 		"cpu-request":    1,
 		"memory-request": fmt.Sprintf("%v", 512*units.MB),
@@ -201,7 +190,6 @@ func TestGetNodesDeployCapacityWithMemory(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, r.Total, 16)
 
-	// unlimited cpu
 	req = plugintypes.WorkloadResourceRequest{
 		"memory-request": fmt.Sprintf("%v", 512*units.MB),
 	}
@@ -209,7 +197,6 @@ func TestGetNodesDeployCapacityWithMemory(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, r.Total, 16)
 
-	// insufficient cpu
 	req = plugintypes.WorkloadResourceRequest{
 		"cpu-request":    3,
 		"memory-request": fmt.Sprintf("%v", 512*units.MB),
@@ -218,7 +205,6 @@ func TestGetNodesDeployCapacityWithMemory(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, r.Total, 0)
 
-	// mem_request == 0
 	req = plugintypes.WorkloadResourceRequest{
 		"cpu-request": 1,
 	}
@@ -312,7 +298,6 @@ func TestGetAndFixNodeResourceInfo(t *testing.T) {
 	nodes := generateNodes(ctx, t, cm, 1, 2, 4*units.GB, 100, 0)
 	node := nodes[0]
 
-	// invalid node
 	_, err := cm.GetNodeResourceInfo(ctx, "xxx", nil)
 	assert.True(t, errors.Is(err, coretypes.ErrInvaildCount))
 

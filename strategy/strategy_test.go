@@ -10,11 +10,9 @@ import (
 func TestDeploy(t *testing.T) {
 	ctx := context.Background()
 
-	// invalid strategy
 	_, err := Deploy(ctx, "invalid", -1, 3, nil, 2)
 	assert.Error(t, err)
 
-	// count < 0
 	_, err = Deploy(ctx, "AUTO", -1, 3, nil, 2)
 	assert.Error(t, err)
 

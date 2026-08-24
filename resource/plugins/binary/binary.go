@@ -8,14 +8,13 @@ import (
 	coretypes "github.com/projecteru2/core/types"
 )
 
-// Plugin
+// Plugin drives a resource plugin binary.
 type Plugin struct {
 	name   string
 	path   string
 	config coretypes.Config
 }
 
-// NewPlugin .
 func NewPlugin(_ context.Context, path string, config coretypes.Config) (*Plugin, error) {
 	p, err := filepath.Abs(path)
 	if err != nil {
@@ -25,7 +24,6 @@ func NewPlugin(_ context.Context, path string, config coretypes.Config) (*Plugin
 	return plugin, nil
 }
 
-// Name .
 func (p Plugin) Name() string {
 	return p.name
 }

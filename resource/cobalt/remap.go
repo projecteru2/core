@@ -11,11 +11,10 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-// Remap remaps resource and returns engine args for workloads. format: {"workload-1": {"cpus": ["1-3"]}}
-// remap doesn't change resource args
+// Remap returns engine params per workload, format: {"workload-1": {"cpus": ["1-3"]}}.
+// remap never changes resource params
 func (m Manager) Remap(ctx context.Context, nodename string, workloads []*types.Workload) (map[string]resourcetypes.Resources, error) {
-	logger := log.WithFunc("resource.cobalt.GetRemapArgs").WithField("node", nodename)
-	// call plugins to remap
+	logger := log.WithFunc("resource.cobalt.Remap").WithField("node", nodename)
 	resps, err := call(ctx, m.plugins, func(plugin plugins.Plugin) (*plugintypes.CalculateRemapResponse, error) {
 		workloadsResourceMap := map[string]plugintypes.WorkloadResource{}
 		for _, workload := range workloads {
@@ -32,7 +31,6 @@ func (m Manager) Remap(ctx context.Context, nodename string, workloads []*types.
 	}
 
 	enginesParams := map[string]resourcetypes.Resources{}
-	// merge engine args
 	for plugin, resp := range resps {
 		for workloadID, engineParams := range resp.EngineParamsMap {
 			if _, ok := enginesParams[workloadID]; !ok {
@@ -50,18 +48,16 @@ func (m Manager) Remap(ctx context.Context, nodename string, workloads []*types.
 	return enginesParams, nil
 }
 
-// mergeEngineParams e.g. {"file": ["/bin/sh:/bin/sh"], "cpu": 1.2, "cpu-bind": true} + {"file": ["/bin/ls:/bin/ls"], "mem": "1PB"}
-// => {"file": ["/bin/sh:/bin/sh", "/bin/ls:/bin/ls"], "cpu": 1.2, "cpu-bind": true, "mem": "1PB"}
+// mergeEngineParams concatenates string-slice values and takes m2 for keys absent from m1.
 func (m Manager) mergeEngineParams(ctx context.Context, m1, m2 plugintypes.EngineParams) (plugintypes.EngineParams, error) {
 	r := plugintypes.EngineParams{}
 	maps.Copy(r, m1)
 	for key, value := range m2 {
 		if _, ok := r[key]; ok {
-			// only two string slices can be merged
 			_, ok1 := r[key].([]string)
 			_, ok2 := value.([]string)
 			if !ok1 || !ok2 {
-				log.WithFunc("resource.cobalt.mergeEngineParams").Errorf(ctx, types.ErrInvalidEngineArgs, "only two string slices can be merged! error key %+v, m1[key] = %+v, m2[key] = %+v", key, m1[key], m2[key])
+				log.WithFunc("resource.cobalt.mergeEngineParams").Errorf(ctx, types.ErrInvalidEngineArgs, "only string slices can be merged, key %+v, m1 %+v, m2 %+v", key, m1[key], m2[key])
 				return nil, types.ErrInvalidEngineArgs
 			}
 			r[key] = append(r[key].([]string), value.([]string)...)

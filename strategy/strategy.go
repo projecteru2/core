@@ -8,21 +8,15 @@ import (
 )
 
 const (
-	// Auto .
-	Auto = "AUTO"
-	// Fill .
-	Fill = "FILL"
-	// Each .
-	Each = "EACH"
-	// Global .
-	Global = "GLOBAL"
-	// Drained .
+	Auto    = "AUTO"
+	Fill    = "FILL"
+	Each    = "EACH"
+	Global  = "GLOBAL"
 	Drained = "DRAINED"
-	// Dummy for calculate capacity
+	// Dummy marks a capacity-only request and has no entry in Plans
 	Dummy = "DUMMY"
 )
 
-// Plans .
 var Plans = map[string]strategyFunc{
 	Auto:    CommunismPlan,
 	Fill:    FillPlan,
@@ -31,7 +25,6 @@ var Plans = map[string]strategyFunc{
 	Drained: DrainedPlan,
 }
 
-// Info .
 type Info struct {
 	Nodename string
 
@@ -44,7 +37,6 @@ type Info struct {
 
 type strategyFunc = func(_ context.Context, _ []Info, need, total, limit int) (map[string]int, error)
 
-// Deploy .
 func Deploy(ctx context.Context, strategy string, count, nodesLimit int, strategyInfos []Info, total int) (map[string]int, error) {
 	deployMethod, ok := Plans[strategy]
 	if !ok {

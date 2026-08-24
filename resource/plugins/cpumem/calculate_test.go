@@ -20,7 +20,6 @@ func TestCalculateDeploy(t *testing.T) {
 	nodes := generateNodes(ctx, t, cm, 1, 2, 4*units.GB, 100, 0)
 	node := nodes[0]
 
-	// invalid opts
 	req := plugintypes.WorkloadResourceRequest{
 		"cpu-bind":    true,
 		"cpu-request": -1,
@@ -28,7 +27,6 @@ func TestCalculateDeploy(t *testing.T) {
 	_, err := cm.CalculateDeploy(ctx, node, 100, req)
 	assert.True(t, errors.Is(err, types.ErrInvalidCPU))
 
-	// non-existent node
 	req = plugintypes.WorkloadResourceRequest{
 		"cpu-bind":    true,
 		"cpu-request": 1,
@@ -36,7 +34,6 @@ func TestCalculateDeploy(t *testing.T) {
 	_, err = cm.CalculateDeploy(ctx, "xxx", 100, req)
 	assert.True(t, errors.Is(err, coretypes.ErrInvaildCount))
 
-	// cpu bind
 	req = plugintypes.WorkloadResourceRequest{
 		"cpu-bind":    true,
 		"cpu-request": 1.1,
@@ -44,7 +41,6 @@ func TestCalculateDeploy(t *testing.T) {
 	_, err = cm.CalculateDeploy(ctx, node, 1, req)
 	assert.Nil(t, err)
 
-	// cpu bind & insufficient resource
 	req = plugintypes.WorkloadResourceRequest{
 		"cpu-bind":    true,
 		"cpu-request": 2.2,
@@ -59,14 +55,12 @@ func TestCalculateDeploy(t *testing.T) {
 	_, err = cm.CalculateDeploy(ctx, node, 3, req)
 	assert.True(t, errors.Is(err, coretypes.ErrInsufficientCapacity))
 
-	// alloc by memory
 	req = plugintypes.WorkloadResourceRequest{
 		"memory-request": fmt.Sprintf("%v", units.GB),
 	}
 	_, err = cm.CalculateDeploy(ctx, node, 1, req)
 	assert.Nil(t, err)
 
-	// alloc by memory & insufficient cpu
 	req = plugintypes.WorkloadResourceRequest{
 		"memory-request": fmt.Sprintf("%v", units.GB),
 		"cpu-request":    1000,
@@ -74,7 +68,6 @@ func TestCalculateDeploy(t *testing.T) {
 	_, err = cm.CalculateDeploy(ctx, node, 1, req)
 	assert.True(t, errors.Is(err, coretypes.ErrInsufficientCapacity))
 
-	// alloc by memory & insufficient mem
 	req = plugintypes.WorkloadResourceRequest{
 		"memory-request": fmt.Sprintf("%v", 5*units.GB),
 		"cpu-request":    1,
@@ -82,7 +75,6 @@ func TestCalculateDeploy(t *testing.T) {
 	_, err = cm.CalculateDeploy(ctx, node, 1, req)
 	assert.True(t, errors.Is(err, coretypes.ErrInsufficientCapacity))
 
-	// mem_request == 0
 	req = plugintypes.WorkloadResourceRequest{
 		"memory-request": "0",
 		"cpu-request":    1,
@@ -90,7 +82,6 @@ func TestCalculateDeploy(t *testing.T) {
 	_, err = cm.CalculateDeploy(ctx, node, 1, req)
 	assert.Nil(t, err)
 
-	// numa node
 	resource := plugintypes.NodeResource{
 		"cpu": 4.0,
 		"cpu_map": map[string]int64{
@@ -131,7 +122,6 @@ func TestCalculateRealloc(t *testing.T) {
 	nodes := generateNodes(ctx, t, cm, 1, 2, 4*units.GB, 100, 0)
 	node := nodes[0]
 
-	// numa node
 	resource := plugintypes.NodeResource{
 		"cpu": 2.0,
 		"cpu_map": map[string]int64{
@@ -155,11 +145,9 @@ func TestCalculateRealloc(t *testing.T) {
 	origin := plugintypes.WorkloadResource{}
 	req := plugintypes.WorkloadResourceRequest{}
 
-	// non-existent node
 	_, err = cm.CalculateRealloc(ctx, "xxx", origin, req)
 	assert.True(t, errors.Is(err, coretypes.ErrInvaildCount))
 
-	// invalid resource opts
 	origin = plugintypes.WorkloadResource{
 		"cpu_request":    1,
 		"cpu_limit":      1,
@@ -176,7 +164,6 @@ func TestCalculateRealloc(t *testing.T) {
 	_, err = cm.CalculateRealloc(ctx, node, origin, req)
 	assert.True(t, errors.Is(err, types.ErrInvalidCPU))
 
-	// insufficient cpu
 	req = plugintypes.WorkloadResourceRequest{
 		"keep-cpu-bind": true,
 		"cpu-request":   2,
@@ -184,7 +171,6 @@ func TestCalculateRealloc(t *testing.T) {
 	_, err = cm.CalculateRealloc(ctx, node, origin, req)
 	assert.True(t, errors.Is(err, coretypes.ErrInsufficientResource))
 
-	// normal case (with cpu-bind)
 	req = plugintypes.WorkloadResourceRequest{
 		"keep-cpu-bind": true,
 		"cpu-request":   -0.5,
@@ -193,12 +179,10 @@ func TestCalculateRealloc(t *testing.T) {
 	_, err = cm.CalculateRealloc(ctx, node, origin, req)
 	assert.Nil(t, err)
 
-	// normal case (without cpu-bind)
 	req = plugintypes.WorkloadResourceRequest{}
 	_, err = cm.CalculateRealloc(ctx, node, origin, req)
 	assert.Nil(t, err)
 
-	// insufficient mem
 	req = plugintypes.WorkloadResourceRequest{
 		"memory-request": fmt.Sprintf("%v", units.PB),
 		"memory-limit":   fmt.Sprintf("%v", units.PB),
@@ -244,11 +228,9 @@ func TestCalculateRemap(t *testing.T) {
 		},
 	}
 
-	// non-existent node
 	_, err = cm.CalculateRemap(ctx, "xxx", workloadsResource)
 	assert.True(t, errors.Is(err, coretypes.ErrInvaildCount))
 
-	// normal case
 	r, err := cm.CalculateRemap(ctx, node, workloadsResource)
 	assert.Nil(t, err)
 	assert.Len(t, r.EngineParamsMap, 2)
@@ -257,7 +239,6 @@ func TestCalculateRemap(t *testing.T) {
 	assert.Len(t, w1["cpu_map"], 2)
 	assert.Len(t, w2["cpu_map"], 2)
 
-	// empty share cpu map
 	workloadsResource["id4"] = plugintypes.WorkloadResource{
 		"cpu_map":        types.CPUMap{"2": 100, "3": 100},
 		"cpu_request":    2,

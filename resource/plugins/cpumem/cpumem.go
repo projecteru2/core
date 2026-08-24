@@ -16,14 +16,13 @@ const (
 	priority            = 100
 )
 
-// Plugin
+// Plugin is the built-in cpu and memory resource plugin.
 type Plugin struct {
 	name   string
 	config coretypes.Config
 	store  meta.KV
 }
 
-// NewPlugin .
 func NewPlugin(ctx context.Context, config coretypes.Config, embeddedETCD *embedded.Cluster) (*Plugin, error) {
 	if embeddedETCD == nil && len(config.Etcd.Machines) < 1 {
 		return nil, coretypes.ErrConfigInvaild
@@ -37,7 +36,6 @@ func NewPlugin(ctx context.Context, config coretypes.Config, embeddedETCD *embed
 	return plugin, nil
 }
 
-// Name .
 func (p Plugin) Name() string {
 	return p.name
 }

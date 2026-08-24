@@ -32,13 +32,12 @@ const (
 	counterType = "counter"
 )
 
-// Client is a metrics obj
 var (
 	Client = Metrics{}
 	once   sync.Once
 )
 
-// Metrics define metrics
+// Metrics ships core metrics to Prometheus and statsd.
 type Metrics struct {
 	Config types.Config
 
@@ -51,7 +50,6 @@ type Metrics struct {
 	rmgr resource.Manager
 }
 
-// SendDeployCount update deploy counter
 func (m *Metrics) SendDeployCount(ctx context.Context, n int) {
 	metrics := &plugintypes.Metrics{
 		Name:   deployCountName,
@@ -75,41 +73,40 @@ func (m *Metrics) SendPodNodeStatus(ctx context.Context, node *types.Node) {
 	m.SendMetrics(ctx, metrics)
 }
 
-// SendMetrics update metrics
 func (m *Metrics) SendMetrics(ctx context.Context, metrics ...*plugintypes.Metrics) {
 	logger := log.WithFunc("metrics.SendMetrics")
 	for _, metric := range metrics {
 		collector, ok := m.Collectors[metric.Name]
 		if !ok {
-			logger.Warnf(ctx, "Collector not found: %s", metric.Name)
+			logger.Warnf(ctx, "collector not found: %s", metric.Name)
 			continue
 		}
 		switch collector.(type) { //nolint
 		case *prometheus.GaugeVec:
 			value, err := strconv.ParseFloat(metric.Value, 64)
 			if err != nil {
-				logger.Errorf(ctx, err, "Error occurred while parsing %+v value %+v", metric.Name, metric.Value)
+				logger.Errorf(ctx, err, "failed to parse %s value %s", metric.Name, metric.Value)
 			}
 			collector.(*prometheus.GaugeVec).WithLabelValues(metric.Labels...).Set(value) //nolint
 			if err := m.gauge(ctx, metric.Key, value); err != nil {
-				logger.Errorf(ctx, err, "Error occurred while sending %+v data to statsd", metric.Name)
+				logger.Errorf(ctx, err, "failed to send %s to statsd", metric.Name)
 			}
 		case *prometheus.CounterVec:
 			value, err := strconv.ParseInt(metric.Value, 10, 32) //nolint
 			if err != nil {
-				logger.Errorf(ctx, err, "Error occurred while parsing %+v value %+v", metric.Name, metric.Value)
+				logger.Errorf(ctx, err, "failed to parse %s value %s", metric.Name, metric.Value)
 			}
 			collector.(*prometheus.CounterVec).WithLabelValues(metric.Labels...).Add(float64(value)) //nolint
 			if err := m.count(ctx, metric.Key, int(value), 1.0); err != nil {
-				logger.Errorf(ctx, err, "Error occurred while sending %+v data to statsd", metric.Name)
+				logger.Errorf(ctx, err, "failed to send %s to statsd", metric.Name)
 			}
 		default:
-			logger.Errorf(ctx, types.ErrMetricsTypeNotSupport, "Unknown collector type: %T", collector)
+			logger.Errorf(ctx, types.ErrMetricsTypeNotSupport, "unknown collector type: %T", collector)
 		}
 	}
 }
 
-// RemoveInvalidNodes 清除多余的metric标签值
+// RemoveInvalidNodes drops Prometheus label sets for nodes that no longer exist.
 func (m *Metrics) RemoveInvalidNodes(invalidNodes ...string) {
 	if len(invalidNodes) == 0 {
 		return
@@ -129,7 +126,6 @@ func (m *Metrics) RemoveInvalidNodes(invalidNodes ...string) {
 				for _, label := range mf.Label {
 					labels[label.GetName()] = label.GetValue()
 				}
-				// 删除符合条件的度量标签
 				switch c := collector.(type) {
 				case *prometheus.GaugeVec:
 					c.Delete(labels)
@@ -138,23 +134,20 @@ func (m *Metrics) RemoveInvalidNodes(invalidNodes ...string) {
 				}
 			}
 		}
-		// 添加更多的条件来处理其他类型的Collector
 	}
 }
 
-// Lazy connect
 func (m *Metrics) checkConn(ctx context.Context) error {
 	if m.statsdClient != nil {
 		return nil
 	}
 	logger := log.WithFunc("metrics.checkConn")
 	var err error
-	// We needn't try to renew/reconnect because of only supporting UDP protocol now
-	// We should add an `errorCount` to reconnect when implementing TCP protocol
+	// UDP is connectionless, so a failed client never needs reconnecting
 	if m.statsdClient, err = statsdlib.New(m.StatsdAddr, statsdlib.WithErrorHandler(func(err error) {
-		logger.Error(ctx, err, "Sending statsd failed")
+		logger.Error(ctx, err, "failed to send to statsd")
 	})); err != nil {
-		logger.Error(ctx, err, "Connect statsd failed")
+		logger.Error(ctx, err, "failed to connect statsd")
 		return err
 	}
 	return nil
@@ -182,7 +175,7 @@ func (m *Metrics) count(ctx context.Context, key string, n int, rate float32) er
 	return nil
 }
 
-// InitMetrics new a metrics obj
+// InitMetrics builds the global metrics client and registers its collectors.
 func InitMetrics(ctx context.Context, config types.Config, metricsDescriptions []*plugintypes.MetricsDescription) error {
 	hostname, err := os.Hostname()
 	if err != nil {

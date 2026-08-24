@@ -27,9 +27,7 @@ const (
 	fieldPriority = "priority"
 )
 
-// AddNode .
 func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintypes.NodeResourceRequest, info *enginetypes.Info) (*plugintypes.AddNodeResponse, error) {
-	// try to get the node resource
 	var err error
 	if _, err = p.doGetNodeResourceInfo(ctx, nodename); err == nil {
 		return nil, coretypes.ErrNodeExists
@@ -45,14 +43,13 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintyp
 		return nil, err
 	}
 
-	if info != nil { //nolint
-		// extract NodeResource from Resources
+	if info != nil { //nolint:nestif
 		var nodeRes cpumemtypes.NodeResource
 		if b, ok := info.Resources[p.Name()]; ok {
 			if err = json.Unmarshal(b, &nodeRes); err != nil {
 				return nil, err
 			}
-			// NodeResource has higher priority
+			// NodeResource overrides what the engine reported
 			info.NCPU = int(nodeRes.CPU)
 			info.MemTotal = nodeRes.Memory
 		}
@@ -83,8 +80,7 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintyp
 		},
 	}
 
-	// if NUMA is set but NUMAMemory is not set
-	// then divide memory equally according to the number of numa nodes
+	// an unset NUMAMemory defaults to the node memory split evenly across the NUMA nodes
 	if len(req.NUMA) > 0 && len(req.NUMAMemory) == 0 {
 		averageMemory := req.Memory / int64(len(req.NUMA))
 		nodeResourceInfo.Capacity.NUMAMemory = cpumemtypes.NUMAMemory{}
@@ -104,16 +100,14 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintyp
 	}, resp)
 }
 
-// RemoveNode .
 func (p Plugin) RemoveNode(ctx context.Context, nodename string) (*plugintypes.RemoveNodeResponse, error) {
 	var err error
 	if _, err = p.store.Delete(ctx, fmt.Sprintf(nodeResourceInfoKey, nodename)); err != nil {
-		log.WithFunc("resource.cpumem.RemoveNode").WithField("node", nodename).Error(ctx, err, "faield to delete node")
+		log.WithFunc("resource.cpumem.RemoveNode").WithField("node", nodename).Error(ctx, err, "failed to delete node")
 	}
 	return &plugintypes.RemoveNodeResponse{}, err
 }
 
-// GetNodesDeployCapacity returns available nodes and total capacity
 func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, resource plugintypes.WorkloadResourceRequest) (*plugintypes.GetNodesDeployCapacityResponse, error) {
 	logger := log.WithFunc("resource.cpumem.GetNodesDeployCapacity")
 	req := &cpumemtypes.WorkloadResourceRequest{}
@@ -153,7 +147,6 @@ func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, 
 	}, resp)
 }
 
-// SetNodeResourceCapacity sets the amount of total resource info
 func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, resource plugintypes.NodeResource, resourceRequest plugintypes.NodeResourceRequest, delta, incr bool) (*plugintypes.SetNodeResourceCapacityResponse, error) {
 	logger := log.WithFunc("resource.cpumem.SetNodeResourceCapacity").WithField("node", nodename)
 	req, nodeResource, _, nodeResourceInfo, err := p.parseNodeResourceInfos(ctx, nodename, resource, resourceRequest, nil)
@@ -168,13 +161,11 @@ func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, re
 	}
 	nodeResourceInfo.Capacity = p.calculateNodeResource(req, nodeResource, origin, nil, delta, incr)
 
-	// add new cpu
 	for cpu := range nodeResourceInfo.Capacity.CPUMap {
 		if _, ok := nodeResourceInfo.Usage.CPUMap[cpu]; !ok {
 			nodeResourceInfo.Usage.CPUMap[cpu] = 0
 		}
 	}
-	// delete cpus with no pieces
 	nodeResourceInfo.RemoveEmptyCores()
 
 	if err := p.doSetNodeResourceInfo(ctx, nodename, nodeResourceInfo); err != nil {
@@ -189,7 +180,6 @@ func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, re
 	}, resp)
 }
 
-// GetNodeResourceInfo .
 func (p Plugin) GetNodeResourceInfo(ctx context.Context, nodename string, workloadsResource []plugintypes.WorkloadResource) (*plugintypes.GetNodeResourceInfoResponse, error) {
 	nodeResourceInfo, _, diffs, err := p.getNodeResourceInfo(ctx, nodename, workloadsResource)
 	if err != nil {
@@ -204,7 +194,6 @@ func (p Plugin) GetNodeResourceInfo(ctx context.Context, nodename string, worklo
 	}, resp)
 }
 
-// SetNodeResourceInfo .
 func (p Plugin) SetNodeResourceInfo(ctx context.Context, nodename string, capacity, usage plugintypes.NodeResource) (*plugintypes.SetNodeResourceInfoResponse, error) {
 	capacityResource := &cpumemtypes.NodeResource{}
 	usageResource := &cpumemtypes.NodeResource{}
@@ -222,7 +211,6 @@ func (p Plugin) SetNodeResourceInfo(ctx context.Context, nodename string, capaci
 	return &plugintypes.SetNodeResourceInfoResponse{}, p.doSetNodeResourceInfo(ctx, nodename, resourceInfo)
 }
 
-// SetNodeResourceUsage .
 func (p Plugin) SetNodeResourceUsage(ctx context.Context, nodename string, resource plugintypes.NodeResource, resourceRequest plugintypes.NodeResourceRequest, workloadsResource []plugintypes.WorkloadResource, delta, incr bool) (*plugintypes.SetNodeResourceUsageResponse, error) {
 	logger := log.WithFunc("resource.cpumem.SetNodeResourceUsage").WithField("node", nodename)
 	req, nodeResource, wrksResource, nodeResourceInfo, err := p.parseNodeResourceInfos(ctx, nodename, resource, resourceRequest, workloadsResource)
@@ -246,7 +234,6 @@ func (p Plugin) SetNodeResourceUsage(ctx context.Context, nodename string, resou
 	}, resp)
 }
 
-// GetMostIdleNode .
 func (p Plugin) GetMostIdleNode(ctx context.Context, nodenames []string) (*plugintypes.GetMostIdleNodeResponse, error) {
 	var mostIdleNode string
 	minIdle := math.MaxFloat64
@@ -273,7 +260,6 @@ func (p Plugin) GetMostIdleNode(ctx context.Context, nodenames []string) (*plugi
 	}, resp)
 }
 
-// FixNodeResource .
 func (p Plugin) FixNodeResource(ctx context.Context, nodename string, workloadsResource []plugintypes.WorkloadResource) (*plugintypes.GetNodeResourceInfoResponse, error) {
 	nodeResourceInfo, actuallyWorkloadsUsage, diffs, err := p.getNodeResourceInfo(ctx, nodename, workloadsResource)
 	if err != nil {
@@ -394,16 +380,13 @@ func (p Plugin) doGetNodeDeployCapacity(nodeResourceInfo *cpumemtypes.NodeResour
 	availableResource := nodeResourceInfo.GetAvailableResource()
 
 	capacityInfo := &plugintypes.NodeDeployCapacity{
-		Weight: 1, // TODO why 1?
+		Weight: 1,
 	}
-	// if cpu-bind is not required, then returns capacity by memory
 	if !req.CPUBind {
-		// check if cpu is enough
 		if req.CPURequest > float64(len(nodeResourceInfo.Capacity.CPUMap)) {
 			return capacityInfo
 		}
 
-		// calculate by memory request
 		if req.MemRequest == 0 {
 			capacityInfo.Capacity = math.MaxInt
 			capacityInfo.Rate = 0
@@ -415,7 +398,6 @@ func (p Plugin) doGetNodeDeployCapacity(nodeResourceInfo *cpumemtypes.NodeResour
 		return capacityInfo
 	}
 
-	// if cpu-bind is required, then returns capacity by cpu scheduling
 	cpuPlans := schedule.GetCPUPlans(nodeResourceInfo, nil, p.config.Scheduler.ShareBase, p.config.Scheduler.MaxShare, req)
 	capacityInfo.Capacity = len(cpuPlans)
 	capacityInfo.Usage = utils.AdvancedDivide(nodeResourceInfo.Usage.CPU, nodeResourceInfo.Capacity.CPU)
@@ -428,10 +410,8 @@ func (p Plugin) doGetNodeDeployCapacity(nodeResourceInfo *cpumemtypes.NodeResour
 func (p Plugin) calculateNodeResource(req *cpumemtypes.NodeResourceRequest, nodeResource, origin *cpumemtypes.NodeResource, workloadsResource []*cpumemtypes.WorkloadResource, delta, incr bool) *cpumemtypes.NodeResource {
 	var resp *cpumemtypes.NodeResource
 	if origin == nil || !delta { // no delta means node resource rewrite with whole new data
-		resp = (&cpumemtypes.NodeResource{}).DeepCopy() // init nil pointer!
-		// 这个接口最诡异的在于，如果 delta 为 false，意味着是全量写入
-		// 但这时候 incr 为 false 的话
-		// 实际上是 set 进了负值，所以这里 incr 应该强制为 true
+		resp = (&cpumemtypes.NodeResource{}).DeepCopy()
+		// a full rewrite must add onto the zero value; subtracting would store negative amounts
 		incr = true
 	} else {
 		resp = origin.DeepCopy()

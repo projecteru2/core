@@ -12,27 +12,22 @@ import (
 
 type infoHeapForGlobalStrategy []Info
 
-// Len .
 func (r infoHeapForGlobalStrategy) Len() int {
 	return len(r)
 }
 
-// Less .
 func (r infoHeapForGlobalStrategy) Less(i, j int) bool {
 	return (r[i].Usage + r[i].Rate) < (r[j].Usage + r[j].Rate)
 }
 
-// Swap .
 func (r infoHeapForGlobalStrategy) Swap(i, j int) {
 	r[i], r[j] = r[j], r[i]
 }
 
-// Push .
 func (r *infoHeapForGlobalStrategy) Push(x any) {
 	*r = append(*r, x.(Info))
 }
 
-// Pop .
 func (r *infoHeapForGlobalStrategy) Pop() any {
 	old := *r
 	n := len(old)
@@ -41,8 +36,7 @@ func (r *infoHeapForGlobalStrategy) Pop() any {
 	return x
 }
 
-// GlobalPlan 基于全局资源配额
-// 尽量使得资源消耗平均
+// GlobalPlan spreads need workloads to keep Usage+Rate as even as possible across nodes.
 func GlobalPlan(ctx context.Context, infos []Info, need, total, _ int) (map[string]int, error) {
 	if total < need {
 		return nil, errors.Wrapf(types.ErrInsufficientResource, "need: %d, available: %d", need, total)
@@ -73,8 +67,6 @@ func GlobalPlan(ctx context.Context, infos []Info, need, total, _ int) (map[stri
 		}
 	}
 
-	// 这里 need 一定会为 0 出来，因为 volTotal 保证了一定大于 need
-	// 这里并不需要再次排序了，理论上的排序是基于资源使用率得到的 Deploy 最终方案
 	log.WithFunc("strategy.GlobalPlan").Debugf(ctx, "strategyInfos: %+v", strategyInfos)
 	return deployMap, nil
 }

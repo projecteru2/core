@@ -1,6 +1,5 @@
 package types
 
-// EngineParams .
 type EngineParams struct {
 	CPU      float64 `json:"cpu" mapstructure:"cpu"`
 	CPUMap   CPUMap  `json:"cpu_map" mapstructure:"cpu_map"`

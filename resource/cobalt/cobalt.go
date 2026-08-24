@@ -13,13 +13,12 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-// Manager manager plugins
+// Manager fans resource operations out to the loaded plugins.
 type Manager struct {
 	config  types.Config
 	plugins []plugins.Plugin
 }
 
-// New creates a plugin manager
 func New(config types.Config) (*Manager, error) {
 	m := &Manager{
 		config:  config,
@@ -29,10 +28,8 @@ func New(config types.Config) (*Manager, error) {
 	return m, nil
 }
 
-// LoadPlugins .
 func (m *Manager) LoadPlugins(ctx context.Context, embeddedETCD *embedded.Cluster) error {
 	logger := log.WithFunc("resource.cobalt.LoadPlugins")
-	// Load internal
 	cm, err := cpumem.NewPlugin(ctx, m.config, embeddedETCD)
 	if err != nil {
 		return err
@@ -50,7 +47,7 @@ func (m *Manager) LoadPlugins(ctx context.Context, embeddedETCD *embedded.Cluste
 
 	sharedLibFiles, err := utils.ListAllSharedLibFiles(m.config.ResourcePlugin.Dir)
 	if err != nil {
-		logger.Errorf(ctx, err, "failed to list all share lib files dir: %+v", m.config.ResourcePlugin.Dir)
+		logger.Errorf(ctx, err, "failed to list shared lib files in dir %+v", m.config.ResourcePlugin.Dir)
 		return err
 	}
 
@@ -69,7 +66,7 @@ func (m *Manager) LoadPlugins(ctx context.Context, embeddedETCD *embedded.Cluste
 
 	pluginFiles, err := utils.ListAllExecutableFiles(m.config.ResourcePlugin.Dir)
 	if err != nil {
-		logger.Errorf(ctx, err, "failed to list all executable files dir: %+v", m.config.ResourcePlugin.Dir)
+		logger.Errorf(ctx, err, "failed to list executable files in dir %+v", m.config.ResourcePlugin.Dir)
 		return err
 	}
 	for _, file := range pluginFiles {

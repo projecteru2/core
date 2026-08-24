@@ -7,16 +7,13 @@ import (
 	"github.com/go-viper/mapstructure/v2"
 )
 
-// RawParams .
 type RawParams map[string]any
 
-// IsSet .
 func (r RawParams) IsSet(key string) bool {
 	_, ok := r[key]
 	return ok
 }
 
-// Float64 .
 func (r RawParams) Float64(key string) float64 {
 	if !r.IsSet(key) {
 		return float64(0.0)
@@ -25,17 +22,14 @@ func (r RawParams) Float64(key string) float64 {
 	return res
 }
 
-// Int64 .
 func (r RawParams) Int64(key string) int64 {
 	return intHelper[int64](r, key)
 }
 
-// Int .
 func (r RawParams) Int(key string) int {
 	return intHelper[int](r, key)
 }
 
-// String .
 func (r RawParams) String(key string) string {
 	if !r.IsSet(key) {
 		return ""
@@ -46,12 +40,10 @@ func (r RawParams) String(key string) string {
 	return ""
 }
 
-// StringSlice .
 func (r RawParams) StringSlice(key string) []string {
 	return sliceHelper[string](r, key)
 }
 
-// OneOfStringSlice .
 func (r RawParams) OneOfStringSlice(keys ...string) []string {
 	for _, key := range keys {
 		if res := r.StringSlice(key); len(res) > 0 {
@@ -61,14 +53,12 @@ func (r RawParams) OneOfStringSlice(keys ...string) []string {
 	return nil
 }
 
-// Bool .
 func (r RawParams) Bool(key string) bool {
 	s := r.IsSet(key)
 	b, ok := r[key].(bool)
 	return (!ok && s) || (ok && s && b)
 }
 
-// RawParams .
 func (r RawParams) RawParams(key string) RawParams {
 	var n RawParams
 	if r.IsSet(key) {
@@ -80,7 +70,6 @@ func (r RawParams) RawParams(key string) RawParams {
 	return n
 }
 
-// SliceRawParams .
 func (r RawParams) SliceRawParams(key string) []RawParams {
 	res := sliceHelper[map[string]any](r, key)
 	if res == nil {
@@ -93,7 +82,7 @@ func (r RawParams) SliceRawParams(key string) []RawParams {
 	return n
 }
 
-// Resources all cosmos use this
+// Resources maps a plugin name to its raw params.
 type Resources map[string]RawParams
 
 func sliceHelper[T any](r RawParams, key string) []T {
@@ -109,8 +98,6 @@ func sliceHelper[T any](r RawParams, key string) []T {
 		for _, v := range s {
 			if r, ok := v.(T); ok {
 				res = append(res, r)
-				// } else {
-				//	return nil // TODO why continue?
 			}
 		}
 	}

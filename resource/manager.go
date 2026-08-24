@@ -9,8 +9,7 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-// Manager indicate manages
-// coretypes --> manager to rawparams --> plugins types
+// Manager routes core resource operations to the resource plugins.
 type Manager interface {
 	AddNode(context.Context, string, resourcetypes.Resources, *enginetypes.Info) (resourcetypes.Resources, error)
 	RemoveNode(context.Context, string) error

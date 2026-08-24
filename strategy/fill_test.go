@@ -12,7 +12,6 @@ import (
 )
 
 func TestFillPlan(t *testing.T) {
-	// 正常的全量补充
 	n := 10
 	nodes := deployedNodes()
 	r, err := FillPlan(context.Background(), nodes, n, 0, 0)
@@ -24,7 +23,6 @@ func TestFillPlan(t *testing.T) {
 	sort.Ints(finalCounts)
 	assert.ElementsMatch(t, []int{10, 10, 10, 10}, finalCounts)
 
-	// 局部补充
 	n = 5
 	nodes = deployedNodes()
 	r, err = FillPlan(context.Background(), nodes, n, 0, 0)
@@ -36,26 +34,22 @@ func TestFillPlan(t *testing.T) {
 	sort.Ints(finalCounts)
 	assert.ElementsMatch(t, []int{5, 5, 5, 7}, finalCounts)
 
-	// 局部补充不能
 	n = 15
 	nodes = deployedNodes()
 	_, err = FillPlan(context.Background(), nodes, n, 0, 0)
 	assert.True(t, errors.Is(err, types.ErrInsufficientResource))
 
-	// 全局补充不能
 	n = 1
 	nodes = deployedNodes()
 	_, err = FillPlan(context.Background(), nodes, n, 0, 0)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "each node has enough workloads")
 
-	// LimitNode
 	n = 10
 	nodes = deployedNodes()
 	_, err = FillPlan(context.Background(), nodes, n, 0, 2)
 	assert.NoError(t, err)
 
-	// 局部补充
 	n = 1
 	nodes = []Info{
 		{

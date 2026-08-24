@@ -55,8 +55,7 @@ func (h *infoHeap) Pop() any {
 	return x
 }
 
-// CommunismPlan 吃我一记共产主义大锅饭
-// 部署完 N 个后全局尽可能平均
+// CommunismPlan spreads need workloads so the global per-node count ends as even as possible.
 func CommunismPlan(_ context.Context, infos []Info, need, total, limit int) (map[string]int, error) {
 	if total < need {
 		return nil, errors.Wrapf(types.ErrInsufficientResource, "need: %d, available: %d", need, total)
