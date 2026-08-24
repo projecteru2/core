@@ -34,12 +34,6 @@ type ETCDClientV3 interface {
 	clientv3.Watcher
 }
 
-// ETCD .
-type ETCD struct {
-	cliv3  ETCDClientV3
-	config types.EtcdConfig
-}
-
 // ETCDTxn wraps a group of Cmp with Op
 type ETCDTxn struct {
 	If   []clientv3.Cmp
@@ -51,6 +45,12 @@ type ETCDTxn struct {
 type ETCDTxnResp struct {
 	resp *clientv3.TxnResponse
 	err  error
+}
+
+// ETCD .
+type ETCD struct {
+	cliv3  ETCDClientV3
+	config types.EtcdConfig
 }
 
 // NewETCD initailizes a new ETCD instance.
@@ -161,6 +161,85 @@ func (e *ETCD) Watch(ctx context.Context, key string, opts ...clientv3.OpOption)
 	return e.watch(ctx, key, opts...)
 }
 
+// BatchDelete .
+func (e *ETCD) BatchDelete(ctx context.Context, keys []string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
+	return e.batchDelete(ctx, keys, opts...)
+}
+
+// BatchCreate .
+func (e *ETCD) BatchCreate(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
+	return e.batchCreate(ctx, data, opts...)
+}
+
+// BatchUpdate .
+func (e *ETCD) BatchUpdate(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
+	return e.batchUpdate(ctx, data, opts...)
+}
+
+// BatchPut .
+func (e *ETCD) BatchPut(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
+	return e.batchPut(ctx, data, nil, opts...)
+}
+
+// BindStatus keeps on a lease alive.
+func (e *ETCD) BindStatus(ctx context.Context, entityKey, statusKey, statusValue string, ttl int64) error {
+	if ttl == 0 {
+		return e.bindStatusWithoutTTL(ctx, statusKey, statusValue)
+	}
+	return e.bindStatusWithTTL(ctx, entityKey, statusKey, statusValue, ttl)
+}
+
+// Grant creates a new lease.
+func (e *ETCD) Grant(ctx context.Context, ttl int64) (*clientv3.LeaseGrantResponse, error) {
+	return e.cliv3.Grant(ctx, ttl)
+}
+
+// BatchCreateAndDecr used to decr processing and add workload
+func (e *ETCD) BatchCreateAndDecr(ctx context.Context, data map[string]string, decrKey string) (err error) {
+	resp, err := e.Get(ctx, decrKey)
+	if err != nil {
+		return err
+	}
+	if len(resp.Kvs) == 0 {
+		return errors.Wrap(types.ErrKeyNotExists, decrKey)
+	}
+
+	decrKv := resp.Kvs[0]
+	putOps := []clientv3.Op{}
+	for key, value := range data {
+		putOps = append(putOps, clientv3.OpPut(key, value))
+	}
+
+	for {
+		cnt, err := strconv.Atoi(string(decrKv.Value))
+		if err != nil {
+			return err
+		}
+
+		txn := ETCDTxn{
+			If: []clientv3.Cmp{
+				clientv3.Compare(clientv3.Value(decrKey), "=", string(decrKv.Value)),
+			},
+			Then: append(putOps,
+				clientv3.OpPut(decrKey, strconv.Itoa(cnt-1)),
+			),
+			Else: []clientv3.Op{
+				clientv3.OpGet(decrKey),
+			},
+		}
+		txnResp, err := e.doBatchOp(ctx, []ETCDTxn{txn})
+		if err != nil {
+			return err
+		}
+		if txnResp.Succeeded {
+			break
+		}
+		decrKv = txnResp.Responses[0].GetResponseRange().Kvs[0]
+	}
+
+	return nil
+}
+
 // Watch wath a key
 func (e *ETCD) watch(ctx context.Context, key string, opts ...clientv3.OpOption) clientv3.WatchChan {
 	return e.cliv3.Watch(ctx, key, opts...)
@@ -173,11 +252,6 @@ func (e *ETCD) batchGet(ctx context.Context, keys []string, opt ...clientv3.OpOp
 		txn.Then = append(txn.Then, op)
 	}
 	return e.doBatchOp(ctx, []ETCDTxn{txn})
-}
-
-// BatchDelete .
-func (e *ETCD) BatchDelete(ctx context.Context, keys []string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	return e.batchDelete(ctx, keys, opts...)
 }
 
 func (e *ETCD) batchDelete(ctx context.Context, keys []string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
@@ -214,11 +288,6 @@ func (e *ETCD) batchPut(ctx context.Context, data map[string]string, limit map[s
 	return e.doBatchOp(ctx, txnes)
 }
 
-// BatchCreate .
-func (e *ETCD) BatchCreate(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	return e.batchCreate(ctx, data, opts...)
-}
-
 func (e *ETCD) batchCreate(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
 	limit := map[string]map[string]string{}
 	for key := range data {
@@ -234,14 +303,19 @@ func (e *ETCD) batchCreate(ctx context.Context, data map[string]string, opts ...
 	return resp, nil
 }
 
-// BatchUpdate .
-func (e *ETCD) BatchUpdate(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	return e.batchUpdate(ctx, data, opts...)
-}
-
-// BatchPut .
-func (e *ETCD) BatchPut(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	return e.batchPut(ctx, data, nil, opts...)
+func (e *ETCD) batchUpdate(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
+	limit := map[string]map[string]string{}
+	for key := range data {
+		limit[key] = map[string]string{cmpVersion: "!="} // check existence
+	}
+	resp, err := e.batchPut(ctx, data, limit, opts...)
+	if err != nil {
+		return resp, err
+	}
+	if !resp.Succeeded {
+		return resp, types.ErrKeyNotExists
+	}
+	return resp, nil
 }
 
 // isTTLChanged returns true if there is a lease with a different ttl bound to the key
@@ -270,14 +344,6 @@ func (e *ETCD) isTTLChanged(ctx context.Context, key string, ttl int64) (bool, e
 	}
 
 	return changed, nil
-}
-
-// BindStatus keeps on a lease alive.
-func (e *ETCD) BindStatus(ctx context.Context, entityKey, statusKey, statusValue string, ttl int64) error {
-	if ttl == 0 {
-		return e.bindStatusWithoutTTL(ctx, statusKey, statusValue)
-	}
-	return e.bindStatusWithTTL(ctx, entityKey, statusKey, statusValue, ttl)
 }
 
 func (e *ETCD) bindStatusWithTTL(ctx context.Context, entityKey, statusKey, statusValue string, ttl int64) error {
@@ -419,26 +485,6 @@ func (e *ETCD) revokeLease(ctx context.Context, leaseID clientv3.LeaseID) {
 	}
 }
 
-// Grant creates a new lease.
-func (e *ETCD) Grant(ctx context.Context, ttl int64) (*clientv3.LeaseGrantResponse, error) {
-	return e.cliv3.Grant(ctx, ttl)
-}
-
-func (e *ETCD) batchUpdate(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	limit := map[string]map[string]string{}
-	for key := range data {
-		limit[key] = map[string]string{cmpVersion: "!="} // check existence
-	}
-	resp, err := e.batchPut(ctx, data, limit, opts...)
-	if err != nil {
-		return resp, err
-	}
-	if !resp.Succeeded {
-		return resp, types.ErrKeyNotExists
-	}
-	return resp, nil
-}
-
 func (e *ETCD) doBatchOp(ctx context.Context, transactions []ETCDTxn) (resp *clientv3.TxnResponse, err error) {
 	if len(transactions) == 0 {
 		return nil, types.ErrNoOps
@@ -533,50 +579,4 @@ func (e *ETCD) doBatchOp(ctx context.Context, transactions []ETCDTxn) (resp *cli
 		resp.Responses = append(resp.Responses, resps[i].resp.Responses...)
 	}
 	return resp, nil
-}
-
-// BatchCreateAndDecr used to decr processing and add workload
-func (e *ETCD) BatchCreateAndDecr(ctx context.Context, data map[string]string, decrKey string) (err error) {
-	resp, err := e.Get(ctx, decrKey)
-	if err != nil {
-		return err
-	}
-	if len(resp.Kvs) == 0 {
-		return errors.Wrap(types.ErrKeyNotExists, decrKey)
-	}
-
-	decrKv := resp.Kvs[0]
-	putOps := []clientv3.Op{}
-	for key, value := range data {
-		putOps = append(putOps, clientv3.OpPut(key, value))
-	}
-
-	for {
-		cnt, err := strconv.Atoi(string(decrKv.Value))
-		if err != nil {
-			return err
-		}
-
-		txn := ETCDTxn{
-			If: []clientv3.Cmp{
-				clientv3.Compare(clientv3.Value(decrKey), "=", string(decrKv.Value)),
-			},
-			Then: append(putOps,
-				clientv3.OpPut(decrKey, strconv.Itoa(cnt-1)),
-			),
-			Else: []clientv3.Op{
-				clientv3.OpGet(decrKey),
-			},
-		}
-		txnResp, err := e.doBatchOp(ctx, []ETCDTxn{txn})
-		if err != nil {
-			return err
-		}
-		if txnResp.Succeeded {
-			break
-		}
-		decrKv = txnResp.Responses[0].GetResponseRange().Kvs[0]
-	}
-
-	return nil
 }

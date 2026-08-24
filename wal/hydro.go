@@ -13,9 +13,7 @@ import (
 	"github.com/projecteru2/core/wal/kv"
 )
 
-const (
-	fileMode = 0o600
-)
+const fileMode = 0o600
 
 // Hydro is the simplest wal implementation.
 type Hydro struct {

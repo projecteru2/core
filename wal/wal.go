@@ -4,9 +4,7 @@ import (
 	"context"
 )
 
-const (
-	eventPrefix = "/events/"
-)
+const eventPrefix = "/events/"
 
 // WAL is the interface that groups the Register and Recover interfaces.
 type WAL interface {

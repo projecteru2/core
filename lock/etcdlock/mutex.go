@@ -22,27 +22,6 @@ type Mutex struct {
 	lockedMux sync.Mutex
 }
 
-type lockContext struct {
-	err   error
-	mutex sync.Mutex
-	context.Context
-}
-
-func (c *lockContext) setError(err error) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	c.err = err
-}
-
-func (c *lockContext) Err() error {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	if c.err != nil {
-		return c.err
-	}
-	return c.Context.Err()
-}
-
 // New new a lock
 func New(cli *clientv3.Client, key string, ttl time.Duration) (*Mutex, error) {
 	if key == "" {
@@ -169,4 +148,25 @@ func (m *Mutex) unlock(ctx context.Context) error {
 	// m.myKey = "\x00"
 	// m.myRev = -1
 	return err
+}
+
+type lockContext struct {
+	err   error
+	mutex sync.Mutex
+	context.Context
+}
+
+func (c *lockContext) Err() error {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	if c.err != nil {
+		return c.err
+	}
+	return c.Context.Err()
+}
+
+func (c *lockContext) setError(err error) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.err = err
 }

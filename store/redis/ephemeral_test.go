@@ -12,6 +12,45 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
+func TestEphemeralMustRevokeAfterKeepaliveFailed(t *testing.T) {
+	assert := assert.New(t)
+
+	s, err := miniredis.Run()
+	if err != nil {
+		t.Fail()
+	}
+	defer s.Close()
+
+	cli := redis.NewClient(&redis.Options{
+		Addr: s.Addr(),
+		DB:   0,
+	})
+	defer cli.Close()
+
+	pool, _ := utils.NewPool(10000)
+
+	rediaron := &Rediaron{
+		cli:  cli,
+		pool: pool,
+	}
+
+	ctx := context.Background()
+	path := "/ident"
+	expiry, stop, err := rediaron.StartEphemeral(ctx, path, time.Millisecond)
+
+	assert.NoError(err)
+	assert.NotNil(stop)
+	assert.NotNil(expiry)
+
+	cli.Close()
+
+	select {
+	case <-expiry:
+	case <-time.After(time.Second * 8):
+		assert.FailNow("%s should had been removed", path)
+	}
+}
+
 func (s *RediaronTestSuite) TestEphemeralDeregister() {
 	ctx := context.Background()
 	path := "/ident"
@@ -84,43 +123,4 @@ func (s *RediaronTestSuite) TestEphemeralFailedAsPutAlready() {
 
 	_, _, err = s.rediaron.StartEphemeral(ctx, path, heartbeat)
 	s.Error(err)
-}
-
-func TestEphemeralMustRevokeAfterKeepaliveFailed(t *testing.T) {
-	assert := assert.New(t)
-
-	s, err := miniredis.Run()
-	if err != nil {
-		t.Fail()
-	}
-	defer s.Close()
-
-	cli := redis.NewClient(&redis.Options{
-		Addr: s.Addr(),
-		DB:   0,
-	})
-	defer cli.Close()
-
-	pool, _ := utils.NewPool(10000)
-
-	rediaron := &Rediaron{
-		cli:  cli,
-		pool: pool,
-	}
-
-	ctx := context.Background()
-	path := "/ident"
-	expiry, stop, err := rediaron.StartEphemeral(ctx, path, time.Millisecond)
-
-	assert.NoError(err)
-	assert.NotNil(stop)
-	assert.NotNil(expiry)
-
-	cli.Close()
-
-	select {
-	case <-expiry:
-	case <-time.After(time.Second * 8):
-		assert.FailNow("%s should had been removed", path)
-	}
 }

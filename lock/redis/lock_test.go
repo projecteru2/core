@@ -10,6 +10,23 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
+func TestRedisLock(t *testing.T) {
+	s, err := miniredis.Run()
+	if err != nil {
+		t.Fail()
+	}
+	defer s.Close()
+
+	cli := redis.NewClient(&redis.Options{
+		Addr: s.Addr(),
+		DB:   0,
+	})
+	defer cli.Close()
+	suite.Run(t, &RedisLockTestSuite{
+		cli: cli,
+	})
+}
+
 type RedisLockTestSuite struct {
 	suite.Suite
 
@@ -52,21 +69,4 @@ func (s *RedisLockTestSuite) TestTryLock() {
 	ctx2, err := l2.TryLock(context.Background())
 	s.Nil(ctx2)
 	s.Error(err)
-}
-
-func TestRedisLock(t *testing.T) {
-	s, err := miniredis.Run()
-	if err != nil {
-		t.Fail()
-	}
-	defer s.Close()
-
-	cli := redis.NewClient(&redis.Options{
-		Addr: s.Addr(),
-		DB:   0,
-	})
-	defer cli.Close()
-	suite.Run(t, &RedisLockTestSuite{
-		cli: cli,
-	})
 }

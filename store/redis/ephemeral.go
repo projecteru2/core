@@ -11,7 +11,7 @@ import (
 	"github.com/cockroachdb/errors"
 )
 
-var ephemeralValue = "__aaron__"
+const ephemeralValue = "__aaron__"
 
 // StartEphemeral starts an empheral kv pair.
 func (r *Rediaron) StartEphemeral(ctx context.Context, path string, heartbeat time.Duration) (<-chan struct{}, func(), error) {

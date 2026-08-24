@@ -12,31 +12,6 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-type endpoints map[string]struct{}
-
-func (e *endpoints) Add(endpoint string) (changed bool) {
-	if _, ok := (*e)[endpoint]; !ok {
-		(*e)[endpoint] = struct{}{}
-		changed = true
-	}
-	return changed
-}
-
-func (e *endpoints) Remove(endpoint string) (changed bool) {
-	if _, ok := (*e)[endpoint]; ok {
-		delete(*e, endpoint)
-		changed = true
-	}
-	return changed
-}
-
-func (e endpoints) ToSlice() (eps []string) {
-	for ep := range e {
-		eps = append(eps, ep)
-	}
-	return eps
-}
-
 // ServiceStatusStream watches /services/ --prefix
 func (m *Mercury) ServiceStatusStream(ctx context.Context) (chan []string, error) {
 	ch := make(chan []string)
@@ -92,6 +67,31 @@ func (m *Mercury) ServiceStatusStream(ctx context.Context) (chan []string, error
 func (m *Mercury) RegisterService(ctx context.Context, serviceAddress string, expire time.Duration) (<-chan struct{}, func(), error) {
 	key := fmt.Sprintf(serviceStatusKey, serviceAddress)
 	return m.StartEphemeral(ctx, key, expire)
+}
+
+type endpoints map[string]struct{}
+
+func (e *endpoints) Add(endpoint string) (changed bool) {
+	if _, ok := (*e)[endpoint]; !ok {
+		(*e)[endpoint] = struct{}{}
+		changed = true
+	}
+	return changed
+}
+
+func (e *endpoints) Remove(endpoint string) (changed bool) {
+	if _, ok := (*e)[endpoint]; ok {
+		delete(*e, endpoint)
+		changed = true
+	}
+	return changed
+}
+
+func (e endpoints) ToSlice() (eps []string) {
+	for ep := range e {
+		eps = append(eps, ep)
+	}
+	return eps
 }
 
 func parseServiceKey(key []byte) (endpoint string) {

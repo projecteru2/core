@@ -253,33 +253,6 @@ func TestBindStatus(t *testing.T) {
 	require.Equal(t, nil, e.BindStatus(context.Background(), "/entity", "/status", "status", 1))
 }
 
-func testKeepAliveETCD(t *testing.T) (*ETCD, *mocks.ETCDClientV3, func()) {
-	e := NewMockedETCD(t)
-	etcd, ok := e.cliv3.(*mocks.ETCDClientV3)
-	require.True(t, ok)
-	return e, etcd, func() { etcd.AssertExpectations(t) }
-}
-
-func NewMockedETCD(t *testing.T) *ETCD {
-	e := NewEmbeddedETCD(t)
-	e.cliv3 = &mocks.ETCDClientV3{}
-	return e
-}
-
-func NewEmbeddedETCD(t *testing.T) *ETCD {
-	config := types.EtcdConfig{
-		Machines:   []string{"127.0.0.1:2379"},
-		Prefix:     "/eru-test",
-		LockPrefix: "/eru-test-lock",
-	}
-	cluster, err := embedded.New(t.TempDir())
-	require.NoError(t, err)
-	t.Cleanup(cluster.Close)
-	e, err := NewETCD(config, cluster)
-	require.NoError(t, err)
-	return e
-}
-
 func TestETCD(t *testing.T) {
 	m := NewEmbeddedETCD(t)
 	ctx := context.Background()
@@ -475,4 +448,31 @@ func TestETCD(t *testing.T) {
 	txnResp, err = m.batchPut(context.Background(), data, limit)
 	require.NoError(t, err)
 	require.True(t, txnResp.Succeeded)
+}
+
+func NewMockedETCD(t *testing.T) *ETCD {
+	e := NewEmbeddedETCD(t)
+	e.cliv3 = &mocks.ETCDClientV3{}
+	return e
+}
+
+func NewEmbeddedETCD(t *testing.T) *ETCD {
+	config := types.EtcdConfig{
+		Machines:   []string{"127.0.0.1:2379"},
+		Prefix:     "/eru-test",
+		LockPrefix: "/eru-test-lock",
+	}
+	cluster, err := embedded.New(t.TempDir())
+	require.NoError(t, err)
+	t.Cleanup(cluster.Close)
+	e, err := NewETCD(config, cluster)
+	require.NoError(t, err)
+	return e
+}
+
+func testKeepAliveETCD(t *testing.T) (*ETCD, *mocks.ETCDClientV3, func()) {
+	e := NewMockedETCD(t)
+	etcd, ok := e.cliv3.(*mocks.ETCDClientV3)
+	require.True(t, ok)
+	return e, etcd, func() { etcd.AssertExpectations(t) }
 }
