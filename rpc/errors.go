@@ -21,9 +21,9 @@ const (
 	GetNode         codes.Code = 1034
 	SetNode         codes.Code = 1035
 	SetNodeStatus   codes.Code = 1036
-	GetNodeStatus   codes.Code = 1038
 	GetNodeResource codes.Code = 1037
-	GetNodeEngine   codes.Code = 1038
+	GetNodeStatus   codes.Code = 1038
+	GetNodeEngine   codes.Code = 1039
 
 	CalculateCapacity codes.Code = 1041
 
