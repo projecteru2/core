@@ -86,6 +86,7 @@ func (m *Metrics) SendMetrics(ctx context.Context, metrics ...*plugintypes.Metri
 			value, err := strconv.ParseFloat(metric.Value, 64)
 			if err != nil {
 				logger.Errorf(ctx, err, "failed to parse %s value %s", metric.Name, metric.Value)
+				continue
 			}
 			c.WithLabelValues(metric.Labels...).Set(value)
 			if err := m.gauge(ctx, metric.Key, value); err != nil {
@@ -95,6 +96,7 @@ func (m *Metrics) SendMetrics(ctx context.Context, metrics ...*plugintypes.Metri
 			value, err := strconv.ParseInt(metric.Value, 10, 32)
 			if err != nil {
 				logger.Errorf(ctx, err, "failed to parse %s value %s", metric.Name, metric.Value)
+				continue
 			}
 			c.WithLabelValues(metric.Labels...).Add(float64(value))
 			if err := m.count(ctx, metric.Key, int(value), 1.0); err != nil {
