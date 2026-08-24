@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"math"
+	"slices"
 	"strconv"
 
 	"github.com/cockroachdb/errors"
@@ -82,9 +84,11 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintyp
 
 	// an unset NUMAMemory defaults to the node memory split evenly across the NUMA nodes
 	if len(req.NUMA) > 0 && len(req.NUMAMemory) == 0 {
-		averageMemory := req.Memory / int64(len(req.NUMA))
+		// req.NUMA is keyed by cpu ID, so the node IDs must be deduplicated first
+		numaNodes := slices.Compact(slices.Sorted(maps.Values(req.NUMA)))
+		averageMemory := req.Memory / int64(len(numaNodes))
 		nodeResourceInfo.Capacity.NUMAMemory = cpumemtypes.NUMAMemory{}
-		for _, ID := range req.NUMA {
+		for _, ID := range numaNodes {
 			nodeResourceInfo.Capacity.NUMAMemory[ID] = averageMemory
 		}
 	}

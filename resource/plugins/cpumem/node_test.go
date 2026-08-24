@@ -12,6 +12,7 @@ import (
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/resource/plugins/cpumem/types"
+	cpumemtypes "github.com/projecteru2/core/resource/plugins/cpumem/types"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	coretypes "github.com/projecteru2/core/types"
 )
@@ -453,4 +454,22 @@ func BenchmarkGetNodesCapacity(b *testing.B) {
 		_, err := cm.GetNodesDeployCapacity(ctx, nodes, req)
 		assert.Nil(b, err)
 	}
+}
+
+func TestAddNodeSplitsMemoryPerNUMANode(t *testing.T) {
+	ctx := t.Context()
+	cm := initCPUMEM(ctx, t)
+
+	req := plugintypes.NodeResourceRequest{
+		"cpu":      8,
+		"memory":   8 * units.GB,
+		"numa-cpu": []string{"0,1,2,3", "4,5,6,7"},
+	}
+
+	r, err := cm.AddNode(ctx, "numa-node", req, nil)
+	assert.Nil(t, err)
+
+	numaMemory, ok := r.Capacity["numa_memory"].(cpumemtypes.NUMAMemory)
+	assert.True(t, ok)
+	assert.Equal(t, cpumemtypes.NUMAMemory{"0": 4 * units.GB, "1": 4 * units.GB}, numaMemory)
 }
