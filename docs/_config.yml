@@ -1,0 +1,3 @@
+title: core
+description: Stateless gRPC resource scheduler for Docker containers and virtual machines
+theme: jekyll-theme-primer
