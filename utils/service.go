@@ -3,7 +3,6 @@ package utils
 import (
 	"fmt"
 	"net"
-	"strings"
 
 	"github.com/cockroachdb/errors"
 
@@ -12,12 +11,10 @@ import (
 
 // GetOutboundAddress returns bind, or the local IP reaching probeTarget when bind's host is unspecified.
 func GetOutboundAddress(bind, probeTarget string) (string, error) {
-	parts := strings.Split(bind, ":")
-	if len(parts) != 2 {
+	ip, port, err := net.SplitHostPort(bind)
+	if err != nil {
 		return "", errors.Wrap(types.ErrInvaildIPWithPort, bind)
 	}
-	ip := parts[0]
-	port := parts[1]
 
 	address := net.ParseIP(ip)
 	if ip == "" || address == nil || address.IsUnspecified() {
