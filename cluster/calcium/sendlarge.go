@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -24,8 +25,6 @@ func (c *Calcium) SendLargeFile(ctx context.Context, inputChan chan *types.SendL
 				if _, ok := senders[id]; !ok {
 					log.Debugf(ctx, "[SendLargeFile] create sender for %s", id)
 					// for each container, let's create a new sender to send identical file chunk, each chunk will include the metadata of this file
-					// we need to add `waitGroup out of the `newWorkloadSender` because we need to avoid `wg.Wait()` be executing before `wg.Add()`,
-					// which will cause the goroutine in `c.newWorkloadSender` to be killed.
 					wg.Add(1)
 					sender := c.newWorkloadSender(ctx, id, resp, wg)
 					senders[id] = sender
@@ -58,6 +57,7 @@ func (c *Calcium) newWorkloadSender(ctx context.Context, ID string, resp chan *t
 		resp:    resp,
 	}
 	utils.SentryGo(func() {
+		defer wg.Done()
 		var writer *io.PipeWriter
 		curFile := ""
 		for data := range sender.buffer {
@@ -71,9 +71,11 @@ func (c *Calcium) newWorkloadSender(ctx context.Context, ID string, resp chan *t
 				curFile = data.Dst
 				pr, pw := io.Pipe()
 				writer = pw
-				utils.SentryGo(func(ID, name string, size int64, content io.Reader, uid, gid int, mode int64) func() {
+				wg.Add(1)
+				utils.SentryGo(func(ID, name string, size int64, content *io.PipeReader, uid, gid int, mode int64) func() {
 					return func() {
 						defer wg.Done()
+						defer func() { _ = content.Close() }()
 						if err := sender.calcium.withWorkloadLocked(ctx, ID, false, func(ctx context.Context, workload *types.Workload) error {
 							err := errors.WithStack(workload.Engine.VirtualizationCopyChunkTo(ctx, ID, name, size, content, uid, gid, mode))
 							resp <- &types.SendMessage{ID: ID, Path: name, Error: err}
@@ -90,7 +92,7 @@ func (c *Calcium) newWorkloadSender(ctx context.Context, ID string, resp chan *t
 				break
 			}
 		}
-		writer.Close()
+		_ = writer.Close()
 	})
 	return sender
 }

@@ -2,16 +2,17 @@ package calcium
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestSendLarge(t *testing.T) {
@@ -44,18 +45,14 @@ func TestSendLarge(t *testing.T) {
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
-	engine := &enginemocks.API{}
+	engine := &chunkEngine{API: &enginemocks.API{}}
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(
 		[]*types.Workload{{ID: "cid", Engine: engine}}, nil,
 	)
 	// failed by engine
-	content, _ := ioutil.ReadAll(tmpfile)
+	content, _ := io.ReadAll(tmpfile)
 	opts.Chunk = content
-	engine.On("VirtualizationCopyChunkTo",
-		mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything, mock.Anything,
-	).Return(types.ErrMockError).Once()
+	engine.err = types.ErrMockError
 	optsChan = make(chan *types.SendLargeFileOptions)
 	ch = c.SendLargeFile(ctx, optsChan)
 	go func() {
@@ -66,12 +63,7 @@ func TestSendLarge(t *testing.T) {
 		t.Log(r.Error)
 		assert.Error(t, r.Error)
 	}
-	// success
-	engine.On("VirtualizationCopyChunkTo",
-		mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything, mock.Anything,
-	).Return(nil)
+	engine.err = nil
 	optsChan = make(chan *types.SendLargeFileOptions)
 	ch = c.SendLargeFile(ctx, optsChan)
 	go func() {
@@ -83,4 +75,14 @@ func TestSendLarge(t *testing.T) {
 		assert.Equal(t, r.Path, "/tmp/1")
 		assert.NoError(t, r.Error)
 	}
+}
+
+type chunkEngine struct {
+	*enginemocks.API
+	err error
+}
+
+func (e *chunkEngine) VirtualizationCopyChunkTo(_ context.Context, _, _ string, _ int64, content io.Reader, _, _ int, _ int64) error {
+	_, _ = io.Copy(io.Discard, content)
+	return e.err
 }
