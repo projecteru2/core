@@ -53,14 +53,17 @@ func GetHTTPSClient(ctx context.Context, certPath, name, ca, cert, key string) (
 	if err != nil {
 		return nil, err
 	}
+	defer discard(caFile)
 	certFile, err := os.CreateTemp(certPath, fmt.Sprintf("cert-%s", name))
 	if err != nil {
 		return nil, err
 	}
+	defer discard(certFile)
 	keyFile, err := os.CreateTemp(certPath, fmt.Sprintf("key-%s", name))
 	if err != nil {
 		return nil, err
 	}
+	defer discard(keyFile)
 	if err = dumpFromString(ctx, caFile, certFile, keyFile, ca, cert, key); err != nil {
 		return nil, err
 	}
@@ -70,11 +73,6 @@ func GetHTTPSClient(ctx context.Context, certPath, name, ca, cert, key string) (
 		KeyFile:            keyFile.Name(),
 		InsecureSkipVerify: true,
 	}
-	defer func() {
-		_ = os.Remove(caFile.Name())
-		_ = os.Remove(certFile.Name())
-		_ = os.Remove(keyFile.Name())
-	}()
 	tlsc, err := tlsconfig.Client(options)
 	if err != nil {
 		return nil, err
@@ -138,4 +136,9 @@ func checkRedirect(_ *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
 	}
 	return types.ErrUnexpectedRedirect
+}
+
+func discard(f *os.File) {
+	_ = f.Close()
+	_ = os.Remove(f.Name())
 }
