@@ -3,6 +3,7 @@ package calcium
 import (
 	"bytes"
 	"context"
+	"slices"
 	"sync"
 
 	"github.com/cockroachdb/errors"
@@ -103,12 +104,13 @@ func (c *Calcium) doReplaceWorkload(
 	if err != nil {
 		return nil, removeMessage, err
 	}
+	files := slices.Clone(opts.Files)
 	for src, dst := range opts.Copy {
 		content, uid, gid, mode, copyErr := workload.Engine.VirtualizationCopyFrom(ctx, workload.ID, src)
 		if copyErr != nil {
 			return nil, removeMessage, copyErr
 		}
-		opts.Files = append(opts.Files, types.LinuxFile{
+		files = append(files, types.LinuxFile{
 			Filename: dst,
 			Content:  content,
 			UID:      uid,
@@ -116,6 +118,7 @@ func (c *Calcium) doReplaceWorkload(
 			Mode:     mode,
 		})
 	}
+	opts.Files = files
 
 	createMessage := &types.CreateWorkloadMessage{
 		Resources:    workload.Resources,
