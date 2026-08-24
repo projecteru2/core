@@ -9,7 +9,6 @@ import (
 	"github.com/projecteru2/core/log"
 )
 
-// ServiceStatusStream watches /services/ --prefix
 func (r *Rediaron) ServiceStatusStream(ctx context.Context) (chan []string, error) {
 	key := fmt.Sprintf(serviceStatusKey, "*")
 	ch := make(chan []string)
@@ -46,7 +45,6 @@ func (r *Rediaron) ServiceStatusStream(ctx context.Context) (chan []string, erro
 	return ch, nil
 }
 
-// RegisterService put /services/{address}
 func (r *Rediaron) RegisterService(ctx context.Context, serviceAddress string, expire time.Duration) (<-chan struct{}, func(), error) {
 	key := fmt.Sprintf(serviceStatusKey, serviceAddress)
 	return r.StartEphemeral(ctx, key, expire)

@@ -12,7 +12,6 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-// StartEphemeral starts an empheral kv pair.
 func (e *ETCD) StartEphemeral(ctx context.Context, path string, heartbeat time.Duration) (<-chan struct{}, func(), error) {
 	lease, err := e.cliv3.Grant(ctx, int64(heartbeat/time.Second))
 	if err != nil {
@@ -40,7 +39,6 @@ func (e *ETCD) StartEphemeral(ctx context.Context, path string, heartbeat time.D
 		tick := time.NewTicker(heartbeat / 3)
 		defer tick.Stop()
 
-		// Revokes the lease.
 		defer func() {
 			// It shouldn't be inheriting from the ctx.
 			revokeCtx, revokeCancel := context.WithTimeout(context.TODO(), time.Minute)

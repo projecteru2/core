@@ -20,11 +20,9 @@ func TestDeploy(t *testing.T) {
 		NodeFilter:   &types.NodeFilter{},
 	}
 
-	// no workload deployed
 	nodeCount, err := m.GetDeployStatus(ctx, opts.Name, opts.Entrypoint.Name)
 	assert.NoError(t, err)
 	assert.Equal(t, len(nodeCount), 0)
-	// have workloads
 	key := filepath.Join(workloadDeployPrefix, opts.Name, opts.Entrypoint.Name, "node", "id1")
 	_, err = m.Put(ctx, key, "")
 	assert.NoError(t, err)

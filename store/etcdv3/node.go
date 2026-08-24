@@ -23,12 +23,6 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-// AddNode save it to etcd
-// storage path in etcd is `/pod/nodes/:podname/:nodename`
-// node->pod path in etcd is `/node/pod/:nodename`
-// func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string,
-// cpu, share int, memory, storage int64, labels map[string]string,
-// numa types.NUMA, numaMemory types.NUMAMemory, volume types.VolumeMap) (*types.Node, error) {
 func (m *Mercury) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*types.Node, error) {
 	_, err := m.GetPod(ctx, opts.Podname)
 	if err != nil {
@@ -38,7 +32,6 @@ func (m *Mercury) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 	return m.doAddNode(ctx, opts.Nodename, opts.Endpoint, opts.Podname, opts.Ca, opts.Cert, opts.Key, opts.Labels, opts.Test)
 }
 
-// RemoveNode delete a node
 func (m *Mercury) RemoveNode(ctx context.Context, node *types.Node) error {
 	if node == nil {
 		return nil
@@ -46,7 +39,6 @@ func (m *Mercury) RemoveNode(ctx context.Context, node *types.Node) error {
 	return m.doRemoveNode(ctx, node.Podname, node.Name, node.Endpoint)
 }
 
-// GetNode get node by name
 func (m *Mercury) GetNode(ctx context.Context, nodename string) (*types.Node, error) {
 	nodes, err := m.GetNodes(ctx, []string{nodename})
 	if err != nil {
@@ -55,7 +47,6 @@ func (m *Mercury) GetNode(ctx context.Context, nodename string) (*types.Node, er
 	return nodes[0], nil
 }
 
-// GetNodes get nodes
 func (m *Mercury) GetNodes(ctx context.Context, nodenames []string) ([]*types.Node, error) {
 	nodesKeys := []string{}
 	for _, nodename := range nodenames {
@@ -70,8 +61,6 @@ func (m *Mercury) GetNodes(ctx context.Context, nodenames []string) ([]*types.No
 	return m.doGetNodes(ctx, kvs, nil, true, nil)
 }
 
-// GetNodesByPod get all nodes bound to pod
-// here we use podname instead of pod instance
 func (m *Mercury) GetNodesByPod(ctx context.Context, nodeFilter *types.NodeFilter, opts ...store.Option) ([]*types.Node, error) {
 	var op store.Op
 	for _, opt := range opts {
@@ -103,7 +92,6 @@ func (m *Mercury) GetNodesByPod(ctx context.Context, nodeFilter *types.NodeFilte
 	return result, nil
 }
 
-// UpdateNodes .
 func (m *Mercury) UpdateNodes(ctx context.Context, nodes ...*types.Node) error {
 	data := map[string]string{}
 	addIfNotEmpty := func(key, value string) {
@@ -134,15 +122,11 @@ func (m *Mercury) UpdateNodes(ctx context.Context, nodes ...*types.Node) error {
 	return nil
 }
 
-// SetNodeStatus sets status for a node, value will expire after ttl seconds
-// ttl < 0 means to delete node status
-// this is heartbeat of node
 func (m *Mercury) SetNodeStatus(ctx context.Context, node *types.Node, ttl int64) error {
 	if ttl == 0 {
 		return types.ErrInvaildNodeStatusTTL
 	}
 
-	// nodenames are unique
 	statusKey := filepath.Join(nodeStatusPrefix, node.Name)
 	entityKey := fmt.Sprintf(nodeInfoKey, node.Name)
 
@@ -163,7 +147,6 @@ func (m *Mercury) SetNodeStatus(ctx context.Context, node *types.Node, ttl int64
 	return m.BindStatus(ctx, entityKey, statusKey, string(data), ttl)
 }
 
-// GetNodeStatus returns status for a node
 func (m *Mercury) GetNodeStatus(ctx context.Context, nodename string) (*types.NodeStatus, error) {
 	key := filepath.Join(nodeStatusPrefix, nodename)
 	ev, err := m.GetOne(ctx, key)
@@ -178,10 +161,6 @@ func (m *Mercury) GetNodeStatus(ctx context.Context, nodename string) (*types.No
 	return ns, nil
 }
 
-// NodeStatusStream returns a stream of node status
-// it tells you if status of a node is changed, either PUT or DELETE
-// PUT    -> Alive: true
-// DELETE -> Alive: false
 func (m *Mercury) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
 	ch := make(chan *types.NodeStatus)
 	logger := log.WithFunc("store.etcdv3.NodeStatusStream")
@@ -225,7 +204,7 @@ func (m *Mercury) LoadNodeCert(ctx context.Context, node *types.Node) (err error
 		ev, err := m.GetOne(ctx, fmt.Sprintf(keyFormats[i], node.Name))
 		if err != nil {
 			if !errors.Is(err, types.ErrInvaildCount) {
-				log.WithFunc("store.etcdv3.LoadNodeCert").Warn(ctx, err, "Get key failed")
+				log.WithFunc("store.etcdv3.LoadNodeCert").Error(ctx, err, "get key")
 				return err
 			}
 			continue
@@ -237,7 +216,7 @@ func (m *Mercury) LoadNodeCert(ctx context.Context, node *types.Node) (err error
 }
 
 func (m *Mercury) makeClient(ctx context.Context, node *types.Node) (client engine.API, err error) {
-	// try to get from cache without ca/cert/key
+	// cache lookup ignores ca/cert/key
 	if client = enginefactory.GetEngineFromCache(ctx, node.Endpoint, "", "", ""); client != nil {
 		return client, nil
 	}
@@ -248,7 +227,7 @@ func (m *Mercury) makeClient(ctx context.Context, node *types.Node) (client engi
 		ev, err := m.GetOne(ctx, fmt.Sprintf(keyFormats[i], node.Name))
 		if err != nil {
 			if !errors.Is(err, types.ErrInvaildCount) {
-				log.WithFunc("store.etcdv3.makeClient").Warn(ctx, err, "Get key failed")
+				log.WithFunc("store.etcdv3.makeClient").Error(ctx, err, "get key")
 				return nil, err
 			}
 			continue
@@ -261,7 +240,6 @@ func (m *Mercury) makeClient(ctx context.Context, node *types.Node) (client engi
 
 func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, labels map[string]string, test bool) (*types.Node, error) {
 	data := map[string]string{}
-	// 如果有tls的证书需要保存就保存一下
 	if ca != "" {
 		data[fmt.Sprintf(nodeCaKey, name)] = ca
 	}
@@ -302,10 +280,7 @@ func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, ce
 	return node, nil
 }
 
-// 因为是先写etcd的证书再拿client
-// 所以可能出现实际上node创建失败但是却写好了证书的情况
-// 所以需要删除这些留存的证书
-// 至于结果是不是成功就无所谓了
+// certs are written before the node record, so a failed create leaves them behind
 func (m *Mercury) doRemoveNode(ctx context.Context, podname, nodename, endpoint string) error {
 	keys := []string{
 		fmt.Sprintf(nodeInfoKey, nodename),
@@ -316,7 +291,7 @@ func (m *Mercury) doRemoveNode(ctx context.Context, podname, nodename, endpoint 
 	}
 
 	_, err := m.BatchDelete(ctx, keys)
-	log.WithFunc("store.etcdv3.doRemoveNode").Infof(ctx, "Node (%s, %s, %s) deleted", podname, nodename, endpoint)
+	log.WithFunc("store.etcdv3.doRemoveNode").Infof(ctx, "node (%s, %s, %s) deleted", podname, nodename, endpoint)
 	return err
 }
 
@@ -364,7 +339,6 @@ func (m *Mercury) doGetNodes(
 			}
 
 			if op == nil || (!op.WithoutEngine) {
-				// update engine
 				if client, err := m.makeClient(ctx, node); err != nil {
 					logger.Errorf(ctx, err, "failed to make client for %+v", node.Name)
 				} else {
@@ -384,8 +358,6 @@ func (m *Mercury) doGetNodes(
 	return nodes, nil
 }
 
-// extracts node name from key
-// /nodestatus/nodename -> nodename
 func extractNodename(s string) string {
 	ps := strings.Split(s, "/")
 	return ps[len(ps)-1]

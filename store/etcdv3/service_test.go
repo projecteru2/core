@@ -24,7 +24,6 @@ func TestRegisterServiceWithDeregister(t *testing.T) {
 	assert.Equal(t, path, string(kv.Key))
 
 	deregister()
-	// time.Sleep(time.Second)
 	kv, err = m.GetOne(ctx, path)
 	assert.Error(t, err)
 	assert.Nil(t, kv)

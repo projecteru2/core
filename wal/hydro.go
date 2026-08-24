@@ -21,7 +21,6 @@ type Hydro struct {
 	store kv.KV
 }
 
-// NewHydro initailizes a new Hydro instance.
 func NewHydro(path string, timeout time.Duration) (*Hydro, error) {
 	store := kv.NewLithium()
 	if err := store.Open(path, fileMode, timeout); err != nil {
@@ -33,17 +32,14 @@ func NewHydro(path string, timeout time.Duration) (*Hydro, error) {
 	}, nil
 }
 
-// Close disconnects the kvdb.
 func (h *Hydro) Close() error {
 	return h.store.Close()
 }
 
-// Register registers a new event handler.
 func (h *Hydro) Register(handler EventHandler) {
 	h.Set(handler.Typ(), handler)
 }
 
-// Recover starts a disaster recovery, which will replay all the events.
 func (h *Hydro) Recover(ctx context.Context) {
 	ch, _ := h.store.Scan([]byte(eventPrefix))
 	events := []HydroEvent{}
@@ -52,13 +48,12 @@ func (h *Hydro) Recover(ctx context.Context) {
 	for {
 		scanEntry, ok := <-ch
 		if !ok {
-			logger.Warn(ctx, "noting have to restore, wal recover closed")
 			break
 		}
 
 		event, err := h.decodeEvent(scanEntry)
 		if err != nil {
-			logger.Error(ctx, err, "decode event error")
+			logger.Error(ctx, err, "decode event")
 			continue
 		}
 		events = append(events, event)
@@ -67,7 +62,7 @@ func (h *Hydro) Recover(ctx context.Context) {
 	for _, event := range events {
 		handler, ok := h.getEventHandler(event.Type)
 		if !ok {
-			logger.Warn(ctx, "no such event handler for %s", event.Type)
+			logger.Warnf(ctx, "no such event handler for %s", event.Type)
 			continue
 		}
 
@@ -78,14 +73,13 @@ func (h *Hydro) Recover(ctx context.Context) {
 	}
 }
 
-// Log records a log item.
 func (h *Hydro) Log(eventyp string, item any) (Commit, error) {
 	handler, ok := h.getEventHandler(eventyp)
 	if !ok {
 		return nil, errors.Wrap(coretypes.ErrInvaildWALEventType, eventyp)
 	}
 
-	bs, err := handler.Encode(item) // TODO 2 times encode is necessary?
+	bs, err := handler.Encode(item)
 	if err != nil {
 		return nil, err
 	}

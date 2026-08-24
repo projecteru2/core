@@ -13,7 +13,7 @@ import (
 	"go.etcd.io/etcd/client/v3/concurrency"
 )
 
-// Mutex is etcdv3 lock
+// Mutex is an etcd session based distributed lock.
 type Mutex struct {
 	timeout   time.Duration
 	mutex     *concurrency.Mutex
@@ -22,7 +22,7 @@ type Mutex struct {
 	lockedMux sync.Mutex
 }
 
-// New new a lock
+// New creates a Mutex on key, released automatically after ttl.
 func New(cli *clientv3.Client, key string, ttl time.Duration) (*Mutex, error) {
 	if key == "" {
 		return nil, types.ErrLockKeyInvaild
@@ -42,7 +42,6 @@ func New(cli *clientv3.Client, key string, ttl time.Duration) (*Mutex, error) {
 	return mutex, nil
 }
 
-// Lock get locked
 func (m *Mutex) Lock(ctx context.Context) (context.Context, error) {
 	lockCtx, cancel := context.WithTimeout(ctx, m.timeout)
 	defer cancel()
@@ -61,22 +60,20 @@ func (m *Mutex) Lock(ctx context.Context) (context.Context, error) {
 	go func() {
 		defer cancel()
 
+		// session.Done() fires both on a lost lock and on our own Unlock
 		select {
 		case <-m.session.Done():
 			m.lockedMux.Lock()
 			if m.locked {
-				// passive lock release, happened when etcdserver down or so
 				rCtx.setError(types.ErrLockSessionDone)
 				m.lockedMux.Unlock()
 				return
 			}
-			// positive lock release, happened when we call lock.Unlock()
 			m.lockedMux.Unlock()
 			<-ctx.Done()
 			return
 
 		case <-ctx.Done():
-			// context canceled or timeouted from upstream
 			return
 		}
 	}()
@@ -84,8 +81,6 @@ func (m *Mutex) Lock(ctx context.Context) (context.Context, error) {
 	return rCtx, nil
 }
 
-// TryLock tries to lock
-// returns error if the lock is already acquired by someone else
 func (m *Mutex) TryLock(ctx context.Context) (context.Context, error) {
 	lockCtx, cancel := context.WithTimeout(ctx, m.timeout)
 	defer cancel()
@@ -101,13 +96,11 @@ func (m *Mutex) TryLock(ctx context.Context) (context.Context, error) {
 	m.locked = true
 	m.lockedMux.Unlock()
 
-	// how to make this DIY?@zc
 	go func() {
 		defer cancel()
 
 		select {
 		case <-m.session.Done():
-			// session.Done() has multi semantics, see comments in Lock() func
 			m.lockedMux.Lock()
 			if m.locked {
 				rCtx.setError(types.ErrLockSessionDone)
@@ -126,7 +119,6 @@ func (m *Mutex) TryLock(ctx context.Context) (context.Context, error) {
 	return rCtx, nil
 }
 
-// Unlock unlock
 func (m *Mutex) Unlock(ctx context.Context) error {
 	defer func() {
 		_ = m.session.Close()
@@ -144,9 +136,6 @@ func (m *Mutex) unlock(ctx context.Context) error {
 
 	_, err := m.session.Client().Txn(ctx).If(m.mutex.IsOwner()).
 		Then(clientv3.OpDelete(m.mutex.Key())).Commit()
-	// no way to clear it...
-	// m.myKey = "\x00"
-	// m.myRev = -1
 	return err
 }
 

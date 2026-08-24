@@ -109,7 +109,6 @@ func (s *RediaronTestSuite) TestKeyNotify() {
 		cancel()
 	}()
 
-	// trigger manually
 	time.Sleep(time.Second)
 	s.rediaron.cli.Set(context.Background(), "aaa", 1, 0)
 	triggerMockedKeyspaceNotification(s.rediaron.cli, "aaa", actionSet)

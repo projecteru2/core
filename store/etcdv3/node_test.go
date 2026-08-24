@@ -26,27 +26,20 @@ func TestAddNode(t *testing.T) {
 	labels := map[string]string{"test": "1"}
 
 	endpoint = "mock://fakeengine"
-	// wrong no pod
 	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: "abc", Labels: labels})
 	assert.Error(t, err)
-	// AddNode
 	node, err := m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: podname, Labels: labels})
 	assert.NoError(t, err)
 	assert.Equal(t, node.Name, nodename)
-	// add again and failed
 	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: podname, Labels: labels})
 	assert.Error(t, err)
-	// Addnode again will failed
 	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: podname, Labels: labels})
 	assert.Error(t, err)
-	// Check etcd has node data
 	key := fmt.Sprintf(nodeInfoKey, nodename)
 	_, err = m.GetOne(ctx, key)
 	assert.NoError(t, err)
-	// AddNode with mocked engine and default value
 	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename2, Endpoint: endpoint, Podname: podname, Labels: labels})
 	assert.NoError(t, err)
-	// with tls
 	ca := `-----BEGIN CERTIFICATE-----
 MIIC7TCCAdWgAwIBAgIJAM8uLRZf9jttMA0GCSqGSIb3DQEBCwUAMA0xCzAJBgNV
 BAYTAkNOMB4XDTE4MDYxODA5MTkwNloXDTI4MDYxNTA5MTkwNlowDTELMAkGA1UE
@@ -116,7 +109,6 @@ RdCPRPt513WozkJZZAjUSP2U
 	assert.NoError(t, err)
 	_, err = m.makeClient(ctx, node3)
 	assert.Error(t, err)
-	// failed by get key
 	node3.Name = "nokey"
 	_, err = m.makeClient(ctx, node3)
 	assert.Error(t, err)
@@ -161,7 +153,7 @@ func TestGetNodesByPod(t *testing.T) {
 	assert.NoError(t, err)
 	ns, err = m.GetNodesByPod(ctx, &types.NodeFilter{All: false})
 	assert.NoError(t, err)
-	assert.Len(t, ns, 1) // because mock forced to up, so here is 1
+	assert.Len(t, ns, 1)
 	ns, err = m.GetNodesByPod(ctx, &types.NodeFilter{All: true})
 	assert.NoError(t, err)
 	assert.NotEmpty(t, ns)
@@ -216,10 +208,8 @@ func TestSetNodeStatus(t *testing.T) {
 	assert.NoError(m.SetNodeStatus(context.Background(), node, 1))
 	key := filepath.Join(nodeStatusPrefix, node.Name)
 
-	// not expired yet
 	_, err = m.GetOne(context.Background(), key)
 	assert.NoError(err)
-	// expired
 	time.Sleep(2000 * time.Millisecond)
 	_, err = m.GetOne(context.Background(), key)
 	assert.Error(err)
@@ -246,12 +236,10 @@ func TestGetNodeStatus(t *testing.T) {
 	assert.NoError(err)
 	assert.NoError(m.SetNodeStatus(context.Background(), node, 1))
 
-	// not expired yet
 	ns, err := m.GetNodeStatus(context.Background(), node.Name)
 	assert.NoError(err)
 	assert.Equal(ns.Nodename, node.Name)
 	assert.True(ns.Alive)
-	// expired
 	time.Sleep(2 * time.Second)
 	ns1, err := m.GetNodeStatus(context.Background(), node.Name)
 	assert.Error(err)

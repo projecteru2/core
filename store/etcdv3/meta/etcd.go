@@ -27,7 +27,7 @@ const (
 	cmpValue   = "value"
 )
 
-// ETCDClientV3 .
+// ETCDClientV3 is the etcd client surface the store depends on.
 type ETCDClientV3 interface {
 	clientv3.KV
 	clientv3.Lease
@@ -47,13 +47,12 @@ type ETCDTxnResp struct {
 	err  error
 }
 
-// ETCD .
+// ETCD is the etcd backed meta store.
 type ETCD struct {
 	cliv3  ETCDClientV3
 	config types.EtcdConfig
 }
 
-// NewETCD initailizes a new ETCD instance.
 func NewETCD(config types.EtcdConfig, embeddedETCD *embedded.Cluster) (*ETCD, error) {
 	var cliv3 *clientv3.Client
 	var err error
@@ -90,19 +89,16 @@ func NewETCD(config types.EtcdConfig, embeddedETCD *embedded.Cluster) (*ETCD, er
 	return &ETCD{cliv3: cliv3, config: config}, nil
 }
 
-// CreateLock create a lock instance
 func (e *ETCD) CreateLock(key string, ttl time.Duration) (lock.DistributedLock, error) {
 	lockKey := fmt.Sprintf("%s/%s", e.config.LockPrefix, key)
 	mutex, err := etcdlock.New(e.cliv3.(*clientv3.Client), lockKey, ttl)
 	return mutex, err
 }
 
-// Get get results or noting
 func (e *ETCD) Get(ctx context.Context, key string, opts ...clientv3.OpOption) (*clientv3.GetResponse, error) {
 	return e.cliv3.Get(ctx, key, opts...)
 }
 
-// GetOne get one result or noting
 func (e *ETCD) GetOne(ctx context.Context, key string, opts ...clientv3.OpOption) (*mvccpb.KeyValue, error) {
 	resp, err := e.Get(ctx, key, opts...)
 	if err != nil {
@@ -114,7 +110,6 @@ func (e *ETCD) GetOne(ctx context.Context, key string, opts ...clientv3.OpOption
 	return resp.Kvs[0], nil
 }
 
-// GetMulti gets several results
 func (e *ETCD) GetMulti(ctx context.Context, keys []string, _ ...clientv3.OpOption) (kvs []*mvccpb.KeyValue, err error) {
 	var txnResponse *clientv3.TxnResponse
 	if len(keys) == 0 {
@@ -136,52 +131,42 @@ func (e *ETCD) GetMulti(ctx context.Context, keys []string, _ ...clientv3.OpOpti
 	return kvs, err
 }
 
-// Delete delete key
 func (e *ETCD) Delete(ctx context.Context, key string, opts ...clientv3.OpOption) (*clientv3.DeleteResponse, error) {
 	return e.cliv3.Delete(ctx, key, opts...)
 }
 
-// Put save a key value
 func (e *ETCD) Put(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.PutResponse, error) {
 	return e.cliv3.Put(ctx, key, val, opts...)
 }
 
-// Create create a key if not exists
 func (e *ETCD) Create(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
 	return e.batchCreate(ctx, map[string]string{key: val}, opts...)
 }
 
-// Update update a key if exists
 func (e *ETCD) Update(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
 	return e.batchUpdate(ctx, map[string]string{key: val}, opts...)
 }
 
-// Watch .
 func (e *ETCD) Watch(ctx context.Context, key string, opts ...clientv3.OpOption) clientv3.WatchChan {
 	return e.watch(ctx, key, opts...)
 }
 
-// BatchDelete .
 func (e *ETCD) BatchDelete(ctx context.Context, keys []string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
 	return e.batchDelete(ctx, keys, opts...)
 }
 
-// BatchCreate .
 func (e *ETCD) BatchCreate(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
 	return e.batchCreate(ctx, data, opts...)
 }
 
-// BatchUpdate .
 func (e *ETCD) BatchUpdate(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
 	return e.batchUpdate(ctx, data, opts...)
 }
 
-// BatchPut .
 func (e *ETCD) BatchPut(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
 	return e.batchPut(ctx, data, nil, opts...)
 }
 
-// BindStatus keeps on a lease alive.
 func (e *ETCD) BindStatus(ctx context.Context, entityKey, statusKey, statusValue string, ttl int64) error {
 	if ttl == 0 {
 		return e.bindStatusWithoutTTL(ctx, statusKey, statusValue)
@@ -189,12 +174,10 @@ func (e *ETCD) BindStatus(ctx context.Context, entityKey, statusKey, statusValue
 	return e.bindStatusWithTTL(ctx, entityKey, statusKey, statusValue, ttl)
 }
 
-// Grant creates a new lease.
 func (e *ETCD) Grant(ctx context.Context, ttl int64) (*clientv3.LeaseGrantResponse, error) {
 	return e.cliv3.Grant(ctx, ttl)
 }
 
-// BatchCreateAndDecr used to decr processing and add workload
 func (e *ETCD) BatchCreateAndDecr(ctx context.Context, data map[string]string, decrKey string) (err error) {
 	resp, err := e.Get(ctx, decrKey)
 	if err != nil {
@@ -240,7 +223,6 @@ func (e *ETCD) BatchCreateAndDecr(ctx context.Context, data map[string]string, d
 	return nil
 }
 
-// Watch wath a key
 func (e *ETCD) watch(ctx context.Context, key string, opts ...clientv3.OpOption) clientv3.WatchChan {
 	return e.cliv3.Watch(ctx, key, opts...)
 }
@@ -318,7 +300,6 @@ func (e *ETCD) batchUpdate(ctx context.Context, data map[string]string, opts ...
 	return resp, nil
 }
 
-// isTTLChanged returns true if there is a lease with a different ttl bound to the key
 func (e *ETCD) isTTLChanged(ctx context.Context, key string, ttl int64) (bool, error) {
 	resp, err := e.GetOne(ctx, key)
 	if err != nil {
@@ -366,24 +347,24 @@ func (e *ETCD) bindStatusWithTTL(ctx context.Context, entityKey, statusKey, stat
 	if ttlChanged {
 		entityTxn, err = e.cliv3.Txn(ctx).
 			If(clientv3.Compare(clientv3.Version(entityKey), "!=", 0)).
-			Then(updateStatus...). // making sure there's an exists entity kv-pair.
+			Then(updateStatus...).
 			Commit()
 	} else {
 		entityTxn, err = e.cliv3.Txn(ctx).
 			If(clientv3.Compare(clientv3.Version(entityKey), "!=", 0)).
-			Then( // making sure there's an exists entity kv-pair.
+			Then(
 				clientv3.OpTxn(
-					[]clientv3.Cmp{clientv3.Compare(clientv3.Version(statusKey), "!=", 0)}, // Is the status exists?
-					[]clientv3.Op{clientv3.OpTxn( // there's an exists status
-						[]clientv3.Cmp{clientv3.Compare(clientv3.LeaseValue(statusKey), "!=", 0)}, //
-						[]clientv3.Op{clientv3.OpTxn( // there has been a lease bound to the status
-							[]clientv3.Cmp{clientv3.Compare(clientv3.Value(statusKey), "=", statusValue)}, // Is the status changed?
-							[]clientv3.Op{clientv3.OpGet(statusKey)},                                      // The status hasn't been changed.
-							updateStatus,                                                                  // The status had been changed.
+					[]clientv3.Cmp{clientv3.Compare(clientv3.Version(statusKey), "!=", 0)},
+					[]clientv3.Op{clientv3.OpTxn(
+						[]clientv3.Cmp{clientv3.Compare(clientv3.LeaseValue(statusKey), "!=", 0)},
+						[]clientv3.Op{clientv3.OpTxn(
+							[]clientv3.Cmp{clientv3.Compare(clientv3.Value(statusKey), "=", statusValue)},
+							[]clientv3.Op{clientv3.OpGet(statusKey)},
+							updateStatus,
 						)},
-						updateStatus, // there is no lease bound to the status
+						updateStatus,
 					)},
-					updateStatus, // there isn't a status
+					updateStatus,
 				),
 			).Commit()
 	}
@@ -393,40 +374,34 @@ func (e *ETCD) bindStatusWithTTL(ctx context.Context, entityKey, statusKey, stat
 		return err
 	}
 
-	// There isn't the entity kv pair.
 	if !entityTxn.Succeeded {
 		e.revokeLease(ctx, leaseID)
 		return types.ErrInvaildCount
 	}
 
-	// if ttl is changed, replace with the new lease
 	if ttlChanged {
 		logger.Infof(ctx, "put: key %s value %s", statusKey, statusValue)
 		return nil
 	}
 
-	// There isn't a status bound to the entity.
 	statusTxn := entityTxn.Responses[0].GetResponseTxn()
 	if !statusTxn.Succeeded {
 		logger.Infof(ctx, "put: key %s value %s", statusKey, statusValue)
 		return nil
 	}
 
-	// There is no lease bound to the status yet
 	leaseTxn := statusTxn.Responses[0].GetResponseTxn()
 	if !leaseTxn.Succeeded {
 		logger.Infof(ctx, "put: key %s value %s", statusKey, statusValue)
 		return nil
 	}
 
-	// There is a status bound to the entity yet but its value isn't same as the expected one.
 	valueTxn := leaseTxn.Responses[0].GetResponseTxn()
 	if !valueTxn.Succeeded {
 		logger.Infof(ctx, "put: key %s value %s", statusKey, statusValue)
 		return nil
 	}
 
-	// Gets the lease ID which binds onto the status, and renew it one round.
 	origLeaseID := clientv3.LeaseID(valueTxn.Responses[0].GetResponseRange().Kvs[0].Lease)
 
 	if origLeaseID != leaseID {
@@ -437,10 +412,7 @@ func (e *ETCD) bindStatusWithTTL(ctx context.Context, entityKey, statusKey, stat
 	return err
 }
 
-// bindStatusWithoutTTL sets status without TTL.
-// When dealing with status of 0 TTL, we don't use lease,
-// also we don't check the existence of the entity key since
-// agent may report status earlier when core has not recorded the entity.
+// bindStatusWithoutTTL skips the entity check: an agent may report status before core records the entity.
 func (e *ETCD) bindStatusWithoutTTL(ctx context.Context, statusKey, statusValue string) error {
 	updateStatus := []clientv3.Op{clientv3.OpPut(statusKey, statusValue)}
 	logger := log.WithFunc("store.etcdv3.etcd.bindStatusWithoutTTL")
@@ -459,13 +431,13 @@ func (e *ETCD) bindStatusWithoutTTL(ctx context.Context, statusKey, statusValue 
 	}
 
 	resp, err := e.cliv3.Txn(ctx).
-		If(clientv3.Compare(clientv3.Version(statusKey), "!=", 0)). // if there's an existing status key
-		Then(clientv3.OpTxn(                                        // deal with existing status key
-			[]clientv3.Cmp{clientv3.Compare(clientv3.Value(statusKey), "!=", statusValue)}, // if the new value != the old value
-			updateStatus,    // then the status has been changed.
-			[]clientv3.Op{}, // otherwise do nothing.
+		If(clientv3.Compare(clientv3.Version(statusKey), "!=", 0)).
+		Then(clientv3.OpTxn(
+			[]clientv3.Cmp{clientv3.Compare(clientv3.Value(statusKey), "!=", statusValue)},
+			updateStatus,
+			[]clientv3.Op{},
 		)).
-		Else(updateStatus...). // otherwise deal with non-existing status key
+		Else(updateStatus...).
 		Commit()
 	if err != nil {
 		return err
@@ -492,10 +464,8 @@ func (e *ETCD) doBatchOp(ctx context.Context, transactions []ETCDTxn) (resp *cli
 
 	const txnLimit = 125
 
-	// split transactions into smaller pieces
 	txnes := []ETCDTxn{}
 	for _, txn := range transactions {
-		// TODO@zc: split if and else
 		if len(txn.Then) <= txnLimit {
 			txnes = append(txnes, txn)
 			continue
@@ -532,14 +502,14 @@ func (e *ETCD) doBatchOp(ctx context.Context, transactions []ETCDTxn) (resp *cli
 		respChan <- ETCDTxnResp{resp: txnResp, err: txnErr}
 	}
 
-	lastIdx := 0 // last uncommit index
+	lastIdx := 0
 	lenIf, lenThen, lenElse := 0, 0, 0
 	for i := 0; i < len(txnes); i++ {
 		if lenIf+len(txnes[i].If) > txnLimit ||
 			lenThen+len(txnes[i].Then) > txnLimit ||
 			lenElse+len(txnes[i].Else) > txnLimit {
 			wg.Add(1)
-			go doOp(lastIdx, i) // [lastIdx, i)
+			go doOp(lastIdx, i)
 
 			lastIdx = i
 			lenIf, lenThen, lenElse = 0, 0, 0
@@ -573,7 +543,6 @@ func (e *ETCD) doBatchOp(ctx context.Context, transactions []ETCDTxn) (resp *cli
 	}
 
 	resp = resps[0].resp
-	// TODO@zc: should rollback all for any unsucceed txn
 	for i := 1; i < len(resps); i++ {
 		resp.Succeeded = resp.Succeeded && resps[i].resp.Succeeded
 		resp.Responses = append(resp.Responses, resps[i].resp.Responses...)

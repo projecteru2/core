@@ -11,29 +11,18 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-// AddWorkload add a workload
-// mainly record its relationship on pod and node
-// actually if we already know its node, we will know its pod
-// but we still store it
-// storage path in etcd is `/workload/:workloadid`
 func (r *Rediaron) AddWorkload(ctx context.Context, workload *types.Workload, processing *types.Processing) error {
 	return r.doOpsWorkload(ctx, workload, processing, true)
 }
 
-// UpdateWorkload update a workload
 func (r *Rediaron) UpdateWorkload(ctx context.Context, workload *types.Workload) error {
 	return r.doOpsWorkload(ctx, workload, nil, false)
 }
 
-// RemoveWorkload remove a workload
-// workload ID must be in full length
 func (r *Rediaron) RemoveWorkload(ctx context.Context, workload *types.Workload) error {
 	return r.cleanWorkloadData(ctx, workload)
 }
 
-// GetWorkload get a workload
-// workload if must be in full length, or we can't find it in etcd
-// storage path in etcd is `/workload/:workloadid`
 func (r *Rediaron) GetWorkload(ctx context.Context, ID string) (*types.Workload, error) {
 	workloads, err := r.GetWorkloads(ctx, []string{ID})
 	if err != nil {
@@ -42,7 +31,6 @@ func (r *Rediaron) GetWorkload(ctx context.Context, ID string) (*types.Workload,
 	return workloads[0], nil
 }
 
-// GetWorkloads get many workloads
 func (r *Rediaron) GetWorkloads(ctx context.Context, IDs []string) (workloads []*types.Workload, err error) {
 	keys := []string{}
 	for _, ID := range IDs {
@@ -52,7 +40,6 @@ func (r *Rediaron) GetWorkloads(ctx context.Context, IDs []string) (workloads []
 	return r.doGetWorkloads(ctx, keys)
 }
 
-// GetWorkloadStatus get workload status
 func (r *Rediaron) GetWorkloadStatus(ctx context.Context, ID string) (*types.StatusMeta, error) {
 	workload, err := r.GetWorkload(ctx, ID)
 	if err != nil {
@@ -61,7 +48,6 @@ func (r *Rediaron) GetWorkloadStatus(ctx context.Context, ID string) (*types.Sta
 	return workload.StatusMeta, nil
 }
 
-// SetWorkloadStatus set workload status
 func (r *Rediaron) SetWorkloadStatus(ctx context.Context, status *types.StatusMeta, ttl int64) error {
 	if status.Appname == "" || status.Entrypoint == "" || status.Nodename == "" {
 		return types.ErrInvaildWorkloadStatus
@@ -77,7 +63,6 @@ func (r *Rediaron) SetWorkloadStatus(ctx context.Context, status *types.StatusMe
 	return r.BindStatus(ctx, workloadKey, statusKey, statusVal, ttl)
 }
 
-// ListWorkloads list workloads
 func (r *Rediaron) ListWorkloads(ctx context.Context, appname, entrypoint, nodename string, limit int64, labels map[string]string) ([]*types.Workload, error) {
 	if appname == "" {
 		entrypoint = ""
@@ -85,7 +70,7 @@ func (r *Rediaron) ListWorkloads(ctx context.Context, appname, entrypoint, noden
 	if entrypoint == "" {
 		nodename = ""
 	}
-	// 这里显式加个 / 来保证 prefix 是唯一的
+	// trailing slash keeps the prefix from matching a longer nodename
 	key := filepath.Join(workloadDeployPrefix, appname, entrypoint, nodename) + "/*"
 	data, err := r.getByKeyPattern(ctx, key, limit)
 	if err != nil {
@@ -106,7 +91,6 @@ func (r *Rediaron) ListWorkloads(ctx context.Context, appname, entrypoint, noden
 	return r.bindWorkloadsAdditions(ctx, workloads)
 }
 
-// ListNodeWorkloads list workloads belong to one node
 func (r *Rediaron) ListNodeWorkloads(ctx context.Context, nodename string, labels map[string]string) ([]*types.Workload, error) {
 	key := fmt.Sprintf(nodeWorkloadsKey, nodename, "*")
 	data, err := r.getByKeyPattern(ctx, key, 0)
@@ -128,7 +112,6 @@ func (r *Rediaron) ListNodeWorkloads(ctx context.Context, nodename string, label
 	return r.bindWorkloadsAdditions(ctx, workloads)
 }
 
-// WorkloadStatusStream watch deployed status
 func (r *Rediaron) WorkloadStatusStream(ctx context.Context, appname, entrypoint, nodename string, labels map[string]string) chan *types.WorkloadStatus {
 	if appname == "" {
 		entrypoint = ""
@@ -136,7 +119,7 @@ func (r *Rediaron) WorkloadStatusStream(ctx context.Context, appname, entrypoint
 	if entrypoint == "" {
 		nodename = ""
 	}
-	// 显式加个 / 保证 prefix 唯一
+	// trailing slash keeps the prefix from matching a longer nodename
 	statusKey := filepath.Join(workloadStatusPrefix, appname, entrypoint, nodename) + "/*"
 	ch := make(chan *types.WorkloadStatus)
 	logger := log.WithFunc("store.redis.WorkloadStatusStream")
@@ -176,10 +159,10 @@ func (r *Rediaron) cleanWorkloadData(ctx context.Context, workload *types.Worklo
 	}
 
 	keys := []string{
-		filepath.Join(workloadStatusPrefix, appname, entrypoint, workload.Nodename, workload.ID), // workload deploy status
-		filepath.Join(workloadDeployPrefix, appname, entrypoint, workload.Nodename, workload.ID), // workload deploy status
-		fmt.Sprintf(workloadInfoKey, workload.ID),                                                // workload info
-		fmt.Sprintf(nodeWorkloadsKey, workload.Nodename, workload.ID),                            // node workloads
+		filepath.Join(workloadStatusPrefix, appname, entrypoint, workload.Nodename, workload.ID),
+		filepath.Join(workloadDeployPrefix, appname, entrypoint, workload.Nodename, workload.ID),
+		fmt.Sprintf(workloadInfoKey, workload.ID),
+		fmt.Sprintf(nodeWorkloadsKey, workload.Nodename, workload.ID),
 	}
 	return r.BatchDelete(ctx, keys)
 }
@@ -242,8 +225,7 @@ func (r *Rediaron) bindWorkloadsAdditions(ctx context.Context, workloads []*type
 		}
 		status := &types.StatusMeta{}
 		if err := json.Unmarshal([]byte(v), &status); err != nil {
-			logger.Warnf(ctx, "unmarshal %s status data, raw %s", workload.ID, v)
-			logger.Error(ctx, err, "unmarshal status failed")
+			logger.Errorf(ctx, err, "unmarshal status of %s, raw: %s", workload.ID, v)
 			continue
 		}
 		workloads[index].StatusMeta = status
@@ -258,8 +240,6 @@ func (r *Rediaron) doOpsWorkload(ctx context.Context, workload *types.Workload, 
 		return err
 	}
 
-	// now everything is ok
-	// we use full length ID instead
 	bytes, err := json.Marshal(workload)
 	if err != nil {
 		return err

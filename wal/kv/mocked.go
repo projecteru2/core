@@ -12,14 +12,13 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-// MockedKV .
+// MockedKV is an in-memory KV for tests.
 type MockedKV struct {
 	sync.Mutex
 	pool    *haxmap.Map[string, []byte]
 	nextSeq uint64
 }
 
-// NewMockedKV .
 func NewMockedKV() *MockedKV {
 	return &MockedKV{
 		nextSeq: 1,
@@ -27,12 +26,10 @@ func NewMockedKV() *MockedKV {
 	}
 }
 
-// Open .
 func (m *MockedKV) Open(string, os.FileMode, time.Duration) error {
 	return nil
 }
 
-// Close .
 func (m *MockedKV) Close() error {
 	m.pool.ForEach(func(k string, _ []byte) bool {
 		m.pool.Del(k)
@@ -41,7 +38,6 @@ func (m *MockedKV) Close() error {
 	return nil
 }
 
-// NextSequence .
 func (m *MockedKV) NextSequence() (nextSeq uint64, err error) {
 	m.Lock()
 	defer m.Unlock()
@@ -50,13 +46,11 @@ func (m *MockedKV) NextSequence() (nextSeq uint64, err error) {
 	return nextSeq, err
 }
 
-// Put .
 func (m *MockedKV) Put(key, value []byte) (err error) {
 	m.pool.Set(string(key), value)
 	return err
 }
 
-// Get .
 func (m *MockedKV) Get(key []byte) (value []byte, err error) {
 	value, ok := m.pool.Get(string(key))
 	if !ok {
@@ -65,13 +59,11 @@ func (m *MockedKV) Get(key []byte) (value []byte, err error) {
 	return value, err
 }
 
-// Delete .
 func (m *MockedKV) Delete(key []byte) (err error) {
 	m.pool.Del(string(key))
 	return err
 }
 
-// Scan .
 func (m *MockedKV) Scan(prefix []byte) (<-chan ScanEntry, func()) {
 	ch := make(chan ScanEntry)
 
@@ -110,19 +102,17 @@ func (m *MockedKV) Scan(prefix []byte) (<-chan ScanEntry, func()) {
 	return ch, abort
 }
 
-// MockedScanEntry .
+// MockedScanEntry is a key/value pair produced by MockedKV.Scan.
 type MockedScanEntry struct {
 	Err   error
 	Key   string
 	Value []byte
 }
 
-// Pair .
 func (e MockedScanEntry) Pair() ([]byte, []byte) {
 	return []byte(e.Key), e.Value
 }
 
-// Error .
 func (e MockedScanEntry) Error() error {
 	return e.Err
 }

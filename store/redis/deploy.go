@@ -9,16 +9,15 @@ import (
 	"github.com/projecteru2/core/log"
 )
 
-// GetDeployStatus .
 func (r *Rediaron) GetDeployStatus(ctx context.Context, appname, entryname string) (map[string]int, error) {
-	// 手动加 / 防止不精确
+	// trailing slash keeps the prefix from matching a longer entrypoint
 	key := filepath.Join(workloadDeployPrefix, appname, entryname) + "/*"
 	data, err := r.getByKeyPattern(ctx, key, 0)
 	if err != nil {
 		return nil, err
 	}
 	if len(data) == 0 {
-		log.WithFunc("store.redis.GetDeployStatus").Warnf(ctx, "Deploy status not found %s.%s", appname, entryname)
+		log.WithFunc("store.redis.GetDeployStatus").Warnf(ctx, "deploy status not found %s.%s", appname, entryname)
 	}
 
 	deployCount := r.doGetDeployStatus(ctx, data)
@@ -28,7 +27,6 @@ func (r *Rediaron) GetDeployStatus(ctx context.Context, appname, entryname strin
 		return nil, err
 	}
 
-	// node count: deploy count + processing count
 	nodeCount := map[string]int{}
 	maps.Copy(nodeCount, deployCount)
 	for node, count := range processingCount {
@@ -38,7 +36,7 @@ func (r *Rediaron) GetDeployStatus(ctx context.Context, appname, entryname strin
 	return nodeCount, nil
 }
 
-// doGetDeployStatus returns how many workload have been deployed on each node
+// doGetDeployStatus counts the deployed workloads per node.
 func (r *Rediaron) doGetDeployStatus(_ context.Context, data map[string]string) map[string]int {
 	nodesCount := map[string]int{}
 	for key := range data {

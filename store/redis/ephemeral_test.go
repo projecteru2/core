@@ -83,7 +83,6 @@ func (s *RediaronTestSuite) TestEphemeral() {
 	s.NoError(err)
 	s.Equal(ephemeralValue, v)
 
-	// Makes sure that the ephemeral keeps alived.
 	time.Sleep(heartbeat * 2)
 	v, err = s.rediaron.GetOne(ctx, path)
 	s.NoError(err)
@@ -95,12 +94,10 @@ func (s *RediaronTestSuite) TestEphemeral() {
 	default:
 	}
 
-	// Stop and waiting for expiry.
 	stop()
 	time.Sleep(heartbeat * 2)
-	// Ephemeral kv has been removed.
 	v, err = s.rediaron.GetOne(ctx, path)
-	s.Error(err) // no such path
+	s.Error(err)
 	s.Empty(v)
 
 	select {

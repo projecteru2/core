@@ -18,7 +18,6 @@ func (s *RediaronTestSuite) TestAddNode() {
 	s.rediaron.config.Scheduler.ShareBase = 100
 	labels := map[string]string{"test": "1"}
 
-	// with tls
 	ca := `-----BEGIN CERTIFICATE-----
 MIIC7TCCAdWgAwIBAgIJAM8uLRZf9jttMA0GCSqGSIb3DQEBCwUAMA0xCzAJBgNV
 BAYTAkNOMB4XDTE4MDYxODA5MTkwNloXDTI4MDYxNTA5MTkwNlowDTELMAkGA1UE
@@ -88,7 +87,6 @@ RdCPRPt513WozkJZZAjUSP2U
 	s.NoError(err)
 	_, err = s.rediaron.makeClient(ctx, node3)
 	s.Error(err)
-	// failed by get key
 	node3.Name = "nokey"
 	_, err = s.rediaron.makeClient(ctx, node3)
 	s.Error(err)
@@ -130,7 +128,7 @@ func (s *RediaronTestSuite) TestGetNodesByPod() {
 	s.NoError(err)
 	ns, err = s.rediaron.GetNodesByPod(ctx, &types.NodeFilter{All: false})
 	s.NoError(err)
-	s.Len(ns, 1) // because mock forced to up, so here is 1
+	s.Len(ns, 1)
 	ns, err = s.rediaron.GetNodesByPod(ctx, &types.NodeFilter{All: true})
 	s.NoError(err)
 	s.NotEmpty(ns)
@@ -177,12 +175,9 @@ func (s *RediaronTestSuite) TestSetNodeStatus() {
 	s.NoError(s.rediaron.SetNodeStatus(context.Background(), node, 1))
 	key := filepath.Join(nodeStatusPrefix, node.Name)
 
-	// not expired yet
 	_, err := s.rediaron.GetOne(context.Background(), key)
 	s.NoError(err)
-	// expired
 	time.Sleep(2 * time.Second)
-	// fastforward
 	s.rediserver.FastForward(2 * time.Second)
 	_, err = s.rediaron.GetOne(context.Background(), key)
 	s.Error(err)
@@ -198,14 +193,11 @@ func (s *RediaronTestSuite) TestGetNodeStatus() {
 	}
 	s.NoError(s.rediaron.SetNodeStatus(context.Background(), node, 1))
 
-	// not expired yet
 	ns, err := s.rediaron.GetNodeStatus(context.Background(), node.Name)
 	s.NoError(err)
 	s.Equal(ns.Nodename, node.Name)
 	s.True(ns.Alive)
-	// expired
 	time.Sleep(2 * time.Second)
-	// fastforward
 	s.rediserver.FastForward(2 * time.Second)
 	ns1, err := s.rediaron.GetNodeStatus(context.Background(), node.Name)
 	s.Error(err)
@@ -232,7 +224,6 @@ func (s *RediaronTestSuite) TestNodeStatusStream() {
 			}
 			time.Sleep(500 * time.Millisecond)
 			s.NoError(s.rediaron.SetNodeStatus(context.Background(), node, 1))
-			// manually trigger
 			triggerMockedKeyspaceNotification(s.rediaron.cli, filepath.Join(nodeStatusPrefix, node.Name), actionSet)
 		}
 	}()
@@ -241,7 +232,6 @@ func (s *RediaronTestSuite) TestNodeStatusStream() {
 	ch := s.rediaron.NodeStatusStream(ctx)
 	go func() {
 		time.Sleep(1500 * time.Millisecond)
-		// manually trigger
 		triggerMockedKeyspaceNotification(s.rediaron.cli, filepath.Join(nodeStatusPrefix, node.Name), actionExpired)
 		time.Sleep(500 * time.Millisecond)
 		cancel()

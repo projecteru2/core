@@ -69,7 +69,6 @@ func TestRecover(t *testing.T) {
 	assert.True(t, decoded)
 }
 
-// simpleEventHandler simply implements the EventHandler.
 type simpleEventHandler struct {
 	event  string
 	check  func(raw interface{}) (bool, error)
@@ -78,27 +77,22 @@ type simpleEventHandler struct {
 	handle func(interface{}) error
 }
 
-// Event .
 func (h simpleEventHandler) Typ() string {
 	return h.event
 }
 
-// Check .
 func (h simpleEventHandler) Check(ctx context.Context, raw interface{}) (bool, error) {
 	return h.check(raw)
 }
 
-// Encode .
 func (h simpleEventHandler) Encode(raw interface{}) ([]byte, error) {
 	return h.encode(raw)
 }
 
-// Decode .
 func (h simpleEventHandler) Decode(bs []byte) (interface{}, error) {
 	return h.decode(bs)
 }
 
-// Handle .
 func (h simpleEventHandler) Handle(ctx context.Context, raw interface{}) error {
 	return h.handle(raw)
 }

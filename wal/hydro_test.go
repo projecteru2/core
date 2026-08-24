@@ -196,7 +196,6 @@ func TestHydroRecover(t *testing.T) {
 	assert.True(t, checked)
 	assert.True(t, handled)
 
-	// The handled events should be removed.
 	ch, _ := hydro.store.Scan([]byte(eventPrefix))
 	select {
 	case <-ch:

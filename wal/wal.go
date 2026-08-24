@@ -6,7 +6,7 @@ import (
 
 const eventPrefix = "/events/"
 
-// WAL is the interface that groups the Register and Recover interfaces.
+// WAL logs an event before its operation runs and replays the unfinished ones on recovery.
 type WAL interface {
 	Registry
 	Recoverer
@@ -14,27 +14,22 @@ type WAL interface {
 	Closer
 }
 
-// Recoverer is the interface that wraps the basic Recover method.
 type Recoverer interface {
 	Recover(context.Context)
 }
 
-// Registry is the interface that wraps the basic Register method.
 type Registry interface {
 	Register(EventHandler)
 }
 
-// Logger is the interface that wraps the basic Log method.
 type Logger interface {
 	Log(string, any) (Commit, error)
 }
 
-// Closer is the interface that groups the Close methods.
 type Closer interface {
 	Close() error
 }
 
-// EventHandler is the interface that groups a few methods.
 type EventHandler interface {
 	Typ() string
 	Check(context.Context, any) (need bool, err error)
@@ -43,5 +38,5 @@ type EventHandler interface {
 	Handle(context.Context, any) error
 }
 
-// Commit is a function for committing an event log
+// Commit drops a logged event once its operation has succeeded.
 type Commit func() error

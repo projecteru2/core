@@ -13,7 +13,6 @@ import (
 
 const ephemeralValue = "__aaron__"
 
-// StartEphemeral starts an empheral kv pair.
 func (r *Rediaron) StartEphemeral(ctx context.Context, path string, heartbeat time.Duration) (<-chan struct{}, func(), error) {
 	set, err := r.cli.SetNX(ctx, path, ephemeralValue, heartbeat).Result()
 	if err != nil {
@@ -59,7 +58,7 @@ func (r *Rediaron) revokeEphemeral(path string) {
 	ctx, cancel := context.WithTimeout(context.TODO(), time.Second)
 	defer cancel()
 	if _, err := r.cli.Del(ctx, path).Result(); err != nil {
-		log.Errorf(ctx, err, "revoke with %s failed", path)
+		log.WithFunc("store.redis.revokeEphemeral").Errorf(ctx, err, "revoke %s failed", path)
 	}
 }
 

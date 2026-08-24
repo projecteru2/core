@@ -14,29 +14,18 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-// AddWorkload add a workload
-// mainly record its relationship on pod and node
-// actually if we already know its node, we will know its pod
-// but we still store it
-// storage path in etcd is `/workload/:workloadid`
 func (m Mercury) AddWorkload(ctx context.Context, workload *types.Workload, processing *types.Processing) error {
 	return m.doOpsWorkload(ctx, workload, processing, true)
 }
 
-// UpdateWorkload update a workload
 func (m *Mercury) UpdateWorkload(ctx context.Context, workload *types.Workload) error {
 	return m.doOpsWorkload(ctx, workload, nil, false)
 }
 
-// RemoveWorkload remove a workload
-// workload ID must be in full length
 func (m *Mercury) RemoveWorkload(ctx context.Context, workload *types.Workload) error {
 	return m.cleanWorkloadData(ctx, workload)
 }
 
-// GetWorkload get a workload
-// workload if must be in full length, or we can't find it in etcd
-// storage path in etcd is `/workload/:workloadid`
 func (m *Mercury) GetWorkload(ctx context.Context, ID string) (*types.Workload, error) {
 	workloads, err := m.GetWorkloads(ctx, []string{ID})
 	if err != nil {
@@ -45,7 +34,6 @@ func (m *Mercury) GetWorkload(ctx context.Context, ID string) (*types.Workload, 
 	return workloads[0], nil
 }
 
-// GetWorkloads get many workloads
 func (m *Mercury) GetWorkloads(ctx context.Context, IDs []string) (workloads []*types.Workload, err error) {
 	keys := []string{}
 	for _, ID := range IDs {
@@ -55,7 +43,6 @@ func (m *Mercury) GetWorkloads(ctx context.Context, IDs []string) (workloads []*
 	return m.doGetWorkloads(ctx, keys)
 }
 
-// GetWorkloadStatus get workload status
 func (m *Mercury) GetWorkloadStatus(ctx context.Context, ID string) (*types.StatusMeta, error) {
 	workload, err := m.GetWorkload(ctx, ID)
 	if err != nil {
@@ -64,7 +51,6 @@ func (m *Mercury) GetWorkloadStatus(ctx context.Context, ID string) (*types.Stat
 	return workload.StatusMeta, nil
 }
 
-// SetWorkloadStatus set workload status
 func (m *Mercury) SetWorkloadStatus(ctx context.Context, status *types.StatusMeta, ttl int64) error {
 	if status.Appname == "" || status.Entrypoint == "" || status.Nodename == "" {
 		return types.ErrInvaildWorkloadStatus
@@ -80,7 +66,6 @@ func (m *Mercury) SetWorkloadStatus(ctx context.Context, status *types.StatusMet
 	return m.BindStatus(ctx, workloadKey, statusKey, statusVal, ttl)
 }
 
-// ListWorkloads list workloads
 func (m *Mercury) ListWorkloads(ctx context.Context, appname, entrypoint, nodename string, limit int64, labels map[string]string) ([]*types.Workload, error) {
 	if appname == "" {
 		entrypoint = ""
@@ -88,7 +73,7 @@ func (m *Mercury) ListWorkloads(ctx context.Context, appname, entrypoint, nodena
 	if entrypoint == "" {
 		nodename = ""
 	}
-	// 这里显式加个 / 来保证 prefix 是唯一的
+	// trailing slash keeps the prefix from matching a longer nodename
 	key := filepath.Join(workloadDeployPrefix, appname, entrypoint, nodename) + "/"
 	resp, err := m.Get(ctx, key, clientv3.WithPrefix(), clientv3.WithLimit(limit))
 	if err != nil {
@@ -109,7 +94,6 @@ func (m *Mercury) ListWorkloads(ctx context.Context, appname, entrypoint, nodena
 	return m.bindWorkloadsAdditions(ctx, workloads)
 }
 
-// ListNodeWorkloads list workloads belong to one node
 func (m *Mercury) ListNodeWorkloads(ctx context.Context, nodename string, labels map[string]string) ([]*types.Workload, error) {
 	key := fmt.Sprintf(nodeWorkloadsKey, nodename, "")
 	resp, err := m.Get(ctx, key, clientv3.WithPrefix())
@@ -131,7 +115,6 @@ func (m *Mercury) ListNodeWorkloads(ctx context.Context, nodename string, labels
 	return m.bindWorkloadsAdditions(ctx, workloads)
 }
 
-// WorkloadStatusStream watch deployed status
 func (m *Mercury) WorkloadStatusStream(ctx context.Context, appname, entrypoint, nodename string, labels map[string]string) chan *types.WorkloadStatus {
 	if appname == "" {
 		entrypoint = ""
@@ -139,7 +122,7 @@ func (m *Mercury) WorkloadStatusStream(ctx context.Context, appname, entrypoint,
 	if entrypoint == "" {
 		nodename = ""
 	}
-	// 显式加个 / 保证 prefix 唯一
+	// trailing slash keeps the prefix from matching a longer nodename
 	statusKey := filepath.Join(workloadStatusPrefix, appname, entrypoint, nodename) + "/"
 	ch := make(chan *types.WorkloadStatus)
 	logger := log.WithFunc("store.etcdv3.WorkloadStatusStream")
@@ -184,10 +167,10 @@ func (m *Mercury) cleanWorkloadData(ctx context.Context, workload *types.Workloa
 	}
 
 	keys := []string{
-		filepath.Join(workloadStatusPrefix, appname, entrypoint, workload.Nodename, workload.ID), // workload deploy status
-		filepath.Join(workloadDeployPrefix, appname, entrypoint, workload.Nodename, workload.ID), // workload deploy status
-		fmt.Sprintf(workloadInfoKey, workload.ID),                                                // workload info
-		fmt.Sprintf(nodeWorkloadsKey, workload.Nodename, workload.ID),                            // node workloads
+		filepath.Join(workloadStatusPrefix, appname, entrypoint, workload.Nodename, workload.ID),
+		filepath.Join(workloadDeployPrefix, appname, entrypoint, workload.Nodename, workload.ID),
+		fmt.Sprintf(workloadInfoKey, workload.ID),
+		fmt.Sprintf(nodeWorkloadsKey, workload.Nodename, workload.ID),
 	}
 	_, err = m.BatchDelete(ctx, keys)
 	return err
@@ -250,8 +233,7 @@ func (m *Mercury) bindWorkloadsAdditions(ctx context.Context, workloads []*types
 		}
 		status := &types.StatusMeta{}
 		if err := json.Unmarshal(kv.Value, &status); err != nil {
-			logger.Warnf(ctx, "unmarshal %s status data failed %+v", workload.ID, err)
-			logger.Errorf(ctx, err, "status raw: %s", kv.Value)
+			logger.Errorf(ctx, err, "unmarshal status of %s, raw: %s", workload.ID, kv.Value)
 			continue
 		}
 		workloads[index].StatusMeta = status
@@ -266,8 +248,6 @@ func (m *Mercury) doOpsWorkload(ctx context.Context, workload *types.Workload, p
 		return err
 	}
 
-	// now everything is ok
-	// we use full length ID instead
 	bytes, err := json.Marshal(workload)
 	if err != nil {
 		return err

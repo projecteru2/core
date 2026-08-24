@@ -27,14 +27,14 @@ const (
 	workloadProcessingPrefix = "/processing"   // /processing/{appname}/{entrypoint}/{nodename}/{opsIdent} value -> count
 )
 
-// Mercury means store with etcdv3
+// Mercury is the etcd backed store.
 type Mercury struct {
 	meta.KV
 	config types.Config
 	pool   *ants.PoolWithFunc
 }
 
-// New for create a Mercury instance
+// New creates a Mercury on the given etcd cluster.
 func New(config types.Config, embeddedETCD *embedded.Cluster) (m *Mercury, err error) {
 	pool, err := utils.NewPool(config.MaxConcurrency)
 	if err != nil {

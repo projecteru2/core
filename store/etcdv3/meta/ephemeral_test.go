@@ -44,7 +44,6 @@ func TestEphemeral(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, path, string(kv.Key))
 
-	// Makes sure that the ephemeral keeps alived.
 	time.Sleep(heartbeat * 5)
 	kv, err = m.GetOne(ctx, path)
 	require.NoError(t, err)
@@ -56,12 +55,10 @@ func TestEphemeral(t *testing.T) {
 	default:
 	}
 
-	// Stop and waiting for expiry.
 	stop()
 	time.Sleep(heartbeat * 5)
-	// Ephemeral kv has been removed.
 	kv, err = m.GetOne(ctx, path)
-	require.Error(t, err) // no such path
+	require.Error(t, err)
 	require.Nil(t, kv)
 
 	select {
@@ -99,7 +96,6 @@ func TestEphemeralMustRevokeAfterKeepaliveFailed(t *testing.T) {
 	require.NotNil(t, expiry)
 
 	stop()
-	// TODO should reconsider here
 	select {
 	case <-expiry:
 	case <-time.After(time.Second * 8):

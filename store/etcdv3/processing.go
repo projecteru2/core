@@ -13,13 +13,11 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-// CreateProcessing save processing status in etcd
 func (m *Mercury) CreateProcessing(ctx context.Context, processing *types.Processing, count int) error {
 	_, err := m.Create(ctx, m.getProcessingKey(processing), fmt.Sprintf("%d", count))
 	return err
 }
 
-// DeleteProcessing delete processing status in etcd
 func (m *Mercury) DeleteProcessing(ctx context.Context, processing *types.Processing) error {
 	_, err := m.Delete(ctx, m.getProcessingKey(processing))
 	return err
@@ -31,7 +29,7 @@ func (m *Mercury) getProcessingKey(processing *types.Processing) string {
 
 func (m *Mercury) doLoadProcessing(ctx context.Context, appname, entryname string) (map[string]int, error) {
 	nodesCount := map[string]int{}
-	// 显式地加 / 保证 prefix 一致性
+	// trailing slash keeps the prefix from matching a longer entrypoint
 	processingKey := filepath.Join(workloadProcessingPrefix, appname, entryname) + "/"
 	resp, err := m.Get(ctx, processingKey, clientv3.WithPrefix())
 	if err != nil {
@@ -48,7 +46,7 @@ func (m *Mercury) doLoadProcessing(ctx context.Context, appname, entryname strin
 		nodename := parts[len(parts)-2]
 		count, err := strconv.Atoi(string(ev.Value))
 		if err != nil {
-			logger.Error(ctx, err, "Load processing status failed")
+			logger.Error(ctx, err, "load processing status")
 			continue
 		}
 		if _, ok := nodesCount[nodename]; !ok {
@@ -57,6 +55,6 @@ func (m *Mercury) doLoadProcessing(ctx context.Context, appname, entryname strin
 		}
 		nodesCount[nodename] += count
 	}
-	logger.Debugf(ctx, "Processing result: %+v", nodesCount)
+	logger.Debugf(ctx, "processing result: %+v", nodesCount)
 	return nodesCount, nil
 }

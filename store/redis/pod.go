@@ -10,7 +10,6 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-// AddPod adds a pod to core
 func (r *Rediaron) AddPod(ctx context.Context, name, desc string) (*types.Pod, error) {
 	key := fmt.Sprintf(podInfoKey, name)
 	pod := &types.Pod{Name: name, Desc: desc}
@@ -23,7 +22,6 @@ func (r *Rediaron) AddPod(ctx context.Context, name, desc string) (*types.Pod, e
 	return pod, err
 }
 
-// RemovePod removes a pod by name
 func (r *Rediaron) RemovePod(ctx context.Context, podname string) error {
 	key := fmt.Sprintf(podInfoKey, podname)
 
@@ -40,7 +38,6 @@ func (r *Rediaron) RemovePod(ctx context.Context, podname string) error {
 	return err
 }
 
-// GetPod gets a pod by name
 func (r *Rediaron) GetPod(ctx context.Context, name string) (*types.Pod, error) {
 	key := fmt.Sprintf(podInfoKey, name)
 
@@ -56,7 +53,6 @@ func (r *Rediaron) GetPod(ctx context.Context, name string) (*types.Pod, error) 
 	return pod, err
 }
 
-// GetAllPods list all pods in core
 func (r *Rediaron) GetAllPods(ctx context.Context) ([]*types.Pod, error) {
 	data, err := r.getByKeyPattern(ctx, fmt.Sprintf(podInfoKey, "*"), 0)
 	if err != nil {

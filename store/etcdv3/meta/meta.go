@@ -10,7 +10,7 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-// KV .
+// KV is the etcd surface the store is built on.
 type KV interface {
 	Grant(ctx context.Context, ttl int64) (*clientv3.LeaseGrantResponse, error)
 	BindStatus(ctx context.Context, entityKey, statusKey, statusValue string, ttl int64) error

@@ -12,7 +12,6 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-// ServiceStatusStream watches /services/ --prefix
 func (m *Mercury) ServiceStatusStream(ctx context.Context) (chan []string, error) {
 	ch := make(chan []string)
 	logger := log.WithFunc("store.etcdv3.ServiceStatusStream")
@@ -63,7 +62,6 @@ func (m *Mercury) ServiceStatusStream(ctx context.Context) (chan []string, error
 	return ch, nil
 }
 
-// RegisterService put /services/{address}
 func (m *Mercury) RegisterService(ctx context.Context, serviceAddress string, expire time.Duration) (<-chan struct{}, func(), error) {
 	key := fmt.Sprintf(serviceStatusKey, serviceAddress)
 	return m.StartEphemeral(ctx, key, expire)

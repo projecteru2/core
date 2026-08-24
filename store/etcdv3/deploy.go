@@ -11,16 +11,15 @@ import (
 	"github.com/projecteru2/core/log"
 )
 
-// GetDeployStatus get deploy status from store
 func (m *Mercury) GetDeployStatus(ctx context.Context, appname, entryname string) (map[string]int, error) {
-	// 手动加 / 防止不精确
+	// trailing slash keeps the prefix from matching a longer entrypoint
 	key := filepath.Join(workloadDeployPrefix, appname, entryname) + "/"
 	resp, err := m.Get(ctx, key, clientv3.WithPrefix(), clientv3.WithKeysOnly())
 	if err != nil {
 		return nil, err
 	}
 	if resp.Count == 0 {
-		log.WithFunc("store.etcdv3.GetDeployStatus").Warnf(ctx, "Deploy status not found %s.%s", appname, entryname)
+		log.WithFunc("store.etcdv3.GetDeployStatus").Warnf(ctx, "deploy status not found %s.%s", appname, entryname)
 	}
 
 	deployCount := m.doGetDeployStatus(ctx, resp)
@@ -29,7 +28,6 @@ func (m *Mercury) GetDeployStatus(ctx context.Context, appname, entryname string
 		return nil, err
 	}
 
-	// node count: deploy count + processing count
 	nodeCount := map[string]int{}
 	maps.Copy(nodeCount, deployCount)
 	for node, count := range processingCount {
@@ -39,7 +37,7 @@ func (m *Mercury) GetDeployStatus(ctx context.Context, appname, entryname string
 	return nodeCount, nil
 }
 
-// doGetDeployStatus returns how many workload have been deployed on each node
+// doGetDeployStatus counts the deployed workloads per node.
 func (m *Mercury) doGetDeployStatus(_ context.Context, resp *clientv3.GetResponse) map[string]int {
 	nodesCount := map[string]int{}
 	for _, ev := range resp.Kvs {

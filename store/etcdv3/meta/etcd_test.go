@@ -117,7 +117,6 @@ func TestBindStatusButStatusTxnUnsuccessful(t *testing.T) {
 		Responses: []*etcdserverpb.ResponseOp{
 			{
 				Response: &etcdserverpb.ResponseOp_ResponseTxn{
-					// statusTxn
 					ResponseTxn: &etcdserverpb.TxnResponse{Succeeded: false},
 				},
 			},
@@ -144,7 +143,6 @@ func TestBindStatusWithZeroTTL(t *testing.T) {
 		Responses: []*etcdserverpb.ResponseOp{
 			{
 				Response: &etcdserverpb.ResponseOp_ResponseTxn{
-					// statusTxn
 					ResponseTxn: &etcdserverpb.TxnResponse{Succeeded: true},
 				},
 			},
@@ -172,7 +170,6 @@ func TestBindStatusButValueTxnUnsuccessful(t *testing.T) {
 		Responses: []*etcdserverpb.ResponseOp{
 			{
 				Response: &etcdserverpb.ResponseOp_ResponseTxn{
-					// valueTxn
 					ResponseTxn: &etcdserverpb.TxnResponse{Succeeded: false},
 				},
 			},
@@ -183,7 +180,6 @@ func TestBindStatusButValueTxnUnsuccessful(t *testing.T) {
 		Responses: []*etcdserverpb.ResponseOp{
 			{
 				Response: &etcdserverpb.ResponseOp_ResponseTxn{
-					// statusTxn
 					ResponseTxn: statusTxn,
 				},
 			},
@@ -235,7 +231,6 @@ func TestBindStatus(t *testing.T) {
 		Responses: []*etcdserverpb.ResponseOp{
 			{
 				Response: &etcdserverpb.ResponseOp_ResponseTxn{
-					// statusTxn
 					ResponseTxn: statusTxn,
 				},
 			},
@@ -257,46 +252,36 @@ func TestETCD(t *testing.T) {
 	m := NewEmbeddedETCD(t)
 	ctx := context.Background()
 
-	// CreateLock
 	_, err := m.CreateLock("test", 5)
 	require.NoError(t, err)
-	// Get
 	resp, err := m.Get(ctx, "test")
 	require.NoError(t, err)
 	require.Equal(t, resp.Count, int64(0))
-	// Put
 	_, err = m.Put(ctx, "test/1", "a")
 	m.Put(ctx, "test/2", "a")
 	require.NoError(t, err)
-	// Get again
 	resp, err = m.Get(ctx, "test/1")
 	require.NoError(t, err)
 	require.Equal(t, resp.Count, int64(len(resp.Kvs)))
-	// GetOne
 	_, err = m.GetOne(ctx, "test", clientv3.WithPrefix())
 	require.Error(t, err)
 	ev, err := m.GetOne(ctx, "test/1")
 	require.NoError(t, err)
 	require.Equal(t, string(ev.Value), "a")
-	// Delete
 	_, err = m.Delete(ctx, "test/2")
 	require.NoError(t, err)
 	m.Put(ctx, "d1", "a")
 	m.Put(ctx, "d2", "a")
 	m.Put(ctx, "d3", "a")
-	// BatchDelete
 	r, err := m.BatchDelete(ctx, []string{"d1", "d2", "d3"})
 	require.NoError(t, err)
 	require.True(t, r.Succeeded)
-	// Create
 	r, err = m.Create(ctx, "test/2", "a")
 	require.NoError(t, err)
 	require.True(t, r.Succeeded)
-	// CreateFail
 	r, err = m.Create(ctx, "test/2", "a")
 	require.Error(t, err)
 	require.False(t, r.Succeeded)
-	// BatchCreate
 	data := map[string]string{
 		"k1": "a1",
 		"k2": "a2",
@@ -304,19 +289,15 @@ func TestETCD(t *testing.T) {
 	r, err = m.BatchCreate(ctx, data)
 	require.NoError(t, err)
 	require.True(t, r.Succeeded)
-	// BatchCreateFailed
 	r, err = m.BatchCreate(ctx, data)
 	require.Error(t, err)
 	require.False(t, r.Succeeded)
-	// Update
 	r, err = m.Update(ctx, "test/2", "b")
 	require.NoError(t, err)
 	require.True(t, r.Succeeded)
-	// UpdateFail
 	r, err = m.Update(ctx, "test/3", "b")
 	require.EqualError(t, err, "key not exists")
 	require.False(t, r.Succeeded)
-	// BatchUpdate
 	data = map[string]string{
 		"k1": "b1",
 		"k2": "b2",
@@ -324,7 +305,6 @@ func TestETCD(t *testing.T) {
 	r, err = m.BatchUpdate(ctx, data)
 	require.NoError(t, err)
 	require.True(t, r.Succeeded)
-	// BatchUpdate
 	data = map[string]string{
 		"k1": "c1",
 		"k3": "b2",
@@ -332,7 +312,6 @@ func TestETCD(t *testing.T) {
 	r, err = m.BatchUpdate(ctx, data)
 	require.EqualError(t, err, "key not exists")
 	require.False(t, r.Succeeded)
-	// Watch
 	ctx2, cancel := context.WithCancel(ctx)
 	ch := m.watch(ctx2, "watchkey", clientv3.WithPrefix())
 	go func() {
@@ -346,7 +325,6 @@ func TestETCD(t *testing.T) {
 	m.Create(ctx, "watchkey/1", "b")
 	cancel()
 
-	// BatchCreateAndDecr error
 	data = map[string]string{
 		"bcad_k1": "v1",
 		"bcad_k2": "v1",
@@ -354,13 +332,11 @@ func TestETCD(t *testing.T) {
 	err = m.BatchCreateAndDecr(context.Background(), data, "bcad_process")
 	require.EqualError(t, err, "bcad_process: key not exists")
 
-	// BatchCreateAndDecr error
 	_, err = m.Put(context.Background(), "bcad_process", "a")
 	require.NoError(t, err)
 	err = m.BatchCreateAndDecr(context.Background(), data, "bcad_process")
 	require.EqualError(t, err, "strconv.Atoi: parsing \"a\": invalid syntax")
 
-	// BatchCreateAndDecr success
 	_, err = m.Put(context.Background(), "bcad_process", "20")
 	require.NoError(t, err)
 	err = m.BatchCreateAndDecr(context.Background(), data, "bcad_process")
@@ -371,7 +347,6 @@ func TestETCD(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValues(t, 19, processCnt)
 
-	// BatchCreateAndDecr concurrency
 	_, err = m.Put(context.Background(), "bcad_process", "200")
 	require.NoError(t, err)
 	wg := sync.WaitGroup{}
@@ -389,11 +364,9 @@ func TestETCD(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValues(t, 0, processCnt)
 
-	// doBatchOp error
 	_, err = m.doBatchOp(context.Background(), nil)
 	require.EqualError(t, err, "no txn ops")
 
-	// doBatchOp: many groups
 	txnes := []ETCDTxn{}
 	for i := 0; i < 999; i++ {
 		txnes = append(txnes, ETCDTxn{Then: []clientv3.Op{clientv3.OpGet("a")}})
@@ -403,7 +376,6 @@ func TestETCD(t *testing.T) {
 	require.True(t, txnResp.Succeeded)
 	require.EqualValues(t, 999, len(txnResp.Responses))
 
-	// doBatchOp: many then
 	txnes = []ETCDTxn{{}, {}}
 	for i := 0; i < 999; i++ {
 		txnes[0].Then = append(txnes[0].Then, clientv3.OpGet("a"))
@@ -414,7 +386,6 @@ func TestETCD(t *testing.T) {
 	require.True(t, txnResp.Succeeded)
 	require.EqualValues(t, 999*3, len(txnResp.Responses))
 
-	// doBatchOp: empty
 	txnes = []ETCDTxn{{If: []clientv3.Cmp{
 		clientv3.Compare(clientv3.Value("a"), "=", string("123")),
 	}}}
@@ -423,18 +394,15 @@ func TestETCD(t *testing.T) {
 	require.False(t, txnResp.Succeeded)
 	require.EqualValues(t, 0, len(txnResp.Responses))
 
-	// GetMulti error
 	_, err = m.GetMulti(context.Background(), []string{"a", "b"})
 	require.EqualError(t, err, "key: a: bad `Count` value, entity count invalid")
 
-	// GetMulti success
 	m.Put(context.Background(), "a", "b")
 	m.Put(context.Background(), "b", "c")
 	kvs, err := m.GetMulti(context.Background(), []string{"a", "b"})
 	require.NoError(t, err)
 	require.EqualValues(t, 2, len(kvs))
 
-	// batchPut: cmpValue branch
 	data = map[string]string{
 		"aa": "bb",
 		"cc": "dd",

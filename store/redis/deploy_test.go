@@ -16,11 +16,9 @@ func (s *RediaronTestSuite) TestDeploy() {
 		NodeFilter:   &types.NodeFilter{},
 	}
 
-	// no workload deployed
 	nodeCount, err := s.rediaron.GetDeployStatus(ctx, opts.Name, opts.Entrypoint.Name)
 	s.NoError(err)
 	s.Equal(len(nodeCount), 0)
-	// have workloads
 	key := filepath.Join(workloadDeployPrefix, opts.Name, opts.Entrypoint.Name, "node", "id1")
 	_, err = s.rediaron.cli.Set(ctx, key, "", 0).Result()
 	s.NoError(err)

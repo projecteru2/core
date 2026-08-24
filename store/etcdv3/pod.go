@@ -12,9 +12,6 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-// AddPod add a pod
-// save it to etcd
-// storage path in etcd is `/pod/info/:podname`
 func (m *Mercury) AddPod(ctx context.Context, name, desc string) (*types.Pod, error) {
 	key := fmt.Sprintf(podInfoKey, name)
 	pod := &types.Pod{Name: name, Desc: desc}
@@ -33,7 +30,6 @@ func (m *Mercury) AddPod(ctx context.Context, name, desc string) (*types.Pod, er
 	return pod, err
 }
 
-// RemovePod if the pod has no nodes left, otherwise return an error
 func (m *Mercury) RemovePod(ctx context.Context, podname string) error {
 	key := fmt.Sprintf(podInfoKey, podname)
 
@@ -56,8 +52,6 @@ func (m *Mercury) RemovePod(ctx context.Context, podname string) error {
 	return nil
 }
 
-// GetPod get a pod from etcd
-// storage path in etcd is `/pod/info/:podname`
 func (m *Mercury) GetPod(ctx context.Context, name string) (*types.Pod, error) {
 	key := fmt.Sprintf(podInfoKey, name)
 
@@ -73,9 +67,6 @@ func (m *Mercury) GetPod(ctx context.Context, name string) (*types.Pod, error) {
 	return pod, err
 }
 
-// GetAllPods get all pods in etcd
-// any error will break and return error immediately
-// storage path in etcd is `/pod`
 func (m *Mercury) GetAllPods(ctx context.Context) ([]*types.Pod, error) {
 	resp, err := m.Get(ctx, fmt.Sprintf(podInfoKey, ""), clientv3.WithPrefix())
 	if err != nil {
