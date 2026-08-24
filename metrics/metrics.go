@@ -81,22 +81,22 @@ func (m *Metrics) SendMetrics(ctx context.Context, metrics ...*plugintypes.Metri
 			logger.Warnf(ctx, "collector not found: %s", metric.Name)
 			continue
 		}
-		switch collector.(type) { //nolint
+		switch c := collector.(type) {
 		case *prometheus.GaugeVec:
 			value, err := strconv.ParseFloat(metric.Value, 64)
 			if err != nil {
 				logger.Errorf(ctx, err, "failed to parse %s value %s", metric.Name, metric.Value)
 			}
-			collector.(*prometheus.GaugeVec).WithLabelValues(metric.Labels...).Set(value) //nolint
+			c.WithLabelValues(metric.Labels...).Set(value)
 			if err := m.gauge(ctx, metric.Key, value); err != nil {
 				logger.Errorf(ctx, err, "failed to send %s to statsd", metric.Name)
 			}
 		case *prometheus.CounterVec:
-			value, err := strconv.ParseInt(metric.Value, 10, 32) //nolint
+			value, err := strconv.ParseInt(metric.Value, 10, 32)
 			if err != nil {
 				logger.Errorf(ctx, err, "failed to parse %s value %s", metric.Name, metric.Value)
 			}
-			collector.(*prometheus.CounterVec).WithLabelValues(metric.Labels...).Add(float64(value)) //nolint
+			c.WithLabelValues(metric.Labels...).Add(float64(value))
 			if err := m.count(ctx, metric.Key, int(value), 1.0); err != nil {
 				logger.Errorf(ctx, err, "failed to send %s to statsd", metric.Name)
 			}
@@ -111,14 +111,12 @@ func (m *Metrics) RemoveInvalidNodes(invalidNodes ...string) {
 	if len(invalidNodes) == 0 {
 		return
 	}
+	metrics, _ := prometheus.DefaultGatherer.Gather()
 	for _, collector := range m.Collectors {
-		metrics, _ := prometheus.DefaultGatherer.Gather()
 		for _, metric := range metrics {
 			for _, mf := range metric.GetMetric() {
 				if !slices.ContainsFunc(mf.Label, func(label *promClient.LabelPair) bool {
-					return label.GetName() == "nodename" && slices.ContainsFunc(invalidNodes, func(nodename string) bool {
-						return label.GetValue() == nodename
-					})
+					return label.GetName() == "nodename" && slices.Contains(invalidNodes, label.GetValue())
 				}) {
 					continue
 				}

@@ -2,8 +2,7 @@ package selfmon
 
 import (
 	"context"
-	"hash/maphash"
-	"math/rand"
+	"math/rand/v2"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -28,8 +27,7 @@ type NodeStatusWatcher struct {
 }
 
 func RunNodeStatusWatcher(ctx context.Context, config types.Config, cluster cluster.Cluster, embeddedETCD *embedded.Cluster) {
-	r := rand.New(rand.NewSource(int64(new(maphash.Hash).Sum64()))) //nolint
-	ID := r.Int63n(10000)                                           //nolint
+	ID := rand.Int64N(10000) //nolint:gosec // a log-only instance tag, not a security token
 	store, err := storefactory.NewStore(config, embeddedETCD)
 	if err != nil {
 		log.WithFunc("selfmon.RunNodeStatusWatcher").WithField("ID", ID).Error(ctx, err, "failed to create store")
@@ -135,10 +133,8 @@ func (n *NodeStatusWatcher) initNodeStatus(ctx context.Context) {
 
 	go func() {
 		defer close(nodes)
-		var err error
-		var ch <-chan *types.Node
 		utils.WithTimeout(ctx, n.config.GlobalTimeout, func(ctx context.Context) {
-			ch, err = n.cluster.ListPodNodes(ctx, &types.ListNodesOptions{
+			ch, err := n.cluster.ListPodNodes(ctx, &types.ListNodesOptions{
 				Podname:  "",
 				Labels:   nil,
 				All:      true,
@@ -153,10 +149,6 @@ func (n *NodeStatusWatcher) initNodeStatus(ctx context.Context) {
 				nodes <- node
 			}
 		})
-		if err != nil {
-			logger.Error(ctx, err, "get pod nodes failed")
-			return
-		}
 	}()
 
 	for node := range nodes {

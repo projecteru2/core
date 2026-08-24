@@ -17,7 +17,7 @@ import (
 )
 
 func TestAddNode(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	cm := initCPUMEM(ctx, t)
 	nodes := generateNodes(ctx, t, cm, 1, 2, 4*units.GB, 100, 0)
 	node := nodes[0]
@@ -38,7 +38,7 @@ func TestAddNode(t *testing.T) {
 }
 
 func TestRemoveNode(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	cm := initCPUMEM(ctx, t)
 	nodes := generateNodes(ctx, t, cm, 1, 2, 4*units.GB, 100, 0)
 	node := nodes[0]
@@ -51,7 +51,7 @@ func TestRemoveNode(t *testing.T) {
 }
 
 func TestGetNodesDeployCapacityWithCPUBind(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	cm := initCPUMEM(ctx, t)
 	nodes := generateNodes(ctx, t, cm, 2, 2, 4*units.GB, 100, 0)
 
@@ -112,7 +112,7 @@ func TestGetNodesDeployCapacityWithCPUBind(t *testing.T) {
 }
 
 func TestGetNodesDeployCapacityWithMemoryAndCPUBind(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	cm := initCPUMEM(ctx, t)
 	nodes := generateNodes(ctx, t, cm, 2, 2, 1024, 100, 0)
 
@@ -133,7 +133,7 @@ func TestGetNodesDeployCapacityWithMemoryAndCPUBind(t *testing.T) {
 }
 
 func TestGetNodesDeployCapacityWithMaxShareLimit(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	cm := initCPUMEM(ctx, t)
 	cm.config.Scheduler.MaxShare = 2
 	nodes := generateNodes(ctx, t, cm, 1, 6, 12*units.GB, 100, 0)
@@ -170,7 +170,7 @@ func TestGetNodesDeployCapacityWithMaxShareLimit(t *testing.T) {
 }
 
 func TestGetNodesDeployCapacityWithMemory(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	cm := initCPUMEM(ctx, t)
 	nodes := generateNodes(ctx, t, cm, 2, 2, 4*units.GiB, 100, 0)
 
@@ -214,7 +214,7 @@ func TestGetNodesDeployCapacityWithMemory(t *testing.T) {
 }
 
 func TestSetNodeResourceCapacity(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	cm := initCPUMEM(ctx, t)
 	nodes := generateNodes(ctx, t, cm, 1, 2, 2*units.GB, 100, 0)
 	node := nodes[0]
@@ -245,7 +245,7 @@ func TestSetNodeResourceCapacity(t *testing.T) {
 			"1": 100,
 		},
 		"memory": 2 * units.GB,
-		"xxxx":   map[string]interface{}{"cpu": ""},
+		"xxxx":   map[string]any{"cpu": ""},
 	}
 
 	gb := fmt.Sprintf("%v", units.GB)
@@ -293,7 +293,7 @@ func TestSetNodeResourceCapacity(t *testing.T) {
 }
 
 func TestGetAndFixNodeResourceInfo(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	cm := initCPUMEM(ctx, t)
 	nodes := generateNodes(ctx, t, cm, 1, 2, 4*units.GB, 100, 0)
 	node := nodes[0]
@@ -330,7 +330,7 @@ func TestGetAndFixNodeResourceInfo(t *testing.T) {
 }
 
 func TestSetNodeResourceInfo(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	cm := initCPUMEM(ctx, t)
 	nodes := generateNodes(ctx, t, cm, 1, 2, 4*units.GB, 100, 0)
 	node := nodes[0]
@@ -343,7 +343,7 @@ func TestSetNodeResourceInfo(t *testing.T) {
 }
 
 func TestSetNodeResourceUsage(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	cm := initCPUMEM(ctx, t)
 	nodes := generateNodes(ctx, t, cm, 1, 2, 4*units.GB, 100, 0)
 	node := nodes[0]
@@ -419,7 +419,7 @@ func TestSetNodeResourceUsage(t *testing.T) {
 }
 
 func TestGetMostIdleNode(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	cm := initCPUMEM(ctx, t)
 	nodes := generateNodes(ctx, t, cm, 2, 2, 2*units.GB, 100, 0)
 	usage := plugintypes.NodeResourceRequest{"memory": "100"}

@@ -1,7 +1,6 @@
 package cpumem
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -15,7 +14,7 @@ import (
 )
 
 func TestCalculateDeploy(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	cm := initCPUMEM(ctx, t)
 	nodes := generateNodes(ctx, t, cm, 1, 2, 4*units.GB, 100, 0)
 	node := nodes[0]
@@ -117,7 +116,7 @@ func TestCalculateDeploy(t *testing.T) {
 }
 
 func TestCalculateRealloc(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	cm := initCPUMEM(ctx, t)
 	nodes := generateNodes(ctx, t, cm, 1, 2, 4*units.GB, 100, 0)
 	node := nodes[0]
@@ -192,7 +191,7 @@ func TestCalculateRealloc(t *testing.T) {
 }
 
 func TestCalculateRemap(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	cm := initCPUMEM(ctx, t)
 	nodes := generateNodes(ctx, t, cm, 1, 4, 4*units.GB, 100, 0)
 	node := nodes[0]

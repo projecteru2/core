@@ -15,17 +15,11 @@ type infoHeap struct {
 }
 
 func newInfoHeap(infos []Info, limit int) *infoHeap {
-	dup := infoHeap{
-		infos: []Info{},
-		limit: limit,
-	}
+	h := &infoHeap{limit: limit}
 	for _, info := range infos {
-		if info.Capacity == 0 || (limit > 0 && info.Count >= limit) {
-			continue
-		}
-		dup.infos = append(dup.infos, info)
+		h.Push(info)
 	}
-	return &dup
+	return h
 }
 
 func (h infoHeap) Len() int {

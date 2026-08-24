@@ -2,6 +2,7 @@ package strategy
 
 import (
 	"context"
+	"slices"
 	"sort"
 
 	"github.com/projecteru2/core/types"
@@ -17,8 +18,7 @@ func DrainedPlan(_ context.Context, infos []Info, need, total, _ int) (map[strin
 
 	deploy := map[string]int{}
 
-	infosCopy := make([]Info, len(infos))
-	copy(infosCopy, infos)
+	infosCopy := slices.Clone(infos)
 	sort.Slice(infosCopy, func(i, j int) bool {
 		if infosCopy[i].Capacity < infosCopy[j].Capacity {
 			return true
@@ -26,15 +26,9 @@ func DrainedPlan(_ context.Context, infos []Info, need, total, _ int) (map[strin
 		return infosCopy[i].Usage > infosCopy[j].Usage
 	})
 
-	for idx := range infosCopy {
-		info := &infosCopy[idx]
-		if need < info.Capacity {
-			deploy[info.Nodename] = need
-			need = 0
-		} else {
-			deploy[info.Nodename] = info.Capacity
-			need -= info.Capacity
-		}
+	for _, info := range infosCopy {
+		deploy[info.Nodename] = min(need, info.Capacity)
+		need -= deploy[info.Nodename]
 		if need == 0 {
 			return deploy, nil
 		}

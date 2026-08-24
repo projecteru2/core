@@ -41,32 +41,30 @@ func GlobalPlan(ctx context.Context, infos []Info, need, total, _ int) (map[stri
 	if total < need {
 		return nil, errors.Wrapf(types.ErrInsufficientResource, "need: %d, available: %d", need, total)
 	}
-	strategyInfos := make([]Info, len(infos))
-	copy(strategyInfos, infos)
 	deployMap := map[string]int{}
 
-	infoHeap := &infoHeapForGlobalStrategy{}
-	for _, info := range strategyInfos {
+	h := &infoHeapForGlobalStrategy{}
+	for _, info := range infos {
 		if info.Capacity > 0 {
-			infoHeap.Push(info)
+			h.Push(info)
 		}
 	}
-	heap.Init(infoHeap)
+	heap.Init(h)
 
 	for i := range need {
-		if infoHeap.Len() == 0 {
+		if h.Len() == 0 {
 			return nil, errors.Wrapf(types.ErrInsufficientResource, "need: %d, available: %d", need, i)
 		}
-		infoWithMinUsage := heap.Pop(infoHeap).(Info)
+		infoWithMinUsage := heap.Pop(h).(Info)
 		deployMap[infoWithMinUsage.Nodename]++
 		infoWithMinUsage.Usage += infoWithMinUsage.Rate
 		infoWithMinUsage.Capacity--
 
 		if infoWithMinUsage.Capacity > 0 {
-			heap.Push(infoHeap, infoWithMinUsage)
+			heap.Push(h, infoWithMinUsage)
 		}
 	}
 
-	log.WithFunc("strategy.GlobalPlan").Debugf(ctx, "strategyInfos: %+v", strategyInfos)
+	log.WithFunc("strategy.GlobalPlan").Debugf(ctx, "strategyInfos: %+v", infos)
 	return deployMap, nil
 }

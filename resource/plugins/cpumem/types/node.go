@@ -35,15 +35,9 @@ func (r *NodeResource) DeepCopy() *NodeResource {
 		NUMA:       NUMA{},
 	}
 
-	for cpu := range r.CPUMap {
-		res.CPUMap[cpu] = r.CPUMap[cpu]
-	}
-	for numaNodeID := range r.NUMAMemory {
-		res.NUMAMemory[numaNodeID] = r.NUMAMemory[numaNodeID]
-	}
-	for cpuID := range r.NUMA {
-		res.NUMA[cpuID] = r.NUMA[cpuID]
-	}
+	maps.Copy(res.CPUMap, r.CPUMap)
+	maps.Copy(res.NUMAMemory, r.NUMAMemory)
+	maps.Copy(res.NUMA, r.NUMA)
 	return res
 }
 

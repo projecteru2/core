@@ -2,7 +2,6 @@ package helium
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -24,7 +23,6 @@ type entry struct {
 }
 
 type Helium struct {
-	sync.Once
 	store     store.Store
 	subs      *haxmap.Map[uint32, entry]
 	interval  time.Duration
@@ -41,9 +39,7 @@ func New(ctx context.Context, config types.GRPCConfig, store store.Store) *Heliu
 	if h.interval < time.Second {
 		h.interval = interval
 	}
-	h.Do(func() {
-		h.start(ctx)
-	})
+	h.start(ctx)
 	return h
 }
 

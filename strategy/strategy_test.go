@@ -8,7 +8,7 @@ import (
 )
 
 func TestDeploy(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	_, err := Deploy(ctx, "invalid", -1, 3, nil, 2)
 	assert.Error(t, err)

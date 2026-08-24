@@ -12,8 +12,7 @@ import (
 func (m Manager) GetMetricsDescription(ctx context.Context) ([]*plugintypes.MetricsDescription, error) {
 	var metricsDescriptions []*plugintypes.MetricsDescription
 	resps, err := call(ctx, m.plugins, func(plugin plugins.Plugin) (*plugintypes.GetMetricsDescriptionResponse, error) {
-		resp, err := plugin.GetMetricsDescription(ctx)
-		return resp, err
+		return plugin.GetMetricsDescription(ctx)
 	})
 	if err != nil {
 		return nil, err

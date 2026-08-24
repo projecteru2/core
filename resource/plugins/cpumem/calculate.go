@@ -2,6 +2,7 @@ package cpumem
 
 import (
 	"context"
+	"slices"
 
 	"github.com/cockroachdb/errors"
 	"github.com/go-viper/mapstructure/v2"
@@ -203,9 +204,6 @@ func (p Plugin) doAllocByMemory(resourceInfo *cpumemtypes.NodeResourceInfo, depl
 		return nil, nil, errors.Wrap(coretypes.ErrInsufficientCapacity, "memory")
 	}
 
-	enginesParams := []*cpumemtypes.EngineParams{}
-	workloadsResource := []*cpumemtypes.WorkloadResource{}
-
 	engineParams := &cpumemtypes.EngineParams{
 		CPU:    req.CPULimit,
 		Memory: req.MemLimit,
@@ -217,11 +215,8 @@ func (p Plugin) doAllocByMemory(resourceInfo *cpumemtypes.NodeResourceInfo, depl
 		MemoryLimit:   req.MemLimit,
 	}
 
-	for len(enginesParams) < deployCount {
-		enginesParams = append(enginesParams, engineParams)
-		workloadsResource = append(workloadsResource, workloadResource)
-	}
-	return enginesParams, workloadsResource, nil
+	return slices.Repeat([]*cpumemtypes.EngineParams{engineParams}, deployCount),
+		slices.Repeat([]*cpumemtypes.WorkloadResource{workloadResource}, deployCount), nil
 }
 
 func (p Plugin) doAllocByCPU(resourceInfo *cpumemtypes.NodeResourceInfo, deployCount int, req *cpumemtypes.WorkloadResourceRequest) ([]*cpumemtypes.EngineParams, []*cpumemtypes.WorkloadResource, error) {

@@ -14,7 +14,7 @@ import (
 )
 
 func TestName(t *testing.T) {
-	cm := initCPUMEM(context.Background(), t)
+	cm := initCPUMEM(t.Context(), t)
 	assert.Equal(t, cm.name, cm.Name())
 }
 

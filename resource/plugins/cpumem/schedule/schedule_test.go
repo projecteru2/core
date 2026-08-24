@@ -468,7 +468,6 @@ func TestInsufficientMemory(t *testing.T) {
 }
 
 func BenchmarkGetCPUPlans(b *testing.B) {
-	b.StopTimer()
 	resourceInfo := &types.NodeResourceInfo{
 		Capacity: &types.NodeResource{
 			CPU:    24,
@@ -476,12 +475,11 @@ func BenchmarkGetCPUPlans(b *testing.B) {
 			Memory: 128 * units.GiB,
 		},
 	}
-	for i := 0; i < 24; i++ {
+	for i := range 24 {
 		resourceInfo.Capacity.CPUMap[strconv.Itoa(i)] = 100
 	}
 	assert.Nil(b, resourceInfo.Validate())
-	b.StartTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		assert.True(b, len(GetCPUPlans(resourceInfo, nil, 100, -1, &types.WorkloadResourceRequest{
 			CPUBind:    true,
 			CPURequest: 1.3,

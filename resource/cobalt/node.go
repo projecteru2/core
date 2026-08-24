@@ -2,6 +2,7 @@ package cobalt
 
 import (
 	"context"
+	"maps"
 	"math"
 	"slices"
 
@@ -38,9 +39,7 @@ func (m Manager) AddNode(ctx context.Context, nodename string, opts resourcetype
 				return resp, err
 			})
 			if err != nil {
-				for plugin := range resps {
-					rollbackPlugins = append(rollbackPlugins, plugin)
-				}
+				rollbackPlugins = slices.Collect(maps.Keys(resps))
 				return err
 			}
 
@@ -91,10 +90,7 @@ func (m Manager) RemoveNode(ctx context.Context, nodename string) error {
 				return resp, err
 			})
 			if err != nil {
-				for plugin := range resps {
-					rollbackPlugins = append(rollbackPlugins, plugin)
-				}
-
+				rollbackPlugins = slices.Collect(maps.Keys(resps))
 				logger.Error(ctx, err, "failed to remove node")
 				return err
 			}
@@ -346,7 +342,7 @@ func (m Manager) mergeCapacity(m1, m2 map[string]*plugintypes.NodeDeployCapacity
 	for nodename, info1 := range m1 {
 		if info2, ok := m2[nodename]; ok {
 			resp[nodename] = &plugintypes.NodeDeployCapacity{
-				Capacity: utils.Min(info1.Capacity, info2.Capacity),
+				Capacity: min(info1.Capacity, info2.Capacity),
 				Rate:     info1.Rate + info2.Rate*info2.Weight,
 				Usage:    info1.Usage + info2.Usage*info2.Weight,
 				Weight:   info1.Weight + info2.Weight,

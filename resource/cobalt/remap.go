@@ -3,6 +3,7 @@ package cobalt
 import (
 	"context"
 	"maps"
+	"slices"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resource/plugins"
@@ -53,17 +54,18 @@ func (m Manager) mergeEngineParams(ctx context.Context, m1, m2 plugintypes.Engin
 	r := plugintypes.EngineParams{}
 	maps.Copy(r, m1)
 	for key, value := range m2 {
-		if _, ok := r[key]; ok {
-			_, ok1 := r[key].([]string)
-			_, ok2 := value.([]string)
-			if !ok1 || !ok2 {
-				log.WithFunc("resource.cobalt.mergeEngineParams").Errorf(ctx, types.ErrInvalidEngineArgs, "only string slices can be merged, key %+v, m1 %+v, m2 %+v", key, m1[key], m2[key])
-				return nil, types.ErrInvalidEngineArgs
-			}
-			r[key] = append(r[key].([]string), value.([]string)...)
-		} else {
+		old, ok := r[key]
+		if !ok {
 			r[key] = value
+			continue
 		}
+		s1, ok1 := old.([]string)
+		s2, ok2 := value.([]string)
+		if !ok1 || !ok2 {
+			log.WithFunc("resource.cobalt.mergeEngineParams").Errorf(ctx, types.ErrInvalidEngineArgs, "only string slices can be merged, key %+v, m1 %+v, m2 %+v", key, m1[key], m2[key])
+			return nil, types.ErrInvalidEngineArgs
+		}
+		r[key] = slices.Concat(s1, s2)
 	}
 	return r, nil
 }

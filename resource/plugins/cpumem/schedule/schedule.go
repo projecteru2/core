@@ -1,11 +1,11 @@
 package schedule
 
 import (
+	"cmp"
 	"container/heap"
-	"sort"
+	"slices"
 
 	"github.com/projecteru2/core/resource/plugins/cpumem/types"
-	"github.com/projecteru2/core/utils"
 )
 
 type cpuCore struct {
@@ -70,15 +70,10 @@ func newHost(cpuMap types.CPUMap, shareBase, maxFragmentCores int) *host {
 		}
 	}
 
-	sortFunc := func(cores []*cpuCore) func(i, j int) bool {
-		return func(i, j int) bool {
-			// busier cores go first so idle cores stay whole
-			return cores[i].Less(cores[j])
-		}
-	}
-
-	sort.SliceStable(h.fullCores, sortFunc(h.fullCores))
-	sort.SliceStable(h.fragmentCores, sortFunc(h.fragmentCores))
+	// busier cores go first so idle cores stay whole
+	byLoad := func(a, b *cpuCore) int { return cmp.Or(cmp.Compare(a.pieces, b.pieces), cmp.Compare(a.ID, b.ID)) }
+	slices.SortStableFunc(h.fullCores, byLoad)
+	slices.SortStableFunc(h.fragmentCores, byLoad)
 
 	return h
 }
@@ -107,7 +102,7 @@ func (h *host) getCPUPlans(cpuRequest float64) []types.CPUMap {
 	fragmentCapacityMap := map[string]int{}
 	totalFragmentCapacity := 0
 	bestCPUPlans := [2][]types.CPUMap{h.getFullCPUPlans(h.fullCores, full), h.getFragmentCPUPlans(h.fragmentCores, fragment)}
-	bestCapacity := utils.Min(len(bestCPUPlans[0]), len(bestCPUPlans[1]))
+	bestCapacity := min(len(bestCPUPlans[0]), len(bestCPUPlans[1]))
 
 	for _, core := range h.fullCores {
 		fragmentCapacityMap[core.ID] = core.pieces / fragment
@@ -125,7 +120,7 @@ func (h *host) getCPUPlans(cpuRequest float64) []types.CPUMap {
 		totalFragmentCapacity += fragmentCapacityMap[newFragmentCore.ID]
 
 		fullCPUPlans := h.getFullCPUPlans(h.fullCores, full)
-		capacity := utils.Min(len(fullCPUPlans), totalFragmentCapacity)
+		capacity := min(len(fullCPUPlans), totalFragmentCapacity)
 		if capacity > bestCapacity {
 			bestCPUPlans[0] = fullCPUPlans
 			bestCPUPlans[1] = h.getFragmentCPUPlans(h.fragmentCores, fragment)
@@ -134,7 +129,7 @@ func (h *host) getCPUPlans(cpuRequest float64) []types.CPUMap {
 	}
 
 	cpuPlans := []types.CPUMap{}
-	for i := 0; i < bestCapacity; i++ {
+	for i := range bestCapacity {
 		fullCPUPlans := bestCPUPlans[0]
 		fragmentCPUPlans := bestCPUPlans[1]
 
@@ -191,7 +186,7 @@ func (h *host) getFullCPUPlans(cores []*cpuCore, full int) []types.CPUMap {
 		return sum
 	}
 
-	sort.Slice(result, func(i, j int) bool { return sumOfIDs(result[i]) < sumOfIDs(result[j]) })
+	slices.SortFunc(result, func(a, b types.CPUMap) int { return cmp.Compare(sumOfIDs(a), sumOfIDs(b)) })
 
 	return result
 }
@@ -224,7 +219,7 @@ func (h *host) getFullCPUPlansWithAffinity(cores []*cpuCore, full int) []types.C
 func (h *host) getFragmentCPUPlans(cores []*cpuCore, fragment int) []types.CPUMap {
 	result := []types.CPUMap{}
 	for _, core := range cores {
-		for i := 0; i < core.pieces/fragment; i++ {
+		for range core.pieces / fragment {
 			result = append(result, types.CPUMap{core.ID: fragment})
 		}
 	}
@@ -299,22 +294,20 @@ func reorderByAffinity(oldH, newH *host) {
 		oldFragment[core.ID] = i + 1
 	}
 
-	sortFunc := func(orderMap map[string]int, cores []*cpuCore) func(i, j int) bool {
-		return func(i, j int) bool {
-			idxI := orderMap[cores[i].ID]
-			idxJ := orderMap[cores[j].ID]
-
-			if idxI == 0 && idxJ == 0 {
-				return i < j
+	sortFunc := func(orderMap map[string]int) func(a, b *cpuCore) int {
+		return func(a, b *cpuCore) int {
+			idxA, idxB := orderMap[a.ID], orderMap[b.ID]
+			if idxA == 0 && idxB == 0 {
+				return 0
 			}
-			if idxI == 0 || idxJ == 0 {
-				return idxI > idxJ
+			if idxA == 0 || idxB == 0 {
+				return cmp.Compare(idxB, idxA)
 			}
-			return idxI < idxJ
+			return cmp.Compare(idxA, idxB)
 		}
 	}
 
-	sort.SliceStable(newH.fullCores, sortFunc(oldFull, newH.fullCores))
-	sort.SliceStable(newH.fragmentCores, sortFunc(oldFragment, newH.fragmentCores))
+	slices.SortStableFunc(newH.fullCores, sortFunc(oldFull))
+	slices.SortStableFunc(newH.fragmentCores, sortFunc(oldFragment))
 	newH.affinity = true
 }

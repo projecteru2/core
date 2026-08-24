@@ -55,7 +55,7 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintyp
 		}
 		if len(req.CPUMap) == 0 {
 			req.CPUMap = cpumemtypes.CPUMap{}
-			for i := 0; i < info.NCPU; i++ {
+			for i := range info.NCPU {
 				req.CPUMap[strconv.Itoa(i)] = p.config.Scheduler.ShareBase
 			}
 			req.NUMA = nodeRes.NUMA

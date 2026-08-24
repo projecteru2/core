@@ -10,34 +10,28 @@ import (
 	"github.com/projecteru2/core/resource/plugins"
 )
 
+// call fans f out over ps and returns the successes together with the combined errors.
 func call[T any](ctx context.Context, ps []plugins.Plugin, f func(plugins.Plugin) (T, error)) (map[plugins.Plugin]T, error) {
 	var wg sync.WaitGroup
-	var combinedErr error
-	var results sync.Map
-	for _, p := range ps {
-		wg.Add(1)
-		go func(p plugins.Plugin) {
-			defer wg.Done()
-
-			result, err := f(p)
-			if err != nil {
-				log.WithFunc("resource.cobalt.call").Errorf(ctx, err, "failed to call plugin %+v", p.Name())
-				results.Store(p, err)
-				return
+	results := make([]T, len(ps))
+	errs := make([]error, len(ps))
+	for i, p := range ps {
+		wg.Go(func() {
+			if results[i], errs[i] = f(p); errs[i] != nil {
+				log.WithFunc("resource.cobalt.call").Errorf(ctx, errs[i], "failed to call plugin %+v", p.Name())
 			}
-			results.Store(p, result)
-		}(p)
+		})
 	}
 	wg.Wait()
-	ans := make(map[plugins.Plugin]T)
-	for _, p := range ps {
-		value, _ := results.Load(p)
-		switch vt := value.(type) {
-		case error:
-			combinedErr = errors.CombineErrors(combinedErr, vt)
-		case T:
-			ans[p] = vt
+
+	var combinedErr error
+	ans := make(map[plugins.Plugin]T, len(ps))
+	for i, p := range ps {
+		if errs[i] != nil {
+			combinedErr = errors.CombineErrors(combinedErr, errs[i])
+			continue
 		}
+		ans[p] = results[i]
 	}
 	return ans, combinedErr
 }

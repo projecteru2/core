@@ -21,8 +21,8 @@ func TestHelium(t *testing.T) {
 	grpcConfig := types.GRPCConfig{
 		ServiceDiscoveryPushInterval: time.Duration(1) * time.Second,
 	}
-	service := New(context.TODO(), grpcConfig, store)
-	ctx, cancel := context.WithCancel(context.Background())
+	service := New(t.Context(), grpcConfig, store)
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	uuid, chStatus := service.Subscribe(ctx)
 
@@ -58,11 +58,11 @@ func TestPanic(t *testing.T) {
 	grpcConfig := types.GRPCConfig{
 		ServiceDiscoveryPushInterval: time.Duration(1) * time.Second,
 	}
-	service := New(context.TODO(), grpcConfig, store)
-	ctx, cancel := context.WithCancel(context.Background())
+	service := New(t.Context(), grpcConfig, store)
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
-	for i := 0; i < 1000; i++ {
+	for range 1000 {
 		go func() {
 			uuid, _ := service.Subscribe(ctx)
 			time.Sleep(time.Second)
@@ -71,7 +71,7 @@ func TestPanic(t *testing.T) {
 	}
 
 	go func() {
-		for i := 0; i < 1000; i++ {
+		for range 1000 {
 			chAddr <- []string{"hhh", "hhh2"}
 		}
 	}()
