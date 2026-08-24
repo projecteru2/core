@@ -93,14 +93,14 @@ func (p *EndpointPusher) pollReachability(ctx context.Context, endpoint string) 
 			logger.Debugf(ctx, "reachability goroutine ends: %s", endpoint)
 			return
 		case <-ticker.C:
-			p.Lock()
-			defer p.Unlock()
 			if err := p.checkReachability(ctx, parts[0]); err != nil {
 				continue
 			}
+			p.Lock()
 			p.pendingEndpoints.Del(endpoint)
 			p.availableEndpoints.Set(endpoint, struct{}{})
 			p.pushEndpoints()
+			p.Unlock()
 			logger.Debugf(ctx, "available endpoint added: %s", endpoint)
 			return
 		}
