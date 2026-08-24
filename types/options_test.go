@@ -4,9 +4,10 @@ import (
 	"bufio"
 	"testing"
 
-	resourcetypes "github.com/projecteru2/core/resource/types"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap/buffer"
+
+	resourcetypes "github.com/projecteru2/core/resource/types"
 )
 
 func TestParseTriOption(t *testing.T) {

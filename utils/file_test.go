@@ -28,7 +28,7 @@ func TestListAllExecutableFiles(t *testing.T) {
 
 	assert.False(t, isExecutable(fInfo.Mode().Perm()))
 
-	os.Chmod(file.Name(), 0777)
+	os.Chmod(file.Name(), 0o777)
 	fInfo, _ = os.Stat(file.Name())
 	assert.True(t, isExecutable(fInfo.Mode().Perm()))
 

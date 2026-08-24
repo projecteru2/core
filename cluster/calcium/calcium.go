@@ -3,9 +3,9 @@ package calcium
 import (
 	"context"
 	"strings"
-	"testing"
 
 	"github.com/panjf2000/ants/v2"
+
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/discovery"
 	"github.com/projecteru2/core/discovery/helium"
@@ -16,6 +16,7 @@ import (
 	"github.com/projecteru2/core/source/github"
 	"github.com/projecteru2/core/source/gitlab"
 	"github.com/projecteru2/core/store"
+	"github.com/projecteru2/core/store/etcdv3/embedded"
 	storefactory "github.com/projecteru2/core/store/factory"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -35,10 +36,10 @@ type Calcium struct {
 }
 
 // New returns a new cluster config
-func New(ctx context.Context, config types.Config, t *testing.T) (*Calcium, error) {
+func New(ctx context.Context, config types.Config, embeddedETCD *embedded.Cluster) (*Calcium, error) {
 	logger := log.WithFunc("calcium.New")
 	// set store
-	store, err := storefactory.NewStore(config, t)
+	store, err := storefactory.NewStore(config, embeddedETCD)
 	if err != nil {
 		logger.Error(ctx, err)
 		return nil, err
@@ -69,7 +70,7 @@ func New(ctx context.Context, config types.Config, t *testing.T) (*Calcium, erro
 		logger.Error(ctx, err)
 		return nil, err
 	}
-	if err := rmgr.LoadPlugins(ctx, t); err != nil {
+	if err = rmgr.LoadPlugins(ctx, embeddedETCD); err != nil {
 		logger.Error(ctx, err)
 		return nil, err
 	}

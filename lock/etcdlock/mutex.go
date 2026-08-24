@@ -1,6 +1,7 @@
 package etcdlock
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"sync"
@@ -10,7 +11,6 @@ import (
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/concurrency"
-	"golang.org/x/net/context"
 )
 
 // Mutex is etcdv3 lock
@@ -149,8 +149,9 @@ func (m *Mutex) TryLock(ctx context.Context) (context.Context, error) {
 
 // Unlock unlock
 func (m *Mutex) Unlock(ctx context.Context) error {
-	defer m.session.Close()
-	// release resource
+	defer func() {
+		_ = m.session.Close()
+	}()
 
 	lockCtx, cancel := context.WithTimeout(ctx, m.timeout)
 	defer cancel()

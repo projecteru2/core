@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/cockroachdb/errors"
+
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 
@@ -101,9 +102,9 @@ func (g *GitScm) SourceCode(ctx context.Context, repository, path, revision stri
 
 	// Prepare submodules
 	if submodule {
-		s, err := w.Submodules()
-		if err != nil {
-			return err
+		s, subErr := w.Submodules()
+		if subErr != nil {
+			return subErr
 		}
 		return s.Update(&gogit.SubmoduleUpdateOptions{Init: true, Auth: opts.Auth})
 	}
@@ -126,7 +127,9 @@ func (g *GitScm) Artifact(ctx context.Context, artifact, path string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	if resp.StatusCode != 200 {
 		return errors.Wrapf(types.ErrDownloadArtifactsFailed, "code: %d", resp.StatusCode)
 	}

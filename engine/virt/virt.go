@@ -11,17 +11,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mitchellh/mapstructure"
+	"github.com/go-viper/mapstructure/v2"
+	virtapi "github.com/projecteru2/libyavirt/client"
+	virttypes "github.com/projecteru2/libyavirt/types"
+
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	coresource "github.com/projecteru2/core/source"
-	"github.com/projecteru2/core/types"
 	coretypes "github.com/projecteru2/core/types"
-	virtapi "github.com/projecteru2/libyavirt/client"
-	virttypes "github.com/projecteru2/libyavirt/types"
 )
 
 const (
@@ -60,10 +60,13 @@ func MakeClient(_ context.Context, config coretypes.Config, nodename, endpoint, 
 		if err != nil {
 			return nil, err
 		}
+		defer func() {
+			_ = caFile.Close()
+			_ = os.Remove(caFile.Name())
+		}()
 		if _, err := caFile.WriteString(ca); err != nil {
 			return nil, err
 		}
-		defer os.Remove(caFile.Name())
 		yCfg.CA = caFile.Name()
 	}
 	cli, err := virtapi.New(yCfg)
@@ -117,8 +120,8 @@ func (v *Virt) CloseConn() error {
 func (v *Virt) Execute(ctx context.Context, ID string, config *enginetypes.ExecConfig) (execID string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
 	if config.Tty {
 		flags := virttypes.AttachGuestFlags{Safe: true, Force: true}
-		execID, stream, err := v.client.AttachGuest(ctx, ID, config.Cmd, flags)
-		if err != nil {
+		var stream io.ReadWriteCloser
+		if execID, stream, err = v.client.AttachGuest(ctx, ID, config.Cmd, flags); err != nil {
 			return "", nil, nil, nil, err
 		}
 		return execID, io.NopCloser(stream), nil, stream, nil
@@ -141,7 +144,7 @@ func (v *Virt) ExecExitCode(ctx context.Context, ID, execID string) (code int, e
 	if err != nil {
 		return -1, err
 	}
-	return
+	return code, err
 }
 
 // ExecResize resize exec tty
@@ -154,17 +157,17 @@ func (v *Virt) NetworkConnect(ctx context.Context, network, target, ipv4, _ stri
 	req := virttypes.ConnectNetworkReq{
 		Network: network,
 		IPv4:    ipv4,
+		ID:      target,
 	}
-	req.ID = target
 
 	var cidr string
 	if cidr, err = v.client.ConnectNetwork(ctx, req); err != nil {
-		return
+		return cidrs, err
 	}
 
 	cidrs = append(cidrs, cidr)
 
-	return
+	return cidrs, err
 }
 
 // NetworkDisconnect disconnects from one network.
@@ -175,7 +178,7 @@ func (v *Virt) NetworkDisconnect(ctx context.Context, network, target string, _ 
 
 	_, err = v.client.DisconnectNetwork(ctx, req)
 
-	return
+	return err
 }
 
 // NetworkList lists all networks.
@@ -191,7 +194,7 @@ func (v *Virt) NetworkList(ctx context.Context, drivers []string) (nets []*engin
 			Subnets: network.Subnets,
 		})
 	}
-	return
+	return nets, err
 }
 
 // BuildRefs builds references.
@@ -210,8 +213,8 @@ func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.Virtu
 	resourceOpts := &engine.VirtualizationResource{}
 	if err = engine.MakeVirtualizationResource(opts.EngineParams, resourceOpts, func(p resourcetypes.Resources, d *engine.VirtualizationResource) error {
 		for _, v := range p {
-			if err := mapstructure.Decode(v, d); err != nil {
-				return err
+			if decodeErr := mapstructure.Decode(v, d); decodeErr != nil {
+				return decodeErr
 			}
 		}
 		return nil
@@ -265,13 +268,13 @@ func (v *Virt) VirtualizationCopyChunkTo(ctx context.Context, ID, dest string, _
 // VirtualizationStart boots a guest.
 func (v *Virt) VirtualizationStart(ctx context.Context, ID string) (err error) {
 	_, err = v.client.StartGuest(ctx, ID)
-	return
+	return err
 }
 
 // VirtualizationStop stops it.
 func (v *Virt) VirtualizationStop(ctx context.Context, ID string, gracefulTimeout time.Duration) (err error) {
 	_, err = v.client.StopGuest(ctx, ID, gracefulTimeout == 0)
-	return
+	return err
 }
 
 // VirtualizationRemove removes a guest.
@@ -280,21 +283,21 @@ func (v *Virt) VirtualizationRemove(ctx context.Context, ID string, _, force boo
 		return nil
 	}
 	if strings.Contains(err.Error(), "key not exists") {
-		return types.ErrWorkloadNotExists
+		return coretypes.ErrWorkloadNotExists
 	}
-	return
+	return err
 }
 
 // VirtualizationSuspend suspends a guest.
 func (v *Virt) VirtualizationSuspend(ctx context.Context, ID string) (err error) {
 	_, err = v.client.SuspendGuest(ctx, ID)
-	return
+	return err
 }
 
 // VirtualizationResume resumes a guest.
 func (v *Virt) VirtualizationResume(ctx context.Context, ID string) (err error) {
 	_, err = v.client.ResumeGuest(ctx, ID)
-	return
+	return err
 }
 
 func (v *Virt) RawEngine(ctx context.Context, opts *enginetypes.RawEngineOptions) (res *enginetypes.RawEngineResult, err error) {
@@ -305,13 +308,13 @@ func (v *Virt) RawEngine(ctx context.Context, opts *enginetypes.RawEngineOptions
 	}
 	resp, err := v.client.RawEngine(ctx, req)
 	if err != nil {
-		return
+		return res, err
 	}
 	res = &enginetypes.RawEngineResult{
 		ID:   resp.ID,
 		Data: resp.Data,
 	}
-	return
+	return res, err
 }
 
 // VirtualizationInspect gets a guest.
@@ -345,7 +348,7 @@ func (v *Virt) VirtualizationInspect(ctx context.Context, ID string) (*enginetyp
 }
 
 // VirtualizationLogs streams a specific guest's log
-func (v *Virt) VirtualizationLogs(ctx context.Context, opts *enginetypes.VirtualizationLogStreamOptions) (stdout io.ReadCloser, stderr io.ReadCloser, err error) {
+func (v *Virt) VirtualizationLogs(ctx context.Context, opts *enginetypes.VirtualizationLogStreamOptions) (stdout, stderr io.ReadCloser, err error) {
 	n := -1
 	if opts.Tail != "all" && opts.Tail != "" {
 		if n, err = strconv.Atoi(opts.Tail); err != nil {
@@ -413,8 +416,8 @@ func (v *Virt) VirtualizationUpdateResource(ctx context.Context, ID string, engi
 		Mem:       resourceOpts.Memory,
 		Volumes:   vols,
 		Resources: convertEngineParamsToResources(engineParams),
+		ID:        ID,
 	}
-	args.ID = ID
 
 	_, err = v.client.ResizeGuest(ctx, args)
 	return err
@@ -425,8 +428,8 @@ func (v *Virt) VirtualizationCopyFrom(ctx context.Context, ID, path string) (con
 	// TODO@zc: virt shall return the properties too
 	rd, err := v.client.Cat(ctx, ID, path)
 	if err != nil {
-		return
+		return content, uid, gid, mode, err
 	}
 	content, err = io.ReadAll(rd)
-	return
+	return content, uid, gid, mode, err
 }

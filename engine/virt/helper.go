@@ -8,9 +8,10 @@ import (
 	"strings"
 
 	"github.com/cockroachdb/errors"
+	virttypes "github.com/projecteru2/libyavirt/types"
+
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	coretypes "github.com/projecteru2/core/types"
-	virttypes "github.com/projecteru2/libyavirt/types"
 )
 
 const sep = "@"

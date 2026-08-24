@@ -60,7 +60,7 @@ type host struct {
 }
 
 // GetCPUPlans .
-func GetCPUPlans(resourceInfo *types.NodeResourceInfo, originCPUMap types.CPUMap, shareBase int, maxFragmentCores int, req *types.WorkloadResourceRequest) []*types.CPUPlan {
+func GetCPUPlans(resourceInfo *types.NodeResourceInfo, originCPUMap types.CPUMap, shareBase, maxFragmentCores int, req *types.WorkloadResourceRequest) []*types.CPUPlan {
 	cpuPlans := []*types.CPUPlan{}
 	availableResource := resourceInfo.GetAvailableResource()
 
@@ -133,7 +133,7 @@ func reorderByAffinity(oldH, newH *host) {
 }
 
 // doGetCPUPlans .
-func doGetCPUPlans(originCPUMap, availableCPUMap types.CPUMap, availableMemory int64, shareBase int, maxFragmentCores int, cpuRequest float64, memoryRequest int64) []types.CPUMap {
+func doGetCPUPlans(originCPUMap, availableCPUMap types.CPUMap, availableMemory int64, shareBase, maxFragmentCores int, cpuRequest float64, memoryRequest int64) []types.CPUMap {
 	h := newHost(availableCPUMap, shareBase, maxFragmentCores)
 
 	// affinity
@@ -152,7 +152,7 @@ func doGetCPUPlans(originCPUMap, availableCPUMap types.CPUMap, availableMemory i
 	return cpuPlans
 }
 
-func newHost(cpuMap types.CPUMap, shareBase int, maxFragmentCores int) *host {
+func newHost(cpuMap types.CPUMap, shareBase, maxFragmentCores int) *host {
 	h := &host{
 		shareBase:        shareBase,
 		maxFragmentCores: maxFragmentCores,
@@ -265,7 +265,7 @@ func (h *host) getFullCPUPlans(cores []*cpuCore, full int) []types.CPUMap {
 		plan := types.CPUMap{}
 		resourcesToPush := []*cpuCore{}
 
-		for i := 0; i < full; i++ {
+		for range full {
 			core := heap.Pop(cpuHeap).(*cpuCore)
 			plan[core.ID] = h.shareBase
 
@@ -301,7 +301,7 @@ func (h *host) getFullCPUPlansWithAffinity(cores []*cpuCore, full int) []types.C
 	for len(cores) >= full {
 		count := len(cores) / full
 		tempCores := []*cpuCore{}
-		for i := 0; i < count; i++ {
+		for i := range count {
 			cpuMap := types.CPUMap{}
 			for j := i * full; j < i*full+full; j++ {
 				cpuMap[cores[j].ID] = h.shareBase

@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	enginetypes "github.com/projecteru2/core/engine/types"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
+	"github.com/projecteru2/core/store/etcdv3/embedded"
 	coretypes "github.com/projecteru2/core/types"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestName(t *testing.T) {
@@ -27,14 +29,17 @@ func initCPUMEM(ctx context.Context, t *testing.T) *Plugin {
 		},
 	}
 
-	cm, err := NewPlugin(ctx, config, t)
+	cluster, err := embedded.New(t.TempDir())
+	assert.NoError(t, err)
+	t.Cleanup(cluster.Close)
+	cm, err := NewPlugin(ctx, config, cluster)
 	assert.NoError(t, err)
 	return cm
 }
 
 func generateNodes(
 	ctx context.Context, t *testing.T, cm *Plugin,
-	nums int, cores int, memory int64, shares, index int,
+	nums, cores int, memory int64, shares, index int,
 ) []string {
 	reqs := generateNodeResourceRequests(t, nums, cores, memory, shares, index)
 	info := &enginetypes.Info{NCPU: 8, MemTotal: 2048}
@@ -52,7 +57,7 @@ func generateNodes(
 	return names
 }
 
-func generateNodeResourceRequests(t *testing.T, nums int, cores int, memory int64, shares, index int) map[string]plugintypes.NodeResourceRequest {
+func generateNodeResourceRequests(t *testing.T, nums, cores int, memory int64, shares, index int) map[string]plugintypes.NodeResourceRequest {
 	infos := map[string]plugintypes.NodeResourceRequest{}
 	for i := index; i < index+nums; i++ {
 		info := plugintypes.NodeResourceRequest{

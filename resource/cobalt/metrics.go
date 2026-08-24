@@ -16,7 +16,6 @@ func (m Manager) GetMetricsDescription(ctx context.Context) ([]*plugintypes.Metr
 		resp, err := plugin.GetMetricsDescription(ctx)
 		return resp, err
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +39,6 @@ func (m Manager) GetNodeMetrics(ctx context.Context, node *types.Node) ([]*plugi
 		}
 		return resp, err
 	})
-
 	if err != nil {
 		logger.Error(ctx, err, "failed to convert node resource info to metrics")
 		return nil, err

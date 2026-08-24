@@ -1,8 +1,11 @@
 package types
 
 import (
+	"maps"
+
 	"github.com/cockroachdb/errors"
-	"github.com/mitchellh/mapstructure"
+	"github.com/go-viper/mapstructure/v2"
+
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	coreutils "github.com/projecteru2/core/utils"
 )
@@ -35,12 +38,8 @@ func (w *WorkloadResource) DeepCopy() *WorkloadResource {
 		NUMANode:      w.NUMANode,
 	}
 
-	for cpu, pieces := range w.CPUMap {
-		res.CPUMap[cpu] = pieces
-	}
-	for nodeID, nodeMemory := range res.NUMAMemory {
-		res.NUMAMemory[nodeID] = nodeMemory
-	}
+	maps.Copy(res.CPUMap, w.CPUMap)
+	maps.Copy(res.NUMAMemory, w.NUMAMemory)
 
 	return res
 }

@@ -3,9 +3,13 @@ package metrics
 import (
 	"context"
 	"fmt"
+	"maps"
 	"os"
+	"slices"
 	"strconv"
 	"sync"
+
+	promClient "github.com/prometheus/client_model/go"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resource"
@@ -13,12 +17,9 @@ import (
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-	promClient "github.com/prometheus/client_model/go"
-	"golang.org/x/exp/slices"
 
 	statsdlib "github.com/CMGS/statsd"
 	"github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/exp/maps"
 )
 
 const (
@@ -176,8 +177,10 @@ func (m *Metrics) count(ctx context.Context, key string, n int, rate float32) er
 }
 
 // Client is a metrics obj
-var Client = Metrics{}
-var once sync.Once
+var (
+	Client = Metrics{}
+	once   sync.Once
+)
 
 // InitMetrics new a metrics obj
 func InitMetrics(ctx context.Context, config types.Config, metricsDescriptions []*plugintypes.MetricsDescription) error {
@@ -229,7 +232,7 @@ func InitMetrics(ctx context.Context, config types.Config, metricsDescriptions [
 	}, []string{"hostname", "podname", "nodename"})
 
 	once.Do(func() {
-		prometheus.MustRegister(maps.Values(Client.Collectors)...)
+		prometheus.MustRegister(slices.Collect(maps.Values(Client.Collectors))...)
 	})
 	return nil
 }

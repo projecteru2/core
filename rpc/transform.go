@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -12,8 +13,6 @@ import (
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	"golang.org/x/net/context"
 )
 
 func toRPCServiceStatus(status types.ServiceStatus) *pb.ServiceStatus {
@@ -273,7 +272,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 			Mode:     d.Modes[filename].GetMode(),
 		}
 		if file.Mode == 0 && file.UID == 0 && file.GID == 0 {
-			file.Mode = 0755
+			file.Mode = 0o755
 		}
 		files = append(files, file)
 	}

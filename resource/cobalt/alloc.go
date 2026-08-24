@@ -31,7 +31,7 @@ func (m Manager) Alloc(ctx context.Context, nodename string, deployCount int, op
 	engineParams := make([]resourcetypes.Resources, deployCount)
 
 	// init engine args
-	for i := 0; i < deployCount; i++ {
+	for i := range deployCount {
 		workloadsParams[i] = resourcetypes.Resources{}
 		engineParams[i] = resourcetypes.Resources{}
 	}

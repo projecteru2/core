@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
-	"testing"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -55,15 +54,14 @@ type ETCDTxnResp struct {
 }
 
 // NewETCD initailizes a new ETCD instance.
-func NewETCD(config types.EtcdConfig, t *testing.T) (*ETCD, error) {
+func NewETCD(config types.EtcdConfig, embeddedETCD *embedded.Cluster) (*ETCD, error) {
 	var cliv3 *clientv3.Client
 	var err error
 	var tlsConfig *tls.Config
 
 	switch {
-	case t != nil:
-		embededETCD := embedded.NewCluster(t, config.Prefix)
-		cliv3 = embededETCD.RandClient()
+	case embeddedETCD != nil:
+		cliv3 = embeddedETCD.Client(config.Prefix)
 		log.WithFunc("store.etcdv3.meta.NewETCD").Info(nil, "use embedded cluster") //nolint
 	default:
 		if config.Ca != "" && config.Key != "" && config.Cert != "" {
@@ -120,10 +118,10 @@ func (e *ETCD) GetOne(ctx context.Context, key string, opts ...clientv3.OpOption
 func (e *ETCD) GetMulti(ctx context.Context, keys []string, _ ...clientv3.OpOption) (kvs []*mvccpb.KeyValue, err error) {
 	var txnResponse *clientv3.TxnResponse
 	if len(keys) == 0 {
-		return
+		return kvs, err
 	}
 	if txnResponse, err = e.batchGet(ctx, keys); err != nil {
-		return
+		return kvs, err
 	}
 	for idx, responseOp := range txnResponse.Responses {
 		resp := responseOp.GetResponseRange()
@@ -135,7 +133,7 @@ func (e *ETCD) GetMulti(ctx context.Context, keys []string, _ ...clientv3.OpOpti
 	if len(kvs) != len(keys) {
 		err = errors.Wrapf(types.ErrInvaildCount, "keys: %+v", keys)
 	}
-	return
+	return kvs, err
 }
 
 // Delete delete key
@@ -386,8 +384,7 @@ func (e *ETCD) bindStatusWithoutTTL(ctx context.Context, statusKey, statusValue 
 		return err
 	}
 	if ttlChanged {
-		_, err := e.Put(ctx, statusKey, statusValue)
-		if err != nil {
+		if _, err = e.Put(ctx, statusKey, statusValue); err != nil {
 			return err
 		}
 
@@ -459,7 +456,7 @@ func (e *ETCD) doBatchOp(ctx context.Context, transactions []ETCDTxn) (resp *cli
 		}
 
 		n, m := len(txn.Then)/txnLimit, len(txn.Then)%txnLimit
-		for i := 0; i < n; i++ {
+		for i := range n {
 			txnes = append(txnes, ETCDTxn{
 				If:   txn.If,
 				Then: txn.Then[i*txnLimit : (i+1)*txnLimit],
@@ -485,8 +482,8 @@ func (e *ETCD) doBatchOp(ctx context.Context, transactions []ETCDTxn) (resp *cli
 			thens = append(thens, txnes[i].Then...)
 			elses = append(elses, txnes[i].Else...)
 		}
-		resp, err := e.cliv3.Txn(ctx).If(conds...).Then(thens...).Else(elses...).Commit()
-		respChan <- ETCDTxnResp{resp: resp, err: err}
+		txnResp, txnErr := e.cliv3.Txn(ctx).If(conds...).Then(thens...).Else(elses...).Commit()
+		respChan <- ETCDTxnResp{resp: txnResp, err: txnErr}
 	}
 
 	lastIdx := 0 // last uncommit index

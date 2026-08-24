@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/projecteru2/core/engine/types"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	coresource "github.com/projecteru2/core/source"
@@ -76,7 +75,7 @@ func (e *Engine) BuildContent(ctx context.Context, scm coresource.Source, opts *
 	}
 	log.WithFunc("engine.docker.BuildContent").Debugf(ctx, "Build dir %s", buildDir)
 	// create dockerfile
-	if err := e.makeDockerFile(ctx, opts, scm, buildDir); err != nil {
+	if err = e.makeDockerFile(ctx, opts, scm, buildDir); err != nil {
 		return buildDir, nil, err
 	}
 	// create stream for Build API
@@ -84,12 +83,12 @@ func (e *Engine) BuildContent(ctx context.Context, scm coresource.Source, opts *
 	return buildDir, tar, err
 }
 
-func (e *Engine) makeDockerFile(ctx context.Context, opts *types.BuildContentOptions, scm coresource.Source, buildDir string) error {
+func (e *Engine) makeDockerFile(ctx context.Context, opts *enginetypes.BuildContentOptions, scm coresource.Source, buildDir string) error {
 	var preCache map[string]string
 	var preStage string
 	var buildTmpl []string
 
-	for _, stage := range opts.Builds.Stages {
+	for _, stage := range opts.Stages {
 		build, ok := opts.Builds.Builds[stage]
 		if !ok {
 			log.WithFunc("engine.docker.makeDockerFile").Warnf(ctx, "Builds stage %s not defined", stage)
@@ -139,7 +138,7 @@ func (e *Engine) makeDockerFile(ctx context.Context, opts *types.BuildContentOpt
 	return createDockerfile(dockerfile, buildDir)
 }
 
-func (e *Engine) preparedSource(ctx context.Context, build *types.Build, scm coresource.Source, buildDir string) (string, error) {
+func (e *Engine) preparedSource(ctx context.Context, build *enginetypes.Build, scm coresource.Source, buildDir string) (string, error) {
 	// parse repository name
 	// code locates under /:repositoryname
 	var cloneDir string
@@ -176,8 +175,7 @@ func (e *Engine) preparedSource(ctx context.Context, build *types.Build, scm cor
 	if len(build.Artifacts) > 0 {
 		artifactsDir := buildDir
 		if cloneDir != "" {
-			os.RemoveAll(cloneDir)
-			if err := os.MkdirAll(cloneDir, os.ModeDir); err != nil {
+			if err := recreateDir(cloneDir); err != nil {
 				return "", err
 			}
 			artifactsDir = cloneDir

@@ -5,7 +5,6 @@ import (
 	"net"
 
 	"github.com/cockroachdb/errors"
-	dockertypes "github.com/docker/docker/api/types"
 	dockerfilters "github.com/docker/docker/api/types/filters"
 	dockernetwork "github.com/docker/docker/api/types/network"
 
@@ -19,7 +18,7 @@ func (e *Engine) NetworkConnect(ctx context.Context, network, target, ipv4, _ st
 	if err != nil {
 		return nil, err
 	}
-	if err := e.client.NetworkConnect(ctx, network, target, config); err != nil {
+	if err = e.client.NetworkConnect(ctx, network, target, config); err != nil {
 		return nil, err
 	}
 	workload, err := e.client.ContainerInspect(ctx, target)
@@ -46,7 +45,7 @@ func (e *Engine) NetworkList(ctx context.Context, drivers []string) ([]*enginety
 		filters.Add("driver", driver)
 	}
 
-	ns, err := e.client.NetworkList(ctx, dockertypes.NetworkListOptions{Filters: filters})
+	ns, err := e.client.NetworkList(ctx, dockernetwork.ListOptions{Filters: filters})
 	if err != nil {
 		return networks, err
 	}

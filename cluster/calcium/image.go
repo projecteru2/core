@@ -38,7 +38,6 @@ func (c *Calcium) CacheImage(ctx context.Context, opts *types.ImageOptions) (cha
 		wg.Add(len(nodes))
 		defer wg.Wait()
 		for _, node := range nodes {
-			node := node
 			_ = c.pool.Invoke(func() {
 				defer wg.Done()
 				for _, image := range opts.Images {
@@ -89,7 +88,6 @@ func (c *Calcium) RemoveImage(ctx context.Context, opts *types.ImageOptions) (ch
 		wg.Add(len(nodes))
 		defer wg.Wait()
 		for _, node := range nodes {
-			node := node
 			_ = c.pool.Invoke(func() {
 				defer wg.Done()
 				for _, image := range opts.Images {
@@ -146,7 +144,6 @@ func (c *Calcium) ListImage(ctx context.Context, opts *types.ImageOptions) (chan
 		wg.Add(len(nodes))
 		defer wg.Wait()
 		for _, node := range nodes {
-			node := node
 			_ = c.pool.Invoke(func() {
 				defer wg.Done()
 				msg := &types.ListImageMessage{

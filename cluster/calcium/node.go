@@ -62,7 +62,8 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 			}
 			return c.rmgr.RemoveNode(ctx, opts.Nodename)
 		},
-		c.config.GlobalTimeout)
+		c.config.GlobalTimeout,
+	)
 }
 
 // RemoveNode remove a node
@@ -143,7 +144,6 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 		wg.Add(len(nodes))
 		defer wg.Wait()
 		for _, node := range nodes {
-			node := node
 			_ = c.pool.Invoke(func() {
 				defer wg.Done()
 				var err error
@@ -253,8 +253,8 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 			// then: update node metadata
 			func(ctx context.Context) error {
 				defer enginefactory.RemoveEngineFromCache(ctx, node.Endpoint, node.Ca, node.Cert, node.Key)
-				if err := c.store.UpdateNodes(ctx, n); err != nil {
-					return err
+				if updateErr := c.store.UpdateNodes(ctx, n); updateErr != nil {
+					return updateErr
 				}
 				// update resource
 				// actually we can ignore err here, if update success
@@ -299,9 +299,9 @@ func (c *Calcium) filterNodes(ctx context.Context, nodeFilter *types.NodeFilter)
 
 	if len(nodeFilter.Includes) != 0 {
 		for _, nodename := range nodeFilter.Includes {
-			node, err := c.store.GetNode(ctx, nodename)
-			if err != nil {
-				return nil, err
+			node, getErr := c.store.GetNode(ctx, nodename)
+			if getErr != nil {
+				return nil, getErr
 			}
 			ns = append(ns, node)
 		}

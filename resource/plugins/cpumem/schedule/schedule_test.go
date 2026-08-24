@@ -5,8 +5,9 @@ import (
 	"testing"
 
 	"github.com/docker/go-units"
-	"github.com/projecteru2/core/resource/plugins/cpumem/types"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/projecteru2/core/resource/plugins/cpumem/types"
 )
 
 func TestGetFullCPUPlans(t *testing.T) {

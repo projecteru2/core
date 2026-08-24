@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"math"
 	"os"
 	"path/filepath"
@@ -13,20 +14,18 @@ import (
 	"strings"
 	"time"
 
-	dockertypes "github.com/docker/docker/api/types"
 	dockercontainer "github.com/docker/docker/api/types/container"
 	dockernetwork "github.com/docker/docker/api/types/network"
 	dockerslice "github.com/docker/docker/api/types/strslice"
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
-	"github.com/mitchellh/mapstructure"
+	"github.com/go-viper/mapstructure/v2"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	resourcetypes "github.com/projecteru2/core/resource/types"
-	"github.com/projecteru2/core/types"
 	coretypes "github.com/projecteru2/core/types"
 )
 
@@ -89,8 +88,8 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	resourceOpts := &engine.VirtualizationResource{}
 	if err = engine.MakeVirtualizationResource(opts.EngineParams, resourceOpts, func(p resourcetypes.Resources, d *engine.VirtualizationResource) error {
 		for _, v := range p {
-			if err := mapstructure.Decode(v, d); err != nil {
-				return err
+			if decodeErr := mapstructure.Decode(v, d); decodeErr != nil {
+				return decodeErr
 			}
 		}
 		return nil
@@ -112,8 +111,8 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	restartRetry := 0
 	restartStr := strings.Split(opts.Restart, ":")
 	restartPolicy = restartStr[0]
-	if r, err := strconv.Atoi(restartStr[len(restartStr)-1]); err == nil {
-		restartRetry = r
+	if retry, atoiErr := strconv.Atoi(restartStr[len(restartStr)-1]); atoiErr == nil {
+		restartRetry = retry
 	}
 	// no longer use opts.Network as networkmode
 	// always get network name from networks
@@ -143,9 +142,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	opts.LogConfig["tag"] = fmt.Sprintf("%s {{.ID}}", opts.Name)
 	if opts.Debug {
 		opts.LogType = e.config.Docker.Log.Type
-		for k, v := range e.config.Docker.Log.Config {
-			opts.LogConfig[k] = v
-		}
+		maps.Copy(opts.LogConfig, e.config.Docker.Log.Config)
 	}
 	// add node IP
 	hostIP := GetIP(ctx, e.client.DaemonHost())
@@ -199,9 +196,9 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 			if len(parts) < 4 {
 				continue
 			}
-			size, err := strconv.ParseInt(parts[3], 10, 64)
-			if err != nil {
-				return nil, err
+			size, parseErr := strconv.ParseInt(parts[3], 10, 64)
+			if parseErr != nil {
+				return nil, parseErr
 			}
 			volumeTotal += size
 		}
@@ -226,7 +223,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		},
 		NetworkMode: networkMode,
 		RestartPolicy: dockercontainer.RestartPolicy{
-			Name:              restartPolicy,
+			Name:              dockercontainer.RestartPolicyMode(restartPolicy),
 			MaximumRetryCount: restartRetry,
 		},
 		CapAdd:     capAdds,
@@ -243,9 +240,9 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		portMapping := nat.PortMap{}
 		exposePorts := nat.PortSet{}
 		for _, p := range opts.Publish {
-			port, err := nat.NewPort("tcp", p)
-			if err != nil {
-				return r, err
+			port, portErr := nat.NewPort("tcp", p)
+			if portErr != nil {
+				return r, portErr
 			}
 			exposePorts[port] = struct{}{}
 			portMapping[port] = []nat.PortBinding{}
@@ -264,9 +261,9 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 			break
 		}
 
-		endpointSetting, err := e.makeIPV4EndpointSetting(ipv4)
-		if err != nil {
-			return r, err
+		endpointSetting, settingErr := e.makeIPV4EndpointSetting(ipv4)
+		if settingErr != nil {
+			return r, settingErr
 		}
 		ipForShow := ipv4
 		if ipForShow == "" {
@@ -285,12 +282,14 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 // VirtualizationCopyTo copy things to virtualization
 func (e *Engine) VirtualizationCopyTo(ctx context.Context, ID, target string, content []byte, uid, gid int, mode int64) error {
 	return withTarfileDump(ctx, target, content, uid, gid, mode, func(target, tarfile string) error {
-		content, err := os.Open(tarfile)
+		content, err := os.Open(filepath.Clean(tarfile))
 		if err != nil {
 			return err
 		}
-		defer content.Close()
-		return e.client.CopyToContainer(ctx, ID, filepath.Dir(target), content, dockertypes.CopyToContainerOptions{AllowOverwriteDirWithFile: true, CopyUIDGID: false})
+		defer func() {
+			_ = content.Close()
+		}()
+		return e.client.CopyToContainer(ctx, ID, filepath.Dir(target), content, dockercontainer.CopyToContainerOptions{AllowOverwriteDirWithFile: true, CopyUIDGID: false})
 	})
 }
 
@@ -298,7 +297,9 @@ func (e *Engine) VirtualizationCopyTo(ctx context.Context, ID, target string, co
 func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target string, size int64, content io.Reader, uid, gid int, mode int64) error {
 	pr, pw := io.Pipe()
 	tw := tar.NewWriter(pw)
-	defer tw.Close()
+	defer func() {
+		_ = tw.Close()
+	}()
 	g, _ := errgroup.WithContext(ctx)
 	g.Go(func() error {
 		hdr := &tar.Header{
@@ -313,7 +314,7 @@ func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target strin
 			return taskErr
 		}
 		for {
-			data := make([]byte, types.SendLargeFileChunkSize)
+			data := make([]byte, coretypes.SendLargeFileChunkSize)
 			n, taskErr := content.Read(data)
 			if taskErr != nil {
 				if taskErr != io.EOF {
@@ -340,7 +341,7 @@ func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target strin
 			}
 		}
 	})
-	err := e.client.CopyToContainer(ctx, ID, filepath.Dir(target), pr, dockertypes.CopyToContainerOptions{AllowOverwriteDirWithFile: true, CopyUIDGID: false})
+	err := e.client.CopyToContainer(ctx, ID, filepath.Dir(target), pr, dockercontainer.CopyToContainerOptions{AllowOverwriteDirWithFile: true, CopyUIDGID: false})
 	if err != nil {
 		log.Errorf(ctx, err, "[VirtualizationCopyChunkTo] copy %s to container %s err, err:%v", target, ID, err)
 		return err
@@ -350,7 +351,7 @@ func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target strin
 
 // VirtualizationStart start virtualization
 func (e *Engine) VirtualizationStart(ctx context.Context, ID string) error {
-	return e.client.ContainerStart(ctx, ID, dockertypes.ContainerStartOptions{})
+	return e.client.ContainerStart(ctx, ID, dockercontainer.StartOptions{})
 }
 
 // VirtualizationStop stop virtualization
@@ -378,9 +379,9 @@ func (e *Engine) RawEngine(context.Context, *enginetypes.RawEngineOptions) (res 
 
 // VirtualizationRemove remove virtualization
 func (e *Engine) VirtualizationRemove(ctx context.Context, ID string, removeVolumes, force bool) error {
-	if err := e.client.ContainerRemove(ctx, ID, dockertypes.ContainerRemoveOptions{RemoveVolumes: removeVolumes, Force: force}); err != nil {
+	if err := e.client.ContainerRemove(ctx, ID, dockercontainer.RemoveOptions{RemoveVolumes: removeVolumes, Force: force}); err != nil {
 		if strings.Contains(err.Error(), "no such") {
-			err = types.ErrWorkloadNotExists
+			err = coretypes.ErrWorkloadNotExists
 		}
 		return err
 	}
@@ -417,7 +418,7 @@ func (e *Engine) VirtualizationInspect(ctx context.Context, ID string) (*enginet
 
 // VirtualizationLogs show virtualization logs
 func (e *Engine) VirtualizationLogs(ctx context.Context, opts *enginetypes.VirtualizationLogStreamOptions) (stdout, stderr io.ReadCloser, err error) {
-	logsOpts := dockertypes.ContainerLogsOptions{
+	logsOpts := dockercontainer.LogsOptions{
 		ShowStdout: opts.Stdout,
 		ShowStderr: opts.Stderr,
 		Tail:       opts.Tail,
@@ -438,7 +439,7 @@ func (e *Engine) VirtualizationLogs(ctx context.Context, opts *enginetypes.Virtu
 
 // VirtualizationAttach attach to a virtualization
 func (e *Engine) VirtualizationAttach(ctx context.Context, ID string, stream, stdin bool) (stdout, stderr io.ReadCloser, _ io.WriteCloser, err error) {
-	opts := dockertypes.ContainerAttachOptions{
+	opts := dockercontainer.AttachOptions{
 		Stream: stream,
 		Stdin:  stdin,
 		Logs:   true,
@@ -458,7 +459,7 @@ func (e *Engine) VirtualizationAttach(ctx context.Context, ID string, stream, st
 
 // VirtualizationResize resizes remote terminal
 func (e *Engine) VirtualizationResize(ctx context.Context, workloadID string, height, width uint) (err error) {
-	opts := dockertypes.ResizeOptions{
+	opts := dockercontainer.ResizeOptions{
 		Height: height,
 		Width:  width,
 	}
@@ -544,12 +545,12 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, en
 func (e *Engine) VirtualizationCopyFrom(ctx context.Context, ID, path string) (content []byte, uid, gid int, mode int64, err error) {
 	resp, _, err := e.client.CopyFromContainer(ctx, ID, path)
 	if err != nil {
-		return
+		return content, uid, gid, mode, err
 	}
 	tarReader := tar.NewReader(resp)
 	header, err := tarReader.Next()
 	if err != nil {
-		return
+		return content, uid, gid, mode, err
 	}
 	content, err = io.ReadAll(tarReader)
 	return content, header.Uid, header.Gid, header.Mode, err

@@ -1,18 +1,22 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
 	_ "net/http/pprof" //nolint
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
-	"testing"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	zerolog "github.com/rs/zerolog/log"
+	"github.com/urfave/cli/v3"
+	_ "go.uber.org/automaxprocs"
+	"google.golang.org/grpc"
 
 	"github.com/projecteru2/core/auth"
 	"github.com/projecteru2/core/cluster/calcium"
@@ -22,12 +26,9 @@ import (
 	"github.com/projecteru2/core/rpc"
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/selfmon"
+	"github.com/projecteru2/core/store/etcdv3/embedded"
 	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/version"
-
-	cli "github.com/urfave/cli/v2"
-	_ "go.uber.org/automaxprocs"
-	"google.golang.org/grpc"
 )
 
 var (
@@ -35,60 +36,63 @@ var (
 	embeddedStorage bool
 )
 
-func serve(c *cli.Context) error {
+func serve(ctx context.Context, _ *cli.Command) error {
 	config, err := utils.LoadConfig(configPath)
 	if err != nil {
 		zerolog.Fatal().Err(err).Send()
 	}
 
-	if err := log.SetupLog(c.Context, &config.Log, config.SentryDSN); err != nil {
+	if err = log.SetupLog(ctx, &config.Log, config.SentryDSN); err != nil {
 		zerolog.Fatal().Err(err).Send()
 	}
 	defer log.SentryDefer()
 	logger := log.WithFunc("main")
 
-	var t *testing.T
+	var embeddedETCD *embedded.Cluster
 	if embeddedStorage {
-		t = &testing.T{}
+		if embeddedETCD, err = embedded.New(filepath.Join(os.TempDir(), "eru-core-etcd")); err != nil {
+			logger.Error(ctx, err, "start embedded storage")
+			return err
+		}
+		defer embeddedETCD.Close()
 	}
-	cluster, err := calcium.New(c.Context, config, t)
+	cluster, err := calcium.New(ctx, config, embeddedETCD)
 	if err != nil {
-		logger.Error(c.Context, err)
+		logger.Error(ctx, err)
 		return err
 	}
 	defer cluster.Finalizer()
 
-	// init engine cache and start engine cache checker
-	factory.InitEngineCache(c.Context, config, cluster.GetStore())
+	factory.InitEngineCache(ctx, config, cluster.GetStore())
 
-	cluster.DisasterRecover(c.Context)
+	cluster.DisasterRecover(ctx)
 
 	stop := make(chan struct{}, 1)
 	vibranium := rpc.New(cluster, config, stop)
 	s, err := net.Listen("tcp", config.Bind)
 	if err != nil {
-		logger.Error(c.Context, err)
+		logger.Error(ctx, err)
 		return err
 	}
 
 	opts := []grpc.ServerOption{
-		grpc.MaxConcurrentStreams(uint32(config.GRPCConfig.MaxConcurrentStreams)),
+		grpc.MaxConcurrentStreams(config.GRPCConfig.MaxConcurrentStreams),
 		grpc.MaxRecvMsgSize(config.GRPCConfig.MaxRecvMsgSize),
 	}
 
 	if config.Auth.Username != "" {
-		logger.Info(c.Context, "cluster auth enable.")
+		logger.Info(ctx, "cluster auth enable.")
 		auth := auth.NewAuth(config.Auth)
 		opts = append(opts, grpc.StreamInterceptor(auth.StreamInterceptor))
 		opts = append(opts, grpc.UnaryInterceptor(auth.UnaryInterceptor))
-		logger.Infof(c.Context, "username %s password %s", config.Auth.Username, config.Auth.Password)
+		logger.Infof(ctx, "username %s password %s", config.Auth.Username, config.Auth.Password)
 	}
 
 	grpcServer := grpc.NewServer(opts...)
 	pb.RegisterCoreRPCServer(grpcServer, vibranium)
 	utils.SentryGo(func() {
-		if err := grpcServer.Serve(s); err != nil {
-			logger.Error(c.Context, err, "start grpc failed")
+		if serveErr := grpcServer.Serve(s); serveErr != nil {
+			logger.Error(ctx, serveErr, "start grpc failed")
 		}
 	})
 
@@ -99,66 +103,64 @@ func serve(c *cli.Context) error {
 				Addr:              config.Profile,
 				ReadHeaderTimeout: 3 * time.Second,
 			}
-			if err := server.ListenAndServe(); err != nil {
-				logger.Error(c.Context, err, "start http failed")
+			if serveErr := server.ListenAndServe(); serveErr != nil {
+				logger.Error(ctx, serveErr, "start http failed")
 			}
 		})
 	}
 
-	unregisterService, err := cluster.RegisterService(c.Context)
+	unregisterService, err := cluster.RegisterService(ctx)
 	if err != nil {
-		logger.Error(c.Context, err, "failed to register service")
+		logger.Error(ctx, err, "failed to register service")
 		return err
 	}
-	logger.Info(c.Context, "cluster started successfully.")
+	logger.Info(ctx, "cluster started successfully.")
 
-	// wait for unix signals and try to GracefulStop
-	ctx, cancel := signal.NotifyContext(c.Context, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	signalCtx, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	defer cancel()
 
-	// start node status checker
 	utils.SentryGo(func() {
-		selfmon.RunNodeStatusWatcher(ctx, config, cluster, t)
+		selfmon.RunNodeStatusWatcher(signalCtx, config, cluster, embeddedETCD)
 	})
 
-	<-ctx.Done()
+	<-signalCtx.Done()
 
-	logger.Info(c.Context, "interrupt by signal")
+	logger.Info(ctx, "interrupt by signal")
 	close(stop)
 	unregisterService()
 	grpcServer.GracefulStop()
-	logger.Info(c.Context, "gRPC server gracefully stopped.")
+	logger.Info(ctx, "gRPC server gracefully stopped.")
 
-	logger.Info(c.Context, "check if cluster still have running tasks.")
+	logger.Info(ctx, "check if cluster still have running tasks.")
 	vibranium.Wait()
-	logger.Info(c.Context, "cluster gracefully stopped.")
+	logger.Info(ctx, "cluster gracefully stopped.")
 	return nil
-
 }
 
 func main() {
-	cli.VersionPrinter = func(_ *cli.Context) {
+	cli.VersionPrinter = func(_ *cli.Command) {
 		fmt.Print(version.String())
 	}
 
-	app := cli.NewApp()
-	app.Name = version.NAME
-	app.Usage = "Run eru core"
-	app.Version = version.VERSION
-	app.Flags = []cli.Flag{
-		&cli.StringFlag{
-			Name:        "config",
-			Value:       "/etc/eru/core.yaml",
-			Usage:       "config file path for core, in yaml",
-			Destination: &configPath,
-			EnvVars:     []string{"ERU_CONFIG_PATH"},
+	app := &cli.Command{
+		Name:    version.NAME,
+		Usage:   "Run eru core",
+		Version: version.VERSION,
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:        "config",
+				Value:       "/etc/eru/core.yaml",
+				Usage:       "config file path for core, in yaml",
+				Destination: &configPath,
+				Sources:     cli.EnvVars("ERU_CONFIG_PATH"),
+			},
+			&cli.BoolFlag{
+				Name:        "embedded-storage",
+				Usage:       "active embedded storage",
+				Destination: &embeddedStorage,
+			},
 		},
-		&cli.BoolFlag{
-			Name:        "embedded-storage",
-			Usage:       "active embedded storage",
-			Destination: &embeddedStorage,
-		},
+		Action: serve,
 	}
-	app.Action = serve
-	_ = app.Run(os.Args)
+	_ = app.Run(context.Background(), os.Args)
 }

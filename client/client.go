@@ -23,8 +23,8 @@ type Client struct {
 }
 
 // NewClient new a client
-func NewClient(ctx context.Context, addr string, authConfig types.AuthConfig) (*Client, error) {
-	cc, err := dial(ctx, addr, authConfig)
+func NewClient(_ context.Context, addr string, authConfig types.AuthConfig) (*Client, error) {
+	cc, err := dial(addr, authConfig)
 	return &Client{
 		addr: addr,
 		conn: cc,
@@ -41,7 +41,7 @@ func (c *Client) GetRPCClient() pb.CoreRPCClient {
 	return pb.NewCoreRPCClient(c.conn)
 }
 
-func dial(ctx context.Context, addr string, authConfig types.AuthConfig) (*grpc.ClientConn, error) {
+func dial(addr string, authConfig types.AuthConfig) (*grpc.ClientConn, error) {
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{Time: 6 * 60 * time.Second, Timeout: time.Second}),
@@ -53,5 +53,5 @@ func dial(ctx context.Context, addr string, authConfig types.AuthConfig) (*grpc.
 		opts = append(opts, grpc.WithPerRPCCredentials(auth.NewCredential(authConfig)))
 	}
 
-	return grpc.DialContext(ctx, addr, opts...)
+	return grpc.NewClient(addr, opts...)
 }

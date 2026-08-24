@@ -4,7 +4,7 @@ import (
 	"context"
 	"io"
 
-	dockertypes "github.com/docker/docker/api/types"
+	dockercontainer "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/pkg/stdcopy"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -13,7 +13,7 @@ import (
 
 // ExecCreate create a exec
 func (e *Engine) execCreate(ctx context.Context, target string, config *enginetypes.ExecConfig) (string, error) {
-	execConfig := dockertypes.ExecConfig{
+	execConfig := dockercontainer.ExecOptions{
 		User:         config.User,
 		Privileged:   config.Privileged,
 		Cmd:          config.Cmd,
@@ -36,7 +36,7 @@ func (e *Engine) execCreate(ctx context.Context, target string, config *enginety
 
 // ExecAttach attach a exec
 func (e *Engine) execAttach(ctx context.Context, execID string, tty bool) (io.ReadCloser, io.WriteCloser, error) {
-	execStartCheck := dockertypes.ExecStartCheck{
+	execStartCheck := dockercontainer.ExecStartOptions{
 		Tty: tty,
 	}
 	resp, err := e.client.ContainerExecAttach(ctx, execID, execStartCheck)
@@ -49,12 +49,12 @@ func (e *Engine) execAttach(ctx context.Context, execID string, tty bool) (io.Re
 // Execute executes a workload
 func (e *Engine) Execute(ctx context.Context, ID string, config *enginetypes.ExecConfig) (execID string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
 	if execID, err = e.execCreate(ctx, ID, config); err != nil {
-		return
+		return execID, stdout, stderr, stdin, err
 	}
 
 	reader, writer, err := e.execAttach(ctx, execID, config.Tty)
 	if err != nil {
-		return
+		return execID, stdout, stderr, stdin, err
 	}
 	if config.AttachStdin {
 		return execID, reader, nil, writer, err
@@ -68,8 +68,10 @@ func (e *Engine) demultiplexStdStream(ctx context.Context, stdStream io.Reader) 
 	stdout, stdoutW := io.Pipe()
 	stderr, stderrW := io.Pipe()
 	go func() {
-		defer stdoutW.Close()
-		defer stderrW.Close()
+		defer func() {
+			_ = stdoutW.Close()
+			_ = stderrW.Close()
+		}()
 		if _, err := stdcopy.StdCopy(stdoutW, stderrW, stdStream); err != nil {
 			log.WithFunc("engine.docker.demultiplexStdStream").Error(ctx, err, "StdCopy failed")
 		}
@@ -88,7 +90,7 @@ func (e *Engine) ExecExitCode(ctx context.Context, _, execID string) (int, error
 
 // ExecResize resize exec tty
 func (e *Engine) ExecResize(ctx context.Context, execID string, height, width uint) error {
-	opts := dockertypes.ResizeOptions{
+	opts := dockercontainer.ResizeOptions{
 		Height: height,
 		Width:  width,
 	}

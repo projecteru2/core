@@ -13,9 +13,10 @@ import (
 	"github.com/projecteru2/core/types"
 
 	"github.com/cockroachdb/errors"
-	resourcetypes "github.com/projecteru2/core/resource/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+
+	resourcetypes "github.com/projecteru2/core/resource/types"
 )
 
 func TestRemoveWorkload(t *testing.T) {

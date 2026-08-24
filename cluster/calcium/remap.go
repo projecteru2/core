@@ -30,7 +30,6 @@ func (c *Calcium) RemapResourceAndLog(ctx context.Context, logger *log.Fields, n
 		}
 		return nil
 	})
-
 	if err != nil {
 		logger.Error(ctx, err, "remap node failed")
 	}
@@ -39,7 +38,7 @@ func (c *Calcium) RemapResourceAndLog(ctx context.Context, logger *log.Fields, n
 func (c *Calcium) doRemapResource(ctx context.Context, node *types.Node) (ch chan *remapMsg, err error) {
 	workloads, err := c.store.ListNodeWorkloads(ctx, node.Name, nil)
 	if err != nil {
-		return
+		return ch, err
 	}
 
 	engineParamsMap, err := c.rmgr.Remap(ctx, node.Name, workloads)

@@ -2,10 +2,12 @@ package types
 
 import (
 	"fmt"
+	"maps"
 	"strconv"
 	"strings"
 
-	"github.com/mitchellh/mapstructure"
+	"github.com/go-viper/mapstructure/v2"
+
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	coretypes "github.com/projecteru2/core/types"
 	coreutils "github.com/projecteru2/core/utils"
@@ -126,9 +128,7 @@ func (n *NodeResourceInfo) Validate() error {
 		for numaNodeID := range n.Capacity.NUMAMemory {
 			n.Usage.NUMAMemory[numaNodeID] = 0
 		}
-		for cpuID, numaNodeID := range n.Capacity.NUMA {
-			n.Usage.NUMA[cpuID] = numaNodeID
-		}
+		maps.Copy(n.Usage.NUMA, n.Capacity.NUMA)
 	}
 
 	for cpu, piecesUsed := range n.Usage.CPUMap {
@@ -191,19 +191,19 @@ func (n *NodeResourceRequest) Parse(config coretypes.Config, rawParams resourcet
 			share = int64(config.Scheduler.ShareBase)
 		}
 
-		for i := int64(0); i < cpu; i++ {
+		for i := range cpu {
 			n.CPUMap[fmt.Sprintf("%+v", i)] = int(share)
 		}
 	} else if cpuList := rawParams.String("cpu"); cpuList != "" {
-		for _, cpus := range strings.Split(cpuList, ",") {
+		for cpus := range strings.SplitSeq(cpuList, ",") {
 			cpuConfigs := strings.Split(cpus, ":")
-			pieces, err := strconv.ParseInt(cpuConfigs[1], 10, 32)
-			if err != nil {
-				return err
+			pieces, parseErr := strconv.ParseInt(cpuConfigs[1], 10, 32)
+			if parseErr != nil {
+				return parseErr
 			}
 			cpuID := cpuConfigs[0]
-			if _, err := strconv.Atoi(cpuID); err != nil {
-				return err
+			if _, idErr := strconv.Atoi(cpuID); idErr != nil {
+				return idErr
 			}
 			n.CPUMap[cpuID] = int(pieces)
 		}
@@ -219,7 +219,7 @@ func (n *NodeResourceRequest) Parse(config coretypes.Config, rawParams resourcet
 
 	for index, numaCPUList := range rawParams.StringSlice("numa-cpu") {
 		nodeID := fmt.Sprintf("%d", index)
-		for _, cpuID := range strings.Split(numaCPUList, ",") {
+		for cpuID := range strings.SplitSeq(numaCPUList, ",") {
 			n.NUMA[cpuID] = nodeID
 		}
 	}

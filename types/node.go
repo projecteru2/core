@@ -4,7 +4,8 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/mitchellh/mapstructure"
+	"github.com/go-viper/mapstructure/v2"
+
 	engine "github.com/projecteru2/core/engine"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 )

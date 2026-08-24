@@ -22,7 +22,6 @@ func (c *Calcium) ControlWorkload(ctx context.Context, IDs []string, typ string,
 		wg.Add(len(IDs))
 		defer wg.Wait()
 		for _, ID := range IDs {
-			ID := ID
 			_ = c.pool.Invoke(func() {
 				defer wg.Done()
 				var message []*bytes.Buffer
@@ -40,7 +39,8 @@ func (c *Calcium) ControlWorkload(ctx context.Context, IDs []string, typ string,
 						if err != nil {
 							return err
 						}
-						startHook, err := c.doStartWorkload(ctx, workload, force)
+						var startHook []*bytes.Buffer
+						startHook, err = c.doStartWorkload(ctx, workload, force)
 						message = append(message, startHook...)
 						return err
 					case cluster.WorkloadSuspend:

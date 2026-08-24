@@ -1,0 +1,52 @@
+template: testify
+dir: "{{.InterfaceDir}}/mocks"
+pkgname: mocks
+filename: "{{.InterfaceName}}.go"
+structname: "{{.InterfaceName}}"
+force-file-write: true
+packages:
+  github.com/projecteru2/core/cluster:
+    interfaces:
+      Cluster:
+  github.com/projecteru2/core/engine:
+    interfaces:
+      API:
+  github.com/projecteru2/core/lock:
+    interfaces:
+      DistributedLock:
+  github.com/projecteru2/core/resource:
+    interfaces:
+      Manager:
+  github.com/projecteru2/core/resource/plugins:
+    interfaces:
+      Plugin:
+  github.com/projecteru2/core/source:
+    interfaces:
+      Source:
+  github.com/projecteru2/core/store:
+    interfaces:
+      Store:
+  github.com/projecteru2/core/store/etcdv3/meta:
+    interfaces:
+      ETCDClientV3:
+      KV:
+  github.com/projecteru2/core/wal:
+    interfaces:
+      WAL:
+  github.com/docker/docker/client:
+    config:
+      dir: engine/docker/mocks
+    interfaces:
+      APIClient:
+  go.etcd.io/etcd/client/v3:
+    config:
+      dir: store/etcdv3/meta/mocks
+    interfaces:
+      Txn:
+  google.golang.org/grpc:
+    config:
+      dir: 3rdmocks
+      pkgname: mocks
+    interfaces:
+      BidiStreamingServer:
+      ServerStream:

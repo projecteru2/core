@@ -20,7 +20,7 @@ func (s *RediaronTestSuite) TestRegisterServiceWithDeregister() {
 	s.Equal(ephemeralValue, v)
 
 	deregister()
-	//time.Sleep(time.Second)
+	// time.Sleep(time.Second)
 	v, err = m.GetOne(ctx, path)
 	s.Error(err)
 	s.Empty(v)

@@ -19,7 +19,7 @@ type Resolver struct {
 }
 
 // New Resolver
-func New(cc resolver.ClientConn, endpoint string, authority string) *Resolver {
+func New(cc resolver.ClientConn, endpoint, authority string) *Resolver {
 	var username, password string
 	if authority != "" {
 		parts := strings.Split(authority, ":")
@@ -72,5 +72,4 @@ func (r *Resolver) sync(ctx context.Context) {
 			r.cc.UpdateState(resolver.State{Addresses: addresses}) //nolint
 		}
 	}
-
 }

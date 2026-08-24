@@ -11,7 +11,7 @@ import (
 )
 
 // Realloc .
-func (m Manager) Realloc(ctx context.Context, nodename string, nodeResource resourcetypes.Resources, opts resourcetypes.Resources) (resourcetypes.Resources, resourcetypes.Resources, resourcetypes.Resources, error) {
+func (m Manager) Realloc(ctx context.Context, nodename string, nodeResource, opts resourcetypes.Resources) (resourcetypes.Resources, resourcetypes.Resources, resourcetypes.Resources, error) {
 	logger := log.WithFunc("resource.cobalt.Realloc").WithField("node", nodename)
 	engineParams := resourcetypes.Resources{}
 	deltaResources := resourcetypes.Resources{}

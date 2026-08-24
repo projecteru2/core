@@ -2,6 +2,7 @@ package redis
 
 import (
 	"context"
+	"maps"
 	"path/filepath"
 	"strings"
 
@@ -29,9 +30,7 @@ func (r *Rediaron) GetDeployStatus(ctx context.Context, appname, entryname strin
 
 	// node count: deploy count + processing count
 	nodeCount := map[string]int{}
-	for node, count := range deployCount {
-		nodeCount[node] = count
-	}
+	maps.Copy(nodeCount, deployCount)
 	for node, count := range processingCount {
 		nodeCount[node] += count
 	}

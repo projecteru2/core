@@ -66,9 +66,9 @@ func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOption
 							// 覆盖 Volumes
 							// 继承网络配置
 							if replaceOpts.NetworkInherit {
-								info, err := workload.Inspect(ctx)
-								if err != nil {
-									return err
+								info, inspectErr := workload.Inspect(ctx)
+								if inspectErr != nil {
+									return inspectErr
 								} else if !info.Running {
 									return errors.Wrapf(types.ErrInvaildWorkloadOps, "workload %s is not running, can not inherit", workload.ID)
 								}
@@ -119,11 +119,11 @@ func (c *Calcium) doReplaceWorkload(
 	}
 	// 获得文件 io
 	for src, dst := range opts.Copy {
-		content, uid, gid, mode, err := workload.Engine.VirtualizationCopyFrom(ctx, workload.ID, src)
-		if err != nil {
-			return nil, removeMessage, err
+		content, uid, gid, mode, copyErr := workload.Engine.VirtualizationCopyFrom(ctx, workload.ID, src)
+		if copyErr != nil {
+			return nil, removeMessage, copyErr
 		}
-		opts.DeployOptions.Files = append(opts.DeployOptions.Files, types.LinuxFile{
+		opts.Files = append(opts.Files, types.LinuxFile{
 			Filename: dst,
 			Content:  content,
 			UID:      uid,
@@ -161,7 +161,7 @@ func (c *Calcium) doReplaceWorkload(
 						return err
 					}
 					removeMessage.Success = true
-					return
+					return err
 				},
 				nil,
 				c.config.GlobalTimeout,

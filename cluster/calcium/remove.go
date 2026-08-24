@@ -33,14 +33,14 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 			_ = c.pool.Invoke(func(nodename string, workloadIDs []string) func() {
 				return func() {
 					defer wg.Done()
-					if err := c.withNodePodLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
+					if nodeErr := c.withNodePodLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
 						for _, workloadID := range workloadIDs {
 							ret := &types.RemoveWorkloadMessage{WorkloadID: workloadID, Success: true, Hook: []*bytes.Buffer{}}
-							if err := c.withWorkloadLocked(ctx, workloadID, false, func(ctx context.Context, workload *types.Workload) error {
+							if workloadErr := c.withWorkloadLocked(ctx, workloadID, false, func(ctx context.Context, workload *types.Workload) error {
 								return utils.Txn(
 									ctx,
 									// if
-									func(ctx context.Context) error {
+									func(ctx context.Context) (err error) {
 										_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []resourcetypes.Resources{workload.Resources}, true, plugins.Decr)
 										return err
 									},
@@ -52,7 +52,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 										return err
 									},
 									// rollback
-									func(ctx context.Context, failedByCond bool) error {
+									func(ctx context.Context, failedByCond bool) (err error) {
 										if failedByCond {
 											return nil
 										}
@@ -61,17 +61,17 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 									},
 									c.config.GlobalTimeout,
 								)
-							}); err != nil {
-								logger.WithField("id", workloadID).Error(ctx, err, "failed to lock workload")
-								ret.Hook = append(ret.Hook, bytes.NewBufferString(err.Error()))
+							}); workloadErr != nil {
+								logger.WithField("id", workloadID).Error(ctx, workloadErr, "failed to lock workload")
+								ret.Hook = append(ret.Hook, bytes.NewBufferString(workloadErr.Error()))
 								ret.Success = false
 							}
 							ch <- ret
 						}
 						_ = c.pool.Invoke(func() { c.RemapResourceAndLog(ctx, logger, node) })
 						return nil
-					}); err != nil {
-						logger.WithField("node", nodename).Error(ctx, err, "failed to lock node")
+					}); nodeErr != nil {
+						logger.WithField("node", nodename).Error(ctx, nodeErr, "failed to lock node")
 						ch <- &types.RemoveWorkloadMessage{Success: false}
 					}
 				}

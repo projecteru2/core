@@ -26,5 +26,5 @@ func (c *Calcium) RawEngine(ctx context.Context, opts *types.RawEngineOptions) (
 	wg.Wait()
 
 	logger.Error(ctx, err)
-	return
+	return msg, err
 }

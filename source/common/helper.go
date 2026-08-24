@@ -27,7 +27,9 @@ func unzipFile(body io.Reader, path string) error {
 			return err
 		}
 
-		defer zipped.Close()
+		defer func() {
+			_ = zipped.Close()
+		}()
 
 		//  G305: File traversal when extracting zip archive
 		p := filepath.Join(path, f.Name) //nolint
@@ -37,12 +39,14 @@ func unzipFile(body io.Reader, path string) error {
 			continue
 		}
 
-		writer, err := os.OpenFile(p, os.O_WRONLY|os.O_CREATE, f.Mode())
+		writer, err := os.OpenFile(filepath.Clean(p), os.O_WRONLY|os.O_CREATE, f.Mode())
 		if err != nil {
 			return err
 		}
 
-		defer writer.Close()
+		defer func() {
+			_ = writer.Close()
+		}()
 		if _, err = io.Copy(writer, zipped); err != nil { //nolint
 			// G110: Potential DoS vulnerability via decompression bomb
 			return err

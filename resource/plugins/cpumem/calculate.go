@@ -4,7 +4,8 @@ import (
 	"context"
 
 	"github.com/cockroachdb/errors"
-	"github.com/mitchellh/mapstructure"
+	"github.com/go-viper/mapstructure/v2"
+
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resource/plugins/cpumem/schedule"
 	cpumemtypes "github.com/projecteru2/core/resource/plugins/cpumem/types"

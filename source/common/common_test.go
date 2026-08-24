@@ -99,7 +99,7 @@ func TestSourceCode(t *testing.T) {
 	assert.Error(t, err)
 
 	os.RemoveAll(dname)
-	os.Mkdir(dname, 0755)
+	os.Mkdir(dname, 0o755)
 	err = g.SourceCode(ctx, repo, dname, rev, true)
 	assert.NoError(t, err)
 	// auto clone submodule, so vendor can't remove by os.Remove

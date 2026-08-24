@@ -76,20 +76,20 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 			}
 		}
 		defer func() {
-			if err := commit(); err != nil {
-				logger.Errorf(ctx, err, "Commit WAL %s failed: %s", eventCreateLambda, message.WorkloadID)
+			if commitErr := commit(); commitErr != nil {
+				logger.Errorf(ctx, commitErr, "Commit WAL %s failed: %s", eventCreateLambda, message.WorkloadID)
 			}
 		}()
 
 		// the workload should be removed if it exists
 		// no matter the workload exits successfully or not
 		defer func() {
-			ctx, cancel := context.WithCancel(utils.NewInheritCtx(ctx))
+			removeCtx, cancel := context.WithCancel(utils.NewInheritCtx(ctx))
 			defer cancel()
-			if err := c.doRemoveWorkloadSync(ctx, []string{message.WorkloadID}); err != nil {
-				logger.Error(ctx, err, "Remove lambda workload failed")
+			if removeErr := c.doRemoveWorkloadSync(removeCtx, []string{message.WorkloadID}); removeErr != nil {
+				logger.Error(removeCtx, removeErr, "Remove lambda workload failed")
 			} else {
-				logger.Infof(ctx, "Workload %s finished and removed", utils.ShortID(message.WorkloadID))
+				logger.Infof(removeCtx, "Workload %s finished and removed", utils.ShortID(message.WorkloadID))
 			}
 		}()
 

@@ -5,6 +5,7 @@ import (
 	"context"
 
 	"github.com/cockroachdb/errors"
+
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 )
@@ -58,7 +59,7 @@ func GlobalPlan(ctx context.Context, infos []Info, need, total, _ int) (map[stri
 	}
 	heap.Init(infoHeap)
 
-	for i := 0; i < need; i++ {
+	for i := range need {
 		if infoHeap.Len() == 0 {
 			return nil, errors.Wrapf(types.ErrInsufficientResource, "need: %d, available: %d", need, i)
 		}

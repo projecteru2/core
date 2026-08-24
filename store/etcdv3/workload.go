@@ -196,14 +196,14 @@ func (m *Mercury) cleanWorkloadData(ctx context.Context, workload *types.Workloa
 func (m *Mercury) doGetWorkloads(ctx context.Context, keys []string) (workloads []*types.Workload, err error) {
 	var kvs []*mvccpb.KeyValue
 	if kvs, err = m.GetMulti(ctx, keys); err != nil {
-		return
+		return workloads, err
 	}
 
 	for _, kv := range kvs {
 		workload := &types.Workload{}
 		if err = json.Unmarshal(kv.Value, workload); err != nil {
 			log.WithFunc("store.etcdv3.doGetWorkloads").Errorf(ctx, err, "failed to unmarshal %+v", string(kv.Key))
-			return
+			return workloads, err
 		}
 		workloads = append(workloads, workload)
 	}

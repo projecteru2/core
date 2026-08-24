@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/cockroachdb/errors"
+
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
@@ -13,7 +14,7 @@ import (
 // get one node from a pod
 // and list networks
 // only get those driven by network driver
-func (c *Calcium) ListNetworks(ctx context.Context, podname string, driver string) ([]*enginetypes.Network, error) {
+func (c *Calcium) ListNetworks(ctx context.Context, podname, driver string) ([]*enginetypes.Network, error) {
 	logger := log.WithFunc("calcium.ListNetworks").WithField("podname", podname).WithField("driver", driver)
 	networks := []*enginetypes.Network{}
 	nodes, err := c.store.GetNodesByPod(ctx, &types.NodeFilter{Podname: podname})
@@ -23,7 +24,7 @@ func (c *Calcium) ListNetworks(ctx context.Context, podname string, driver strin
 	}
 
 	if len(nodes) == 0 {
-		err := errors.Wrapf(types.ErrPodNoNodes, "pod: %s", podname)
+		err = errors.Wrapf(types.ErrPodNoNodes, "pod: %s", podname)
 		logger.Error(ctx, err)
 		return networks, err
 	}

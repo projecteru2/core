@@ -11,10 +11,12 @@ import (
 )
 
 func TestMutex(t *testing.T) {
-	embedd := embedded.NewCluster(t, "/test")
-	cli := embedd.RandClient()
+	cluster, err := embedded.New(t.TempDir())
+	assert.NoError(t, err)
+	t.Cleanup(cluster.Close)
+	cli := cluster.Client("/test")
 
-	_, err := New(cli, "", time.Second*1)
+	_, err = New(cli, "", time.Second*1)
 	assert.Error(t, err)
 	mutex, err := New(cli, "test", time.Second*1)
 	assert.NoError(t, err)
@@ -59,8 +61,10 @@ func TestMutex(t *testing.T) {
 }
 
 func TestTryLock(t *testing.T) {
-	embedd := embedded.NewCluster(t, "/test")
-	cli := embedd.RandClient()
+	cluster, err := embedded.New(t.TempDir())
+	assert.NoError(t, err)
+	t.Cleanup(cluster.Close)
+	cli := cluster.Client("/test")
 
 	m1, err := New(cli, "test", time.Second*1)
 	assert.NoError(t, err)

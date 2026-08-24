@@ -2,6 +2,7 @@ package cobalt
 
 import (
 	"context"
+	"maps"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resource/plugins"
@@ -51,11 +52,9 @@ func (m Manager) Remap(ctx context.Context, nodename string, workloads []*types.
 
 // mergeEngineParams e.g. {"file": ["/bin/sh:/bin/sh"], "cpu": 1.2, "cpu-bind": true} + {"file": ["/bin/ls:/bin/ls"], "mem": "1PB"}
 // => {"file": ["/bin/sh:/bin/sh", "/bin/ls:/bin/ls"], "cpu": 1.2, "cpu-bind": true, "mem": "1PB"}
-func (m Manager) mergeEngineParams(ctx context.Context, m1 plugintypes.EngineParams, m2 plugintypes.EngineParams) (plugintypes.EngineParams, error) {
+func (m Manager) mergeEngineParams(ctx context.Context, m1, m2 plugintypes.EngineParams) (plugintypes.EngineParams, error) {
 	r := plugintypes.EngineParams{}
-	for key, value := range m1 {
-		r[key] = value
-	}
+	maps.Copy(r, m1)
 	for key, value := range m2 {
 		if _, ok := r[key]; ok {
 			// only two string slices can be merged

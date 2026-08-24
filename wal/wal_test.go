@@ -21,19 +21,19 @@ func TestRecover(t *testing.T) {
 	var handled bool
 	handle := func(interface{}) (err error) {
 		handled = true
-		return
+		return err
 	}
 
 	var encoded bool
 	encode := func(interface{}) (bs []byte, err error) {
 		encoded = true
-		return
+		return bs, err
 	}
 
 	var decoded bool
 	decode := func([]byte) (item interface{}, err error) {
 		decoded = true
-		return
+		return item, err
 	}
 
 	path := "/tmp/wal.unitest.wal"

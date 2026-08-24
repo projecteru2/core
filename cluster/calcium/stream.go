@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/cockroachdb/errors"
+
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
@@ -15,8 +16,10 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-var winchCommand = []byte{0x80}  // 128, non-ASCII
-var escapeCommand = []byte{0x1d} // 29, ^]
+var (
+	winchCommand  = []byte{0x80} // 128, non-ASCII
+	escapeCommand = []byte{0x1d} // 29, ^]
+)
 
 type window struct {
 	Height uint `json:"Row"`
@@ -74,7 +77,7 @@ func (c *Calcium) processVirtualizationInStream(
 		},
 
 		string(escapeCommand): func(_ []byte) {
-			inStream.Close()
+			_ = inStream.Close()
 		},
 	}
 	return c.rawProcessVirtualizationInStream(ctx, inStream, inCh, specialPrefixCallback)
@@ -89,7 +92,9 @@ func (c *Calcium) rawProcessVirtualizationInStream(
 	done := make(chan struct{})
 	_ = c.pool.Invoke(func() {
 		defer close(done)
-		defer inStream.Close()
+		defer func() {
+			_ = inStream.Close()
+		}()
 
 		for cmd := range inCh {
 			if len(cmd) == 0 {
@@ -114,7 +119,6 @@ func (c *Calcium) processVirtualizationOutStream(
 	outStream io.ReadCloser,
 	splitFunc bufio.SplitFunc,
 	split byte,
-
 ) <-chan []byte {
 	outCh := make(chan []byte)
 	_ = c.pool.Invoke(func() {
@@ -122,7 +126,9 @@ func (c *Calcium) processVirtualizationOutStream(
 		if outStream == nil {
 			return
 		}
-		defer outStream.Close()
+		defer func() {
+			_ = outStream.Close()
+		}()
 		scanner := bufio.NewScanner(outStream)
 		scanner.Split(splitFunc)
 		for scanner.Scan() {

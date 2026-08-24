@@ -33,7 +33,7 @@ func New(endpoint string, authConfig types.AuthConfig) *EruServiceDiscovery {
 
 // Watch .
 func (w *EruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err error) {
-	cc, err := w.dial(ctx, w.endpoint, w.authConfig)
+	cc, err := w.dial(w.endpoint, w.authConfig)
 	logger := log.WithFunc("servicediscovery.Watch").WithField("endpoint", w.endpoint)
 	if err != nil {
 		logger.Error(ctx, err, "dial failed")
@@ -84,7 +84,7 @@ func (w *EruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err
 	return ch, nil
 }
 
-func (w *EruServiceDiscovery) dial(ctx context.Context, addr string, authConfig types.AuthConfig) (*grpc.ClientConn, error) {
+func (w *EruServiceDiscovery) dial(addr string, authConfig types.AuthConfig) (*grpc.ClientConn, error) {
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithStreamInterceptor(interceptor.NewStreamRetry(interceptor.RetryOptions{Max: 1})),
@@ -95,7 +95,7 @@ func (w *EruServiceDiscovery) dial(ctx context.Context, addr string, authConfig 
 	}
 
 	target := makeServiceDiscoveryTarget(addr)
-	return grpc.DialContext(ctx, target, opts...)
+	return grpc.NewClient(target, opts...)
 }
 
 func makeServiceDiscoveryTarget(addr string) string {

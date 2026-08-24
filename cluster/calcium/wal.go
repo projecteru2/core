@@ -8,6 +8,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/panjf2000/ants/v2"
+
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/store"
@@ -244,7 +245,6 @@ func (h *WorkloadResourceAllocatedHandler) Handle(ctx context.Context, raw any) 
 	wg.Add(len(nodes))
 	defer wg.Wait()
 	for _, node := range nodes {
-		node := node
 		_ = h.pool.Invoke(func() {
 			defer wg.Done()
 			if _, err = h.calcium.NodeResource(ctx, node.Name, true); err != nil {
@@ -316,7 +316,7 @@ func (h *ProcessingCreatedHandler) Handle(ctx context.Context, raw any) (err err
 		return err
 	}
 	logger.Infof(ctx, "obsolete processing deleted")
-	return
+	return err
 }
 
 func getReplayContext(ctx context.Context) (context.Context, context.CancelFunc) {

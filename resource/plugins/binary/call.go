@@ -10,7 +10,7 @@ import (
 )
 
 // calls the plugin and gets json response
-func (p Plugin) call(ctx context.Context, cmd string, req any, resp any) error {
+func (p Plugin) call(ctx context.Context, cmd string, req, resp any) error {
 	ctx, cancel := context.WithTimeout(ctx, p.config.ResourcePlugin.CallTimeout)
 	defer cancel()
 	logger := log.WithFunc("resource.binary.call")

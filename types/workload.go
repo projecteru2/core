@@ -120,13 +120,13 @@ func (c *Workload) RawEngine(ctx context.Context, opts *RawEngineOptions) (ans *
 	}
 	eResp, err := c.Engine.RawEngine(ctx, eOpts)
 	if err != nil {
-		return
+		return ans, err
 	}
 	ans = &RawEngineMessage{
 		ID:   eResp.ID,
 		Data: eResp.Data,
 	}
-	return
+	return ans, err
 }
 
 // WorkloadStatus store deploy status

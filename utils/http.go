@@ -71,9 +71,11 @@ func GetHTTPSClient(ctx context.Context, certPath, name, ca, cert, key string) (
 		KeyFile:            keyFile.Name(),
 		InsecureSkipVerify: true,
 	}
-	defer os.Remove(caFile.Name())
-	defer os.Remove(certFile.Name())
-	defer os.Remove(keyFile.Name())
+	defer func() {
+		_ = os.Remove(caFile.Name())
+		_ = os.Remove(certFile.Name())
+		_ = os.Remove(keyFile.Name())
+	}()
 	tlsc, err := tlsconfig.Client(options)
 	if err != nil {
 		return nil, err
@@ -117,11 +119,11 @@ func getDefaultUnixSockTransport() *http.Transport {
 func dumpFromString(ctx context.Context, ca, cert, key *os.File, caStr, certStr, keyStr string) error {
 	files := []*os.File{ca, cert, key}
 	data := []string{caStr, certStr, keyStr}
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		if _, err := files[i].WriteString(data[i]); err != nil {
 			return err
 		}
-		if err := files[i].Chmod(0444); err != nil {
+		if err := files[i].Chmod(0o444); err != nil {
 			return err
 		}
 		if err := files[i].Close(); err != nil {

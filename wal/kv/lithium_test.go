@@ -137,7 +137,7 @@ func newTestLithium(t *testing.T) (lit *Lithium, cancel func()) {
 	os.Remove(path)
 
 	lit = NewLithium()
-	require.NoError(t, lit.Open(path, 0666, time.Second))
+	require.NoError(t, lit.Open(path, 0o666, time.Second))
 
 	cancel = func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -156,5 +156,5 @@ func newTestLithium(t *testing.T) (lit *Lithium, cancel func()) {
 		}
 	}
 
-	return
+	return lit, cancel
 }

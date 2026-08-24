@@ -1,12 +1,15 @@
 package utils
 
 import (
-	"golang.org/x/exp/constraints"
-	"golang.org/x/exp/slices"
+	"cmp"
+	"slices"
 )
 
 type numbers interface {
-	constraints.Integer | constraints.Float | constraints.Complex
+	~int | ~int8 | ~int16 | ~int32 | ~int64 |
+		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr |
+		~float32 | ~float64 |
+		~complex64 | ~complex128
 }
 
 // Map like map in Python
@@ -28,7 +31,7 @@ func Sum[T numbers](slice []T) T {
 }
 
 // Min returns the lesser one.
-func Min[T constraints.Ordered](x T, xs ...T) T {
+func Min[T cmp.Ordered](x T, xs ...T) T {
 	if len(xs) == 0 {
 		return x
 	}
@@ -39,7 +42,7 @@ func Min[T constraints.Ordered](x T, xs ...T) T {
 }
 
 // Max returns the biggest one.
-func Max[T constraints.Ordered](x T, xs ...T) T {
+func Max[T cmp.Ordered](x T, xs ...T) T {
 	if len(xs) == 0 {
 		return x
 	}
@@ -51,12 +54,7 @@ func Max[T constraints.Ordered](x T, xs ...T) T {
 
 // Any returns true if any element in slice meets the requirement
 func Any[T any](slice []T, f func(T) bool) bool {
-	for _, v := range slice {
-		if f(v) {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(slice, f)
 }
 
 // Filter returns a new slice with elements that meet the requirement
@@ -76,7 +74,7 @@ func Filter[T any](slice []T, f func(T) bool) []T {
 // GenerateSlice generates a slice with factory function
 func GenerateSlice[T any](l int, factory func() T) []T {
 	result := make([]T, l)
-	for i := 0; i < l; i++ {
+	for i := range l {
 		result[i] = factory()
 	}
 	return result
@@ -99,10 +97,10 @@ func Reverse[T any](s []T) {
 
 // Unique return a index, where s[:index] is a unique slice
 // Unique requires sorted slice
-func Unique[T, E constraints.Ordered](s []T, getVal func(int) E) (j int) {
+func Unique[T, E cmp.Ordered](s []T, getVal func(int) E) (j int) {
 	slices.Sort(s)
 	var lastVal E
-	for i := 0; i < len(s); i++ {
+	for i := range s {
 		if getVal(i) == lastVal && i != 0 {
 			continue
 		}

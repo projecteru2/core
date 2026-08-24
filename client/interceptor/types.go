@@ -9,7 +9,7 @@ import (
 
 // RetryOptions .
 type RetryOptions struct {
-	Max int
+	Max uint64
 }
 
 type retryStream struct {

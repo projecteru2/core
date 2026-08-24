@@ -8,6 +8,7 @@ import (
 
 	"github.com/alphadose/haxmap"
 	"github.com/cockroachdb/errors"
+
 	"github.com/projecteru2/core/types"
 )
 
@@ -46,13 +47,13 @@ func (m *MockedKV) NextSequence() (nextSeq uint64, err error) {
 	defer m.Unlock()
 	nextSeq = m.nextSeq
 	m.nextSeq++
-	return
+	return nextSeq, err
 }
 
 // Put .
 func (m *MockedKV) Put(key, value []byte) (err error) {
 	m.pool.Set(string(key), value)
-	return
+	return err
 }
 
 // Get .
@@ -61,13 +62,13 @@ func (m *MockedKV) Get(key []byte) (value []byte, err error) {
 	if !ok {
 		return value, errors.Wrapf(types.ErrInvaildCount, "no such key: %s", key)
 	}
-	return
+	return value, err
 }
 
 // Delete .
 func (m *MockedKV) Delete(key []byte) (err error) {
 	m.pool.Del(string(key))
-	return
+	return err
 }
 
 // Scan .

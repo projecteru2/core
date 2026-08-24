@@ -7,6 +7,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/projecteru2/core/store/etcdv3/embedded"
 	"github.com/projecteru2/core/store/etcdv3/meta/mocks"
 	"github.com/projecteru2/core/types"
 
@@ -271,7 +272,10 @@ func NewEmbeddedETCD(t *testing.T) *ETCD {
 		Prefix:     "/eru-test",
 		LockPrefix: "/eru-test-lock",
 	}
-	e, err := NewETCD(config, t)
+	cluster, err := embedded.New(t.TempDir())
+	require.NoError(t, err)
+	t.Cleanup(cluster.Close)
+	e, err := NewETCD(config, cluster)
 	require.NoError(t, err)
 	return e
 }

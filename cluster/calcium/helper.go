@@ -1,11 +1,11 @@
 package calcium
 
 import (
+	"context"
+
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	"golang.org/x/net/context"
 )
 
 func distributionInspect(ctx context.Context, node *types.Node, image string, digests []string) bool {
