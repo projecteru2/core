@@ -24,7 +24,8 @@ func TestRemapResource(t *testing.T) {
 		resourcetypes.Resources{"test": {"abc": 123}},
 		resourcetypes.Resources{"test": {"abc": 123}},
 		[]string{types.ErrMockError.Error()},
-		nil)
+		nil,
+	)
 	rmgr.On("Remap", mock.Anything, mock.Anything, mock.Anything).Return(
 		map[string]resourcetypes.Resources{},
 		nil,

@@ -184,7 +184,7 @@ func TestRound(t *testing.T) {
 	a = 1.999998
 	assert.InDelta(t, Round(a), 1.999998, 1e-6)
 	a = 19.99998
-	assert.InDelta(t, (Round(a)), 19.99998, 1e-6)
+	assert.InDelta(t, Round(a), 19.99998, 1e-6)
 }
 
 func TestMergeHookOutputs(t *testing.T) {

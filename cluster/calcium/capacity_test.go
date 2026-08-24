@@ -67,7 +67,8 @@ func TestCalculateCapacity(t *testing.T) {
 		},
 	}
 	rmgr.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(
-		nrim, 100, nil).Times(3)
+		nrim, 100, nil,
+	).Times(3)
 	store.On("GetDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	_, err = c.CalculateCapacity(ctx, opts)
 	assert.Error(t, err)
@@ -98,7 +99,8 @@ func TestCalculateCapacity(t *testing.T) {
 
 	// success
 	rmgr.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(
-		nrim, 10, nil)
+		nrim, 10, nil,
+	)
 	msg, err := c.CalculateCapacity(ctx, opts)
 	assert.NoError(t, err)
 	assert.Equal(t, msg.NodeCapacities[name], 10)

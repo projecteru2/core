@@ -169,7 +169,8 @@ func TestCreateWorkloadTxn(t *testing.T) {
 				node = node2
 			}
 			return node
-		}, nil)
+		}, nil,
+	)
 	engine := node1.Engine.(*enginemocks.API)
 	engine.On("ImageLocalDigests", mock.Anything, mock.Anything).Return(nil, errors.Wrap(context.DeadlineExceeded, "ImageLocalDigest")).Twice()
 	engine.On("ImagePull", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.Wrap(context.DeadlineExceeded, "ImagePull")).Twice()
@@ -356,7 +357,8 @@ func TestCreateWorkloadIngorePullTxn(t *testing.T) {
 				node = node2
 			}
 			return node
-		}, nil)
+		}, nil,
+	)
 	engine := node1.Engine.(*enginemocks.API)
 	// engine.On("ImageLocalDigests", mock.Anything, mock.Anything).Return(nil, errors.Wrap(context.DeadlineExceeded, "ImageLocalDigest")).Twice()
 	// engine.On("ImagePull", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.Wrap(context.DeadlineExceeded, "ImagePull")).Twice()
@@ -473,7 +475,8 @@ func newCreateWorkloadCluster(_ *testing.T) (*Calcium, []*types.Node) {
 				node = node2
 			}
 			return node
-		}, nil)
+		}, nil,
+	)
 
 	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
 

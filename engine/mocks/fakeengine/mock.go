@@ -76,9 +76,11 @@ func MakeClient(_ context.Context, _ coretypes.Config, nodename, endpoint, ca, c
 	}}, nil)
 	// image
 	e.On("ImageList", mock.Anything, mock.Anything).Return(
-		[]*enginetypes.Image{{ID: "mock-image", Tags: []string{"latest"}}}, nil)
+		[]*enginetypes.Image{{ID: "mock-image", Tags: []string{"latest"}}}, nil,
+	)
 	e.On("ImageRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		[]string{"mock-image1", "mock-image2"}, nil)
+		[]string{"mock-image1", "mock-image2"}, nil,
+	)
 	e.On("ImagesPrune", mock.Anything).Return(nil)
 	pullImageData := io.NopCloser(bytes.NewBufferString("pull image layer1 ...\npull image layer2...\n"))
 	e.On("ImagePull", mock.Anything, mock.Anything, mock.Anything).Return(pullImageData, nil)

@@ -246,7 +246,8 @@ func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {
 				node = node2
 			}
 			return node
-		}, nil)
+		}, nil,
+	)
 
 	store.On("GetDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(map[string]int{}, nil)
 	old := strategy.Plans[strategy.Auto]
@@ -271,7 +272,8 @@ func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {
 				node = node2
 			}
 			return node
-		}, nil)
+		}, nil,
+	)
 	engine := node1.Engine.(*enginemocks.API)
 
 	// doDeployOneWorkload fails: VirtualizationCreate

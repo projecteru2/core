@@ -56,7 +56,8 @@ func TestPodResource(t *testing.T) {
 
 	// failed by GetNodeResourceInfo
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		nil, nil, nil, types.ErrMockError).Once()
+		nil, nil, nil, types.ErrMockError,
+	).Once()
 	ch, err = c.PodResource(ctx, podname)
 	msg = <-ch
 	assert.NoError(t, err)
@@ -67,7 +68,8 @@ func TestPodResource(t *testing.T) {
 		resourcetypes.Resources{"test": {"abc": 123}},
 		resourcetypes.Resources{"test": {"abc": 123}},
 		[]string{},
-		nil)
+		nil,
+	)
 
 	// success
 	ch, err = c.PodResource(ctx, podname)
@@ -102,7 +104,8 @@ func TestNodeResource(t *testing.T) {
 		resourcetypes.Resources{"test": {"abc": 123}},
 		resourcetypes.Resources{"test": {"abc": 123}},
 		[]string{},
-		nil)
+		nil,
+	)
 
 	workloads := []*types.Workload{
 		{Resources: resourcetypes.Resources{}, Engine: engine},

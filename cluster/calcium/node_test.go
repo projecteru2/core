@@ -43,7 +43,8 @@ func TestAddNode(t *testing.T) {
 	assert.Error(t, err)
 	rmgr.AssertExpectations(t)
 	rmgr.On("AddNode", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		resourcetypes.Resources{}, nil)
+		resourcetypes.Resources{}, nil,
+	)
 	rmgr.On("RemoveNode", mock.Anything, mock.Anything).Return(nil)
 
 	// failed by store.AddNode
