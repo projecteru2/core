@@ -52,7 +52,7 @@ func SetupLog(ctx context.Context, cfg *types.ServerLogConfig, dsn string) error
 	globalLogger = rslog
 	if dsn != "" {
 		sentryDSN = dsn
-		WithFunc("log.SetupLog").Infof(ctx, "sentry %v", sentryDSN)
+		WithFunc("log.SetupLog").Info(ctx, "sentry enabled")
 		_ = sentry.Init(sentry.ClientOptions{Dsn: sentryDSN})
 	}
 	return nil
