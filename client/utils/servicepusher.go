@@ -41,7 +41,6 @@ func (p *EndpointPusher) Push(ctx context.Context, endpoints []string) {
 
 func (p *EndpointPusher) delOutdated(ctx context.Context, endpoints []string) {
 	p.Lock()
-	defer p.Unlock()
 	logger := log.WithFunc("utils.EndpointPusher.delOutdated")
 	p.pendingEndpoints.ForEach(func(endpoint string, cancel context.CancelFunc) bool {
 		if !slices.Contains(endpoints, endpoint) {
@@ -52,13 +51,20 @@ func (p *EndpointPusher) delOutdated(ctx context.Context, endpoints []string) {
 		return true
 	})
 
+	dropped := false
 	p.availableEndpoints.ForEach(func(endpoint string, _ struct{}) bool {
 		if !slices.Contains(endpoints, endpoint) {
 			p.availableEndpoints.Del(endpoint)
+			dropped = true
 			logger.Debugf(ctx, "available endpoint deleted: %s", endpoint)
 		}
 		return true
 	})
+	p.Unlock()
+
+	if dropped {
+		p.pushEndpoints()
+	}
 }
 
 func (p *EndpointPusher) addCheck(ctx context.Context, endpoints []string) {
