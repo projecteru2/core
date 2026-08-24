@@ -150,8 +150,8 @@ func (m Manager) GetMostIdleNode(ctx context.Context, nodenames []string) (strin
 func (m Manager) GetNodeResourceInfo(ctx context.Context, nodename string, workloads []*types.Workload, fix bool) (resourcetypes.Resources, resourcetypes.Resources, []string, error) {
 	ps := m.plugins
 	if m.config.ResourcePlugin.Whitelist != nil {
-		ps = utils.Filter(ps, func(plugin plugins.Plugin) bool {
-			return slices.Contains(m.config.ResourcePlugin.Whitelist, plugin.Name())
+		ps = slices.DeleteFunc(slices.Clone(ps), func(plugin plugins.Plugin) bool {
+			return !slices.Contains(m.config.ResourcePlugin.Whitelist, plugin.Name())
 		})
 	}
 	return m.getNodeResourceInfo(ctx, nodename, ps, workloads, fix)
