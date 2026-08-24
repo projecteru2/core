@@ -28,27 +28,17 @@ const (
 
 // CreateLambdaHandler waits for a replayed lambda workload and removes it.
 type CreateLambdaHandler struct {
-	typ     string
-	config  types.Config
+	walBase[string]
+
 	calcium cluster.Cluster
-	store   store.Store
 }
 
-func newCreateLambdaHandler(config types.Config, calcium cluster.Cluster, store store.Store) *CreateLambdaHandler {
-	return &CreateLambdaHandler{
-		typ:     eventCreateLambda,
-		config:  config,
-		calcium: calcium,
-		store:   store,
-	}
+func newCreateLambdaHandler(calcium cluster.Cluster) *CreateLambdaHandler {
+	return &CreateLambdaHandler{calcium: calcium}
 }
 
 func (h *CreateLambdaHandler) Typ() string {
-	return h.typ
-}
-
-func (h *CreateLambdaHandler) Check(context.Context, any) (bool, error) {
-	return true, nil
+	return eventCreateLambda
 }
 
 func (h *CreateLambdaHandler) Encode(raw any) ([]byte, error) {
@@ -97,45 +87,17 @@ func (h *CreateLambdaHandler) Handle(ctx context.Context, raw any) error {
 
 // CreateWorkloadHandler removes a workload left behind by an interrupted create.
 type CreateWorkloadHandler struct {
-	typ     string
-	config  types.Config
+	walBase[*types.Workload]
+
 	calcium cluster.Cluster
-	store   store.Store
 }
 
-func newCreateWorkloadHandler(config types.Config, calcium cluster.Cluster, store store.Store) *CreateWorkloadHandler {
-	return &CreateWorkloadHandler{
-		typ:     eventWorkloadCreated,
-		config:  config,
-		calcium: calcium,
-		store:   store,
-	}
+func newCreateWorkloadHandler(calcium cluster.Cluster) *CreateWorkloadHandler {
+	return &CreateWorkloadHandler{calcium: calcium}
 }
 
 func (h *CreateWorkloadHandler) Typ() string {
-	return h.typ
-}
-
-func (h *CreateWorkloadHandler) Check(_ context.Context, raw any) (bool, error) {
-	_, ok := raw.(*types.Workload)
-	if !ok {
-		return false, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
-	}
-	return true, nil
-}
-
-func (h *CreateWorkloadHandler) Encode(raw any) ([]byte, error) {
-	wrk, ok := raw.(*types.Workload)
-	if !ok {
-		return nil, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
-	}
-	return json.Marshal(wrk)
-}
-
-func (h *CreateWorkloadHandler) Decode(bs []byte) (any, error) {
-	wrk := &types.Workload{}
-	err := json.Unmarshal(bs, wrk)
-	return wrk, err
+	return eventWorkloadCreated
 }
 
 func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw any) (err error) {
@@ -165,46 +127,22 @@ func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw any) (err error)
 
 // WorkloadResourceAllocatedHandler replays a dangling resource allocation by refreshing node resources.
 type WorkloadResourceAllocatedHandler struct {
-	typ     string
-	config  types.Config
+	walBase[[]*types.Node]
+
 	calcium cluster.Cluster
-	store   store.Store
 	pool    *ants.PoolWithFunc
 }
 
-func newWorkloadResourceAllocatedHandler(config types.Config, calcium cluster.Cluster, store store.Store) *WorkloadResourceAllocatedHandler {
+func newWorkloadResourceAllocatedHandler(config types.Config, calcium cluster.Cluster) *WorkloadResourceAllocatedHandler {
 	pool, _ := utils.NewPool(config.MaxConcurrency)
 	return &WorkloadResourceAllocatedHandler{
-		typ:     eventWorkloadResourceAllocated,
-		config:  config,
 		calcium: calcium,
-		store:   store,
 		pool:    pool,
 	}
 }
 
 func (h *WorkloadResourceAllocatedHandler) Typ() string {
-	return h.typ
-}
-
-func (h *WorkloadResourceAllocatedHandler) Check(_ context.Context, raw any) (bool, error) {
-	if _, ok := raw.([]*types.Node); !ok {
-		return false, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
-	}
-	return true, nil
-}
-
-func (h *WorkloadResourceAllocatedHandler) Encode(raw any) ([]byte, error) {
-	nodes, ok := raw.([]*types.Node)
-	if !ok {
-		return nil, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
-	}
-	return json.Marshal(nodes)
-}
-
-func (h *WorkloadResourceAllocatedHandler) Decode(bs []byte) (any, error) {
-	nodes := []*types.Node{}
-	return nodes, json.Unmarshal(bs, &nodes)
+	return eventWorkloadResourceAllocated
 }
 
 func (h *WorkloadResourceAllocatedHandler) Handle(ctx context.Context, raw any) error {
@@ -233,43 +171,17 @@ func (h *WorkloadResourceAllocatedHandler) Handle(ctx context.Context, raw any) 
 
 // ProcessingCreatedHandler deletes processing records left by an interrupted deploy.
 type ProcessingCreatedHandler struct {
-	typ     string
-	config  types.Config
-	calcium cluster.Cluster
-	store   store.Store
+	walBase[*types.Processing]
+
+	store store.Store
 }
 
-func newProcessingCreatedHandler(config types.Config, calcium cluster.Cluster, store store.Store) *ProcessingCreatedHandler {
-	return &ProcessingCreatedHandler{
-		typ:     eventProcessingCreated,
-		config:  config,
-		calcium: calcium,
-		store:   store,
-	}
+func newProcessingCreatedHandler(store store.Store) *ProcessingCreatedHandler {
+	return &ProcessingCreatedHandler{store: store}
 }
 
 func (h *ProcessingCreatedHandler) Typ() string {
-	return h.typ
-}
-
-func (h *ProcessingCreatedHandler) Check(_ context.Context, raw any) (bool, error) {
-	if _, ok := raw.(*types.Processing); !ok {
-		return false, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
-	}
-	return true, nil
-}
-
-func (h *ProcessingCreatedHandler) Encode(raw any) ([]byte, error) {
-	processing, ok := raw.(*types.Processing)
-	if !ok {
-		return nil, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
-	}
-	return json.Marshal(processing)
-}
-
-func (h *ProcessingCreatedHandler) Decode(bs []byte) (any, error) {
-	processing := &types.Processing{}
-	return processing, json.Unmarshal(bs, processing)
+	return eventProcessingCreated
 }
 
 func (h *ProcessingCreatedHandler) Handle(ctx context.Context, raw any) (err error) {
@@ -287,16 +199,39 @@ func (h *ProcessingCreatedHandler) Handle(ctx context.Context, raw any) (err err
 	return err
 }
 
+type walBase[T any] struct{}
+
+func (walBase[T]) Check(_ context.Context, raw any) (bool, error) {
+	if _, ok := raw.(T); !ok {
+		return false, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
+	}
+	return true, nil
+}
+
+func (walBase[T]) Encode(raw any) ([]byte, error) {
+	v, ok := raw.(T)
+	if !ok {
+		return nil, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
+	}
+	return json.Marshal(v)
+}
+
+func (walBase[T]) Decode(bs []byte) (any, error) {
+	var v T
+	err := json.Unmarshal(bs, &v)
+	return v, err
+}
+
 func enableWAL(config types.Config, calcium cluster.Cluster, store store.Store) (wal.WAL, error) {
 	hydro, err := wal.NewHydro(config.WALFile, config.WALOpenTimeout)
 	if err != nil {
 		return nil, err
 	}
 
-	hydro.Register(newCreateLambdaHandler(config, calcium, store))
-	hydro.Register(newCreateWorkloadHandler(config, calcium, store))
-	hydro.Register(newWorkloadResourceAllocatedHandler(config, calcium, store))
-	hydro.Register(newProcessingCreatedHandler(config, calcium, store))
+	hydro.Register(newCreateLambdaHandler(calcium))
+	hydro.Register(newCreateWorkloadHandler(calcium))
+	hydro.Register(newWorkloadResourceAllocatedHandler(config, calcium))
+	hydro.Register(newProcessingCreatedHandler(store))
 	return hydro, nil
 }
 
