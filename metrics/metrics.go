@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"sync"
 
+	statsdlib "github.com/CMGS/statsd"
+	"github.com/prometheus/client_golang/prometheus"
 	promClient "github.com/prometheus/client_model/go"
 
 	"github.com/projecteru2/core/log"
@@ -16,9 +18,6 @@ import (
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	statsdlib "github.com/CMGS/statsd"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 const (
