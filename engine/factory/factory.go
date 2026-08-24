@@ -57,8 +57,11 @@ func NewEngineCache(config types.Config, stor store.Store) *EngineCache {
 }
 
 func (e *EngineCache) Get(key string) engine.API {
-	api, _ := e.cache.Get(key)
-	return api
+	// haxmap unlinks lazily and still returns the old value for a deleted key
+	if api, ok := e.cache.Get(key); ok {
+		return api
+	}
+	return nil
 }
 
 func (e *EngineCache) Set(key string, client engine.API) {
