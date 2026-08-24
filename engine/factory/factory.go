@@ -109,6 +109,7 @@ func (e *EngineCache) checkAlive(ctx context.Context) {
 				if err := validateEngine(ctx, client, e.config.ConnectionTimeout); err != nil {
 					logger.Errorf(ctx, err, "engine %+v is unavailable, will be replaced and removed", cacheKey)
 					e.Set(cacheKey, &fake.EngineWithErr{DefaultErr: err, EP: params})
+					return
 				}
 				logger.Debugf(ctx, "engine %+v is available", cacheKey)
 			}); err != nil {
