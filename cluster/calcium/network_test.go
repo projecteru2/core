@@ -21,12 +21,12 @@ func TestListNetworks(t *testing.T) {
 	store := c.store.(*storemocks.Store)
 
 	// failed by GetNodesByPod
-	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	_, err := c.ListNetworks(ctx, "", "")
 	assert.Error(t, err)
 
 	// No nodes
-	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{}, nil).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{}, nil).Once()
 	_, err = c.ListNetworks(ctx, "", "")
 	assert.Error(t, err)
 
@@ -43,7 +43,7 @@ func TestListNetworks(t *testing.T) {
 	}
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
-	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
 	ns, err := c.ListNetworks(ctx, "", "xx")
 	assert.NoError(t, err)
 	assert.Equal(t, len(ns), 1)
