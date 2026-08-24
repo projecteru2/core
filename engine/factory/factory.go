@@ -94,7 +94,7 @@ func (e *EngineCache) checkAlive(ctx context.Context) {
 					return
 				}
 				if _, ok := client.(*fake.EngineWithErr); ok {
-					if newClient, err := newEngine(ctx, e.config, params.Nodename, params.Endpoint, params.CA, params.Key, params.Cert); err != nil {
+					if newClient, err := newEngine(ctx, e.config, params); err != nil {
 						logger.Errorf(ctx, err, "engine %+v is still unavailable", cacheKey)
 						e.Set(cacheKey, &fake.EngineWithErr{DefaultErr: err, EP: params})
 						e.checkOneNodeStatus(ctx, params)
@@ -199,14 +199,14 @@ func GetEngine(ctx context.Context, config types.Config, nodename, endpoint, ca,
 		return client, nil
 	}
 
+	params := &enginetypes.Params{
+		Nodename: nodename,
+		Endpoint: endpoint,
+		CA:       ca,
+		Cert:     cert,
+		Key:      key,
+	}
 	defer func() {
-		params := &enginetypes.Params{
-			Nodename: nodename,
-			Endpoint: endpoint,
-			CA:       ca,
-			Cert:     cert,
-			Key:      key,
-		}
 		cacheKey := params.CacheKey()
 		if err == nil {
 			engineCache.Set(cacheKey, client)
@@ -217,7 +217,7 @@ func GetEngine(ctx context.Context, config types.Config, nodename, endpoint, ca,
 		}
 	}()
 
-	return newEngine(ctx, config, nodename, endpoint, ca, cert, key)
+	return newEngine(ctx, config, params)
 }
 
 func validateEngine(ctx context.Context, engine engine.API, timeout time.Duration) (err error) {
@@ -246,8 +246,8 @@ func getEngineCacheKey(endpoint, ca, cert, key string) string {
 	return p.CacheKey()
 }
 
-func newEngine(ctx context.Context, config types.Config, nodename, endpoint, ca, cert, key string) (client engine.API, err error) {
-	prefix, err := getEnginePrefix(endpoint)
+func newEngine(ctx context.Context, config types.Config, params *enginetypes.Params) (client engine.API, err error) {
+	prefix, err := getEnginePrefix(params.Endpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -256,13 +256,13 @@ func newEngine(ctx context.Context, config types.Config, nodename, endpoint, ca,
 		return nil, types.ErrInvaildEngineEndpoint
 	}
 	utils.WithTimeout(ctx, config.ConnectionTimeout, func(ctx context.Context) {
-		client, err = e(ctx, config, nodename, endpoint, ca, cert, key)
+		client, err = e(ctx, config, params.Nodename, params.Endpoint, params.CA, params.Cert, params.Key)
 	})
 	if err != nil {
 		return nil, err
 	}
 	if err = validateEngine(ctx, client, config.ConnectionTimeout); err != nil {
-		log.WithFunc("engine.factory.newEngine").Errorf(ctx, err, "engine of %+v is unavailable", endpoint)
+		log.WithFunc("engine.factory.newEngine").Errorf(ctx, err, "engine of %+v is unavailable", params.Endpoint)
 		return nil, err
 	}
 	return client, nil
