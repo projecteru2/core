@@ -162,11 +162,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 	for message := range createChan {
 		workloadIDs = append(workloadIDs, message.WorkloadID)
 		wg.Add(1)
-		_ = c.pool.Invoke(func(msg *types.CreateWorkloadMessage) func() {
-			return func() {
-				lambda(msg)
-			}
-		}(message))
+		_ = c.pool.Invoke(func() { lambda(message) })
 	}
 
 	_ = c.pool.Invoke(func() {

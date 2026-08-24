@@ -116,7 +116,7 @@ func (h *CreateWorkloadHandler) Typ() string {
 	return h.typ
 }
 
-func (h *CreateWorkloadHandler) Check(_ context.Context, raw any) (handle bool, err error) {
+func (h *CreateWorkloadHandler) Check(_ context.Context, raw any) (bool, error) {
 	_, ok := raw.(*types.Workload)
 	if !ok {
 		return false, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
@@ -202,9 +202,9 @@ func (h *WorkloadResourceAllocatedHandler) Encode(raw any) ([]byte, error) {
 	return json.Marshal(nodes)
 }
 
-func (h *WorkloadResourceAllocatedHandler) Decode(bytes []byte) (any, error) {
+func (h *WorkloadResourceAllocatedHandler) Decode(bs []byte) (any, error) {
 	nodes := []*types.Node{}
-	return nodes, json.Unmarshal(bytes, &nodes)
+	return nodes, json.Unmarshal(bs, &nodes)
 }
 
 func (h *WorkloadResourceAllocatedHandler) Handle(ctx context.Context, raw any) (err error) {
@@ -252,7 +252,7 @@ func (h *ProcessingCreatedHandler) Typ() string {
 	return h.typ
 }
 
-func (h ProcessingCreatedHandler) Check(_ context.Context, raw any) (bool, error) {
+func (h *ProcessingCreatedHandler) Check(_ context.Context, raw any) (bool, error) {
 	if _, ok := raw.(*types.Processing); !ok {
 		return false, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
 	}

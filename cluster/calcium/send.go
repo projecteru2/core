@@ -24,22 +24,20 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 
 		for _, ID := range opts.IDs {
 			logger.Infof(ctx, "send files to %s", ID)
-			_ = c.pool.Invoke(func(ID string) func() {
-				return func() {
-					defer wg.Done()
-					if err := c.withWorkloadLocked(ctx, ID, false, func(ctx context.Context, workload *types.Workload) error {
-						for _, file := range opts.Files {
-							err := c.doSendFileToWorkload(ctx, workload.Engine, workload.ID, file)
-							logger.Error(ctx, err)
-							ch <- &types.SendMessage{ID: ID, Path: file.Filename, Error: err}
-						}
-						return nil
-					}); err != nil {
+			_ = c.pool.Invoke(func() {
+				defer wg.Done()
+				if err := c.withWorkloadLocked(ctx, ID, false, func(ctx context.Context, workload *types.Workload) error {
+					for _, file := range opts.Files {
+						err := c.doSendFileToWorkload(ctx, workload.Engine, workload.ID, file)
 						logger.Error(ctx, err)
-						ch <- &types.SendMessage{ID: ID, Error: err}
+						ch <- &types.SendMessage{ID: ID, Path: file.Filename, Error: err}
 					}
+					return nil
+				}); err != nil {
+					logger.Error(ctx, err)
+					ch <- &types.SendMessage{ID: ID, Error: err}
 				}
-			}(ID))
+			})
 		}
 		wg.Wait()
 	})

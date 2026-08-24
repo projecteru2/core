@@ -44,44 +44,41 @@ func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOption
 		wg.Add(len(opts.IDs))
 		defer wg.Wait()
 		for index, ID := range opts.IDs {
-			_ = c.pool.Invoke(func(replaceOpts types.ReplaceOptions, index int, ID string) func() {
-				return func() {
-					_ = c.pool.Invoke(func() {
-						defer wg.Done()
-						var createMessage *types.CreateWorkloadMessage
-						removeMessage := &types.RemoveWorkloadMessage{WorkloadID: ID}
-						var err error
-						if err = c.withWorkloadLocked(ctx, ID, false, func(ctx context.Context, workload *types.Workload) error {
-							if opts.Podname != "" && workload.Podname != opts.Podname {
-								logger.Warnf(ctx, "skip workload %s not in pod", workload.ID)
-								return errors.Wrapf(types.ErrWorkloadIgnored, "workload %s not in pod %s", workload.ID, opts.Podname)
-							}
-							replaceOpts.Podname = workload.Podname
-							if replaceOpts.NetworkInherit {
-								info, inspectErr := workload.Inspect(ctx)
-								if inspectErr != nil {
-									return inspectErr
-								} else if !info.Running {
-									return errors.Wrapf(types.ErrInvaildWorkloadOps, "workload %s is not running, can not inherit", workload.ID)
-								}
-								replaceOpts.Networks = info.Networks
-								logger.Infof(ctx, "inherit old workload network configuration %+v", replaceOpts.Networks)
-							}
-							createMessage, removeMessage, err = c.doReplaceWorkload(ctx, workload, &replaceOpts, index)
-							return err
-						}); err != nil {
-							if errors.Is(err, types.ErrWorkloadIgnored) {
-								logger.Warnf(ctx, "ignore workload: %+v", err)
-								return
-							}
-							logger.Error(ctx, err, "replace and remove failed, old workload restarted")
-						} else {
-							logger.Infof(ctx, "replaced workload %s with %s", ID, createMessage.WorkloadID)
+			replaceOpts := *opts
+			_ = c.pool.Invoke(func() {
+				defer wg.Done()
+				var createMessage *types.CreateWorkloadMessage
+				removeMessage := &types.RemoveWorkloadMessage{WorkloadID: ID}
+				var err error
+				if err = c.withWorkloadLocked(ctx, ID, false, func(ctx context.Context, workload *types.Workload) error {
+					if opts.Podname != "" && workload.Podname != opts.Podname {
+						logger.Warnf(ctx, "skip workload %s not in pod", workload.ID)
+						return errors.Wrapf(types.ErrWorkloadIgnored, "workload %s not in pod %s", workload.ID, opts.Podname)
+					}
+					replaceOpts.Podname = workload.Podname
+					if replaceOpts.NetworkInherit {
+						info, inspectErr := workload.Inspect(ctx)
+						if inspectErr != nil {
+							return inspectErr
+						} else if !info.Running {
+							return errors.Wrapf(types.ErrInvaildWorkloadOps, "workload %s is not running, can not inherit", workload.ID)
 						}
-						ch <- &types.ReplaceWorkloadMessage{Create: createMessage, Remove: removeMessage, Error: err}
-					})
+						replaceOpts.Networks = info.Networks
+						logger.Infof(ctx, "inherit old workload network configuration %+v", replaceOpts.Networks)
+					}
+					createMessage, removeMessage, err = c.doReplaceWorkload(ctx, workload, &replaceOpts, index)
+					return err
+				}); err != nil {
+					if errors.Is(err, types.ErrWorkloadIgnored) {
+						logger.Warnf(ctx, "ignore workload: %+v", err)
+						return
+					}
+					logger.Error(ctx, err, "replace and remove failed, old workload restarted")
+				} else {
+					logger.Infof(ctx, "replaced workload %s with %s", ID, createMessage.WorkloadID)
 				}
-			}(*opts, index, ID))
+				ch <- &types.ReplaceWorkloadMessage{Create: createMessage, Remove: removeMessage, Error: err}
+			})
 		}
 	})
 	return ch, nil

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"slices"
 	"sync"
 	"time"
 
@@ -98,12 +99,8 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 					if len(nodeMap) == 0 {
 						return types.ErrEmptyNodeMap
 					}
-					nodenames := []string{}
-					nodes := []*types.Node{}
-					for nodename, node := range nodeMap {
-						nodenames = append(nodenames, nodename)
-						nodes = append(nodes, node)
-					}
+					nodenames := slices.Collect(maps.Keys(nodeMap))
+					nodes := slices.Collect(maps.Values(nodeMap))
 
 					if resourceCommit, err = c.wal.Log(eventWorkloadResourceAllocated, nodes); err != nil {
 						return err
@@ -116,7 +113,6 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 
 					processingCommits = make(map[string]wal.Commit)
 					for nodename, deploy := range deployMap {
-						nodes = append(nodes, nodeMap[nodename])
 						if workloadResourcesMap[nodename], engineParamsMap[nodename], err = c.rmgr.Alloc(ctx, nodename, deploy, opts.Resources); err != nil {
 							return err
 						}
@@ -177,21 +173,15 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context,
 	seq := 0
 	rollbackMap := make(map[string][]int)
 	for nodename, deploy := range deployMap {
-		_ = c.pool.Invoke(func(deploy int) func() {
-			return func() {
-				metrics.Client.SendDeployCount(ctx, deploy)
-			}
-		}(deploy))
-		_ = c.pool.Invoke(func(nodename string, deploy, seq int) func() {
-			return func() {
-				defer wg.Done()
-				if indices, deployErr := c.doDeployWorkloadsOnNode(ctx, ch, nodename, opts, deploy, engineParamsMap[nodename], workloadResourcesMap[nodename], seq); deployErr != nil {
-					syncRollbackMap.Set(nodename, indices)
-				}
-			}
-		}(nodename, deploy, seq))
-
+		start := seq
 		seq += deploy
+		_ = c.pool.Invoke(func() { metrics.Client.SendDeployCount(ctx, deploy) })
+		_ = c.pool.Invoke(func() {
+			defer wg.Done()
+			if indices, deployErr := c.doDeployWorkloadsOnNode(ctx, ch, nodename, opts, deploy, engineParamsMap[nodename], workloadResourcesMap[nodename], start); deployErr != nil {
+				syncRollbackMap.Set(nodename, indices)
+			}
+		})
 	}
 
 	wg.Wait()

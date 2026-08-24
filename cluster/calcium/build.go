@@ -138,10 +138,10 @@ func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, nod
 		for {
 			message := &types.BuildImageMessage{}
 			if err := decoder.Decode(message); err != nil {
-				if err == io.EOF {
+				if errors.Is(err, io.EOF) {
 					break
 				}
-				if err == context.Canceled || err == context.DeadlineExceeded {
+				if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 					logger.Error(ctx, err, "context timeout")
 					lastMessage.ErrorDetail.Code = -1
 					lastMessage.ErrorDetail.Message = err.Error()
@@ -161,8 +161,7 @@ func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, nod
 			return
 		}
 
-		for i := range tags {
-			tag := tags[i]
+		for _, tag := range tags {
 			logger.Infof(ctx, "push image %s", tag)
 			rc, err := node.Engine.ImagePush(ctx, tag)
 			if err != nil {
