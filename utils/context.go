@@ -8,8 +8,11 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-// NewInheritCtx returns ctx with its values but without its cancellation.
+// NewInheritCtx returns ctx with its values but without its cancellation; a nil ctx yields a background one.
 func NewInheritCtx(ctx context.Context) context.Context {
+	if ctx == nil {
+		return context.Background()
+	}
 	return context.WithoutCancel(ctx)
 }
 
