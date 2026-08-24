@@ -73,14 +73,7 @@ func MakeClient(_ context.Context, config coretypes.Config, nodename, endpoint, 
 	if err != nil {
 		return nil, err
 	}
-	ep := &enginetypes.Params{
-		Nodename: nodename,
-		Endpoint: endpoint,
-		CA:       ca,
-		Cert:     cert,
-		Key:      key,
-	}
-	return &Virt{client: cli, config: config, ep: ep}, nil
+	return &Virt{client: cli, config: config, ep: enginetypes.NewParams(nodename, endpoint, ca, cert, key)}, nil
 }
 
 func (v *Virt) Info(ctx context.Context) (*enginetypes.Info, error) {

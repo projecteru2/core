@@ -67,13 +67,7 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 	if err != nil {
 		return nil, err
 	}
-	e.ep = &enginetypes.Params{
-		Nodename: nodename,
-		Endpoint: endpoint,
-		CA:       ca,
-		Cert:     cert,
-		Key:      key,
-	}
+	e.ep = enginetypes.NewParams(nodename, endpoint, ca, cert, key)
 	return e, nil
 }
 

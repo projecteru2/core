@@ -213,13 +213,7 @@ func GetEngine(ctx context.Context, config types.Config, nodename, endpoint, ca,
 		return client, nil
 	}
 
-	params := &enginetypes.Params{
-		Nodename: nodename,
-		Endpoint: endpoint,
-		CA:       ca,
-		Cert:     cert,
-		Key:      key,
-	}
+	params := enginetypes.NewParams(nodename, endpoint, ca, cert, key)
 	defer func() {
 		cacheKey := params.CacheKey()
 		if err == nil {
@@ -251,13 +245,7 @@ func getEnginePrefix(endpoint string) (string, error) {
 }
 
 func getEngineCacheKey(endpoint, ca, cert, key string) string {
-	p := enginetypes.Params{
-		Endpoint: endpoint,
-		CA:       ca,
-		Cert:     cert,
-		Key:      key,
-	}
-	return p.CacheKey()
+	return enginetypes.NewParams("", endpoint, ca, cert, key).CacheKey()
 }
 
 func newEngine(ctx context.Context, config types.Config, params *enginetypes.Params) (client engine.API, err error) {

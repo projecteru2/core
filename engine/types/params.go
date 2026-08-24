@@ -14,6 +14,16 @@ type Params struct {
 	Key      string
 }
 
+func NewParams(nodename, endpoint, ca, cert, key string) *Params {
+	return &Params{
+		Nodename: nodename,
+		Endpoint: endpoint,
+		CA:       ca,
+		Cert:     cert,
+		Key:      key,
+	}
+}
+
 func (p *Params) CacheKey() string {
 	return fmt.Sprintf("%+v-%+v", p.Endpoint, sha256String(fmt.Sprintf(":%+v:%+v:%+v", p.CA, p.Cert, p.Key))[:8])
 }
