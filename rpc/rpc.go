@@ -930,7 +930,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 		if RunAndWaitOptions.AsyncTimeout != 0 {
 			timeout = time.Second * time.Duration(RunAndWaitOptions.AsyncTimeout)
 		}
-		ctx, cancel = context.WithTimeout(utils.NewInheritCtx(task.context), timeout) // the async run outlives the stream
+		ctx, cancel = context.WithTimeout(context.WithoutCancel(task.context), timeout) // task.done cancels task.context
 	} else {
 		ctx, cancel = context.WithCancel(task.context)
 	}
