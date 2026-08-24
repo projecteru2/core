@@ -23,7 +23,7 @@ type (
 
 func (c *Calcium) doLock(ctx context.Context, name string, timeout time.Duration) (lock lock.DistributedLock, rCtx context.Context, err error) {
 	if lock, err = c.store.CreateLock(name, timeout); err != nil {
-		return lock, rCtx, err
+		return lock, ctx, err
 	}
 	defer func() {
 		if err != nil {
