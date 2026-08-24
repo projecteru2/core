@@ -14,13 +14,6 @@ func ListAllExecutableFiles(basedir string) ([]string, error) {
 	})
 }
 
-// ListAllSharedLibFiles returns the .so files directly under basedir, not recursing.
-func ListAllSharedLibFiles(basedir string) ([]string, error) {
-	return listFiles(basedir, func(path string, _ fs.FileInfo) bool {
-		return filepath.Ext(path) == ".so"
-	})
-}
-
 func listFiles(basedir string, match func(string, fs.FileInfo) bool) ([]string, error) {
 	files := []string{}
 	err := filepath.WalkDir(basedir, func(path string, d fs.DirEntry, err error) error {
