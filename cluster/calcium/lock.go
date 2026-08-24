@@ -72,15 +72,16 @@ func (c *Calcium) withWorkloadLocked(ctx context.Context, ID string, ignoreLock 
 func (c *Calcium) withWorkloadsLocked(ctx context.Context, ignoreLock bool, IDs []string, f workloadsHandler) error {
 	workloads := map[string]*types.Workload{}
 	locks := map[string]lock.DistributedLock{}
+	lockKeys := []string{}
 	logger := log.WithFunc("calcium.withWorkloadsLocked")
 
 	slices.Sort(IDs)
 	IDs = slices.Compact(IDs)
 
-	defer logger.Debugf(ctx, "workloads %+v unlocked", IDs)
 	defer func() {
-		slices.Reverse(IDs)
-		c.doUnlockAll(utils.NewInheritCtx(ctx), locks, IDs...)
+		slices.Reverse(lockKeys)
+		c.doUnlockAll(utils.NewInheritCtx(ctx), locks, lockKeys...)
+		logger.Debugf(ctx, "workloads %+v unlocked", lockKeys)
 	}()
 	cs, err := c.store.GetWorkloads(ctx, IDs)
 	if err != nil {
@@ -95,6 +96,7 @@ func (c *Calcium) withWorkloadsLocked(ctx context.Context, ignoreLock bool, IDs 
 			}
 			logger.Debugf(ctx, "workload %s locked", workload.ID)
 			locks[workload.ID] = lock
+			lockKeys = append(lockKeys, workload.ID)
 		}
 		workloads[workload.ID] = workload
 	}
