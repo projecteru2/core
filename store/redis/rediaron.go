@@ -3,6 +3,8 @@ package redis
 import (
 	"context"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 	"time"
 
@@ -146,10 +148,7 @@ func (r *Rediaron) GetMulti(ctx context.Context, keys []string) (map[string]stri
 }
 
 func (r *Rediaron) BatchUpdate(ctx context.Context, data map[string]string) error {
-	keys := []string{}
-	for k := range data {
-		keys = append(keys, k)
-	}
+	keys := slices.Collect(maps.Keys(data))
 
 	// the existence check is not part of the transaction below
 	e, err := r.cli.Exists(ctx, keys...).Result()

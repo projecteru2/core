@@ -140,11 +140,11 @@ func (e *ETCD) Put(ctx context.Context, key, val string, opts ...clientv3.OpOpti
 }
 
 func (e *ETCD) Create(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	return e.batchCreate(ctx, map[string]string{key: val}, opts...)
+	return e.BatchCreate(ctx, map[string]string{key: val}, opts...)
 }
 
 func (e *ETCD) Update(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	return e.batchUpdate(ctx, map[string]string{key: val}, opts...)
+	return e.BatchUpdate(ctx, map[string]string{key: val}, opts...)
 }
 
 func (e *ETCD) Watch(ctx context.Context, key string, opts ...clientv3.OpOption) clientv3.WatchChan {
@@ -160,11 +160,33 @@ func (e *ETCD) BatchDelete(ctx context.Context, keys []string, opts ...clientv3.
 }
 
 func (e *ETCD) BatchCreate(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	return e.batchCreate(ctx, data, opts...)
+	limit := map[string]map[string]string{}
+	for key := range data {
+		limit[key] = map[string]string{cmpVersion: "="}
+	}
+	resp, err := e.batchPut(ctx, data, limit, opts...)
+	if err != nil {
+		return resp, err
+	}
+	if !resp.Succeeded {
+		return resp, types.ErrKeyExists
+	}
+	return resp, nil
 }
 
 func (e *ETCD) BatchUpdate(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	return e.batchUpdate(ctx, data, opts...)
+	limit := map[string]map[string]string{}
+	for key := range data {
+		limit[key] = map[string]string{cmpVersion: "!="} // check existence
+	}
+	resp, err := e.batchPut(ctx, data, limit, opts...)
+	if err != nil {
+		return resp, err
+	}
+	if !resp.Succeeded {
+		return resp, types.ErrKeyNotExists
+	}
+	return resp, nil
 }
 
 func (e *ETCD) BatchPut(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
@@ -257,36 +279,6 @@ func (e *ETCD) batchPut(ctx context.Context, data map[string]string, limit map[s
 		txnes = append(txnes, txn)
 	}
 	return e.doBatchOp(ctx, txnes)
-}
-
-func (e *ETCD) batchCreate(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	limit := map[string]map[string]string{}
-	for key := range data {
-		limit[key] = map[string]string{cmpVersion: "="}
-	}
-	resp, err := e.batchPut(ctx, data, limit, opts...)
-	if err != nil {
-		return resp, err
-	}
-	if !resp.Succeeded {
-		return resp, types.ErrKeyExists
-	}
-	return resp, nil
-}
-
-func (e *ETCD) batchUpdate(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	limit := map[string]map[string]string{}
-	for key := range data {
-		limit[key] = map[string]string{cmpVersion: "!="} // check existence
-	}
-	resp, err := e.batchPut(ctx, data, limit, opts...)
-	if err != nil {
-		return resp, err
-	}
-	if !resp.Succeeded {
-		return resp, types.ErrKeyNotExists
-	}
-	return resp, nil
 }
 
 func (e *ETCD) isTTLChanged(ctx context.Context, key string, ttl int64) (bool, error) {
