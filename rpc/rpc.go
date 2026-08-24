@@ -736,7 +736,7 @@ func (v *Vibranium) RemoveWorkload(opts *pb.RemoveWorkloadOptions, stream pb.Cor
 	}
 	ch, err := v.cluster.RemoveWorkload(task.context, IDs, force)
 	if err != nil {
-		return grpcstatus.Error(ReplaceWorkload, err.Error())
+		return grpcstatus.Error(RemoveWorkload, err.Error())
 	}
 
 	for m := range ch {

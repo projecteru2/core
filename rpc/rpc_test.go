@@ -6,6 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"google.golang.org/grpc"
+	grpcstatus "google.golang.org/grpc/status"
 
 	grpcmocks "github.com/projecteru2/core/3rdmocks"
 	clustermock "github.com/projecteru2/core/cluster/mocks"
@@ -174,9 +176,29 @@ func TestRunAndWaitAsync(t *testing.T) {
 	assert.Equal(t, m1.StdStreamType, pb.StdStreamType_TYPEWORKLOADID)
 }
 
+func TestRemoveWorkloadReportsItsOwnStatusCode(t *testing.T) {
+	v := newVibranium()
+
+	cluster := v.cluster.(*clustermock.Cluster)
+	cluster.On("RemoveWorkload", mock.Anything, mock.Anything, mock.Anything).
+		Return(nil, types.ErrMockError).Once()
+
+	err := v.RemoveWorkload(&pb.RemoveWorkloadOptions{IDs: []string{"id"}}, &removeWorkloadStream{})
+	assert.Error(t, err)
+	assert.Equal(t, RemoveWorkload, grpcstatus.Code(err))
+}
+
 func newVibranium() *Vibranium {
 	v := &Vibranium{
 		cluster: &clustermock.Cluster{},
 	}
 	return v
 }
+
+type removeWorkloadStream struct {
+	grpc.ServerStream
+}
+
+func (s *removeWorkloadStream) Send(*pb.RemoveWorkloadMessage) error { return nil }
+
+func (s *removeWorkloadStream) Context() context.Context { return context.Background() }
