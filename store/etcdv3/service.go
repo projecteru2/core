@@ -37,7 +37,7 @@ func (m *Mercury) ServiceStatusStream(ctx context.Context) (chan []string, error
 		for resp := range watchChan {
 			if resp.Err() != nil {
 				if !resp.Canceled {
-					logger.Error(ctx, err, "watch failed")
+					logger.Error(ctx, resp.Err(), "watch failed")
 				}
 				return
 			}
