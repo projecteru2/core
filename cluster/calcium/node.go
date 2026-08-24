@@ -1,7 +1,9 @@
 package calcium
 
 import (
+	"cmp"
 	"context"
+	"slices"
 	"sync"
 
 	enginefactory "github.com/projecteru2/core/engine/factory"
@@ -252,12 +254,8 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 // includes bypass the podname filter
 func (c *Calcium) filterNodes(ctx context.Context, nodeFilter *types.NodeFilter) (ns []*types.Node, err error) {
 	defer func() {
-		if len(ns) == 0 {
-			return
-		}
-		nodenames := utils.Map(ns, func(node *types.Node) string { return node.Name })
-		p := utils.Unique(nodenames, func(i int) string { return nodenames[i] })
-		ns = ns[:p]
+		ns = slices.SortedFunc(slices.Values(ns), func(a, b *types.Node) int { return cmp.Compare(a.Name, b.Name) })
+		ns = slices.CompactFunc(ns, func(a, b *types.Node) bool { return a.Name == b.Name })
 	}()
 
 	if len(nodeFilter.Includes) != 0 {

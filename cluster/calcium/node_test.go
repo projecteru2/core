@@ -301,3 +301,21 @@ func TestFilterNodes(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, ns, 2)
 }
+
+func TestFilterNodesDedupesIncludes(t *testing.T) {
+	c := NewTestCluster()
+	ctx := context.Background()
+	store := c.store.(*storemocks.Store)
+	store.On("GetNode", mock.Anything, mock.Anything).Return(
+		func(_ context.Context, name string) *types.Node {
+			return &types.Node{NodeMeta: types.NodeMeta{Name: name}}
+		}, nil)
+
+	ns, err := c.filterNodes(ctx, &types.NodeFilter{Includes: []string{"A", "B", "A", "C"}})
+	assert.NoError(t, err)
+	names := []string{}
+	for _, n := range ns {
+		names = append(names, n.Name)
+	}
+	assert.Equal(t, []string{"A", "B", "C"}, names)
+}
