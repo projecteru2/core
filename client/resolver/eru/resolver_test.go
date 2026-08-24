@@ -13,6 +13,12 @@ func TestCloseRightAfterNew(t *testing.T) {
 	assert.NotPanics(t, r.Close)
 }
 
+func TestNewWithAuthorityWithoutPassword(t *testing.T) {
+	assert.NotPanics(t, func() {
+		New(&stubClientConn{}, "1.2.3.4:5001", "user").Close()
+	})
+}
+
 type stubClientConn struct{}
 
 func (c *stubClientConn) UpdateState(resolver.State) error { return nil }

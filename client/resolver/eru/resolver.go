@@ -20,9 +20,8 @@ type Resolver struct {
 
 func New(cc resolver.ClientConn, endpoint, authority string) *Resolver {
 	var username, password string
-	if authority != "" {
-		parts := strings.Split(authority, ":")
-		username, password = strings.TrimLeft(parts[0], "@"), parts[1]
+	if user, pass, ok := strings.Cut(authority, ":"); ok {
+		username, password = strings.TrimPrefix(user, "@"), pass
 	}
 	authConfig := types.AuthConfig{Username: username, Password: password}
 	ctx, cancel := context.WithCancel(context.Background())
