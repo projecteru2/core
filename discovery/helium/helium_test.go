@@ -78,3 +78,29 @@ func TestPanic(t *testing.T) {
 
 	time.Sleep(5 * time.Second)
 }
+
+func TestUnsubscribeAfterWatchClosed(t *testing.T) {
+	chAddr := make(chan []string)
+
+	store := &storemocks.Store{}
+	store.On("ServiceStatusStream", mock.Anything).Return(chAddr, nil)
+
+	grpcConfig := types.GRPCConfig{ServiceDiscoveryPushInterval: time.Second}
+	service := New(t.Context(), grpcConfig, store)
+	uuid, _ := service.Subscribe(t.Context())
+
+	close(chAddr)
+	<-service.done
+
+	returned := make(chan struct{})
+	go func() {
+		defer close(returned)
+		service.Unsubscribe(uuid)
+	}()
+
+	select {
+	case <-returned:
+	case <-time.After(5 * time.Second):
+		assert.Fail(t, "Unsubscribe blocked after the watch loop exited")
+	}
+}

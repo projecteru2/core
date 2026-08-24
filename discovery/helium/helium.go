@@ -27,6 +27,7 @@ type Helium struct {
 	subs      *haxmap.Map[uint32, entry]
 	interval  time.Duration
 	unsubChan chan uint32
+	done      chan struct{}
 }
 
 func New(ctx context.Context, config types.GRPCConfig, store store.Store) *Helium {
@@ -35,6 +36,7 @@ func New(ctx context.Context, config types.GRPCConfig, store store.Store) *Heliu
 		store:     store,
 		subs:      haxmap.New[uint32, entry](),
 		unsubChan: make(chan uint32),
+		done:      make(chan struct{}),
 	}
 	if h.interval < time.Second {
 		h.interval = interval
@@ -57,7 +59,10 @@ func (h *Helium) Subscribe(ctx context.Context) (uuid.UUID, <-chan types.Service
 }
 
 func (h *Helium) Unsubscribe(ID uuid.UUID) {
-	h.unsubChan <- ID.ID()
+	select {
+	case h.unsubChan <- ID.ID():
+	case <-h.done:
+	}
 }
 
 func (h *Helium) start(ctx context.Context) {
@@ -65,11 +70,13 @@ func (h *Helium) start(ctx context.Context) {
 	ch, err := h.store.ServiceStatusStream(ctx)
 	if err != nil {
 		logger.Error(ctx, err, "failed to start watch")
+		close(h.done)
 		return
 	}
 
 	go func() {
 		logger.Info(ctx, "service discovery start")
+		defer close(h.done)
 		defer logger.Warn(ctx, "service discovery exited")
 		var latestStatus types.ServiceStatus
 		ticker := time.NewTicker(h.interval)
@@ -78,7 +85,7 @@ func (h *Helium) start(ctx context.Context) {
 			select {
 			case addresses, ok := <-ch:
 				if !ok {
-					logger.Warn(ctx, "watch channel closed")
+					logger.Error(ctx, types.ErrMessageChanClosed, "watch channel closed, service discovery is down")
 					return
 				}
 
