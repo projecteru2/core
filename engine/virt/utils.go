@@ -45,7 +45,7 @@ func combineUserImage(user, imageName string) string {
 func convertEngineParamsToResources(engineParams resourcetypes.Resources) map[string][]byte {
 	r := map[string][]byte{}
 	for p, res := range engineParams {
-		b, _ := json.Marshal(res) // nolint
+		b, _ := json.Marshal(res)
 		r[p] = b
 	}
 	return r

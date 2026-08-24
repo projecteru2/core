@@ -11,7 +11,6 @@ import (
 	"github.com/projecteru2/core/log"
 )
 
-// Execute executes a workload
 func (e *Engine) Execute(ctx context.Context, ID string, config *enginetypes.ExecConfig) (execID string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
 	if execID, err = e.execCreate(ctx, ID, config); err != nil {
 		return execID, stdout, stderr, stdin, err
@@ -29,7 +28,6 @@ func (e *Engine) Execute(ctx context.Context, ID string, config *enginetypes.Exe
 	return execID, stdout, stderr, nil, err
 }
 
-// ExecResize resize exec tty
 func (e *Engine) ExecResize(ctx context.Context, execID string, height, width uint) error {
 	opts := dockercontainer.ResizeOptions{
 		Height: height,
@@ -39,7 +37,6 @@ func (e *Engine) ExecResize(ctx context.Context, execID string, height, width ui
 	return e.client.ContainerExecResize(ctx, execID, opts)
 }
 
-// ExecExitCode get exec return code
 func (e *Engine) ExecExitCode(ctx context.Context, _, execID string) (int, error) {
 	r, err := e.client.ContainerExecInspect(ctx, execID)
 	if err != nil {
@@ -48,7 +45,6 @@ func (e *Engine) ExecExitCode(ctx context.Context, _, execID string) (int, error
 	return r.ExitCode, nil
 }
 
-// ExecCreate create a exec
 func (e *Engine) execCreate(ctx context.Context, target string, config *enginetypes.ExecConfig) (string, error) {
 	execConfig := dockercontainer.ExecOptions{
 		User:         config.User,
@@ -62,8 +58,6 @@ func (e *Engine) execCreate(ctx context.Context, target string, config *enginety
 		Tty:          config.Tty,
 	}
 
-	// TODO should timeout
-	// Fuck docker, ctx will not use inside funcs!!
 	idResp, err := e.client.ContainerExecCreate(ctx, target, execConfig)
 	if err != nil {
 		return "", err
@@ -71,7 +65,6 @@ func (e *Engine) execCreate(ctx context.Context, target string, config *enginety
 	return idResp.ID, nil
 }
 
-// ExecAttach attach a exec
 func (e *Engine) execAttach(ctx context.Context, execID string, tty bool) (io.ReadCloser, io.WriteCloser, error) {
 	execStartCheck := dockercontainer.ExecStartOptions{
 		Tty: tty,
@@ -92,7 +85,7 @@ func (e *Engine) demultiplexStdStream(ctx context.Context, stdStream io.Reader) 
 			_ = stderrW.Close()
 		}()
 		if _, err := stdcopy.StdCopy(stdoutW, stderrW, stdStream); err != nil {
-			log.WithFunc("engine.docker.demultiplexStdStream").Error(ctx, err, "StdCopy failed")
+			log.WithFunc("engine.docker.demultiplexStdStream").Error(ctx, err, "stdcopy failed")
 		}
 	}()
 	return stdout, stderr

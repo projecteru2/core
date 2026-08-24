@@ -102,14 +102,12 @@ func TestSourceCode(t *testing.T) {
 	os.Mkdir(dname, 0o755)
 	err = g.SourceCode(ctx, repo, dname, rev, true)
 	assert.NoError(t, err)
-	// auto clone submodule, so vendor can't remove by os.Remove
 	subrepo := filepath.Join(dname, subname)
 	err = os.Remove(subrepo)
 	assert.Error(t, err)
 	dotGit := filepath.Join(dname, ".git")
 	_, err = os.Stat(dotGit)
 	assert.NoError(t, err)
-	// Security dir
 	err = g.Security(dname)
 	assert.NoError(t, err)
 	_, err = os.Stat(dotGit)
@@ -148,10 +146,8 @@ func TestArtifact(t *testing.T) {
 	defer func() { testServer.Close() }()
 	err = g.Artifact(context.Background(), "invaildurl", savedDir)
 	assert.Error(t, err)
-	// no header
 	err = g.Artifact(context.Background(), testServer.URL, savedDir)
 	assert.Error(t, err)
-	// vaild
 	g.AuthHeaders = map[string]string{"TEST": authValue}
 	err = g.Artifact(context.Background(), testServer.URL, savedDir)
 	assert.NoError(t, err)
@@ -174,7 +170,6 @@ func zipFiles(newfile *os.File, files []string) error {
 	zipWriter := zip.NewWriter(newfile)
 	defer zipWriter.Close()
 
-	// Add files to zip
 	for _, file := range files {
 
 		zipfile, err := os.Open(file)
@@ -183,7 +178,6 @@ func zipFiles(newfile *os.File, files []string) error {
 		}
 		defer zipfile.Close()
 
-		// Get the file information
 		info, err := zipfile.Stat()
 		if err != nil {
 			return err
@@ -194,8 +188,6 @@ func zipFiles(newfile *os.File, files []string) error {
 			return err
 		}
 
-		// Change to deflate to gain better compression
-		// see http://golang.org/pkg/archive/zip/#pkg-constants
 		header.Method = zip.Deflate
 
 		writer, err := zipWriter.CreateHeader(header)

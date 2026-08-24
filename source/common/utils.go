@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 )
 
-// unzipFile unzip a file(from resp.Body) to the spec path
 func unzipFile(body io.Reader, path string) error {
 	content, err := io.ReadAll(body)
 	if err != nil {
@@ -20,7 +19,6 @@ func unzipFile(body io.Reader, path string) error {
 		return err
 	}
 
-	// extract files from zipfile
 	for _, f := range reader.File {
 		zipped, err := f.Open()
 		if err != nil {

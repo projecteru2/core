@@ -33,14 +33,14 @@ func TestMakeVirtualizationResource(t *testing.T) {
 }
 
 type virtualizationResource struct {
-	CPU           map[string]int64            `json:"cpu_map" mapstructure:"cpu_map"` // for cpu binding
-	Quota         float64                     `json:"cpu" mapstructure:"cpu"`         // for cpu quota
-	Memory        int64                       `json:"memory" mapstructure:"memory"`   // for memory binding
+	CPU           map[string]int64            `json:"cpu_map" mapstructure:"cpu_map"`
+	Quota         float64                     `json:"cpu" mapstructure:"cpu"`
+	Memory        int64                       `json:"memory" mapstructure:"memory"`
 	Storage       int64                       `json:"storage" mapstructure:"storage"`
-	NUMANode      string                      `json:"numa_node" mapstructure:"numa_node"` // numa node
+	NUMANode      string                      `json:"numa_node" mapstructure:"numa_node"`
 	Volumes       []string                    `json:"volumes" mapstructure:"volumes"`
-	VolumePlan    map[string]map[string]int64 `json:"volume_plan" mapstructure:"volume_plan"`       // literal VolumePlan
-	VolumeChanged bool                        `json:"volume_changed" mapstructure:"volume_changed"` // indicate whether new volumes contained in realloc request
-	IOPSOptions   map[string]string           `json:"iops_options" mapstructure:"IOPS_options"`     // format: {device_name: "read-IOPS:write-IOPS:read-bps:write-bps"}
+	VolumePlan    map[string]map[string]int64 `json:"volume_plan" mapstructure:"volume_plan"`
+	VolumeChanged bool                        `json:"volume_changed" mapstructure:"volume_changed"`
+	IOPSOptions   map[string]string           `json:"iops_options" mapstructure:"IOPS_options"`
 	Remap         bool                        `json:"remap" mapstructure:"remap"`
 }

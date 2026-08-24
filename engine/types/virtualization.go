@@ -4,7 +4,7 @@ import (
 	resourcetypes "github.com/projecteru2/core/resource/types"
 )
 
-// VirtualizationCreateOptions use for create virtualization target
+// VirtualizationCreateOptions describes a workload to create.
 type VirtualizationCreateOptions struct {
 	EngineParams resourcetypes.Resources
 	Name         string
@@ -35,14 +35,13 @@ type VirtualizationCreateOptions struct {
 	AncestorWorkloadID string
 }
 
-// VirtualizationCreated use for store name and ID
+// VirtualizationCreated identifies a freshly created workload.
 type VirtualizationCreated struct {
 	ID     string
 	Name   string
 	Labels map[string]string
 }
 
-// VirtualizationInfo store virtualization info
 type VirtualizationInfo struct {
 	ID       string
 	User     string
@@ -51,16 +50,14 @@ type VirtualizationInfo struct {
 	Env      []string
 	Labels   map[string]string
 	Networks map[string]string
-	// TODO other information like cpu memory
 }
 
-// VirtualizationWaitResult store exit result
+// VirtualizationWaitResult carries a workload's exit status.
 type VirtualizationWaitResult struct {
 	Message string
 	Code    int64
 }
 
-// SendMessage returns from engine
 type SendMessage struct {
 	ID    string
 	Path  string

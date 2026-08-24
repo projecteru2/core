@@ -52,7 +52,6 @@ func (f fuckDockerStream) Close() error {
 	return f.conn.Close()
 }
 
-// CreateTarStream create a tar stream
 func CreateTarStream(path string) (io.ReadCloser, error) {
 	tarOpts := &archive.TarOptions{
 		ExcludePatterns: []string{},
@@ -63,11 +62,11 @@ func CreateTarStream(path string) (io.ReadCloser, error) {
 	return archive.TarWithOptions(path, tarOpts)
 }
 
-// GetIP Get hostIP
+// GetIP returns the host part of a docker daemon endpoint.
 func GetIP(ctx context.Context, daemonHost string) string {
 	u, err := url.Parse(daemonHost)
 	if err != nil {
-		log.WithFunc("engine.docker.GetIP").Errorf(ctx, err, "GetIP %s failed", daemonHost)
+		log.WithFunc("engine.docker.GetIP").Errorf(ctx, err, "parse daemon host %s", daemonHost)
 		return ""
 	}
 	return u.Hostname()
@@ -87,10 +86,7 @@ func mergeStream(stream io.ReadCloser) io.Reader {
 	return outr
 }
 
-// make mount paths
-// 使用volumes, 参数格式跟docker一样
-// volumes:
-//   - "/foo-data:$SOMEENV/foodata:rw"
+// volume format is docker's src:dst:mode, with an optional size field
 func makeMountPaths(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions, resourceOpts *engine.VirtualizationResource) ([]string, map[string]struct{}) {
 	binds := []string{}
 	volumes := make(map[string]struct{})
@@ -114,7 +110,7 @@ func makeMountPaths(ctx context.Context, opts *enginetypes.VirtualizationCreateO
 			binds = append(binds, fmt.Sprintf("%s:%s:%s", parts[0], parts[1], parts[2]))
 			volumes[parts[1]] = struct{}{}
 			if len(parts) == 4 {
-				log.WithFunc("engine.docker.makeMountPaths").Warn(ctx, "docker engine not support volume with size limit")
+				log.WithFunc("engine.docker.makeMountPaths").Warn(ctx, "docker engine does not support volume with size limit")
 			}
 		}
 	}
@@ -140,15 +136,13 @@ func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int64, num
 			cpuIDs = append(cpuIDs, cpuID)
 		}
 		resource.CpusetCpus = strings.Join(cpuIDs, ",")
-		// numaNode will empty or numaNode
 		resource.CpusetMems = numaNode
 
 		if remap {
 			resource.CPUShares = int64(1024)
 		} else {
-			// unrestrained cpu quota for binding
+			// bound cpus run without a quota
 			resource.CPUQuota = -1
-			// cpu share for fragile pieces
 			if _, divpart := math.Modf(cpu); divpart > 0 {
 				resource.CPUShares = int64(math.Round(float64(1024) * divpart))
 			}
@@ -202,7 +196,6 @@ func parseThrottleRate(s string) uint64 {
 	return uint64(rate)
 }
 
-// 只要一个image的前面, tag不要
 func normalizeImage(image string) string {
 	if strings.Contains(image, ":") {
 		t := strings.Split(image, ":")
@@ -211,8 +204,6 @@ func normalizeImage(image string) string {
 	return image
 }
 
-// image begin
-// MakeAuthConfigFromRemote Calculate encoded AuthConfig from registry and eru-core config
 // See https://github.com/docker/cli/blob/16cccc30f95c8163f0749eba5a2e80b807041342/cli/command/registry.go#L67
 func makeEncodedAuthConfigFromRemote(authConfigs map[string]coretypes.AuthConfig, remote string) (string, error) {
 	ref, err := reference.ParseNormalizedNamed(remote)
@@ -220,7 +211,6 @@ func makeEncodedAuthConfigFromRemote(authConfigs map[string]coretypes.AuthConfig
 		return "", err
 	}
 
-	// Resolve the Repository name from fqn to RepositoryInfo
 	repoInfo, err := registry.ParseRepositoryInfo(ref)
 	if err != nil {
 		return "", err
@@ -237,7 +227,6 @@ func makeEncodedAuthConfigFromRemote(authConfigs map[string]coretypes.AuthConfig
 	return "dummy", nil
 }
 
-// EncodeAuthToBase64 serializes the auth configuration as JSON base64 payload
 // See https://github.com/docker/cli/blob/master/cli/command/registry.go#L41
 func encodeAuthToBase64(authConfig coretypes.AuthConfig) (string, error) {
 	buf, err := json.Marshal(authConfig) //nolint:gosec // the registry X-Registry-Auth header is defined as this credential payload
@@ -247,8 +236,6 @@ func encodeAuthToBase64(authConfig coretypes.AuthConfig) (string, error) {
 	return base64.URLEncoding.EncodeToString(buf), nil
 }
 
-// Image tag
-// 格式严格按照 Hub/HubPrefix/appname:tag 来
 func createImageTag(config coretypes.DockerConfig, appname, tag string) string {
 	prefix := strings.Trim(config.Namespace, "/")
 	if prefix == "" {
@@ -298,7 +285,6 @@ func recreateDir(path string) error {
 	return os.MkdirAll(path, os.ModeDir)
 }
 
-// Dockerfile
 func createDockerfile(dockerfile, buildDir string) (err error) {
 	f, err := os.Create(filepath.Clean(filepath.Join(buildDir, "Dockerfile")))
 	if err != nil {

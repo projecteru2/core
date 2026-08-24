@@ -1,35 +1,30 @@
 package types
 
-// BuildMethod .
 type BuildMethod int
 
-// Image contain image meta data
+// Image is an image's ID and tags.
 type Image struct {
 	ID   string
 	Tags []string
 }
 
-// BuildContentOptions .
 type BuildContentOptions struct {
 	User string
 	UID  int
 	*Builds
 }
 
-// BuildRefOptions .
 type BuildRefOptions struct {
 	Name string
 	Tags []string
 	User string
 }
 
-// Builds define builds
 type Builds struct {
 	Stages []string          `yaml:"stages,omitempty,flow"`
 	Builds map[string]*Build `yaml:"builds,omitempty,flow"`
 }
 
-// Build define build
 type Build struct {
 	Base       string            `yaml:"base,omitempty"`
 	Repo       string            `yaml:"repo,omitempty"`

@@ -32,8 +32,6 @@ WORKDIR {{.Dir}}{{ end }}
 {{ if .StopSignal }}STOPSIGNAL {{.StopSignal}} {{ end }}`
 	copyTmpl = "COPY --from=%s %s %s"
 	runTmpl  = "RUN %s"
-	// TODO consider work dir privilege
-	// Add user manually
 	userTmpl = `RUN echo "{{.User}}::{{.UID}}:{{.UID}}:{{.User}}:/dev/null:/sbin/nologin" >> /etc/passwd && \
 echo "{{.User}}:x:{{.UID}}:" >> /etc/group && \
 echo "{{.User}}:!::0:::::" >> /etc/shadow
@@ -41,7 +39,6 @@ USER {{.User}}
 `
 )
 
-// BuildRefs output refs
 func (e *Engine) BuildRefs(_ context.Context, opts *enginetypes.BuildRefOptions) []string {
 	name := opts.Name
 	tags := opts.Tags
@@ -50,35 +47,25 @@ func (e *Engine) BuildRefs(_ context.Context, opts *enginetypes.BuildRefOptions)
 		ref := createImageTag(e.config.Docker, name, tag)
 		refs = append(refs, ref)
 	}
-	// use latest
 	if len(refs) == 0 {
 		refs = append(refs, createImageTag(e.config.Docker, name, utils.DefaultVersion))
 	}
 	return refs
 }
 
-// BuildContent generate build content
-// since we wanna set UID for the user inside workload, we have to know the uid parameter
-//
-// build directory is like:
-//
-//	buildDir ├─ :appname ├─ code
-//	         ├─ Dockerfile
+// layout: <buildDir>/<reponame>/<code> next to <buildDir>/Dockerfile
 func (e *Engine) BuildContent(ctx context.Context, scm coresource.Source, opts *enginetypes.BuildContentOptions) (string, io.Reader, error) {
 	if opts.Builds == nil {
 		return "", nil, coretypes.ErrNoBuildsInSpec
 	}
-	// make build dir
 	buildDir, err := os.MkdirTemp(os.TempDir(), "corebuild-")
 	if err != nil {
 		return "", nil, err
 	}
-	log.WithFunc("engine.docker.BuildContent").Debugf(ctx, "Build dir %s", buildDir)
-	// create dockerfile
+	log.WithFunc("engine.docker.BuildContent").Debugf(ctx, "build dir %s", buildDir)
 	if err = e.makeDockerFile(ctx, opts, scm, buildDir); err != nil {
 		return buildDir, nil, err
 	}
-	// create stream for Build API
 	tar, err := CreateTarStream(buildDir)
 	return buildDir, tar, err
 }
@@ -91,33 +78,28 @@ func (e *Engine) makeDockerFile(ctx context.Context, opts *enginetypes.BuildCont
 	for _, stage := range opts.Stages {
 		build, ok := opts.Builds.Builds[stage]
 		if !ok {
-			log.WithFunc("engine.docker.makeDockerFile").Warnf(ctx, "Builds stage %s not defined", stage)
+			log.WithFunc("engine.docker.makeDockerFile").Warnf(ctx, "build stage %s not defined", stage)
 			continue
 		}
 
-		// get source or artifacts
 		reponame, err := e.preparedSource(ctx, build, scm, buildDir)
 		if err != nil {
 			return err
 		}
 		build.Repo = reponame
 
-		// get header
 		from := fmt.Sprintf(fromAsTmpl, build.Base, stage)
 
-		// get multiple stags
 		copys := []string{}
 		for src, dst := range preCache {
 			copys = append(copys, fmt.Sprintf(copyTmpl, preStage, src, dst))
 		}
 
-		// get commands
 		commands := []string{}
 		for _, command := range build.Commands {
 			commands = append(commands, fmt.Sprintf(runTmpl, command))
 		}
 
-		// decide add source or not
 		mainPart, err := makeMainPart(opts, build, from, commands, copys)
 		if err != nil {
 			return err
@@ -139,8 +121,6 @@ func (e *Engine) makeDockerFile(ctx context.Context, opts *enginetypes.BuildCont
 }
 
 func (e *Engine) preparedSource(ctx context.Context, build *enginetypes.Build, scm coresource.Source, buildDir string) (string, error) {
-	// parse repository name
-	// code locates under /:repositoryname
 	var cloneDir string
 	var err error
 	reponame := ""
@@ -154,24 +134,20 @@ func (e *Engine) preparedSource(ctx context.Context, build *enginetypes.Build, s
 			return "", err
 		}
 
-		// clone code into cloneDir
-		// which is under buildDir and named as repository name
 		cloneDir = filepath.Join(buildDir, reponame)
 		if err := scm.SourceCode(ctx, build.Repo, cloneDir, version, build.Submodule); err != nil {
 			return "", err
 		}
 
 		if build.Security {
-			// ensure source code is safe
-			// we don't want any history files to be retrieved
+			// Security strips the .git directory from the build context
 			if err := scm.Security(cloneDir); err != nil {
 				return "", err
 			}
 		}
 	}
 
-	// if artifact download url is provided, remove all source code to
-	// improve security
+	// artifacts replace the cloned tree so no source ships in the image
 	if len(build.Artifacts) > 0 {
 		artifactsDir := buildDir
 		if cloneDir != "" {

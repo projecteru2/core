@@ -20,20 +20,18 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-// PrefixKey indicate key prefix
+// PrefixKey is the endpoint prefix for the in-memory mock engine.
 const PrefixKey = "mock://"
 
 type writeCloser struct {
 	*bufio.Writer
 }
 
-// Close close
 func (wc *writeCloser) Close() error {
-	// Noop
 	return nil
 }
 
-// MakeClient make a mock client
+// MakeClient builds an engine.API whose calls return canned data.
 func MakeClient(_ context.Context, _ coretypes.Config, nodename, endpoint, ca, cert, key string) (engine.API, error) {
 	e := &enginemocks.API{}
 	parmas := &enginetypes.Params{
@@ -43,11 +41,9 @@ func MakeClient(_ context.Context, _ coretypes.Config, nodename, endpoint, ca, c
 		Cert:     cert,
 		Key:      key,
 	}
-	// info
 	e.On("Info", mock.Anything).Return(&enginetypes.Info{NCPU: 100, MemTotal: units.GiB * 100, StorageTotal: units.GiB * 100}, nil)
 	e.On("Ping", mock.Anything).Return(nil)
 	e.On("GetParams").Return(parmas, nil)
-	// exec
 	var execID string
 	e.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return(
 		func(context.Context, string, *enginetypes.ExecConfig) string {
@@ -66,13 +62,11 @@ func MakeClient(_ context.Context, _ coretypes.Config, nodename, endpoint, ca, c
 	)
 	e.On("ExecResize", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	e.On("ExecExitCode", mock.Anything, execID).Return(0, nil)
-	// network
 	e.On("NetworkConnect", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]string{}, nil)
 	e.On("NetworkDisconnect", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	e.On("NetworkList", mock.Anything, mock.Anything).Return([]*enginetypes.Network{{
 		Name: "mock-network", Subnets: []string{"1.1.1.1/8", "2.2.2.2/8"},
 	}}, nil)
-	// image
 	e.On("ImageList", mock.Anything, mock.Anything).Return(
 		[]*enginetypes.Image{{ID: "mock-image", Tags: []string{"latest"}}}, nil,
 	)
@@ -91,27 +85,24 @@ func MakeClient(_ context.Context, _ coretypes.Config, nodename, endpoint, ca, c
 	e.On("ImageLocalDigests", mock.Anything, mock.Anything).Return([]string{imageDigest}, nil)
 	e.On("ImageRemoteDigest", mock.Anything, mock.Anything).Return(imageDigest, nil)
 	e.On("ImageBuildFromExist", mock.Anything, mock.Anything, mock.Anything).Return("ImageBuildFromExist", nil)
-	// build
 	e.On("BuildRefs", mock.Anything, mock.Anything, mock.Anything).Return([]string{"ref1", "ref2"})
 	buildContent := io.NopCloser(bytes.NewBufferString("this is content"))
 	e.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return("BuildContent", buildContent, nil)
-	// virtualization
 	var ID string
 	e.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(func(_ context.Context, opts *enginetypes.VirtualizationCreateOptions) *enginetypes.VirtualizationCreated {
 		type virtualizationResource struct {
-			CPU           map[string]int64            `json:"cpu_map" mapstructure:"cpu_map"` // for cpu binding
-			Quota         float64                     `json:"cpu" mapstructure:"cpu"`         // for cpu quota
-			Memory        int64                       `json:"memory" mapstructure:"memory"`   // for memory binding
+			CPU           map[string]int64            `json:"cpu_map" mapstructure:"cpu_map"`
+			Quota         float64                     `json:"cpu" mapstructure:"cpu"`
+			Memory        int64                       `json:"memory" mapstructure:"memory"`
 			Storage       int64                       `json:"storage" mapstructure:"storage"`
-			NUMANode      string                      `json:"numa_node" mapstructure:"numa_node"` // numa node
+			NUMANode      string                      `json:"numa_node" mapstructure:"numa_node"`
 			Volumes       []string                    `json:"volumes" mapstructure:"volumes"`
-			VolumePlan    map[string]map[string]int64 `json:"volume_plan" mapstructure:"volume_plan"`       // literal VolumePlan
-			VolumeChanged bool                        `json:"volume_changed" mapstructure:"volume_changed"` // indicate whether new volumes contained in realloc request
-			IOPSOptions   map[string]string           `json:"iops_options" mapstructure:"IOPS_options"`     // format: {device_name: "read-IOPS:write-IOPS:read-bps:write-bps"}
+			VolumePlan    map[string]map[string]int64 `json:"volume_plan" mapstructure:"volume_plan"`
+			VolumeChanged bool                        `json:"volume_changed" mapstructure:"volume_changed"`
+			IOPSOptions   map[string]string           `json:"iops_options" mapstructure:"IOPS_options"`
 			Remap         bool                        `json:"remap" mapstructure:"remap"`
 		}
 
-		// parse engine args to resource options
 		resourceOpts := &virtualizationResource{}
 		_ = engine.MakeVirtualizationResource(opts.EngineParams, resourceOpts, func(p resourcetypes.Resources, d *virtualizationResource) error {
 			for _, v := range p {

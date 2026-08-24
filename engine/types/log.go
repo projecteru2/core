@@ -1,6 +1,5 @@
 package types
 
-// VirtualizationLogStreamOptions .
 type VirtualizationLogStreamOptions struct {
 	ID     string
 	Tail   string

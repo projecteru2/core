@@ -12,7 +12,6 @@ import (
 	coretypes "github.com/projecteru2/core/types"
 )
 
-// NetworkConnect connect to a network
 func (e *Engine) NetworkConnect(ctx context.Context, network, target, ipv4, _ string) ([]string, error) {
 	config, err := e.makeIPV4EndpointSetting(ipv4)
 	if err != nil {
@@ -32,12 +31,10 @@ func (e *Engine) NetworkConnect(ctx context.Context, network, target, ipv4, _ st
 	return []string{ns.IPAddress}, nil
 }
 
-// NetworkDisconnect disconnect from a network
 func (e *Engine) NetworkDisconnect(ctx context.Context, network, target string, force bool) error {
 	return e.client.NetworkDisconnect(ctx, network, target, force)
 }
 
-// NetworkList show all networks
 func (e *Engine) NetworkList(ctx context.Context, drivers []string) ([]*enginetypes.Network, error) {
 	networks := []*enginetypes.Network{}
 	filters := dockerfilters.NewArgs()
@@ -64,8 +61,6 @@ func (e *Engine) makeIPV4EndpointSetting(ipv4 string) (*dockernetwork.EndpointSe
 	config := &dockernetwork.EndpointSettings{
 		IPAMConfig: &dockernetwork.EndpointIPAMConfig{},
 	}
-	// set specified IP
-	// but if IP is empty, just ignore
 	if ipv4 != "" {
 		ip := net.ParseIP(ipv4)
 		if ip == nil {

@@ -8,7 +8,6 @@ import (
 	enginetypes "github.com/projecteru2/core/engine/types"
 )
 
-// VirtualizationCreate create a workload
 func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error) { //nolint
 	rArgs := &docker.RawArgs{StorageOpt: map[string]string{}}
 	if len(opts.RawArgs) > 0 {
