@@ -71,17 +71,15 @@ func makeMountPaths(ctx context.Context, opts *enginetypes.VirtualizationCreateO
 	binds := []string{}
 	volumes := make(map[string]struct{})
 
-	expandENV := func(env string) string {
-		envMap := map[string]string{}
-		for _, env := range opts.Env {
-			parts := strings.Split(env, "=")
-			envMap[parts[0]] = parts[1]
+	envMap := make(map[string]string, len(opts.Env))
+	for _, env := range opts.Env {
+		if key, value, ok := strings.Cut(env, "="); ok {
+			envMap[key] = value
 		}
-		return envMap[env]
 	}
 
 	for _, path := range resourceOpts.Volumes {
-		expanded := os.Expand(path, expandENV)
+		expanded := os.Expand(path, func(key string) string { return envMap[key] })
 		parts := strings.Split(expanded, ":")
 		if len(parts) == 2 {
 			binds = append(binds, fmt.Sprintf("%s:%s:rw", parts[0], parts[1]))
