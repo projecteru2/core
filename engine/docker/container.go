@@ -477,6 +477,6 @@ func (e *Engine) VirtualizationCopyFrom(ctx context.Context, ID, path string) (c
 	return content, header.Uid, header.Gid, header.Mode, err
 }
 
-func (e *Engine) RawEngine(context.Context, *enginetypes.RawEngineOptions) (res *enginetypes.RawEngineResult, err error) {
-	return nil, nil
+func (e *Engine) RawEngine(context.Context, *enginetypes.RawEngineOptions) (*enginetypes.RawEngineResult, error) {
+	return nil, coretypes.ErrEngineNotImplemented
 }

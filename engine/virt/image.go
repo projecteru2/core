@@ -10,7 +10,6 @@ import (
 	virttypes "github.com/projecteru2/libyavirt/types"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
-	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 )
 
@@ -41,9 +40,8 @@ func (v *Virt) ImageRemove(ctx context.Context, tag string, force, prune bool) (
 	return v.client.RemoveImage(ctx, imgName, user, force, prune)
 }
 
-func (v *Virt) ImagesPrune(ctx context.Context) (err error) {
-	log.WithFunc("engine.virt.ImagesPrune").Warn(ctx, "not implemented")
-	return err
+func (v *Virt) ImagesPrune(context.Context) error {
+	return types.ErrEngineNotImplemented
 }
 
 func (v *Virt) ImagePull(ctx context.Context, ref string, all bool) (rc io.ReadCloser, err error) {
@@ -80,9 +78,8 @@ func (v *Virt) ImagePush(ctx context.Context, ref string) (rc io.ReadCloser, err
 	return io.NopCloser(bytes.NewReader(reply)), nil
 }
 
-func (v *Virt) ImageBuild(ctx context.Context, _ io.Reader, _ []string, _ string) (rc io.ReadCloser, err error) {
-	log.WithFunc("engine.virt.ImageBuild").Warn(ctx, "not implemented")
-	return rc, err
+func (v *Virt) ImageBuild(context.Context, io.Reader, []string, string) (io.ReadCloser, error) {
+	return nil, types.ErrEngineNotImplemented
 }
 
 func (v *Virt) ImageBuildFromExist(ctx context.Context, ID string, refs []string, user string) (string, error) {
@@ -108,9 +105,8 @@ func (v *Virt) ImageBuildFromExist(ctx context.Context, ID string, refs []string
 	return uimg.ID, nil
 }
 
-func (v *Virt) ImageBuildCachePrune(ctx context.Context, _ bool) (reclaimed uint64, err error) {
-	log.WithFunc("engine.virt.ImageBuildCachePrune").Warn(ctx, "not implemented")
-	return reclaimed, err
+func (v *Virt) ImageBuildCachePrune(context.Context, bool) (uint64, error) {
+	return 0, types.ErrEngineNotImplemented
 }
 
 func (v *Virt) ImageLocalDigests(ctx context.Context, image string) ([]string, error) {
