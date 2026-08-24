@@ -7,11 +7,12 @@ import (
 	"strings"
 
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/store/common"
 )
 
 func (r *Rediaron) GetDeployStatus(ctx context.Context, appname, entryname string) (map[string]int, error) {
 	// trailing slash keeps the prefix from matching a longer entrypoint
-	key := filepath.Join(workloadDeployPrefix, appname, entryname) + "/*"
+	key := filepath.Join(common.WorkloadDeployPrefix, appname, entryname) + "/*"
 	data, err := r.getByKeyPattern(ctx, key, 0)
 	if err != nil {
 		return nil, err

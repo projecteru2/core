@@ -6,33 +6,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/panjf2000/ants/v2"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	"github.com/cockroachdb/errors"
-	"github.com/redis/go-redis/v9"
 )
 
 const (
-	podInfoKey       = "/pod/info/%s" // /pod/info/{podname}
-	serviceStatusKey = "/services/%s" // /service/{ipv4:port}
-
-	nodeInfoKey      = "/node/%s"              // /node/{nodename}
-	nodePodKey       = "/node/%s:pod/%s"       // /node/{podname}:pod/{nodename}
-	nodeCaKey        = "/node/%s:ca"           // /node/{nodename}:ca
-	nodeCertKey      = "/node/%s:cert"         // /node/{nodename}:cert
-	nodeKeyKey       = "/node/%s:key"          // /node/{nodename}:key
-	nodeStatusPrefix = "/status:node/"         // /status:node/{nodename} -> node status key
-	nodeWorkloadsKey = "/node/%s:workloads/%s" // /node/{nodename}:workloads/{workloadID}
-
-	workloadInfoKey          = "/workloads/%s" // /workloads/{workloadID}
-	workloadDeployPrefix     = "/deploy"       // /deploy/{appname}/{entrypoint}/{nodename}/{workloadID}
-	workloadStatusPrefix     = "/status"       // /status/{appname}/{entrypoint}/{nodename}/{workloadID} value -> something by agent
-	workloadProcessingPrefix = "/processing"   // /processing/{appname}/{entrypoint}/{nodename}/{opsIdent} value -> count
-
 	keyNotifyPrefix = "__keyspace@%d__:%s"
 
 	actionExpire  = "expire"

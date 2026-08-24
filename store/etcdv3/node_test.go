@@ -7,10 +7,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
+	"github.com/projecteru2/core/store/common"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestAddNode(t *testing.T) {
@@ -36,7 +37,7 @@ func TestAddNode(t *testing.T) {
 	assert.Error(t, err)
 	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: podname, Labels: labels})
 	assert.Error(t, err)
-	key := fmt.Sprintf(nodeInfoKey, nodename)
+	key := fmt.Sprintf(common.NodeInfoKey, nodename)
 	_, err = m.GetOne(ctx, key)
 	assert.NoError(t, err)
 	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename2, Endpoint: endpoint, Podname: podname, Labels: labels})
@@ -182,11 +183,6 @@ func TestUpdateNode(t *testing.T) {
 	assert.NoError(t, m.UpdateNodes(ctx, node))
 }
 
-func TestExtractNodename(t *testing.T) {
-	assert := assert.New(t)
-	assert.Equal(extractNodename("/nodestatus/testname"), "testname")
-}
-
 func TestSetNodeStatus(t *testing.T) {
 	assert := assert.New(t)
 	m := NewMercury(t)
@@ -207,7 +203,7 @@ func TestSetNodeStatus(t *testing.T) {
 	})
 	assert.NoError(err)
 	assert.NoError(m.SetNodeStatus(context.Background(), node, 1))
-	key := filepath.Join(nodeStatusPrefix, node.Name)
+	key := filepath.Join(common.NodeStatusPrefix, node.Name)
 
 	_, err = m.GetOne(context.Background(), key)
 	assert.NoError(err)

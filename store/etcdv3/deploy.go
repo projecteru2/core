@@ -9,11 +9,12 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/store/common"
 )
 
 func (m *Mercury) GetDeployStatus(ctx context.Context, appname, entryname string) (map[string]int, error) {
 	// trailing slash keeps the prefix from matching a longer entrypoint
-	key := filepath.Join(workloadDeployPrefix, appname, entryname) + "/"
+	key := filepath.Join(common.WorkloadDeployPrefix, appname, entryname) + "/"
 	resp, err := m.Get(ctx, key, clientv3.WithPrefix(), clientv3.WithKeysOnly())
 	if err != nil {
 		return nil, err

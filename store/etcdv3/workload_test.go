@@ -7,9 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/projecteru2/core/types"
-
 	"github.com/stretchr/testify/assert"
+
+	"github.com/projecteru2/core/store/common"
+	"github.com/projecteru2/core/types"
 )
 
 func TestAddORUpdateWorkload(t *testing.T) {
@@ -239,9 +240,9 @@ func TestWorkloadStatusStream(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = m.AddPod(ctx, podname, "CPU")
 	assert.NoError(t, err)
-	_, err = m.Create(ctx, fmt.Sprintf(nodeInfoKey, nodename), string(nodeBytes))
+	_, err = m.Create(ctx, fmt.Sprintf(common.NodeInfoKey, nodename), string(nodeBytes))
 	assert.NoError(t, err)
-	_, err = m.Create(ctx, fmt.Sprintf(nodePodKey, podname, nodename), string(nodeBytes))
+	_, err = m.Create(ctx, fmt.Sprintf(common.NodePodKey, podname, nodename), string(nodeBytes))
 	assert.NoError(t, err)
 	assert.NoError(t, m.AddWorkload(ctx, workload, nil))
 	workload.StatusMeta = &types.StatusMeta{

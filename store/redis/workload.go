@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/store/common"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -20,7 +21,11 @@ func (r *Rediaron) UpdateWorkload(ctx context.Context, workload *types.Workload)
 }
 
 func (r *Rediaron) RemoveWorkload(ctx context.Context, workload *types.Workload) error {
-	return r.cleanWorkloadData(ctx, workload)
+	keys, err := common.WorkloadKeys(workload)
+	if err != nil {
+		return err
+	}
+	return r.BatchDelete(ctx, keys)
 }
 
 func (r *Rediaron) GetWorkload(ctx context.Context, ID string) (*types.Workload, error) {
@@ -34,7 +39,7 @@ func (r *Rediaron) GetWorkload(ctx context.Context, ID string) (*types.Workload,
 func (r *Rediaron) GetWorkloads(ctx context.Context, IDs []string) (workloads []*types.Workload, err error) {
 	keys := []string{}
 	for _, ID := range IDs {
-		keys = append(keys, fmt.Sprintf(workloadInfoKey, ID))
+		keys = append(keys, fmt.Sprintf(common.WorkloadInfoKey, ID))
 	}
 
 	return r.doGetWorkloads(ctx, keys)
@@ -49,18 +54,7 @@ func (r *Rediaron) GetWorkloadStatus(ctx context.Context, ID string) (*types.Sta
 }
 
 func (r *Rediaron) SetWorkloadStatus(ctx context.Context, status *types.StatusMeta, ttl int64) error {
-	if status.Appname == "" || status.Entrypoint == "" || status.Nodename == "" {
-		return types.ErrInvaildWorkloadStatus
-	}
-
-	data, err := json.Marshal(status)
-	if err != nil {
-		return err
-	}
-	statusVal := string(data)
-	statusKey := filepath.Join(workloadStatusPrefix, status.Appname, status.Entrypoint, status.Nodename, status.ID)
-	workloadKey := fmt.Sprintf(workloadInfoKey, status.ID)
-	return r.BindStatus(ctx, workloadKey, statusKey, statusVal, ttl)
+	return common.SetWorkloadStatus(ctx, r, status, ttl)
 }
 
 func (r *Rediaron) ListWorkloads(ctx context.Context, appname, entrypoint, nodename string, limit int64, labels map[string]string) ([]*types.Workload, error) {
@@ -71,7 +65,7 @@ func (r *Rediaron) ListWorkloads(ctx context.Context, appname, entrypoint, noden
 		nodename = ""
 	}
 	// trailing slash keeps the prefix from matching a longer nodename
-	key := filepath.Join(workloadDeployPrefix, appname, entrypoint, nodename) + "/*"
+	key := filepath.Join(common.WorkloadDeployPrefix, appname, entrypoint, nodename) + "/*"
 	data, err := r.getByKeyPattern(ctx, key, limit)
 	if err != nil {
 		return nil, err
@@ -92,7 +86,7 @@ func (r *Rediaron) ListWorkloads(ctx context.Context, appname, entrypoint, noden
 }
 
 func (r *Rediaron) ListNodeWorkloads(ctx context.Context, nodename string, labels map[string]string) ([]*types.Workload, error) {
-	key := fmt.Sprintf(nodeWorkloadsKey, nodename, "*")
+	key := fmt.Sprintf(common.NodeWorkloadsKey, nodename, "*")
 	data, err := r.getByKeyPattern(ctx, key, 0)
 	if err != nil {
 		return nil, err
@@ -120,7 +114,7 @@ func (r *Rediaron) WorkloadStatusStream(ctx context.Context, appname, entrypoint
 		nodename = ""
 	}
 	// trailing slash keeps the prefix from matching a longer nodename
-	statusKey := filepath.Join(workloadStatusPrefix, appname, entrypoint, nodename) + "/*"
+	statusKey := filepath.Join(common.WorkloadStatusPrefix, appname, entrypoint, nodename) + "/*"
 	ch := make(chan *types.WorkloadStatus)
 	logger := log.WithFunc("store.redis.WorkloadStatusStream")
 	if err := r.pool.Invoke(func() {
@@ -131,7 +125,7 @@ func (r *Rediaron) WorkloadStatusStream(ctx context.Context, appname, entrypoint
 
 		logger.Infof(ctx, "watch on %s", statusKey)
 		for message := range r.KNotify(ctx, statusKey) {
-			_, _, _, ID := parseStatusKey(message.Key)
+			_, _, _, ID := common.ParseStatusKey(message.Key)
 			msg := &types.WorkloadStatus{
 				ID:     ID,
 				Delete: message.Action == actionDel || message.Action == actionExpired,
@@ -153,21 +147,6 @@ func (r *Rediaron) WorkloadStatusStream(ctx context.Context, appname, entrypoint
 		close(ch)
 	}
 	return ch
-}
-
-func (r *Rediaron) cleanWorkloadData(ctx context.Context, workload *types.Workload) error {
-	appname, entrypoint, _, err := utils.ParseWorkloadName(workload.Name)
-	if err != nil {
-		return err
-	}
-
-	keys := []string{
-		filepath.Join(workloadStatusPrefix, appname, entrypoint, workload.Nodename, workload.ID),
-		filepath.Join(workloadDeployPrefix, appname, entrypoint, workload.Nodename, workload.ID),
-		fmt.Sprintf(workloadInfoKey, workload.ID),
-		fmt.Sprintf(nodeWorkloadsKey, workload.Nodename, workload.ID),
-	}
-	return r.BatchDelete(ctx, keys)
 }
 
 func (r *Rediaron) doGetWorkloads(ctx context.Context, keys []string) ([]*types.Workload, error) {
@@ -200,7 +179,7 @@ func (r *Rediaron) bindWorkloadsAdditions(ctx context.Context, workloads []*type
 		if err != nil {
 			return nil, err
 		}
-		statusKeys[workload.ID] = filepath.Join(workloadStatusPrefix, appname, entrypoint, workload.Nodename, workload.ID)
+		statusKeys[workload.ID] = filepath.Join(common.WorkloadStatusPrefix, appname, entrypoint, workload.Nodename, workload.ID)
 		if _, ok := nodenameCache[workload.Nodename]; !ok {
 			nodenameCache[workload.Nodename] = struct{}{}
 			nodenames = append(nodenames, workload.Nodename)
@@ -246,14 +225,14 @@ func (r *Rediaron) doOpsWorkload(ctx context.Context, workload *types.Workload, 
 	workloadData := string(bytes)
 
 	data := map[string]string{
-		fmt.Sprintf(workloadInfoKey, workload.ID):                                                workloadData,
-		fmt.Sprintf(nodeWorkloadsKey, workload.Nodename, workload.ID):                            workloadData,
-		filepath.Join(workloadDeployPrefix, appname, entrypoint, workload.Nodename, workload.ID): workloadData,
+		fmt.Sprintf(common.WorkloadInfoKey, workload.ID):                                                workloadData,
+		fmt.Sprintf(common.NodeWorkloadsKey, workload.Nodename, workload.ID):                            workloadData,
+		filepath.Join(common.WorkloadDeployPrefix, appname, entrypoint, workload.Nodename, workload.ID): workloadData,
 	}
 
 	if create {
 		if processing != nil {
-			err = r.BatchCreateAndDecr(ctx, data, r.getProcessingKey(processing))
+			err = r.BatchCreateAndDecr(ctx, data, common.ProcessingKey(processing))
 		} else {
 			err = r.BatchCreate(ctx, data)
 		}

@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/projecteru2/core/store/common"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -161,10 +162,6 @@ func (s *RediaronTestSuite) TestUpdateNodeResource() {
 	s.Equal(node.Name, "test")
 }
 
-func (s *RediaronTestSuite) TestExtractNodename() {
-	s.Equal(extractNodename("/nodestatus/testname"), "testname")
-}
-
 func (s *RediaronTestSuite) TestSetNodeStatus() {
 	node := &types.Node{
 		NodeMeta: types.NodeMeta{
@@ -174,7 +171,7 @@ func (s *RediaronTestSuite) TestSetNodeStatus() {
 		},
 	}
 	s.NoError(s.rediaron.SetNodeStatus(context.Background(), node, 1))
-	key := filepath.Join(nodeStatusPrefix, node.Name)
+	key := filepath.Join(common.NodeStatusPrefix, node.Name)
 
 	_, err := s.rediaron.GetOne(context.Background(), key)
 	s.NoError(err)
@@ -225,7 +222,7 @@ func (s *RediaronTestSuite) TestNodeStatusStream() {
 			}
 			time.Sleep(500 * time.Millisecond)
 			s.NoError(s.rediaron.SetNodeStatus(context.Background(), node, 1))
-			triggerMockedKeyspaceNotification(s.rediaron.cli, filepath.Join(nodeStatusPrefix, node.Name), actionSet)
+			triggerMockedKeyspaceNotification(s.rediaron.cli, filepath.Join(common.NodeStatusPrefix, node.Name), actionSet)
 		}
 	}()
 
@@ -233,7 +230,7 @@ func (s *RediaronTestSuite) TestNodeStatusStream() {
 	ch := s.rediaron.NodeStatusStream(ctx)
 	go func() {
 		time.Sleep(1500 * time.Millisecond)
-		triggerMockedKeyspaceNotification(s.rediaron.cli, filepath.Join(nodeStatusPrefix, node.Name), actionExpired)
+		triggerMockedKeyspaceNotification(s.rediaron.cli, filepath.Join(common.NodeStatusPrefix, node.Name), actionExpired)
 		time.Sleep(500 * time.Millisecond)
 		cancel()
 	}()

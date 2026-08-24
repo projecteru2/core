@@ -5,13 +5,15 @@ import (
 	"fmt"
 	"sort"
 	"time"
+
+	"github.com/projecteru2/core/store/common"
 )
 
 func (s *RediaronTestSuite) TestRegisterServiceWithDeregister() {
 	m := s.rediaron
 	ctx := context.Background()
 	svc := "svc"
-	path := fmt.Sprintf(serviceStatusKey, svc)
+	path := fmt.Sprintf(common.ServiceStatusKey, svc)
 	_, deregister, err := m.RegisterService(ctx, svc, time.Minute)
 	s.NoError(err)
 
@@ -45,7 +47,7 @@ func (s *RediaronTestSuite) TestServiceStatusStream() {
 	_, _, err = m.RegisterService(ctx, "127.0.0.1:5002", time.Second)
 	s.NoError(err)
 	time.Sleep(500 * time.Millisecond)
-	triggerMockedKeyspaceNotification(s.rediaron.cli, fmt.Sprintf(serviceStatusKey, "127.0.0.1:5002"), actionSet)
+	triggerMockedKeyspaceNotification(s.rediaron.cli, fmt.Sprintf(common.ServiceStatusKey, "127.0.0.1:5002"), actionSet)
 
 	endpoints := <-ch
 	sort.Strings(endpoints)
@@ -54,7 +56,7 @@ func (s *RediaronTestSuite) TestServiceStatusStream() {
 	_, _, err = m.RegisterService(ctx, "127.0.0.1:5002", time.Second)
 	unregisterService1()
 	time.Sleep(500 * time.Millisecond)
-	triggerMockedKeyspaceNotification(s.rediaron.cli, fmt.Sprintf(serviceStatusKey, "127.0.0.1:5001"), actionDel)
+	triggerMockedKeyspaceNotification(s.rediaron.cli, fmt.Sprintf(common.ServiceStatusKey, "127.0.0.1:5001"), actionDel)
 
 	s.rediserver.FastForward(time.Second)
 	s.Equal(<-ch, []string{"127.0.0.1:5002"})

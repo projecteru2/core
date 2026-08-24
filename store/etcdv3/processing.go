@@ -6,30 +6,27 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/projecteru2/core/log"
-	"github.com/projecteru2/core/types"
-
 	clientv3 "go.etcd.io/etcd/client/v3"
+
+	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/store/common"
+	"github.com/projecteru2/core/types"
 )
 
 func (m *Mercury) CreateProcessing(ctx context.Context, processing *types.Processing, count int) error {
-	_, err := m.Create(ctx, m.getProcessingKey(processing), strconv.Itoa(count))
+	_, err := m.Create(ctx, common.ProcessingKey(processing), strconv.Itoa(count))
 	return err
 }
 
 func (m *Mercury) DeleteProcessing(ctx context.Context, processing *types.Processing) error {
-	_, err := m.Delete(ctx, m.getProcessingKey(processing))
+	_, err := m.Delete(ctx, common.ProcessingKey(processing))
 	return err
-}
-
-func (m *Mercury) getProcessingKey(processing *types.Processing) string {
-	return filepath.Join(workloadProcessingPrefix, processing.Appname, processing.Entryname, processing.Nodename, processing.Ident)
 }
 
 func (m *Mercury) doLoadProcessing(ctx context.Context, appname, entryname string) (map[string]int, error) {
 	nodesCount := map[string]int{}
 	// trailing slash keeps the prefix from matching a longer entrypoint
-	processingKey := filepath.Join(workloadProcessingPrefix, appname, entryname) + "/"
+	processingKey := filepath.Join(common.WorkloadProcessingPrefix, appname, entryname) + "/"
 	resp, err := m.Get(ctx, processingKey, clientv3.WithPrefix())
 	if err != nil {
 		return nil, err

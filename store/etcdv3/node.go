@@ -18,6 +18,7 @@ import (
 	"github.com/projecteru2/core/engine/mocks/fakeengine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/store/common"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -49,7 +50,7 @@ func (m *Mercury) GetNode(ctx context.Context, nodename string) (*types.Node, er
 func (m *Mercury) GetNodes(ctx context.Context, nodenames []string) ([]*types.Node, error) {
 	nodesKeys := []string{}
 	for _, nodename := range nodenames {
-		key := fmt.Sprintf(nodeInfoKey, nodename)
+		key := fmt.Sprintf(common.NodeInfoKey, nodename)
 		nodesKeys = append(nodesKeys, key)
 	}
 
@@ -62,7 +63,7 @@ func (m *Mercury) GetNodes(ctx context.Context, nodenames []string) ([]*types.No
 
 func (m *Mercury) GetNodesByPod(ctx context.Context, nodeFilter *types.NodeFilter, withoutEngine bool) ([]*types.Node, error) {
 	do := func(podname string) ([]*types.Node, error) {
-		key := fmt.Sprintf(nodePodKey, podname, "")
+		key := fmt.Sprintf(common.NodePodKey, podname, "")
 		resp, err := m.Get(ctx, key, clientv3.WithPrefix())
 		if err != nil {
 			return nil, err
@@ -100,11 +101,11 @@ func (m *Mercury) UpdateNodes(ctx context.Context, nodes ...*types.Node) error {
 			return err
 		}
 		d := string(bytes)
-		data[fmt.Sprintf(nodeInfoKey, node.Name)] = d
-		data[fmt.Sprintf(nodePodKey, node.Podname, node.Name)] = d
-		addIfNotEmpty(fmt.Sprintf(nodeCaKey, node.Name), node.Ca)
-		addIfNotEmpty(fmt.Sprintf(nodeCertKey, node.Name), node.Cert)
-		addIfNotEmpty(fmt.Sprintf(nodeKeyKey, node.Name), node.Key)
+		data[fmt.Sprintf(common.NodeInfoKey, node.Name)] = d
+		data[fmt.Sprintf(common.NodePodKey, node.Podname, node.Name)] = d
+		addIfNotEmpty(fmt.Sprintf(common.NodeCaKey, node.Name), node.Ca)
+		addIfNotEmpty(fmt.Sprintf(common.NodeCertKey, node.Name), node.Cert)
+		addIfNotEmpty(fmt.Sprintf(common.NodeKeyKey, node.Name), node.Key)
 	}
 
 	resp, err := m.BatchPut(ctx, data)
@@ -122,8 +123,8 @@ func (m *Mercury) SetNodeStatus(ctx context.Context, node *types.Node, ttl int64
 		return types.ErrInvaildNodeStatusTTL
 	}
 
-	statusKey := filepath.Join(nodeStatusPrefix, node.Name)
-	entityKey := fmt.Sprintf(nodeInfoKey, node.Name)
+	statusKey := filepath.Join(common.NodeStatusPrefix, node.Name)
+	entityKey := fmt.Sprintf(common.NodeInfoKey, node.Name)
 
 	if ttl < 0 {
 		_, err := m.Delete(ctx, statusKey)
@@ -143,7 +144,7 @@ func (m *Mercury) SetNodeStatus(ctx context.Context, node *types.Node, ttl int64
 }
 
 func (m *Mercury) GetNodeStatus(ctx context.Context, nodename string) (*types.NodeStatus, error) {
-	key := filepath.Join(nodeStatusPrefix, nodename)
+	key := filepath.Join(common.NodeStatusPrefix, nodename)
 	ev, err := m.GetOne(ctx, key)
 	if err != nil {
 		return nil, err
@@ -165,8 +166,8 @@ func (m *Mercury) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
 			close(ch)
 		}()
 
-		logger.Infof(ctx, "watch on %s", nodeStatusPrefix)
-		for resp := range m.Watch(ctx, nodeStatusPrefix, clientv3.WithPrefix()) {
+		logger.Infof(ctx, "watch on %s", common.NodeStatusPrefix)
+		for resp := range m.Watch(ctx, common.NodeStatusPrefix, clientv3.WithPrefix()) {
 			if resp.Err() != nil {
 				if !resp.Canceled {
 					logger.Error(ctx, resp.Err(), "watch failed")
@@ -174,7 +175,7 @@ func (m *Mercury) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
 				return
 			}
 			for _, event := range resp.Events {
-				nodename := extractNodename(string(event.Kv.Key))
+				nodename := utils.Tail(string(event.Kv.Key))
 				status := &types.NodeStatus{
 					Nodename: nodename,
 					Alive:    event.Type != clientv3.EventTypeDelete,
@@ -219,7 +220,7 @@ func (m *Mercury) makeClient(ctx context.Context, node *types.Node) (engine.API,
 
 func (m *Mercury) loadCert(ctx context.Context, nodename string) (ca, cert, key string, err error) {
 	data := []string{"", "", ""}
-	for i, format := range []string{nodeCaKey, nodeCertKey, nodeKeyKey} {
+	for i, format := range []string{common.NodeCaKey, common.NodeCertKey, common.NodeKeyKey} {
 		ev, err := m.GetOne(ctx, fmt.Sprintf(format, nodename))
 		if err != nil {
 			if !errors.Is(err, types.ErrInvaildCount) {
@@ -236,13 +237,13 @@ func (m *Mercury) loadCert(ctx context.Context, nodename string) (ca, cert, key 
 func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, labels map[string]string, test bool) (*types.Node, error) {
 	data := map[string]string{}
 	if ca != "" {
-		data[fmt.Sprintf(nodeCaKey, name)] = ca
+		data[fmt.Sprintf(common.NodeCaKey, name)] = ca
 	}
 	if cert != "" {
-		data[fmt.Sprintf(nodeCertKey, name)] = cert
+		data[fmt.Sprintf(common.NodeCertKey, name)] = cert
 	}
 	if key != "" {
-		data[fmt.Sprintf(nodeKeyKey, name)] = key
+		data[fmt.Sprintf(common.NodeKeyKey, name)] = key
 	}
 
 	node := &types.Node{
@@ -261,8 +262,8 @@ func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, ce
 	}
 
 	d := string(bytes)
-	data[fmt.Sprintf(nodeInfoKey, name)] = d
-	data[fmt.Sprintf(nodePodKey, podname, name)] = d
+	data[fmt.Sprintf(common.NodeInfoKey, name)] = d
+	data[fmt.Sprintf(common.NodePodKey, podname, name)] = d
 
 	resp, err := m.BatchCreate(ctx, data)
 	if err != nil {
@@ -278,11 +279,11 @@ func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, ce
 // certs are written before the node record, so a failed create leaves them behind
 func (m *Mercury) doRemoveNode(ctx context.Context, podname, nodename, endpoint string) error {
 	keys := []string{
-		fmt.Sprintf(nodeInfoKey, nodename),
-		fmt.Sprintf(nodePodKey, podname, nodename),
-		fmt.Sprintf(nodeCaKey, nodename),
-		fmt.Sprintf(nodeCertKey, nodename),
-		fmt.Sprintf(nodeKeyKey, nodename),
+		fmt.Sprintf(common.NodeInfoKey, nodename),
+		fmt.Sprintf(common.NodePodKey, podname, nodename),
+		fmt.Sprintf(common.NodeCaKey, nodename),
+		fmt.Sprintf(common.NodeCertKey, nodename),
+		fmt.Sprintf(common.NodeKeyKey, nodename),
 	}
 
 	_, err := m.BatchDelete(ctx, keys)
@@ -354,9 +355,4 @@ func (m *Mercury) doGetNodes(
 	}
 
 	return nodes, nil
-}
-
-func extractNodename(s string) string {
-	ps := strings.Split(s, "/")
-	return ps[len(ps)-1]
 }

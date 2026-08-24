@@ -3,16 +3,15 @@ package redis
 import (
 	"context"
 	"fmt"
-	"maps"
-	"slices"
-	"strings"
 	"time"
 
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/store/common"
+	"github.com/projecteru2/core/utils"
 )
 
 func (r *Rediaron) ServiceStatusStream(ctx context.Context) (chan []string, error) {
-	key := fmt.Sprintf(serviceStatusKey, "*")
+	key := fmt.Sprintf(common.ServiceStatusKey, "*")
 	ch := make(chan []string)
 	if err := r.pool.Invoke(func() {
 		defer close(ch)
@@ -24,15 +23,15 @@ func (r *Rediaron) ServiceStatusStream(ctx context.Context) (chan []string, erro
 			log.WithFunc("store.redis.ServiceStatusStream").Error(ctx, err, "failed to get current services")
 			return
 		}
-		eps := endpoints{}
+		eps := common.Endpoints{}
 		for k := range data {
-			eps.Add(parseServiceKey(k))
+			eps.Add(utils.Tail(k))
 		}
 		ch <- eps.ToSlice()
 
 		for message := range watchC {
 			changed := false
-			endpoint := parseServiceKey(message.Key)
+			endpoint := utils.Tail(message.Key)
 			switch message.Action {
 			case actionSet, actionExpire:
 				changed = eps.Add(endpoint)
@@ -50,33 +49,6 @@ func (r *Rediaron) ServiceStatusStream(ctx context.Context) (chan []string, erro
 }
 
 func (r *Rediaron) RegisterService(ctx context.Context, serviceAddress string, expire time.Duration) (<-chan struct{}, func(), error) {
-	key := fmt.Sprintf(serviceStatusKey, serviceAddress)
+	key := fmt.Sprintf(common.ServiceStatusKey, serviceAddress)
 	return r.StartEphemeral(ctx, key, expire)
-}
-
-type endpoints map[string]struct{}
-
-func (e endpoints) Add(endpoint string) (changed bool) {
-	if _, ok := e[endpoint]; !ok {
-		e[endpoint] = struct{}{}
-		changed = true
-	}
-	return changed
-}
-
-func (e endpoints) Remove(endpoint string) (changed bool) {
-	if _, ok := e[endpoint]; ok {
-		delete(e, endpoint)
-		changed = true
-	}
-	return changed
-}
-
-func (e endpoints) ToSlice() []string {
-	return slices.Collect(maps.Keys(e))
-}
-
-func parseServiceKey(key string) (endpoint string) {
-	parts := strings.Split(key, "/")
-	return parts[len(parts)-1]
 }

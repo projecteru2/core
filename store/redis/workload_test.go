@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/projecteru2/core/store/common"
 	"github.com/projecteru2/core/types"
 )
 
@@ -240,9 +241,9 @@ func (s *RediaronTestSuite) TestWorkloadStatusStream() {
 	s.NoError(err)
 	_, err = m.AddPod(ctx, podname, "CPU")
 	s.NoError(err)
-	err = m.BatchCreate(ctx, map[string]string{fmt.Sprintf(nodeInfoKey, nodename): string(nodeBytes)})
+	err = m.BatchCreate(ctx, map[string]string{fmt.Sprintf(common.NodeInfoKey, nodename): string(nodeBytes)})
 	s.NoError(err)
-	err = m.BatchCreate(ctx, map[string]string{fmt.Sprintf(nodePodKey, podname, nodename): string(nodeBytes)})
+	err = m.BatchCreate(ctx, map[string]string{fmt.Sprintf(common.NodePodKey, podname, nodename): string(nodeBytes)})
 	s.NoError(err)
 	s.NoError(m.AddWorkload(ctx, workload, nil))
 	workload.StatusMeta = &types.StatusMeta{

@@ -1,4 +1,4 @@
-package etcdv3
+package common
 
 import (
 	"testing"
@@ -8,7 +8,7 @@ import (
 
 func TestParseStatusKey(t *testing.T) {
 	key := "/deploy/appname/entry/node/id"
-	p1, p2, p3, p4 := parseStatusKey(key)
+	p1, p2, p3, p4 := ParseStatusKey(key)
 	assert.Equal(t, p1, "appname")
 	assert.Equal(t, p2, "entry")
 	assert.Equal(t, p3, "node")

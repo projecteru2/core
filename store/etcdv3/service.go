@@ -3,15 +3,14 @@ package etcdv3
 import (
 	"context"
 	"fmt"
-	"maps"
-	"slices"
-	"strings"
 	"time"
-
-	"github.com/projecteru2/core/log"
 
 	"go.etcd.io/etcd/api/v3/mvccpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
+
+	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/store/common"
+	"github.com/projecteru2/core/utils"
 )
 
 func (m *Mercury) ServiceStatusStream(ctx context.Context) (chan []string, error) {
@@ -21,16 +20,16 @@ func (m *Mercury) ServiceStatusStream(ctx context.Context) (chan []string, error
 		defer close(ch)
 
 		// must watch prior to get
-		watchChan := m.Watch(ctx, fmt.Sprintf(serviceStatusKey, ""), clientv3.WithPrefix())
+		watchChan := m.Watch(ctx, fmt.Sprintf(common.ServiceStatusKey, ""), clientv3.WithPrefix())
 
-		resp, err := m.Get(ctx, fmt.Sprintf(serviceStatusKey, ""), clientv3.WithPrefix())
+		resp, err := m.Get(ctx, fmt.Sprintf(common.ServiceStatusKey, ""), clientv3.WithPrefix())
 		if err != nil {
 			logger.Error(ctx, err, "failed to get current services")
 			return
 		}
-		eps := endpoints{}
+		eps := common.Endpoints{}
 		for _, ev := range resp.Kvs {
-			eps.Add(parseServiceKey(ev.Key))
+			eps.Add(utils.Tail(string(ev.Key)))
 		}
 		ch <- eps.ToSlice()
 
@@ -44,7 +43,7 @@ func (m *Mercury) ServiceStatusStream(ctx context.Context) (chan []string, error
 
 			changed := false
 			for _, ev := range resp.Events {
-				endpoint := parseServiceKey(ev.Kv.Key)
+				endpoint := utils.Tail(string(ev.Kv.Key))
 				switch ev.Type {
 				case mvccpb.PUT:
 					changed = eps.Add(endpoint) || changed
@@ -63,33 +62,6 @@ func (m *Mercury) ServiceStatusStream(ctx context.Context) (chan []string, error
 }
 
 func (m *Mercury) RegisterService(ctx context.Context, serviceAddress string, expire time.Duration) (<-chan struct{}, func(), error) {
-	key := fmt.Sprintf(serviceStatusKey, serviceAddress)
+	key := fmt.Sprintf(common.ServiceStatusKey, serviceAddress)
 	return m.StartEphemeral(ctx, key, expire)
-}
-
-type endpoints map[string]struct{}
-
-func (e endpoints) Add(endpoint string) (changed bool) {
-	if _, ok := e[endpoint]; !ok {
-		e[endpoint] = struct{}{}
-		changed = true
-	}
-	return changed
-}
-
-func (e endpoints) Remove(endpoint string) (changed bool) {
-	if _, ok := e[endpoint]; ok {
-		delete(e, endpoint)
-		changed = true
-	}
-	return changed
-}
-
-func (e endpoints) ToSlice() []string {
-	return slices.Collect(maps.Keys(e))
-}
-
-func parseServiceKey(key []byte) (endpoint string) {
-	parts := strings.Split(string(key), "/")
-	return parts[len(parts)-1]
 }

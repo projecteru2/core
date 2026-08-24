@@ -6,14 +6,14 @@ import (
 	"fmt"
 
 	"github.com/cockroachdb/errors"
-
-	"github.com/projecteru2/core/types"
-
 	clientv3 "go.etcd.io/etcd/client/v3"
+
+	"github.com/projecteru2/core/store/common"
+	"github.com/projecteru2/core/types"
 )
 
 func (m *Mercury) AddPod(ctx context.Context, name, desc string) (*types.Pod, error) {
-	key := fmt.Sprintf(podInfoKey, name)
+	key := fmt.Sprintf(common.PodInfoKey, name)
 	pod := &types.Pod{Name: name, Desc: desc}
 
 	bytes, err := json.Marshal(pod)
@@ -31,7 +31,7 @@ func (m *Mercury) AddPod(ctx context.Context, name, desc string) (*types.Pod, er
 }
 
 func (m *Mercury) RemovePod(ctx context.Context, podname string) error {
-	key := fmt.Sprintf(podInfoKey, podname)
+	key := fmt.Sprintf(common.PodInfoKey, podname)
 
 	ns, err := m.GetNodesByPod(ctx, &types.NodeFilter{Podname: podname, All: true}, false)
 	if err != nil {
@@ -53,7 +53,7 @@ func (m *Mercury) RemovePod(ctx context.Context, podname string) error {
 }
 
 func (m *Mercury) GetPod(ctx context.Context, name string) (*types.Pod, error) {
-	key := fmt.Sprintf(podInfoKey, name)
+	key := fmt.Sprintf(common.PodInfoKey, name)
 
 	ev, err := m.GetOne(ctx, key)
 	if err != nil {
@@ -68,7 +68,7 @@ func (m *Mercury) GetPod(ctx context.Context, name string) (*types.Pod, error) {
 }
 
 func (m *Mercury) GetAllPods(ctx context.Context) ([]*types.Pod, error) {
-	resp, err := m.Get(ctx, fmt.Sprintf(podInfoKey, ""), clientv3.WithPrefix())
+	resp, err := m.Get(ctx, fmt.Sprintf(common.PodInfoKey, ""), clientv3.WithPrefix())
 	if err != nil {
 		return []*types.Pod{}, err
 	}

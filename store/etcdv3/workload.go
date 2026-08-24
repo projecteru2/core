@@ -6,12 +6,13 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/projecteru2/core/log"
-	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
-
 	"go.etcd.io/etcd/api/v3/mvccpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
+
+	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/store/common"
+	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 func (m *Mercury) AddWorkload(ctx context.Context, workload *types.Workload, processing *types.Processing) error {
@@ -23,7 +24,12 @@ func (m *Mercury) UpdateWorkload(ctx context.Context, workload *types.Workload) 
 }
 
 func (m *Mercury) RemoveWorkload(ctx context.Context, workload *types.Workload) error {
-	return m.cleanWorkloadData(ctx, workload)
+	keys, err := common.WorkloadKeys(workload)
+	if err != nil {
+		return err
+	}
+	_, err = m.BatchDelete(ctx, keys)
+	return err
 }
 
 func (m *Mercury) GetWorkload(ctx context.Context, ID string) (*types.Workload, error) {
@@ -37,7 +43,7 @@ func (m *Mercury) GetWorkload(ctx context.Context, ID string) (*types.Workload, 
 func (m *Mercury) GetWorkloads(ctx context.Context, IDs []string) (workloads []*types.Workload, err error) {
 	keys := []string{}
 	for _, ID := range IDs {
-		keys = append(keys, fmt.Sprintf(workloadInfoKey, ID))
+		keys = append(keys, fmt.Sprintf(common.WorkloadInfoKey, ID))
 	}
 
 	return m.doGetWorkloads(ctx, keys)
@@ -52,18 +58,7 @@ func (m *Mercury) GetWorkloadStatus(ctx context.Context, ID string) (*types.Stat
 }
 
 func (m *Mercury) SetWorkloadStatus(ctx context.Context, status *types.StatusMeta, ttl int64) error {
-	if status.Appname == "" || status.Entrypoint == "" || status.Nodename == "" {
-		return types.ErrInvaildWorkloadStatus
-	}
-
-	data, err := json.Marshal(status)
-	if err != nil {
-		return err
-	}
-	statusVal := string(data)
-	statusKey := filepath.Join(workloadStatusPrefix, status.Appname, status.Entrypoint, status.Nodename, status.ID)
-	workloadKey := fmt.Sprintf(workloadInfoKey, status.ID)
-	return m.BindStatus(ctx, workloadKey, statusKey, statusVal, ttl)
+	return common.SetWorkloadStatus(ctx, m, status, ttl)
 }
 
 func (m *Mercury) ListWorkloads(ctx context.Context, appname, entrypoint, nodename string, limit int64, labels map[string]string) ([]*types.Workload, error) {
@@ -74,7 +69,7 @@ func (m *Mercury) ListWorkloads(ctx context.Context, appname, entrypoint, nodena
 		nodename = ""
 	}
 	// trailing slash keeps the prefix from matching a longer nodename
-	key := filepath.Join(workloadDeployPrefix, appname, entrypoint, nodename) + "/"
+	key := filepath.Join(common.WorkloadDeployPrefix, appname, entrypoint, nodename) + "/"
 	resp, err := m.Get(ctx, key, clientv3.WithPrefix(), clientv3.WithLimit(limit))
 	if err != nil {
 		return nil, err
@@ -95,7 +90,7 @@ func (m *Mercury) ListWorkloads(ctx context.Context, appname, entrypoint, nodena
 }
 
 func (m *Mercury) ListNodeWorkloads(ctx context.Context, nodename string, labels map[string]string) ([]*types.Workload, error) {
-	key := fmt.Sprintf(nodeWorkloadsKey, nodename, "")
+	key := fmt.Sprintf(common.NodeWorkloadsKey, nodename, "")
 	resp, err := m.Get(ctx, key, clientv3.WithPrefix())
 	if err != nil {
 		return nil, err
@@ -123,7 +118,7 @@ func (m *Mercury) WorkloadStatusStream(ctx context.Context, appname, entrypoint,
 		nodename = ""
 	}
 	// trailing slash keeps the prefix from matching a longer nodename
-	statusKey := filepath.Join(workloadStatusPrefix, appname, entrypoint, nodename) + "/"
+	statusKey := filepath.Join(common.WorkloadStatusPrefix, appname, entrypoint, nodename) + "/"
 	ch := make(chan *types.WorkloadStatus)
 	logger := log.WithFunc("store.etcdv3.WorkloadStatusStream")
 	if err := m.pool.Invoke(func() {
@@ -141,7 +136,7 @@ func (m *Mercury) WorkloadStatusStream(ctx context.Context, appname, entrypoint,
 				return
 			}
 			for _, ev := range resp.Events {
-				_, _, _, ID := parseStatusKey(string(ev.Kv.Key))
+				_, _, _, ID := common.ParseStatusKey(string(ev.Kv.Key))
 				msg := &types.WorkloadStatus{ID: ID, Delete: ev.Type == clientv3.EventTypeDelete}
 				workload, err := m.GetWorkload(ctx, ID)
 				switch {
@@ -161,22 +156,6 @@ func (m *Mercury) WorkloadStatusStream(ctx context.Context, appname, entrypoint,
 		close(ch)
 	}
 	return ch
-}
-
-func (m *Mercury) cleanWorkloadData(ctx context.Context, workload *types.Workload) error {
-	appname, entrypoint, _, err := utils.ParseWorkloadName(workload.Name)
-	if err != nil {
-		return err
-	}
-
-	keys := []string{
-		filepath.Join(workloadStatusPrefix, appname, entrypoint, workload.Nodename, workload.ID),
-		filepath.Join(workloadDeployPrefix, appname, entrypoint, workload.Nodename, workload.ID),
-		fmt.Sprintf(workloadInfoKey, workload.ID),
-		fmt.Sprintf(nodeWorkloadsKey, workload.Nodename, workload.ID),
-	}
-	_, err = m.BatchDelete(ctx, keys)
-	return err
 }
 
 func (m *Mercury) doGetWorkloads(ctx context.Context, keys []string) (workloads []*types.Workload, err error) {
@@ -208,7 +187,7 @@ func (m *Mercury) bindWorkloadsAdditions(ctx context.Context, workloads []*types
 		if err != nil {
 			return nil, err
 		}
-		statusKeys[workload.ID] = filepath.Join(workloadStatusPrefix, appname, entrypoint, workload.Nodename, workload.ID)
+		statusKeys[workload.ID] = filepath.Join(common.WorkloadStatusPrefix, appname, entrypoint, workload.Nodename, workload.ID)
 		if _, ok := nodenameCache[workload.Nodename]; !ok {
 			nodenameCache[workload.Nodename] = struct{}{}
 			nodenames = append(nodenames, workload.Nodename)
@@ -254,15 +233,15 @@ func (m *Mercury) doOpsWorkload(ctx context.Context, workload *types.Workload, p
 	workloadData := string(bytes)
 
 	data := map[string]string{
-		fmt.Sprintf(workloadInfoKey, workload.ID):                                                workloadData,
-		fmt.Sprintf(nodeWorkloadsKey, workload.Nodename, workload.ID):                            workloadData,
-		filepath.Join(workloadDeployPrefix, appname, entrypoint, workload.Nodename, workload.ID): workloadData,
+		fmt.Sprintf(common.WorkloadInfoKey, workload.ID):                                                workloadData,
+		fmt.Sprintf(common.NodeWorkloadsKey, workload.Nodename, workload.ID):                            workloadData,
+		filepath.Join(common.WorkloadDeployPrefix, appname, entrypoint, workload.Nodename, workload.ID): workloadData,
 	}
 
 	var resp *clientv3.TxnResponse
 	if create {
 		if processing != nil {
-			processingKey := m.getProcessingKey(processing)
+			processingKey := common.ProcessingKey(processing)
 			err = m.BatchCreateAndDecr(ctx, data, processingKey)
 		} else {
 			resp, err = m.BatchCreate(ctx, data)

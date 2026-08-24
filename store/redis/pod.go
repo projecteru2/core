@@ -7,11 +7,12 @@ import (
 
 	"github.com/cockroachdb/errors"
 
+	"github.com/projecteru2/core/store/common"
 	"github.com/projecteru2/core/types"
 )
 
 func (r *Rediaron) AddPod(ctx context.Context, name, desc string) (*types.Pod, error) {
-	key := fmt.Sprintf(podInfoKey, name)
+	key := fmt.Sprintf(common.PodInfoKey, name)
 	pod := &types.Pod{Name: name, Desc: desc}
 
 	bytes, err := json.Marshal(pod)
@@ -25,7 +26,7 @@ func (r *Rediaron) AddPod(ctx context.Context, name, desc string) (*types.Pod, e
 }
 
 func (r *Rediaron) RemovePod(ctx context.Context, podname string) error {
-	key := fmt.Sprintf(podInfoKey, podname)
+	key := fmt.Sprintf(common.PodInfoKey, podname)
 
 	ns, err := r.GetNodesByPod(ctx, &types.NodeFilter{Podname: podname, All: true}, false)
 	if err != nil {
@@ -41,7 +42,7 @@ func (r *Rediaron) RemovePod(ctx context.Context, podname string) error {
 }
 
 func (r *Rediaron) GetPod(ctx context.Context, name string) (*types.Pod, error) {
-	key := fmt.Sprintf(podInfoKey, name)
+	key := fmt.Sprintf(common.PodInfoKey, name)
 
 	data, err := r.cli.Get(ctx, key).Result()
 	if err != nil {
@@ -56,7 +57,7 @@ func (r *Rediaron) GetPod(ctx context.Context, name string) (*types.Pod, error) 
 }
 
 func (r *Rediaron) GetAllPods(ctx context.Context) ([]*types.Pod, error) {
-	data, err := r.getByKeyPattern(ctx, fmt.Sprintf(podInfoKey, "*"), 0)
+	data, err := r.getByKeyPattern(ctx, fmt.Sprintf(common.PodInfoKey, "*"), 0)
 	if err != nil {
 		return nil, err
 	}

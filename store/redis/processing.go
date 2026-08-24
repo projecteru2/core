@@ -7,27 +7,24 @@ import (
 	"strings"
 
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/store/common"
 	"github.com/projecteru2/core/types"
 )
 
 func (r *Rediaron) CreateProcessing(ctx context.Context, processing *types.Processing, count int) error {
-	processingKey := r.getProcessingKey(processing)
+	processingKey := common.ProcessingKey(processing)
 	return r.BatchCreate(ctx, map[string]string{processingKey: strconv.Itoa(count)})
 }
 
 func (r *Rediaron) DeleteProcessing(ctx context.Context, processing *types.Processing) error {
-	return r.BatchDelete(ctx, []string{r.getProcessingKey(processing)})
-}
-
-func (r *Rediaron) getProcessingKey(processing *types.Processing) string {
-	return filepath.Join(workloadProcessingPrefix, processing.Appname, processing.Entryname, processing.Nodename, processing.Ident)
+	return r.BatchDelete(ctx, []string{common.ProcessingKey(processing)})
 }
 
 // doLoadProcessing counts the in-flight workloads per node.
 func (r *Rediaron) doLoadProcessing(ctx context.Context, appname, entryname string) (map[string]int, error) {
 	nodesCount := map[string]int{}
 	// trailing slash keeps the prefix from matching a longer entrypoint
-	processingKey := filepath.Join(workloadProcessingPrefix, appname, entryname) + "/*"
+	processingKey := filepath.Join(common.WorkloadProcessingPrefix, appname, entryname) + "/*"
 	data, err := r.getByKeyPattern(ctx, processingKey, 0)
 	if err != nil {
 		return nil, err

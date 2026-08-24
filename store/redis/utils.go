@@ -2,19 +2,7 @@ package redis
 
 import (
 	"context"
-	"strings"
 )
-
-func extractNodename(s string) string {
-	ps := strings.Split(s, "/")
-	return ps[len(ps)-1]
-}
-
-func parseStatusKey(key string) (string, string, string, string) {
-	parts := strings.Split(key, "/")
-	l := len(parts)
-	return parts[l-4], parts[l-3], parts[l-2], parts[l-1]
-}
 
 func (r *Rediaron) getByKeyPattern(ctx context.Context, pattern string, limit int64) (map[string]string, error) {
 	var (

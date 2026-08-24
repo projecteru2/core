@@ -9,16 +9,17 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cockroachdb/errors"
+
 	"github.com/projecteru2/core/engine"
 	enginefactory "github.com/projecteru2/core/engine/factory"
 	"github.com/projecteru2/core/engine/fake"
 	"github.com/projecteru2/core/engine/mocks/fakeengine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/store/common"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	"github.com/cockroachdb/errors"
 )
 
 func (r *Rediaron) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*types.Node, error) {
@@ -48,7 +49,7 @@ func (r *Rediaron) GetNode(ctx context.Context, nodename string) (*types.Node, e
 func (r *Rediaron) GetNodes(ctx context.Context, nodenames []string) ([]*types.Node, error) {
 	nodesKeys := []string{}
 	for _, nodename := range nodenames {
-		key := fmt.Sprintf(nodeInfoKey, nodename)
+		key := fmt.Sprintf(common.NodeInfoKey, nodename)
 		nodesKeys = append(nodesKeys, key)
 	}
 
@@ -61,7 +62,7 @@ func (r *Rediaron) GetNodes(ctx context.Context, nodenames []string) ([]*types.N
 
 func (r *Rediaron) GetNodesByPod(ctx context.Context, nodeFilter *types.NodeFilter, withoutEngine bool) ([]*types.Node, error) {
 	do := func(podname string) ([]*types.Node, error) {
-		key := fmt.Sprintf(nodePodKey, podname, "*")
+		key := fmt.Sprintf(common.NodePodKey, podname, "*")
 		kvs, err := r.getByKeyPattern(ctx, key, 0)
 		if err != nil {
 			return nil, err
@@ -99,11 +100,11 @@ func (r *Rediaron) UpdateNodes(ctx context.Context, nodes ...*types.Node) error 
 			return err
 		}
 		d := string(bytes)
-		data[fmt.Sprintf(nodeInfoKey, node.Name)] = d
-		data[fmt.Sprintf(nodePodKey, node.Podname, node.Name)] = d
-		addIfNotEmpty(fmt.Sprintf(nodeCaKey, node.Name), node.Ca)
-		addIfNotEmpty(fmt.Sprintf(nodeCertKey, node.Name), node.Cert)
-		addIfNotEmpty(fmt.Sprintf(nodeKeyKey, node.Name), node.Key)
+		data[fmt.Sprintf(common.NodeInfoKey, node.Name)] = d
+		data[fmt.Sprintf(common.NodePodKey, node.Podname, node.Name)] = d
+		addIfNotEmpty(fmt.Sprintf(common.NodeCaKey, node.Name), node.Ca)
+		addIfNotEmpty(fmt.Sprintf(common.NodeCertKey, node.Name), node.Cert)
+		addIfNotEmpty(fmt.Sprintf(common.NodeKeyKey, node.Name), node.Key)
 	}
 	return r.BatchPut(ctx, data)
 }
@@ -113,7 +114,7 @@ func (r *Rediaron) SetNodeStatus(ctx context.Context, node *types.Node, ttl int6
 		return types.ErrInvaildNodeStatusTTL
 	}
 
-	key := filepath.Join(nodeStatusPrefix, node.Name)
+	key := filepath.Join(common.NodeStatusPrefix, node.Name)
 
 	if ttl < 0 {
 		_, err := r.cli.Del(ctx, key).Result()
@@ -134,7 +135,7 @@ func (r *Rediaron) SetNodeStatus(ctx context.Context, node *types.Node, ttl int6
 }
 
 func (r *Rediaron) GetNodeStatus(ctx context.Context, nodename string) (*types.NodeStatus, error) {
-	key := filepath.Join(nodeStatusPrefix, nodename)
+	key := filepath.Join(common.NodeStatusPrefix, nodename)
 	ev, err := r.GetOne(ctx, key)
 	if err != nil {
 		return nil, err
@@ -156,10 +157,10 @@ func (r *Rediaron) NodeStatusStream(ctx context.Context) chan *types.NodeStatus 
 			close(ch)
 		}()
 
-		key := filepath.Join(nodeStatusPrefix, "*")
+		key := filepath.Join(common.NodeStatusPrefix, "*")
 		logger.Infof(ctx, "watch on %s", key)
 		for message := range r.KNotify(ctx, key) {
-			nodename := extractNodename(message.Key)
+			nodename := utils.Tail(message.Key)
 			status := &types.NodeStatus{
 				Nodename: nodename,
 				Alive:    strings.ToLower(message.Action) != actionExpired,
@@ -203,7 +204,7 @@ func (r *Rediaron) makeClient(ctx context.Context, node *types.Node) (engine.API
 
 func (r *Rediaron) loadCert(ctx context.Context, nodename string) (ca, cert, key string, err error) {
 	data := []string{"", "", ""}
-	for i, format := range []string{nodeCaKey, nodeCertKey, nodeKeyKey} {
+	for i, format := range []string{common.NodeCaKey, common.NodeCertKey, common.NodeKeyKey} {
 		v, err := r.GetOne(ctx, fmt.Sprintf(format, nodename))
 		if err != nil {
 			if !isRedisNoKeyError(err) {
@@ -220,13 +221,13 @@ func (r *Rediaron) loadCert(ctx context.Context, nodename string) (ca, cert, key
 func (r *Rediaron) doAddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, labels map[string]string, test bool) (*types.Node, error) {
 	data := map[string]string{}
 	if ca != "" {
-		data[fmt.Sprintf(nodeCaKey, name)] = ca
+		data[fmt.Sprintf(common.NodeCaKey, name)] = ca
 	}
 	if cert != "" {
-		data[fmt.Sprintf(nodeCertKey, name)] = cert
+		data[fmt.Sprintf(common.NodeCertKey, name)] = cert
 	}
 	if key != "" {
-		data[fmt.Sprintf(nodeKeyKey, name)] = key
+		data[fmt.Sprintf(common.NodeKeyKey, name)] = key
 	}
 
 	node := &types.Node{
@@ -245,8 +246,8 @@ func (r *Rediaron) doAddNode(ctx context.Context, name, endpoint, podname, ca, c
 	}
 
 	d := string(bytes)
-	data[fmt.Sprintf(nodeInfoKey, name)] = d
-	data[fmt.Sprintf(nodePodKey, podname, name)] = d
+	data[fmt.Sprintf(common.NodeInfoKey, name)] = d
+	data[fmt.Sprintf(common.NodePodKey, podname, name)] = d
 
 	err = r.BatchCreate(ctx, data)
 	if err != nil {
@@ -259,11 +260,11 @@ func (r *Rediaron) doAddNode(ctx context.Context, name, endpoint, podname, ca, c
 // certs are written before the node record, so a failed create leaves them behind
 func (r *Rediaron) doRemoveNode(ctx context.Context, podname, nodename, endpoint string) error {
 	keys := []string{
-		fmt.Sprintf(nodeInfoKey, nodename),
-		fmt.Sprintf(nodePodKey, podname, nodename),
-		fmt.Sprintf(nodeCaKey, nodename),
-		fmt.Sprintf(nodeCertKey, nodename),
-		fmt.Sprintf(nodeKeyKey, nodename),
+		fmt.Sprintf(common.NodeInfoKey, nodename),
+		fmt.Sprintf(common.NodePodKey, podname, nodename),
+		fmt.Sprintf(common.NodeCaKey, nodename),
+		fmt.Sprintf(common.NodeCertKey, nodename),
+		fmt.Sprintf(common.NodeKeyKey, nodename),
 	}
 
 	err := r.BatchDelete(ctx, keys)
