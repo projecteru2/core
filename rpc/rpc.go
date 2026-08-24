@@ -921,13 +921,18 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 		return grpcstatus.Error(RunAndWait, err.Error())
 	}
 
-	ctx, cancel := context.WithCancel(task.context)
+	var (
+		ctx    context.Context
+		cancel context.CancelFunc
+	)
 	if RunAndWaitOptions.Async {
 		timeout := v.config.GlobalTimeout
 		if RunAndWaitOptions.AsyncTimeout != 0 {
 			timeout = time.Second * time.Duration(RunAndWaitOptions.AsyncTimeout)
 		}
-		ctx, cancel = context.WithTimeout(context.TODO(), timeout) // the async run outlives the stream
+		ctx, cancel = context.WithTimeout(utils.NewInheritCtx(task.context), timeout) // the async run outlives the stream
+	} else {
+		ctx, cancel = context.WithCancel(task.context)
 	}
 
 	inCh := make(chan []byte)
