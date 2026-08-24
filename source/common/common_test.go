@@ -163,6 +163,32 @@ func TestArtifact(t *testing.T) {
 	os.RemoveAll(savedDir)
 }
 
+func TestArtifactHonoursContextCancellation(t *testing.T) {
+	release := make(chan struct{})
+	testServer := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		<-release
+	}))
+	defer testServer.Close()
+	defer close(release)
+
+	ctx, cancel := context.WithCancel(t.Context())
+	g := &GitScm{}
+	done := make(chan error, 1)
+	go func() {
+		done <- g.Artifact(ctx, testServer.URL, t.TempDir())
+	}()
+
+	time.Sleep(50 * time.Millisecond)
+	cancel()
+
+	select {
+	case err := <-done:
+		assert.ErrorIs(t, err, context.Canceled)
+	case <-time.After(5 * time.Second):
+		t.Fatal("Artifact ignored the cancelled context: the request carries no deadline at all")
+	}
+}
+
 func zipFiles(newfile *os.File, files []string) error {
 	defer newfile.Close()
 

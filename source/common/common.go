@@ -103,7 +103,7 @@ func (g *GitScm) SourceCode(ctx context.Context, repository, path, revision stri
 }
 
 func (g *GitScm) Artifact(ctx context.Context, artifact, path string) error {
-	req, err := http.NewRequest(http.MethodGet, artifact, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, artifact, nil)
 	if err != nil {
 		return err
 	}
