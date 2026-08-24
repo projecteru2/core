@@ -42,9 +42,15 @@ type Config struct {
 	Log            ServerLogConfig      `yaml:"log"`
 }
 
-// Identifier returns a sha256 over the whole config.
+// Identifier returns a sha256 over the fields that identify the backing store.
 func (c Config) Identifier() (string, error) {
-	b, err := json.Marshal(c)
+	b, err := json.Marshal(struct {
+		Store      string
+		Machines   []string
+		EtcdPrefix string
+		RedisAddr  string
+		RedisDB    int
+	}{c.Store, c.Etcd.Machines, c.Etcd.Prefix, c.Redis.Addr, c.Redis.DB})
 	if err != nil {
 		return "", err
 	}
