@@ -93,7 +93,7 @@ func (h *host) getCPUPlans(cpuRequest float64) []types.CPUMap {
 	}
 
 	if full == 0 {
-		diff := h.maxFragmentCores - len(h.fragmentCores)
+		diff := max(h.maxFragmentCores-len(h.fragmentCores), 0)
 		h.fragmentCores = append(h.fragmentCores, h.fullCores[:diff]...)
 		h.fullCores = h.fullCores[diff:]
 		return h.getFragmentCPUPlans(h.fragmentCores, fragment)

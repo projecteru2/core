@@ -467,6 +467,24 @@ func TestInsufficientMemory(t *testing.T) {
 	})
 }
 
+func TestFragmentCoresAboveMaxShare(t *testing.T) {
+	cpuMap := types.CPUMap{"0": 100, "1": 100, "2": 30, "3": 40, "4": 50}
+	resourceInfo := &types.NodeResourceInfo{Capacity: &types.NodeResource{
+		CPU:    float64(len(cpuMap)),
+		CPUMap: cpuMap,
+		Memory: 12 * units.GiB,
+	}}
+	assert.Nil(t, resourceInfo.Validate())
+
+	cpuPlans := GetCPUPlans(resourceInfo, nil, 100, 2, &types.WorkloadResourceRequest{
+		CPUBind:    true,
+		CPURequest: 0.5,
+		MemRequest: 1,
+	})
+	assert.Equal(t, 1, len(cpuPlans))
+	assert.ElementsMatch(t, cpuPlans, []*types.CPUPlan{{CPUMap: types.CPUMap{"4": 50}}})
+}
+
 func BenchmarkGetCPUPlans(b *testing.B) {
 	resourceInfo := &types.NodeResourceInfo{
 		Capacity: &types.NodeResource{
