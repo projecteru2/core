@@ -1,7 +1,6 @@
 package cpumem
 
 import (
-	"context"
 	"fmt"
 	"math"
 	"testing"
@@ -438,19 +437,16 @@ func TestGetMostIdleNode(t *testing.T) {
 }
 
 func BenchmarkGetNodesCapacity(b *testing.B) {
-	b.StopTimer()
-	t := &testing.T{}
-	ctx := context.Background()
-	cm := initCPUMEM(ctx, t)
-	nodes := generateNodes(ctx, t, cm, 1000, 24, 128*units.GB, 100, 0)
+	ctx := b.Context()
+	cm := initCPUMEM(ctx, b)
+	nodes := generateNodes(ctx, b, cm, 1000, 24, 128*units.GB, 100, 0)
 	req := plugintypes.WorkloadResourceRequest{
 		"cpu-bind":       true,
 		"cpu-request":    1.3,
 		"memory-request": "1",
 	}
-	b.StartTimer()
 
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, err := cm.GetNodesDeployCapacity(ctx, nodes, req)
 		assert.Nil(b, err)
 	}

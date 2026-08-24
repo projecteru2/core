@@ -28,14 +28,6 @@ func TestGetNodesDeployCapacityTotalSaturates(t *testing.T) {
 	}
 }
 
-func newCapacityPlugin(t *testing.T, name string, capacities map[string]*plugintypes.NodeDeployCapacity) *pluginmocks.Plugin {
-	p := pluginmocks.NewPlugin(t)
-	p.On("Name").Return(name).Maybe()
-	resp := &plugintypes.GetNodesDeployCapacityResponse{NodeDeployCapacityMap: capacities}
-	p.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(resp, nil)
-	return p
-}
-
 func TestGetNodesDeployCapacityWeightsEveryPlugin(t *testing.T) {
 	m, err := New(coretypes.Config{})
 	assert.NoError(t, err)
@@ -54,4 +46,12 @@ func TestGetNodesDeployCapacityWeightsEveryPlugin(t *testing.T) {
 		assert.InDelta(t, (0.5*100+0.1*1)/101, resp["n1"].Rate, 1e-9)
 		assert.InDelta(t, (0.5*100+0.1*1)/101, resp["n1"].Usage, 1e-9)
 	}
+}
+
+func newCapacityPlugin(t *testing.T, name string, capacities map[string]*plugintypes.NodeDeployCapacity) *pluginmocks.Plugin {
+	p := pluginmocks.NewPlugin(t)
+	p.On("Name").Return(name).Maybe()
+	resp := &plugintypes.GetNodesDeployCapacityResponse{NodeDeployCapacityMap: capacities}
+	p.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(resp, nil)
+	return p
 }
