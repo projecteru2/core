@@ -50,23 +50,14 @@ type Workload struct {
 }
 
 func (w *Workload) Inspect(ctx context.Context) (*enginetypes.VirtualizationInfo, error) {
-	if w.Engine == nil {
-		return nil, ErrNilEngine
-	}
 	return w.Engine.VirtualizationInspect(ctx, w.ID)
 }
 
 func (w *Workload) Start(ctx context.Context) error {
-	if w.Engine == nil {
-		return ErrNilEngine
-	}
 	return w.Engine.VirtualizationStart(ctx, w.ID)
 }
 
 func (w *Workload) Stop(ctx context.Context, force bool) error {
-	if w.Engine == nil {
-		return ErrNilEngine
-	}
 	gracefulTimeout := time.Duration(-1) // -1 means engine default timeout
 	if force {
 		gracefulTimeout = 0 // 0 means SIGTERM then SIGKILL, no wait
@@ -75,23 +66,14 @@ func (w *Workload) Stop(ctx context.Context, force bool) error {
 }
 
 func (w *Workload) Suspend(ctx context.Context) error {
-	if w.Engine == nil {
-		return ErrNilEngine
-	}
 	return w.Engine.VirtualizationSuspend(ctx, w.ID)
 }
 
 func (w *Workload) Resume(ctx context.Context) error {
-	if w.Engine == nil {
-		return ErrNilEngine
-	}
 	return w.Engine.VirtualizationResume(ctx, w.ID)
 }
 
 func (w *Workload) Remove(ctx context.Context, force bool) (err error) {
-	if w.Engine == nil {
-		return ErrNilEngine
-	}
 	if err = w.Engine.VirtualizationRemove(ctx, w.ID, true, force); errors.Is(err, ErrWorkloadNotExists) {
 		err = nil
 	}
@@ -99,9 +81,6 @@ func (w *Workload) Remove(ctx context.Context, force bool) (err error) {
 }
 
 func (w *Workload) RawEngine(ctx context.Context, opts *RawEngineOptions) (ans *RawEngineMessage, err error) {
-	if w.Engine == nil {
-		return nil, ErrNilEngine
-	}
 	eOpts := &enginetypes.RawEngineOptions{
 		ID:     opts.ID,
 		Op:     opts.Op,

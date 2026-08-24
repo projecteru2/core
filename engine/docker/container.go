@@ -322,10 +322,6 @@ func (e *Engine) VirtualizationRemove(ctx context.Context, ID string, removeVolu
 }
 
 func (e *Engine) VirtualizationInspect(ctx context.Context, ID string) (*enginetypes.VirtualizationInfo, error) {
-	if e.client == nil {
-		return nil, coretypes.ErrNilEngine
-	}
-
 	workloadJSON, err := e.client.ContainerInspect(ctx, ID)
 	r := &enginetypes.VirtualizationInfo{}
 	if err != nil {
