@@ -413,6 +413,41 @@ func TestCreateWorkloadIngorePullTxn(t *testing.T) {
 	engine.AssertExpectations(t)
 }
 
+func TestDoDeployWorkloadsOnNodeErrorPerWorkload(t *testing.T) {
+	c := NewTestCluster()
+	ctx := context.Background()
+	engine := &enginemocks.API{}
+	node := &types.Node{NodeMeta: types.NodeMeta{Name: "n1"}, Engine: engine}
+
+	store := c.store.(*storemocks.Store)
+	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
+	lock := &lockmocks.DistributedLock{}
+	lock.On("Lock", mock.Anything).Return(ctx, nil)
+	lock.On("Unlock", mock.Anything).Return(nil)
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
+
+	const deploy = 4
+	opts := &types.DeployOptions{
+		Name:       "app",
+		Podname:    "pod",
+		IgnorePull: true,
+		Entrypoint: &types.Entrypoint{Name: "entry"},
+	}
+	ch := make(chan *types.CreateWorkloadMessage, deploy)
+	params := make([]resourcetypes.Resources, deploy)
+
+	indices, err := c.doDeployWorkloadsOnNode(ctx, ch, node.Name, opts, deploy, params, params, 0)
+	close(ch)
+
+	assert.Error(t, err)
+	assert.Len(t, indices, deploy)
+	for m := range ch {
+		assert.Error(t, m.Error)
+	}
+}
+
 func TestDoMakeWorkloadOptionsEnvIsolation(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()

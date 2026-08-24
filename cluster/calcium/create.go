@@ -230,10 +230,10 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
 			var e error
 			defer func() {
 				if e != nil {
-					err = e
-					logger.Error(ctx, err)
-					createMsg.Error = err
+					logger.Error(ctx, e)
+					createMsg.Error = e
 					appendLock.Lock()
+					err = e
 					indices = append(indices, idx)
 					appendLock.Unlock()
 				}
