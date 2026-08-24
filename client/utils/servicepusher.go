@@ -99,8 +99,8 @@ func (p *EndpointPusher) pollReachability(ctx context.Context, endpoint string) 
 			p.Lock()
 			p.pendingEndpoints.Del(endpoint)
 			p.availableEndpoints.Set(endpoint, struct{}{})
-			p.pushEndpoints()
 			p.Unlock()
+			p.pushEndpoints()
 			logger.Debugf(ctx, "available endpoint added: %s", endpoint)
 			return
 		}
@@ -128,12 +128,16 @@ func (p *EndpointPusher) checkReachability(ctx context.Context, host string) (er
 }
 
 func (p *EndpointPusher) pushEndpoints() {
+	p.Lock()
 	endpoints := []string{}
 	p.availableEndpoints.ForEach(func(endpoint string, _ struct{}) bool {
 		endpoints = append(endpoints, endpoint)
 		return true
 	})
-	for _, ch := range p.chans {
+	chans := slices.Clone(p.chans)
+	p.Unlock()
+
+	for _, ch := range chans {
 		ch <- endpoints
 	}
 }
