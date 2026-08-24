@@ -257,14 +257,12 @@ func (e *Engine) VirtualizationCopyTo(ctx context.Context, ID, target string, co
 }
 
 func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target string, size int64, content io.Reader, uid, gid int, mode int64) error {
-	logger := log.WithFunc("engine.docker.VirtualizationCopyChunkTo")
+	logger := log.WithFunc("engine.docker.VirtualizationCopyChunkTo").WithField("ID", ID)
 	pr, pw := io.Pipe()
-	tw := tar.NewWriter(pw)
-	defer func() {
-		_ = tw.Close()
-	}()
-	g, _ := errgroup.WithContext(ctx)
+
+	var g errgroup.Group
 	g.Go(func() error {
+		tw := tar.NewWriter(pw)
 		hdr := &tar.Header{
 			Name: filepath.Base(target),
 			Size: size,
@@ -272,41 +270,22 @@ func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target strin
 			Uid:  uid,
 			Gid:  gid,
 		}
-		if taskErr := tw.WriteHeader(hdr); taskErr != nil {
-			logger.Errorf(ctx, taskErr, "write header to %s", ID)
-			return taskErr
+		err := tw.WriteHeader(hdr)
+		if err == nil {
+			_, err = io.Copy(tw, content)
 		}
-		for {
-			data := make([]byte, coretypes.SendLargeFileChunkSize)
-			n, taskErr := content.Read(data)
-			if taskErr != nil {
-				if taskErr != io.EOF {
-					logger.Error(ctx, taskErr, "read data from pipe")
-					return taskErr
-				}
-				if closeErr := pw.Close(); closeErr != nil {
-					logger.Error(ctx, closeErr, "close pipe writer")
-					return closeErr
-				}
-				return nil
-			}
-			if n < len(data) {
-				data = data[:n]
-			}
-			_, taskErr = tw.Write(data)
-			if taskErr != nil {
-				logger.Errorf(ctx, taskErr, "write data into %s", ID)
-				if closeErr := pw.Close(); closeErr != nil {
-					logger.Error(ctx, closeErr, "close pipe writer")
-					return closeErr
-				}
-				return taskErr
-			}
+		if err == nil {
+			err = tw.Close()
 		}
+		_ = pw.CloseWithError(err)
+		return err
 	})
-	err := e.client.CopyToContainer(ctx, ID, filepath.Dir(target), pr, dockercontainer.CopyToContainerOptions{AllowOverwriteDirWithFile: true, CopyUIDGID: false})
-	if err != nil {
-		logger.Errorf(ctx, err, "copy %s to container %s", target, ID)
+
+	if err := e.client.CopyToContainer(ctx, ID, filepath.Dir(target), pr, dockercontainer.CopyToContainerOptions{AllowOverwriteDirWithFile: true, CopyUIDGID: false}); err != nil {
+		logger.Errorf(ctx, err, "copy %s to container", target)
+		// unblock the writer, which may still be waiting for the daemon to read
+		_ = pr.CloseWithError(err)
+		_ = g.Wait()
 		return err
 	}
 	return g.Wait()
