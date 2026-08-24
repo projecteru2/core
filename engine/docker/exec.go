@@ -11,6 +11,43 @@ import (
 	"github.com/projecteru2/core/log"
 )
 
+// Execute executes a workload
+func (e *Engine) Execute(ctx context.Context, ID string, config *enginetypes.ExecConfig) (execID string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
+	if execID, err = e.execCreate(ctx, ID, config); err != nil {
+		return execID, stdout, stderr, stdin, err
+	}
+
+	reader, writer, err := e.execAttach(ctx, execID, config.Tty)
+	if err != nil {
+		return execID, stdout, stderr, stdin, err
+	}
+	if config.AttachStdin {
+		return execID, reader, nil, writer, err
+	}
+
+	stdout, stderr = e.demultiplexStdStream(ctx, reader)
+	return execID, stdout, stderr, nil, err
+}
+
+// ExecResize resize exec tty
+func (e *Engine) ExecResize(ctx context.Context, execID string, height, width uint) error {
+	opts := dockercontainer.ResizeOptions{
+		Height: height,
+		Width:  width,
+	}
+
+	return e.client.ContainerExecResize(ctx, execID, opts)
+}
+
+// ExecExitCode get exec return code
+func (e *Engine) ExecExitCode(ctx context.Context, _, execID string) (int, error) {
+	r, err := e.client.ContainerExecInspect(ctx, execID)
+	if err != nil {
+		return -1, err
+	}
+	return r.ExitCode, nil
+}
+
 // ExecCreate create a exec
 func (e *Engine) execCreate(ctx context.Context, target string, config *enginetypes.ExecConfig) (string, error) {
 	execConfig := dockercontainer.ExecOptions{
@@ -46,24 +83,6 @@ func (e *Engine) execAttach(ctx context.Context, execID string, tty bool) (io.Re
 	return io.NopCloser(resp.Reader), resp.Conn, nil
 }
 
-// Execute executes a workload
-func (e *Engine) Execute(ctx context.Context, ID string, config *enginetypes.ExecConfig) (execID string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
-	if execID, err = e.execCreate(ctx, ID, config); err != nil {
-		return execID, stdout, stderr, stdin, err
-	}
-
-	reader, writer, err := e.execAttach(ctx, execID, config.Tty)
-	if err != nil {
-		return execID, stdout, stderr, stdin, err
-	}
-	if config.AttachStdin {
-		return execID, reader, nil, writer, err
-	}
-
-	stdout, stderr = e.demultiplexStdStream(ctx, reader)
-	return execID, stdout, stderr, nil, err
-}
-
 func (e *Engine) demultiplexStdStream(ctx context.Context, stdStream io.Reader) (stdout, stderr io.ReadCloser) {
 	stdout, stdoutW := io.Pipe()
 	stderr, stderrW := io.Pipe()
@@ -77,23 +96,4 @@ func (e *Engine) demultiplexStdStream(ctx context.Context, stdStream io.Reader) 
 		}
 	}()
 	return stdout, stderr
-}
-
-// ExecExitCode get exec return code
-func (e *Engine) ExecExitCode(ctx context.Context, _, execID string) (int, error) {
-	r, err := e.client.ContainerExecInspect(ctx, execID)
-	if err != nil {
-		return -1, err
-	}
-	return r.ExitCode, nil
-}
-
-// ExecResize resize exec tty
-func (e *Engine) ExecResize(ctx context.Context, execID string, height, width uint) error {
-	opts := dockercontainer.ResizeOptions{
-		Height: height,
-		Width:  width,
-	}
-
-	return e.client.ContainerExecResize(ctx, execID, opts)
 }

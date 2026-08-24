@@ -30,6 +30,32 @@ type Engine struct {
 	ep     *enginetypes.Params
 }
 
+// Info show node info
+// 2 seconds timeout
+// used to be 5, but client won't wait that long
+func (e *Engine) Info(ctx context.Context) (*enginetypes.Info, error) {
+	r, err := e.client.Info(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &enginetypes.Info{Type: Type, ID: r.ID, NCPU: r.NCPU, MemTotal: r.MemTotal}, nil
+}
+
+// Ping test connection
+func (e *Engine) Ping(ctx context.Context) error {
+	_, err := e.client.Ping(ctx)
+	return err
+}
+
+// CloseConn close connection
+func (e *Engine) CloseConn() error {
+	return e.client.Close()
+}
+
+func (e *Engine) GetParams() *enginetypes.Params {
+	return e.ep
+}
+
 // MakeClient make docker cli
 func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint, ca, cert, key string) (engine.API, error) {
 	var client *http.Client
@@ -60,28 +86,16 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 	return e, nil
 }
 
-// Info show node info
-// 2 seconds timeout
-// used to be 5, but client won't wait that long
-func (e *Engine) Info(ctx context.Context) (*enginetypes.Info, error) {
-	r, err := e.client.Info(ctx)
+func makeDockerClient(_ context.Context, config coretypes.Config, client *http.Client, endpoint string) (*Engine, error) {
+	// the docker client rewrites Transport on the *http.Client it is given, so the shared one is copied
+	own := *client
+	cli, err := dockerapi.NewClientWithOpts(
+		dockerapi.WithHost(endpoint),
+		dockerapi.WithVersion(config.Docker.APIVersion),
+		dockerapi.WithHTTPClient(&own),
+	)
 	if err != nil {
 		return nil, err
 	}
-	return &enginetypes.Info{Type: Type, ID: r.ID, NCPU: r.NCPU, MemTotal: r.MemTotal}, nil
-}
-
-func (e *Engine) GetParams() *enginetypes.Params {
-	return e.ep
-}
-
-// Ping test connection
-func (e *Engine) Ping(ctx context.Context) error {
-	_, err := e.client.Ping(ctx)
-	return err
-}
-
-// CloseConn close connection
-func (e *Engine) CloseConn() error {
-	return e.client.Close()
+	return &Engine{client: cli, config: config}, nil
 }

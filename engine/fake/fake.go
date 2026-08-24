@@ -21,10 +21,6 @@ func (f *EngineWithErr) Info(_ context.Context) (*enginetypes.Info, error) {
 	return nil, f.DefaultErr
 }
 
-func (f *EngineWithErr) GetParams() *enginetypes.Params {
-	return f.EP
-}
-
 // Ping .
 func (f *EngineWithErr) Ping(_ context.Context) error {
 	return f.DefaultErr
@@ -33,6 +29,10 @@ func (f *EngineWithErr) Ping(_ context.Context) error {
 // CloseConn .
 func (f *EngineWithErr) CloseConn() error {
 	return nil
+}
+
+func (f *EngineWithErr) GetParams() *enginetypes.Params {
+	return f.EP
 }
 
 // Execute .
@@ -165,10 +165,6 @@ func (f *EngineWithErr) VirtualizationRemove(context.Context, string, bool, bool
 	return f.DefaultErr
 }
 
-func (f *EngineWithErr) RawEngine(context.Context, *enginetypes.RawEngineOptions) (*enginetypes.RawEngineResult, error) {
-	return nil, f.DefaultErr
-}
-
 // VirtualizationInspect .
 func (f *EngineWithErr) VirtualizationInspect(context.Context, string) (*enginetypes.VirtualizationInfo, error) {
 	return nil, f.DefaultErr
@@ -202,4 +198,8 @@ func (f *EngineWithErr) VirtualizationUpdateResource(context.Context, string, re
 // VirtualizationCopyFrom .
 func (f *EngineWithErr) VirtualizationCopyFrom(context.Context, string, string) (content []byte, uid, gid int, mode int64, _ error) {
 	return nil, 0, 0, 0, f.DefaultErr
+}
+
+func (f *EngineWithErr) RawEngine(context.Context, *enginetypes.RawEngineOptions) (*enginetypes.RawEngineResult, error) {
+	return nil, f.DefaultErr
 }

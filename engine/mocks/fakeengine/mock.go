@@ -20,10 +20,8 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-const (
-	// PrefixKey indicate key prefix
-	PrefixKey = "mock://"
-)
+// PrefixKey indicate key prefix
+const PrefixKey = "mock://"
 
 type writeCloser struct {
 	*bufio.Writer

@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/go-viper/mapstructure/v2"
 	virtapi "github.com/projecteru2/libyavirt/client"
 	virttypes "github.com/projecteru2/libyavirt/types"
@@ -100,10 +102,6 @@ func (v *Virt) Info(ctx context.Context) (*enginetypes.Info, error) {
 	}, nil
 }
 
-func (v *Virt) GetParams() *enginetypes.Params {
-	return v.ep
-}
-
 // Ping tests connection.
 func (v *Virt) Ping(ctx context.Context) error {
 	_, err := v.client.Info(ctx)
@@ -113,6 +111,10 @@ func (v *Virt) Ping(ctx context.Context) error {
 // CloseConn closes the connection.
 func (v *Virt) CloseConn() error {
 	return v.client.Close()
+}
+
+func (v *Virt) GetParams() *enginetypes.Params {
+	return v.ep
 }
 
 // Execute executes a command in vm
@@ -300,23 +302,6 @@ func (v *Virt) VirtualizationResume(ctx context.Context, ID string) (err error) 
 	return err
 }
 
-func (v *Virt) RawEngine(ctx context.Context, opts *enginetypes.RawEngineOptions) (res *enginetypes.RawEngineResult, err error) {
-	req := virttypes.RawEngineReq{
-		ID:     opts.ID,
-		Op:     opts.Op,
-		Params: opts.Params,
-	}
-	resp, err := v.client.RawEngine(ctx, req)
-	if err != nil {
-		return res, err
-	}
-	res = &enginetypes.RawEngineResult{
-		ID:   resp.ID,
-		Data: resp.Data,
-	}
-	return res, err
-}
-
 // VirtualizationInspect gets a guest.
 func (v *Virt) VirtualizationInspect(ctx context.Context, ID string) (*enginetypes.VirtualizationInfo, error) {
 	guest, err := v.client.GetGuest(ctx, ID)
@@ -432,4 +417,63 @@ func (v *Virt) VirtualizationCopyFrom(ctx context.Context, ID, path string) (con
 	}
 	content, err = io.ReadAll(rd)
 	return content, uid, gid, mode, err
+}
+
+func (v *Virt) RawEngine(ctx context.Context, opts *enginetypes.RawEngineOptions) (res *enginetypes.RawEngineResult, err error) {
+	req := virttypes.RawEngineReq{
+		ID:     opts.ID,
+		Op:     opts.Op,
+		Params: opts.Params,
+	}
+	resp, err := v.client.RawEngine(ctx, req)
+	if err != nil {
+		return res, err
+	}
+	res = &enginetypes.RawEngineResult{
+		ID:   resp.ID,
+		Data: resp.Data,
+	}
+	return res, err
+}
+
+func (v *Virt) parseVolumes(volumes []string) ([]virttypes.Volume, error) {
+	vols := make([]virttypes.Volume, len(volumes))
+	// format `/source:/dir0:rw:1024:1000:1000:10M:10M`
+	for i, bind := range volumes {
+		parts := strings.Split(bind, ":")
+		if len(parts) != 4 && len(parts) != 8 {
+			return nil, errors.Wrapf(coretypes.ErrInvalidVolumeBind, "bind: %s", bind)
+		}
+
+		src := parts[0]
+		dest := parts[1]
+		if !strings.HasPrefix(dest, "/") {
+			dest = filepath.Join("/", parts[1])
+		}
+
+		mnt := dest
+		// the src part has been translated to real host directory by eru-sched or kept it to empty.
+		if len(src) > 0 {
+			mnt = fmt.Sprintf("%s:%s", src, dest)
+		}
+
+		capacity, err := strconv.ParseInt(parts[3], 10, 64)
+		if err != nil {
+			return nil, err
+		}
+
+		ioConstraints := ""
+		if len(parts) > 4 {
+			ioConstraints = strings.Join(parts[4:], ":")
+		}
+
+		volume := virttypes.Volume{
+			Mount:    mnt,
+			Capacity: capacity,
+			IO:       ioConstraints,
+		}
+		vols[i] = volume
+	}
+
+	return vols, nil
 }

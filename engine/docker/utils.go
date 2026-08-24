@@ -9,7 +9,6 @@ import (
 	"io"
 	"math"
 	"net"
-	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -20,7 +19,6 @@ import (
 	dockertypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/blkiodev"
 	dockercontainer "github.com/docker/docker/api/types/container"
-	dockerapi "github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/docker/registry"
 	"github.com/docker/go-units"
@@ -40,12 +38,39 @@ type fuckDockerStream struct {
 	buf  io.Reader
 }
 
+// FuckDockerStream will copy docker stream to stdout and err
+func FuckDockerStream(stream dockertypes.HijackedResponse) io.ReadCloser {
+	outr := mergeStream(io.NopCloser(stream.Reader))
+	return fuckDockerStream{stream.Conn, outr}
+}
+
 func (f fuckDockerStream) Read(p []byte) (n int, err error) {
 	return f.buf.Read(p)
 }
 
 func (f fuckDockerStream) Close() error {
 	return f.conn.Close()
+}
+
+// CreateTarStream create a tar stream
+func CreateTarStream(path string) (io.ReadCloser, error) {
+	tarOpts := &archive.TarOptions{
+		ExcludePatterns: []string{},
+		IncludeFiles:    []string{"."},
+		Compression:     compression.None,
+		NoLchown:        true,
+	}
+	return archive.TarWithOptions(path, tarOpts)
+}
+
+// GetIP Get hostIP
+func GetIP(ctx context.Context, daemonHost string) string {
+	u, err := url.Parse(daemonHost)
+	if err != nil {
+		log.WithFunc("engine.docker.GetIP").Errorf(ctx, err, "GetIP %s failed", daemonHost)
+		return ""
+	}
+	return u.Hostname()
 }
 
 func mergeStream(stream io.ReadCloser) io.Reader {
@@ -60,12 +85,6 @@ func mergeStream(stream io.ReadCloser) io.Reader {
 	}()
 
 	return outr
-}
-
-// FuckDockerStream will copy docker stream to stdout and err
-func FuckDockerStream(stream dockertypes.HijackedResponse) io.ReadCloser {
-	outr := mergeStream(io.NopCloser(stream.Reader))
-	return fuckDockerStream{stream.Conn, outr}
 }
 
 // make mount paths
@@ -292,41 +311,6 @@ func createDockerfile(dockerfile, buildDir string) (err error) {
 	}()
 	_, err = f.WriteString(dockerfile)
 	return err
-}
-
-// CreateTarStream create a tar stream
-func CreateTarStream(path string) (io.ReadCloser, error) {
-	tarOpts := &archive.TarOptions{
-		ExcludePatterns: []string{},
-		IncludeFiles:    []string{"."},
-		Compression:     compression.None,
-		NoLchown:        true,
-	}
-	return archive.TarWithOptions(path, tarOpts)
-}
-
-// GetIP Get hostIP
-func GetIP(ctx context.Context, daemonHost string) string {
-	u, err := url.Parse(daemonHost)
-	if err != nil {
-		log.WithFunc("engine.docker.GetIP").Errorf(ctx, err, "GetIP %s failed", daemonHost)
-		return ""
-	}
-	return u.Hostname()
-}
-
-func makeDockerClient(_ context.Context, config coretypes.Config, client *http.Client, endpoint string) (*Engine, error) {
-	// the docker client rewrites Transport on the *http.Client it is given, so the shared one is copied
-	own := *client
-	cli, err := dockerapi.NewClientWithOpts(
-		dockerapi.WithHost(endpoint),
-		dockerapi.WithVersion(config.Docker.APIVersion),
-		dockerapi.WithHTTPClient(&own),
-	)
-	if err != nil {
-		return nil, err
-	}
-	return &Engine{client: cli, config: config}, nil
 }
 
 func useCNI(labels map[string]string) bool {

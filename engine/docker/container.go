@@ -46,6 +46,19 @@ type RawArgs struct {
 	Runtime    string                  `json:"runtime"`
 }
 
+// loadRawArgs loads RawArgs, if b is given,
+// values from b will over write default values.
+func loadRawArgs(b []byte) (*RawArgs, error) {
+	r := &RawArgs{}
+	if len(b) > 0 {
+		if err := json.Unmarshal(b, r); err != nil {
+			return nil, err
+		}
+	}
+	r.ensureValues()
+	return r, nil
+}
+
 // ensureValues checks if value is nil,
 // if so, initiate the value.
 // Though a nil slice won't panic in this situation,
@@ -63,19 +76,6 @@ func (r *RawArgs) ensureValues() {
 	if r.Ulimits == nil {
 		r.Ulimits = []*units.Ulimit{}
 	}
-}
-
-// loadRawArgs loads RawArgs, if b is given,
-// values from b will over write default values.
-func loadRawArgs(b []byte) (*RawArgs, error) {
-	r := &RawArgs{}
-	if len(b) > 0 {
-		if err := json.Unmarshal(b, r); err != nil {
-			return nil, err
-		}
-	}
-	r.ensureValues()
-	return r, nil
 }
 
 // VirtualizationCreate create a workload
@@ -373,10 +373,6 @@ func (e *Engine) VirtualizationResume(context.Context, string) error {
 	return nil
 }
 
-func (e *Engine) RawEngine(context.Context, *enginetypes.RawEngineOptions) (res *enginetypes.RawEngineResult, err error) {
-	return nil, nil
-}
-
 // VirtualizationRemove remove virtualization
 func (e *Engine) VirtualizationRemove(ctx context.Context, ID string, removeVolumes, force bool) error {
 	if err := e.client.ContainerRemove(ctx, ID, dockercontainer.RemoveOptions{RemoveVolumes: removeVolumes, Force: force}); err != nil {
@@ -554,4 +550,8 @@ func (e *Engine) VirtualizationCopyFrom(ctx context.Context, ID, path string) (c
 	}
 	content, err = io.ReadAll(tarReader)
 	return content, header.Uid, header.Gid, header.Mode, err
+}
+
+func (e *Engine) RawEngine(context.Context, *enginetypes.RawEngineOptions) (res *enginetypes.RawEngineResult, err error) {
+	return nil, nil
 }
