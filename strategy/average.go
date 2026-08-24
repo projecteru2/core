@@ -1,7 +1,9 @@
 package strategy
 
 import (
+	"cmp"
 	"context"
+	"slices"
 	"sort"
 
 	"github.com/cockroachdb/errors"
@@ -21,7 +23,7 @@ func AveragePlan(ctx context.Context, infos []Info, need, _, limit int) (map[str
 	if scheduleInfosLength < limit {
 		return nil, errors.Wrapf(types.ErrInsufficientResource, "node len %d < limit, cannot alloc an average node plan", scheduleInfosLength)
 	}
-	sort.Slice(infos, func(i, j int) bool { return infos[i].Capacity > infos[j].Capacity })
+	slices.SortFunc(infos, func(a, b Info) int { return cmp.Compare(b.Capacity, a.Capacity) })
 	p := sort.Search(scheduleInfosLength, func(i int) bool { return infos[i].Capacity < need })
 	if p == 0 {
 		return nil, errors.Wrap(types.ErrInsufficientCapacity, "insufficient nodes, at least 1 needed")
