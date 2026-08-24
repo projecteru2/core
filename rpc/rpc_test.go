@@ -61,8 +61,7 @@ func TestSetNodeTranform(t *testing.T) {
 	b := &pb.SetNodeOptions{
 		Nodename: "a",
 	}
-	_, err := toCoreSetNodeOptions(b)
-	assert.Nil(t, err)
+	assert.Equal(t, "a", toCoreSetNodeOptions(b).Nodename)
 }
 
 func TestRunAndWaitSync(t *testing.T) {

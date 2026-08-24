@@ -232,11 +232,7 @@ func (v *Vibranium) GetNodeEngineInfo(ctx context.Context, opts *pb.GetNodeOptio
 func (v *Vibranium) SetNode(ctx context.Context, opts *pb.SetNodeOptions) (*pb.Node, error) {
 	task := v.newTask(ctx, "SetNode", false)
 	defer task.done()
-	setNodeOpts, err := toCoreSetNodeOptions(opts)
-	if err != nil {
-		return nil, grpcstatus.Error(SetNode, err.Error())
-	}
-	n, err := v.cluster.SetNode(task.context, setNodeOpts)
+	n, err := v.cluster.SetNode(task.context, toCoreSetNodeOptions(opts))
 	if err != nil {
 		return nil, grpcstatus.Error(SetNode, err.Error())
 	}
@@ -356,12 +352,8 @@ func (v *Vibranium) WorkloadStatusStream(opts *pb.WorkloadStatusStreamOptions, s
 			if m.Error != nil {
 				r.Error = m.Error.Error()
 			} else if m.Workload != nil {
-				if workload, err := toRPCWorkload(task.context, m.Workload); err != nil {
-					r.Error = err.Error()
-				} else {
-					r.Workload = workload
-					r.Status = toRPCWorkloadStatus(m.Workload.StatusMeta)
-				}
+				r.Workload = toRPCWorkload(task.context, m.Workload)
+				r.Status = toRPCWorkloadStatus(m.Workload.StatusMeta)
 			}
 			if err := stream.Send(r); err != nil {
 				v.logUnsentMessages(task.context, "WorkloadStatusStream", err, m)
@@ -394,7 +386,7 @@ func (v *Vibranium) GetWorkload(ctx context.Context, ID *pb.WorkloadID) (*pb.Wor
 		return nil, grpcstatus.Error(GetWorkload, err.Error())
 	}
 
-	return toRPCWorkload(task.context, workload)
+	return toRPCWorkload(task.context, workload), nil
 }
 
 func (v *Vibranium) GetWorkloads(ctx context.Context, cids *pb.WorkloadIDs) (*pb.Workloads, error) {
@@ -525,11 +517,7 @@ func (v *Vibranium) Send(opts *pb.SendOptions, stream pb.CoreRPC_SendServer) err
 	task := v.newTask(stream.Context(), "Send", true)
 	defer task.done()
 
-	sendOpts, err := toCoreSendOptions(opts)
-	if err != nil {
-		return grpcstatus.Error(Send, err.Error())
-	}
-
+	sendOpts := toCoreSendOptions(opts)
 	for _, file := range sendOpts.Files {
 		dc := make(chan *types.SendLargeFileOptions)
 		ch := v.cluster.SendLargeFile(task.context, dc)
@@ -758,10 +746,7 @@ func (v *Vibranium) ExecuteWorkload(stream pb.CoreRPC_ExecuteWorkloadServer) err
 	if err != nil {
 		return grpcstatus.Error(ExecuteWorkload, err.Error())
 	}
-	var executeWorkloadOpts *types.ExecuteWorkloadOptions
-	if executeWorkloadOpts, err = toCoreExecuteWorkloadOptions(opts); err != nil {
-		return grpcstatus.Error(ExecuteWorkload, err.Error())
-	}
+	executeWorkloadOpts := toCoreExecuteWorkloadOptions(opts)
 
 	inCh := make(chan []byte)
 	utils.SentryGo(func() {

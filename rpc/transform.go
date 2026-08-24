@@ -98,7 +98,7 @@ func toCoreCopyOptions(b *pb.CopyOptions) *types.CopyOptions {
 	return r
 }
 
-func toCoreSendOptions(b *pb.SendOptions) (*types.SendOptions, error) { //nolint
+func toCoreSendOptions(b *pb.SendOptions) *types.SendOptions {
 	files := []types.LinuxFile{}
 	for filename, content := range b.Data {
 		files = append(files, types.LinuxFile{
@@ -112,7 +112,7 @@ func toCoreSendOptions(b *pb.SendOptions) (*types.SendOptions, error) { //nolint
 	return &types.SendOptions{
 		IDs:   b.IDs,
 		Files: files,
-	}, nil
+	}
 }
 
 func toCoreAddNodeOptions(b *pb.AddNodeOptions) *types.AddNodeOptions {
@@ -130,8 +130,8 @@ func toCoreAddNodeOptions(b *pb.AddNodeOptions) *types.AddNodeOptions {
 	return r
 }
 
-func toCoreSetNodeOptions(b *pb.SetNodeOptions) (*types.SetNodeOptions, error) { //nolint
-	r := &types.SetNodeOptions{
+func toCoreSetNodeOptions(b *pb.SetNodeOptions) *types.SetNodeOptions {
+	return &types.SetNodeOptions{
 		Nodename:      b.Nodename,
 		Endpoint:      b.Endpoint,
 		Ca:            b.Ca,
@@ -143,7 +143,6 @@ func toCoreSetNodeOptions(b *pb.SetNodeOptions) (*types.SetNodeOptions, error) {
 		Labels:        b.Labels,
 		Bypass:        types.TriOptions(b.Bypass),
 	}
-	return r, nil
 }
 
 func toCoreBuildOptions(b *pb.BuildImageOptions) (*types.BuildOptions, error) {
@@ -437,11 +436,7 @@ func toRPCWorkloads(ctx context.Context, workloads []*types.Workload, labels map
 	ret := &pb.Workloads{}
 	cs := []*pb.Workload{}
 	for _, c := range workloads {
-		pWorkload, err := toRPCWorkload(ctx, c)
-		if err != nil {
-			log.WithFunc("transform.toRPCWorkloads").Error(ctx, err, "transform workload")
-			continue
-		}
+		pWorkload := toRPCWorkload(ctx, c)
 		if !utils.LabelsFilter(pWorkload.Labels, labels) {
 			continue
 		}
@@ -451,7 +446,7 @@ func toRPCWorkloads(ctx context.Context, workloads []*types.Workload, labels map
 	return ret
 }
 
-func toRPCWorkload(ctx context.Context, c *types.Workload) (*pb.Workload, error) { // nolint
+func toRPCWorkload(ctx context.Context, c *types.Workload) *pb.Workload {
 	publish := map[string]string{}
 	if c.StatusMeta != nil && len(c.StatusMeta.Networks) != 0 {
 		meta := utils.DecodeMetaInLabel(ctx, c.Labels)
@@ -473,7 +468,7 @@ func toRPCWorkload(ctx context.Context, c *types.Workload) (*pb.Workload, error)
 		CreateTime: c.CreateTime,
 		Resources:  toRPCResources(c.Resources),
 		Env:        c.Env,
-	}, nil
+	}
 }
 
 func toRPCLogStreamMessage(msg *types.LogStreamMessage) *pb.LogStreamMessage {
@@ -488,7 +483,7 @@ func toRPCLogStreamMessage(msg *types.LogStreamMessage) *pb.LogStreamMessage {
 	return r
 }
 
-func toCoreExecuteWorkloadOptions(b *pb.ExecuteWorkloadOptions) (opts *types.ExecuteWorkloadOptions, err error) { //nolint
+func toCoreExecuteWorkloadOptions(b *pb.ExecuteWorkloadOptions) *types.ExecuteWorkloadOptions {
 	return &types.ExecuteWorkloadOptions{
 		WorkloadID: b.WorkloadId,
 		Commands:   b.Commands,
@@ -496,7 +491,7 @@ func toCoreExecuteWorkloadOptions(b *pb.ExecuteWorkloadOptions) (opts *types.Exe
 		Workdir:    b.Workdir,
 		OpenStdin:  b.OpenStdin,
 		ReplCmd:    b.ReplCmd,
-	}, nil
+	}
 }
 
 func toRPCCapacityMessage(msg *types.CapacityMessage) *pb.CapacityMessage {
@@ -593,21 +588,16 @@ func toSendLargeFileOptions(opts *pb.FileOptions) (*types.SendLargeFileOptions, 
 func toSendLargeFileChunks(file types.LinuxFile, ids []string) []*types.SendLargeFileOptions {
 	maxChunkSize := types.SendLargeFileChunkSize
 	ret := make([]*types.SendLargeFileOptions, 0, (len(file.Content)+maxChunkSize-1)/maxChunkSize)
-	for idx := 0; idx < len(file.Content); idx += maxChunkSize {
-		sendLargeFileOptions := &types.SendLargeFileOptions{
-			IDs:  ids,
-			Dst:  file.Filename,
-			Size: int64(len(file.Content)),
-			Mode: file.Mode,
-			UID:  file.UID,
-			GID:  file.GID,
-		}
-		if idx+maxChunkSize > len(file.Content) {
-			sendLargeFileOptions.Chunk = file.Content[idx:]
-		} else {
-			sendLargeFileOptions.Chunk = file.Content[idx : idx+maxChunkSize]
-		}
-		ret = append(ret, sendLargeFileOptions)
+	for chunk := range slices.Chunk(file.Content, maxChunkSize) {
+		ret = append(ret, &types.SendLargeFileOptions{
+			IDs:   ids,
+			Dst:   file.Filename,
+			Size:  int64(len(file.Content)),
+			Mode:  file.Mode,
+			UID:   file.UID,
+			GID:   file.GID,
+			Chunk: chunk,
+		})
 	}
 	return ret
 }
