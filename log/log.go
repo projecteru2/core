@@ -27,25 +27,7 @@ func SetupLog(ctx context.Context, cfg *types.ServerLogConfig, dsn string) error
 		return err
 	}
 
-	var writer io.Writer
-	switch {
-	case cfg.Filename != "":
-		// file log always uses json format
-		writer = &lumberjack.Logger{
-			Filename:   cfg.Filename,
-			MaxBackups: cfg.MaxBackups, // files
-			MaxSize:    cfg.MaxSize,    // megabytes
-			MaxAge:     cfg.MaxAge,     // days
-		}
-	case !cfg.UseJSON:
-		writer = zerolog.ConsoleWriter{
-			Out:        os.Stdout,
-			TimeFormat: time.RFC822,
-		}
-	default:
-		writer = os.Stdout
-	}
-	rslog := zerolog.New(writer).With().Timestamp().Logger().Level(level)
+	rslog := zerolog.New(logWriter(cfg)).With().Timestamp().Logger().Level(level)
 	zerolog.ErrorStackMarshaler = func(err error) any {
 		return errors.GetSafeDetails(err).SafeDetails
 	}
@@ -101,4 +83,24 @@ func Errorf(ctx context.Context, err error, format string, args ...any) {
 // Error logs at error level and reports to Sentry.
 func Error(ctx context.Context, err error, args ...any) {
 	Errorf(ctx, err, formatArgs(args), args...)
+}
+
+func logWriter(cfg *types.ServerLogConfig) io.Writer {
+	switch {
+	case cfg.Filename != "":
+		// file log always uses json format
+		return &lumberjack.Logger{
+			Filename:   cfg.Filename,
+			MaxBackups: cfg.MaxBackups, // files
+			MaxSize:    cfg.MaxSize,    // megabytes
+			MaxAge:     cfg.MaxAge,     // days
+		}
+	case !cfg.UseJSON:
+		return zerolog.ConsoleWriter{
+			Out:        os.Stderr,
+			TimeFormat: time.RFC822,
+		}
+	default:
+		return os.Stderr
+	}
 }
