@@ -70,11 +70,7 @@ func (l *Lithium) Get(key []byte) (dst []byte, err error) {
 	err = l.view(func(bkt *bbolt.Bucket) error {
 		src := bkt.Get(key)
 		dst = make([]byte, len(src))
-
-		for n := 0; n < len(dst); {
-			n += copy(dst, src)
-		}
-
+		copy(dst, src)
 		return nil
 	})
 

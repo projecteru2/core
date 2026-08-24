@@ -2,7 +2,6 @@ package etcdv3
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -14,7 +13,7 @@ import (
 )
 
 func (m *Mercury) CreateProcessing(ctx context.Context, processing *types.Processing, count int) error {
-	_, err := m.Create(ctx, m.getProcessingKey(processing), fmt.Sprintf("%d", count))
+	_, err := m.Create(ctx, m.getProcessingKey(processing), strconv.Itoa(count))
 	return err
 }
 
@@ -47,10 +46,6 @@ func (m *Mercury) doLoadProcessing(ctx context.Context, appname, entryname strin
 		count, err := strconv.Atoi(string(ev.Value))
 		if err != nil {
 			logger.Error(ctx, err, "load processing status")
-			continue
-		}
-		if _, ok := nodesCount[nodename]; !ok {
-			nodesCount[nodename] = count
 			continue
 		}
 		nodesCount[nodename] += count

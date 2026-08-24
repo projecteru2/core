@@ -3,6 +3,8 @@ package etcdv3
 import (
 	"context"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 	"time"
 
@@ -43,15 +45,11 @@ func (m *Mercury) ServiceStatusStream(ctx context.Context) (chan []string, error
 			changed := false
 			for _, ev := range resp.Events {
 				endpoint := parseServiceKey(ev.Kv.Key)
-				c := false
 				switch ev.Type {
 				case mvccpb.PUT:
-					c = eps.Add(endpoint)
+					changed = eps.Add(endpoint) || changed
 				case mvccpb.DELETE:
-					c = eps.Remove(endpoint)
-				}
-				if c {
-					changed = true
+					changed = eps.Remove(endpoint) || changed
 				}
 			}
 			if changed {
@@ -85,11 +83,8 @@ func (e *endpoints) Remove(endpoint string) (changed bool) {
 	return changed
 }
 
-func (e endpoints) ToSlice() (eps []string) {
-	for ep := range e {
-		eps = append(eps, ep)
-	}
-	return eps
+func (e endpoints) ToSlice() []string {
+	return slices.Collect(maps.Keys(e))
 }
 
 func parseServiceKey(key []byte) (endpoint string) {

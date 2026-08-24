@@ -350,12 +350,10 @@ func TestETCD(t *testing.T) {
 	_, err = m.Put(context.Background(), "bcad_process", "200")
 	require.NoError(t, err)
 	wg := sync.WaitGroup{}
-	for i := 0; i < 200; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range 200 {
+		wg.Go(func() {
 			m.BatchCreateAndDecr(context.Background(), data, "bcad_process")
-		}()
+		})
 	}
 	wg.Wait()
 	resp, err = m.Get(context.Background(), "bcad_process")
@@ -368,7 +366,7 @@ func TestETCD(t *testing.T) {
 	require.EqualError(t, err, "no txn ops")
 
 	txnes := []ETCDTxn{}
-	for i := 0; i < 999; i++ {
+	for range 999 {
 		txnes = append(txnes, ETCDTxn{Then: []clientv3.Op{clientv3.OpGet("a")}})
 	}
 	txnResp, err := m.doBatchOp(context.Background(), txnes)
@@ -377,7 +375,7 @@ func TestETCD(t *testing.T) {
 	require.EqualValues(t, 999, len(txnResp.Responses))
 
 	txnes = []ETCDTxn{{}, {}}
-	for i := 0; i < 999; i++ {
+	for range 999 {
 		txnes[0].Then = append(txnes[0].Then, clientv3.OpGet("a"))
 		txnes[1].Then = append(txnes[1].Then, clientv3.OpGet("a"), clientv3.OpGet("b"))
 	}

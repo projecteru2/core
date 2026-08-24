@@ -46,10 +46,6 @@ func (r *Rediaron) doLoadProcessing(ctx context.Context, appname, entryname stri
 			logger.Error(ctx, err, "load processing status")
 			continue
 		}
-		if _, ok := nodesCount[nodename]; !ok {
-			nodesCount[nodename] = count
-			continue
-		}
 		nodesCount[nodename] += count
 	}
 

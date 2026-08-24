@@ -61,7 +61,7 @@ func NewETCD(config types.EtcdConfig, embeddedETCD *embedded.Cluster) (*ETCD, er
 	switch {
 	case embeddedETCD != nil:
 		cliv3 = embeddedETCD.Client(config.Prefix)
-		log.WithFunc("store.etcdv3.meta.NewETCD").Info(nil, "use embedded cluster") //nolint
+		log.WithFunc("store.etcdv3.meta.NewETCD").Info(context.Background(), "use embedded cluster")
 	default:
 		if config.Ca != "" && config.Key != "" && config.Cert != "" {
 			tlsInfo := transport.TLSInfo{
@@ -490,26 +490,26 @@ func (e *ETCD) doBatchOp(ctx context.Context, transactions []ETCDTxn) (resp *cli
 
 	wg := sync.WaitGroup{}
 	respChan := make(chan ETCDTxnResp)
-	doOp := func(from, to int) {
-		defer wg.Done()
-		conds, thens, elses := []clientv3.Cmp{}, []clientv3.Op{}, []clientv3.Op{}
-		for i := from; i < to; i++ {
-			conds = append(conds, txnes[i].If...)
-			thens = append(thens, txnes[i].Then...)
-			elses = append(elses, txnes[i].Else...)
-		}
-		txnResp, txnErr := e.cliv3.Txn(ctx).If(conds...).Then(thens...).Else(elses...).Commit()
-		respChan <- ETCDTxnResp{resp: txnResp, err: txnErr}
+	commit := func(from, to int) {
+		wg.Go(func() {
+			conds, thens, elses := []clientv3.Cmp{}, []clientv3.Op{}, []clientv3.Op{}
+			for _, txn := range txnes[from:to] {
+				conds = append(conds, txn.If...)
+				thens = append(thens, txn.Then...)
+				elses = append(elses, txn.Else...)
+			}
+			txnResp, txnErr := e.cliv3.Txn(ctx).If(conds...).Then(thens...).Else(elses...).Commit()
+			respChan <- ETCDTxnResp{resp: txnResp, err: txnErr}
+		})
 	}
 
 	lastIdx := 0
 	lenIf, lenThen, lenElse := 0, 0, 0
-	for i := 0; i < len(txnes); i++ {
+	for i := range txnes {
 		if lenIf+len(txnes[i].If) > txnLimit ||
 			lenThen+len(txnes[i].Then) > txnLimit ||
 			lenElse+len(txnes[i].Else) > txnLimit {
-			wg.Add(1)
-			go doOp(lastIdx, i)
+			commit(lastIdx, i)
 
 			lastIdx = i
 			lenIf, lenThen, lenElse = 0, 0, 0
@@ -519,8 +519,7 @@ func (e *ETCD) doBatchOp(ctx context.Context, transactions []ETCDTxn) (resp *cli
 		lenThen += len(txnes[i].Then)
 		lenElse += len(txnes[i].Else)
 	}
-	wg.Add(1)
-	go doOp(lastIdx, len(txnes))
+	commit(lastIdx, len(txnes))
 
 	go func() {
 		wg.Wait()
@@ -543,9 +542,9 @@ func (e *ETCD) doBatchOp(ctx context.Context, transactions []ETCDTxn) (resp *cli
 	}
 
 	resp = resps[0].resp
-	for i := 1; i < len(resps); i++ {
-		resp.Succeeded = resp.Succeeded && resps[i].resp.Succeeded
-		resp.Responses = append(resp.Responses, resps[i].resp.Responses...)
+	for _, r := range resps[1:] {
+		resp.Succeeded = resp.Succeeded && r.resp.Succeeded
+		resp.Responses = append(resp.Responses, r.resp.Responses...)
 	}
 	return resp, nil
 }

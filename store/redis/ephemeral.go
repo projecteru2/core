@@ -38,11 +38,11 @@ func (r *Rediaron) StartEphemeral(ctx context.Context, path string, heartbeat ti
 			select {
 			case <-tick.C:
 				if err := r.refreshEphemeral(ctx, path, heartbeat); err != nil {
-					r.revokeEphemeral(path)
+					r.revokeEphemeral(ctx, path)
 					return
 				}
 			case <-ctx.Done():
-				r.revokeEphemeral(path)
+				r.revokeEphemeral(ctx, path)
 				return
 			}
 		}
@@ -54,8 +54,8 @@ func (r *Rediaron) StartEphemeral(ctx context.Context, path string, heartbeat ti
 	}, nil
 }
 
-func (r *Rediaron) revokeEphemeral(path string) {
-	ctx, cancel := context.WithTimeout(context.TODO(), time.Second)
+func (r *Rediaron) revokeEphemeral(ctx context.Context, path string) {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Second)
 	defer cancel()
 	if _, err := r.cli.Del(ctx, path).Result(); err != nil {
 		log.WithFunc("store.redis.revokeEphemeral").Errorf(ctx, err, "revoke %s failed", path)

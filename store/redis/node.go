@@ -308,7 +308,7 @@ func (r *Rediaron) doGetNodes(
 		_ = r.pool.Invoke(func() {
 			defer wg.Done()
 			if node.Test {
-				node.Available = true && !node.Bypass
+				node.Available = !node.Bypass
 			} else if _, err := r.GetNodeStatus(ctx, node.Name); err != nil && !errors.Is(err, types.ErrInvaildCount) {
 				logger.Errorf(ctx, err, "failed to get node status of %+v", node.Name)
 			} else {

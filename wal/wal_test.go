@@ -2,7 +2,7 @@ package wal
 
 import (
 	"context"
-	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -13,31 +13,30 @@ import (
 
 func TestRecover(t *testing.T) {
 	var checked bool
-	check := func(interface{}) (bool, error) {
+	check := func(any) (bool, error) {
 		checked = true
 		return true, nil
 	}
 
 	var handled bool
-	handle := func(interface{}) (err error) {
+	handle := func(any) (err error) {
 		handled = true
 		return err
 	}
 
 	var encoded bool
-	encode := func(interface{}) (bs []byte, err error) {
+	encode := func(any) (bs []byte, err error) {
 		encoded = true
 		return bs, err
 	}
 
 	var decoded bool
-	decode := func([]byte) (item interface{}, err error) {
+	decode := func([]byte) (item any, err error) {
 		decoded = true
 		return item, err
 	}
 
-	path := "/tmp/wal.unitest.wal"
-	os.Remove(path)
+	path := filepath.Join(t.TempDir(), "wal.wal")
 
 	var wal WAL
 	var err error
@@ -71,28 +70,28 @@ func TestRecover(t *testing.T) {
 
 type simpleEventHandler struct {
 	event  string
-	check  func(raw interface{}) (bool, error)
-	encode func(interface{}) ([]byte, error)
-	decode func([]byte) (interface{}, error)
-	handle func(interface{}) error
+	check  func(raw any) (bool, error)
+	encode func(any) ([]byte, error)
+	decode func([]byte) (any, error)
+	handle func(any) error
 }
 
 func (h simpleEventHandler) Typ() string {
 	return h.event
 }
 
-func (h simpleEventHandler) Check(ctx context.Context, raw interface{}) (bool, error) {
+func (h simpleEventHandler) Check(ctx context.Context, raw any) (bool, error) {
 	return h.check(raw)
 }
 
-func (h simpleEventHandler) Encode(raw interface{}) ([]byte, error) {
+func (h simpleEventHandler) Encode(raw any) ([]byte, error) {
 	return h.encode(raw)
 }
 
-func (h simpleEventHandler) Decode(bs []byte) (interface{}, error) {
+func (h simpleEventHandler) Decode(bs []byte) (any, error) {
 	return h.decode(bs)
 }
 
-func (h simpleEventHandler) Handle(ctx context.Context, raw interface{}) error {
+func (h simpleEventHandler) Handle(ctx context.Context, raw any) error {
 	return h.handle(raw)
 }

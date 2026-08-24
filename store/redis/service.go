@@ -3,6 +3,8 @@ package redis
 import (
 	"context"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 	"time"
 
@@ -68,11 +70,8 @@ func (e *endpoints) Remove(endpoint string) (changed bool) {
 	return changed
 }
 
-func (e endpoints) ToSlice() (eps []string) {
-	for ep := range e {
-		eps = append(eps, ep)
-	}
-	return eps
+func (e endpoints) ToSlice() []string {
+	return slices.Collect(maps.Keys(e))
 }
 
 func parseServiceKey(key string) (endpoint string) {

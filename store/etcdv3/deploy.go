@@ -43,12 +43,7 @@ func (m *Mercury) doGetDeployStatus(_ context.Context, resp *clientv3.GetRespons
 	for _, ev := range resp.Kvs {
 		key := string(ev.Key)
 		parts := strings.Split(key, "/")
-		nodename := parts[len(parts)-2]
-		if _, ok := nodesCount[nodename]; !ok {
-			nodesCount[nodename] = 1
-			continue
-		}
-		nodesCount[nodename]++
+		nodesCount[parts[len(parts)-2]]++
 	}
 
 	return nodesCount

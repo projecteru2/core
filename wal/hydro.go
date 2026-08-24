@@ -42,15 +42,10 @@ func (h *Hydro) Register(handler EventHandler) {
 
 func (h *Hydro) Recover(ctx context.Context) {
 	ch, _ := h.store.Scan([]byte(eventPrefix))
-	events := []HydroEvent{}
 	logger := log.WithFunc("wal.hydro.Recover")
 
-	for {
-		scanEntry, ok := <-ch
-		if !ok {
-			break
-		}
-
+	var events []HydroEvent
+	for scanEntry := range ch {
 		event, err := h.decodeEvent(scanEntry)
 		if err != nil {
 			logger.Error(ctx, err, "decode event")

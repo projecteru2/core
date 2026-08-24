@@ -3,7 +3,7 @@ package kv
 import (
 	"context"
 	"fmt"
-	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -68,7 +68,7 @@ func TestScanAbort(t *testing.T) {
 	lit, cancel := newTestLithium(t)
 	defer cancel()
 
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		key := []byte(fmt.Sprintf("p%d", i))
 		require.NoError(t, lit.Put(key, []byte("v")))
 	}
@@ -126,9 +126,7 @@ func TestScanOrderedByKeys(t *testing.T) {
 }
 
 func newTestLithium(t *testing.T) (lit *Lithium, cancel func()) {
-	path := "/tmp/lithium.unitest.wal"
-	os.Remove(path)
-
+	path := filepath.Join(t.TempDir(), "lithium.wal")
 	lit = NewLithium()
 	require.NoError(t, lit.Open(path, 0o666, time.Second))
 

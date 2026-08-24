@@ -23,7 +23,7 @@ func TestLogFailedAsEncodeError(t *testing.T) {
 	var checked, handled, encoded, decoded bool
 	eventype := "create"
 	handler := newTestEventHandler(eventype, &checked, &handled, &encoded, &decoded)
-	handler.encode = func(interface{}) ([]byte, error) { return nil, fmt.Errorf("encode error") }
+	handler.encode = func(any) ([]byte, error) { return nil, fmt.Errorf("encode error") }
 
 	hydro, _ := NewHydro(path.Join(t.TempDir(), "1"), time.Second)
 	hydro.store = kv.NewMockedKV()
@@ -84,7 +84,7 @@ func TestRecoverFailedAsCheckError(t *testing.T) {
 	var checked, handled, encoded, decoded bool
 	eventype := "create"
 	handler := newTestEventHandler(eventype, &checked, &handled, &encoded, &decoded)
-	handler.check = func(interface{}) (bool, error) {
+	handler.check = func(any) (bool, error) {
 		checked = true
 		return false, fmt.Errorf("check error")
 	}
@@ -131,7 +131,7 @@ func TestRecoverFailedAsDecodeLogError(t *testing.T) {
 	var checked, handled, encoded, decoded bool
 	eventype := "create"
 	handler := newTestEventHandler(eventype, &checked, &handled, &encoded, &decoded)
-	handler.decode = func([]byte) (interface{}, error) {
+	handler.decode = func([]byte) (any, error) {
 		decoded = true
 		return nil, fmt.Errorf("decode error")
 	}
@@ -153,7 +153,7 @@ func TestRecoverFailedAsDecodeLogError(t *testing.T) {
 
 func TestHydroRecoverDiscardNoNeedEvent(t *testing.T) {
 	var checked, handled, encoded, decoded bool
-	check := func(interface{}) (need bool, err error) {
+	check := func(any) (need bool, err error) {
 		checked = true
 		return need, err
 	}
@@ -222,10 +222,10 @@ func TestHydroRecoverWithRealLithium(t *testing.T) {
 
 	handler := simpleEventHandler{
 		event:  "create",
-		encode: func(interface{}) ([]byte, error) { return []byte("{}"), nil },
-		decode: func([]byte) (interface{}, error) { return struct{}{}, nil },
-		check:  func(interface{}) (bool, error) { return true, nil },
-		handle: func(interface{}) error { return nil },
+		encode: func(any) ([]byte, error) { return []byte("{}"), nil },
+		decode: func([]byte) (any, error) { return struct{}{}, nil },
+		check:  func(any) (bool, error) { return true, nil },
+		handle: func(any) error { return nil },
 	}
 	hydro.Register(handler)
 
@@ -244,22 +244,22 @@ func TestHydroRecoverWithRealLithium(t *testing.T) {
 }
 
 func newTestEventHandler(eventype string, checked, handled, encoded, decoded *bool) simpleEventHandler {
-	check := func(interface{}) (bool, error) {
+	check := func(any) (bool, error) {
 		*checked = true
 		return true, nil
 	}
 
-	handle := func(interface{}) (err error) {
+	handle := func(any) (err error) {
 		*handled = true
 		return err
 	}
 
-	encode := func(interface{}) (bs []byte, err error) {
+	encode := func(any) (bs []byte, err error) {
 		*encoded = true
 		return bs, err
 	}
 
-	decode := func([]byte) (item interface{}, err error) {
+	decode := func([]byte) (item any, err error) {
 		*decoded = true
 		return item, err
 	}
