@@ -27,7 +27,6 @@ var (
 
 	ErrInvaildIPAddress     = errors.New("invalid IP address")
 	ErrInvaildIPWithPort    = errors.New("invalid IP with port")
-	ErrICMPLost             = errors.New("icmp packets lost")
 	ErrAllConnectionsFailed = errors.New("all connections failed")
 	ErrUnexpectedRedirect   = errors.New("unexpected redirect")
 

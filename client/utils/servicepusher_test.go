@@ -8,18 +8,35 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestPollReachabilityReleasesTheLockWhenAProbeFails(t *testing.T) {
-	restore := reachabilityInterval
-	reachabilityInterval = time.Millisecond
-	t.Cleanup(func() { reachabilityInterval = restore })
+func TestPushReachesEveryRegisteredChannel(t *testing.T) {
+	p := &EndpointPusher{}
+	first, second := make(chan []string), make(chan []string)
+	p.Register(first)
+	p.Register(second)
+
+	endpoints := []string{"127.0.0.1:5001", "127.0.0.1:5002"}
+	go p.Push(t.Context(), endpoints)
+
+	assert.Equal(t, endpoints, <-first)
+	assert.Equal(t, endpoints, <-second)
+}
+
+func TestPushStopsWhenTheContextIsDone(t *testing.T) {
+	p := &EndpointPusher{}
+	p.Register(make(chan []string))
 
 	ctx, cancel := context.WithCancel(t.Context())
-	defer cancel()
+	cancel()
 
-	p := NewEndpointPusher()
-	go p.pollReachability(ctx, "nonexistent.invalid:1")
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		p.Push(ctx, []string{"127.0.0.1:5001"})
+	}()
 
-	time.Sleep(100 * time.Millisecond)
-	assert.True(t, p.TryLock(), "the lock is still held after a failed probe")
-	p.Unlock()
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("push blocked on an unread channel after the context was done")
+	}
 }

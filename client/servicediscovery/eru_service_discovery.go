@@ -39,7 +39,7 @@ func (w *EruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err
 	}
 	client := pb.NewCoreRPCClient(cc)
 	ch := make(chan []string)
-	epPusher := utils.NewEndpointPusher()
+	epPusher := &utils.EndpointPusher{}
 	epPusher.Register(ch)
 	epPusher.Register(lbResolverBuilder.updateCh)
 	go func() {
