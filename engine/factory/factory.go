@@ -188,7 +188,7 @@ func InitEngineCache(ctx context.Context, config types.Config, stor store.Store)
 	if stor != nil {
 		_, _ = engineCache.stor.GetNodesByPod(ctx, &types.NodeFilter{
 			All: true,
-		})
+		}, false)
 	}
 	go engineCache.checkAlive(ctx)
 	go engineCache.checkNodeStatus(ctx)

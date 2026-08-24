@@ -13,7 +13,7 @@ import (
 func (c *Calcium) ListNetworks(ctx context.Context, podname, driver string) ([]*enginetypes.Network, error) {
 	logger := log.WithFunc("calcium.ListNetworks").WithField("podname", podname).WithField("driver", driver)
 	networks := []*enginetypes.Network{}
-	nodes, err := c.store.GetNodesByPod(ctx, &types.NodeFilter{Podname: podname})
+	nodes, err := c.store.GetNodesByPod(ctx, &types.NodeFilter{Podname: podname}, false)
 	if err != nil {
 		logger.Error(ctx, err)
 		return networks, err

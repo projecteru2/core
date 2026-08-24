@@ -26,7 +26,7 @@ func TestPodResource(t *testing.T) {
 	lock.On("Lock", mock.Anything).Return(ctx, nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch, err := c.PodResource(ctx, podname)
 	assert.Error(t, err)
 	store.AssertExpectations(t)
@@ -35,7 +35,7 @@ func TestPodResource(t *testing.T) {
 			Name: nodename,
 		},
 	}
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 

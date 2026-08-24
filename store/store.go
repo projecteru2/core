@@ -24,7 +24,7 @@ type Store interface {
 	RemoveNode(ctx context.Context, node *types.Node) error
 	GetNode(ctx context.Context, nodename string) (*types.Node, error)
 	GetNodes(ctx context.Context, nodenames []string) ([]*types.Node, error)
-	GetNodesByPod(ctx context.Context, nodeFilter *types.NodeFilter, opts ...Option) ([]*types.Node, error)
+	GetNodesByPod(ctx context.Context, nodeFilter *types.NodeFilter, withoutEngine bool) ([]*types.Node, error)
 	UpdateNodes(context.Context, ...*types.Node) error
 	SetNodeStatus(ctx context.Context, node *types.Node, ttl int64) error
 	GetNodeStatus(ctx context.Context, nodename string) (*types.NodeStatus, error)

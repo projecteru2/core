@@ -272,7 +272,7 @@ func TestFilterNodes(t *testing.T) {
 	assert.Len(t, ns, 1)
 
 	nf.Includes = []string{}
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	_, err = c.filterNodes(ctx, nf)
 	assert.Error(t, err)
 
@@ -290,7 +290,7 @@ func TestFilterNodes(t *testing.T) {
 			NodeMeta: types.NodeMeta{Name: "D"},
 		},
 	}
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nodes, nil)
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil)
 
 	ns, err = c.filterNodes(ctx, nf)
 	assert.NoError(t, err)

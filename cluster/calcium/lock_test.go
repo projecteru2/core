@@ -140,10 +140,10 @@ func TestWithNodesPodLocked(t *testing.T) {
 		},
 		Available: true,
 	}
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{}, types.ErrMockError).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{}, types.ErrMockError).Once()
 	err := c.withNodesPodLocked(ctx, &types.NodeFilter{Podname: "test", All: false}, func(ctx context.Context, nodes map[string]*types.Node) error { return nil })
 	assert.Error(t, err)
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{}, nil).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{}, nil).Once()
 	var ns map[string]*types.Node
 	err = c.withNodesPodLocked(ctx, &types.NodeFilter{Podname: "test", Labels: map[string]string{"eru": "2"}, All: false}, func(ctx context.Context, nodes map[string]*types.Node) error {
 		ns = nodes
@@ -151,7 +151,7 @@ func TestWithNodesPodLocked(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Empty(t, ns)
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{}, nil)
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{}, nil)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	err = c.withNodesPodLocked(ctx, &types.NodeFilter{Podname: "test", Includes: []string{"test"}, All: false}, func(ctx context.Context, nodes map[string]*types.Node) error { return nil })
 	assert.Error(t, err)
@@ -222,10 +222,10 @@ func TestWithNodesOperationLocked(t *testing.T) {
 		},
 		Available: true,
 	}
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{}, types.ErrMockError).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{}, types.ErrMockError).Once()
 	err := c.withNodesOperationLocked(ctx, &types.NodeFilter{Podname: "test", All: false}, func(ctx context.Context, nodes map[string]*types.Node) error { return nil })
 	assert.Error(t, err)
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{}, nil).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{}, nil).Once()
 	var ns map[string]*types.Node
 	err = c.withNodesOperationLocked(ctx, &types.NodeFilter{Podname: "test", Labels: map[string]string{"eru": "2"}, All: false}, func(ctx context.Context, nodes map[string]*types.Node) error {
 		ns = nodes
@@ -233,7 +233,7 @@ func TestWithNodesOperationLocked(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Empty(t, ns)
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{}, nil)
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{}, nil)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	err = c.withNodesOperationLocked(ctx, &types.NodeFilter{Podname: "test", Includes: []string{"test"}, All: false}, func(ctx context.Context, nodes map[string]*types.Node) error { return nil })
 	assert.Error(t, err)

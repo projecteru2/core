@@ -18,7 +18,6 @@ import (
 	"github.com/projecteru2/core/engine/mocks/fakeengine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
-	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -58,21 +57,17 @@ func (m *Mercury) GetNodes(ctx context.Context, nodenames []string) ([]*types.No
 	if err != nil {
 		return nil, err
 	}
-	return m.doGetNodes(ctx, kvs, nil, true, nil)
+	return m.doGetNodes(ctx, kvs, nil, true, false)
 }
 
-func (m *Mercury) GetNodesByPod(ctx context.Context, nodeFilter *types.NodeFilter, opts ...store.Option) ([]*types.Node, error) {
-	var op store.Op
-	for _, opt := range opts {
-		opt(&op)
-	}
+func (m *Mercury) GetNodesByPod(ctx context.Context, nodeFilter *types.NodeFilter, withoutEngine bool) ([]*types.Node, error) {
 	do := func(podname string) ([]*types.Node, error) {
 		key := fmt.Sprintf(nodePodKey, podname, "")
 		resp, err := m.Get(ctx, key, clientv3.WithPrefix())
 		if err != nil {
 			return nil, err
 		}
-		return m.doGetNodes(ctx, resp.Kvs, nodeFilter.Labels, nodeFilter.All, &op)
+		return m.doGetNodes(ctx, resp.Kvs, nodeFilter.Labels, nodeFilter.All, withoutEngine)
 	}
 	if nodeFilter.Podname != "" {
 		return do(nodeFilter.Podname)
@@ -297,7 +292,7 @@ func (m *Mercury) doRemoveNode(ctx context.Context, podname, nodename, endpoint 
 
 func (m *Mercury) doGetNodes(
 	ctx context.Context, kvs []*mvccpb.KeyValue,
-	labels map[string]string, all bool, op *store.Op,
+	labels map[string]string, all, withoutEngine bool,
 ) (nodes []*types.Node, err error) {
 	allNodes := []*types.Node{}
 	for _, ev := range kvs {
@@ -338,7 +333,7 @@ func (m *Mercury) doGetNodes(
 				return
 			}
 
-			if op == nil || (!op.WithoutEngine) {
+			if !withoutEngine {
 				if client, err := m.makeClient(ctx, node); err != nil {
 					logger.Errorf(ctx, err, "failed to make client for %+v", node.Name)
 				} else {

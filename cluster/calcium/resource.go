@@ -12,7 +12,7 @@ import (
 
 func (c *Calcium) PodResource(ctx context.Context, podname string) (chan *types.NodeResourceInfo, error) {
 	logger := log.WithFunc("calcium.PodResource").WithField("podname", podname)
-	nodes, err := c.store.GetNodesByPod(ctx, &types.NodeFilter{Podname: podname})
+	nodes, err := c.store.GetNodesByPod(ctx, &types.NodeFilter{Podname: podname}, false)
 	if err != nil {
 		logger.Error(ctx, err)
 		return nil, err

@@ -15,7 +15,6 @@ import (
 	"github.com/projecteru2/core/engine/mocks/fakeengine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
-	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 
@@ -57,18 +56,17 @@ func (r *Rediaron) GetNodes(ctx context.Context, nodenames []string) ([]*types.N
 	if err != nil {
 		return nil, err
 	}
-	return r.doGetNodes(ctx, kvs, nil, true, nil)
+	return r.doGetNodes(ctx, kvs, nil, true, false)
 }
 
-func (r *Rediaron) GetNodesByPod(ctx context.Context, nodeFilter *types.NodeFilter, opts ...store.Option) ([]*types.Node, error) {
-	op := store.NewOp(opts...)
+func (r *Rediaron) GetNodesByPod(ctx context.Context, nodeFilter *types.NodeFilter, withoutEngine bool) ([]*types.Node, error) {
 	do := func(podname string) ([]*types.Node, error) {
 		key := fmt.Sprintf(nodePodKey, podname, "*")
 		kvs, err := r.getByKeyPattern(ctx, key, 0)
 		if err != nil {
 			return nil, err
 		}
-		return r.doGetNodes(ctx, kvs, nodeFilter.Labels, nodeFilter.All, op)
+		return r.doGetNodes(ctx, kvs, nodeFilter.Labels, nodeFilter.All, withoutEngine)
 	}
 	if nodeFilter.Podname != "" {
 		return do(nodeFilter.Podname)
@@ -275,7 +273,7 @@ func (r *Rediaron) doRemoveNode(ctx context.Context, podname, nodename, endpoint
 
 func (r *Rediaron) doGetNodes(
 	ctx context.Context, kvs map[string]string,
-	labels map[string]string, all bool, op *store.Op,
+	labels map[string]string, all, withoutEngine bool,
 ) (nodes []*types.Node, err error) {
 	allNodes := []*types.Node{}
 	for _, value := range kvs {
@@ -317,7 +315,7 @@ func (r *Rediaron) doGetNodes(
 			}
 
 			nodeChan <- node
-			if op == nil || (!op.WithoutEngine) {
+			if !withoutEngine {
 				if client, err := r.makeClient(ctx, node); err != nil {
 					logger.Errorf(ctx, err, "failed to make client for %+v", node.Name)
 				} else {

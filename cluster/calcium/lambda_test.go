@@ -235,7 +235,7 @@ func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {
 	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nodes, nil)
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil)
 	store.On("GetNode",
 		mock.Anything,
 		mock.AnythingOfType("string"),

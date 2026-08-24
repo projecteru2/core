@@ -505,7 +505,7 @@ func newCreateWorkloadCluster(_ *testing.T) (*Calcium, []*types.Node) {
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nodes, nil)
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(
 		func(_ context.Context, name string) (node *types.Node) {
 			node = node1
