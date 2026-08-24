@@ -14,7 +14,7 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-// SentryDefer .
+// SentryDefer reports a panic to Sentry and re-raises it.
 func SentryDefer() {
 	if sentryDSN == "" {
 		return
@@ -65,6 +65,6 @@ func reportToSentry(ctx context.Context, level sentry.Level, err error, format s
 	}
 
 	if res := string(*sentry.CaptureEvent(event)); res != "" {
-		WithFunc("log.reportToSentry").WithField("ID", res).Info(ctx, "Report to Sentry")
+		WithFunc("log.reportToSentry").WithField("ID", res).Debug(ctx, "reported to sentry")
 	}
 }

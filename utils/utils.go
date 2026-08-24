@@ -25,16 +25,15 @@ import (
 const (
 	letters       = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	shortenLength = 7
-	// DefaultVersion for default version
+	// DefaultVersion is the image tag assumed when a reference carries none.
 	DefaultVersion = "latest"
 )
 
-// RandomString random a string
+// RandomString returns n random letters from [a-zA-Z].
 func RandomString(n int) string {
 	r := make([]byte, n)
 	for i := range n {
 		n, err := rand.Int(rand.Reader, big.NewInt(int64(len(letters))))
-		// 没那么惨吧
 		if err != nil {
 			continue
 		}
@@ -43,12 +42,11 @@ func RandomString(n int) string {
 	return string(r)
 }
 
-// Tail return tail thing
+// Tail returns the segment of path after the last "/".
 func Tail(path string) string {
 	return path[strings.LastIndex(path, "/")+1:]
 }
 
-// GetGitRepoName return git repo name
 func GetGitRepoName(url string) (string, error) {
 	if (!strings.Contains(url, "git@") && !strings.Contains(url, "gitlab@") && !strings.Contains(url, "https://")) || !strings.HasSuffix(url, ".git") {
 		return "", errors.Wrap(types.ErrInvalidGitURL, url)
@@ -57,7 +55,7 @@ func GetGitRepoName(url string) (string, error) {
 	return strings.TrimSuffix(Tail(url), ".git"), nil
 }
 
-// GetTag reture image tag
+// GetTag returns the image tag, or DefaultVersion when the reference has none.
 func GetTag(image string) string {
 	if !strings.Contains(image, ":") {
 		return DefaultVersion
@@ -65,7 +63,7 @@ func GetTag(image string) string {
 	return image[strings.LastIndex(image, ":")+1:]
 }
 
-// NormalizeImageName will normalize image name
+// NormalizeImageName appends ":latest" when the image reference has no tag.
 func NormalizeImageName(image string) string {
 	if !strings.Contains(image, ":") {
 		return fmt.Sprintf("%s:latest", image)
@@ -73,7 +71,7 @@ func NormalizeImageName(image string) string {
 	return image
 }
 
-// MakeCommandLineArgs make command line args
+// MakeCommandLineArgs splits s into argv, honoring single and double quotes.
 func MakeCommandLineArgs(s string) []string {
 	r := []string{}
 	for _, part := range safeSplit(s) {
@@ -90,7 +88,7 @@ func MakeWorkloadName(appname, entrypoint, ident string) string {
 	return strings.Join([]string{appname, entrypoint, ident}, "_")
 }
 
-// ParseWorkloadName does the opposite thing as MakeWorkloadName
+// ParseWorkloadName is the inverse of MakeWorkloadName.
 func ParseWorkloadName(workloadName string) (string, string, string, error) {
 	workloadName = strings.TrimLeft(workloadName, "/")
 	splits := strings.Split(workloadName, "_")
@@ -101,7 +99,7 @@ func ParseWorkloadName(workloadName string) (string, string, string, error) {
 	return "", "", "", errors.Wrap(types.ErrInvalidWorkloadName, workloadName)
 }
 
-// MakePublishInfo generate publish info
+// MakePublishInfo maps each network to its "ip:port" strings.
 func MakePublishInfo(networks map[string]string, ports []string) map[string][]string {
 	result := map[string][]string{}
 	for networkName, ip := range networks {
@@ -116,7 +114,7 @@ func MakePublishInfo(networks map[string]string, ports []string) map[string][]st
 	return result
 }
 
-// EncodePublishInfo encode publish info
+// EncodePublishInfo joins each network's addresses with commas.
 func EncodePublishInfo(info map[string][]string) map[string]string {
 	result := map[string]string{}
 	for nm, publishs := range info {
@@ -127,7 +125,7 @@ func EncodePublishInfo(info map[string][]string) map[string]string {
 	return result
 }
 
-// DecodePublishInfo decode publish info
+// DecodePublishInfo splits each network's comma-joined addresses.
 func DecodePublishInfo(info map[string]string) map[string][]string {
 	result := map[string][]string{}
 	for nm, publishs := range info {
@@ -138,34 +136,34 @@ func DecodePublishInfo(info map[string]string) map[string][]string {
 	return result
 }
 
-// EncodeMetaInLabel encode meta to json
+// EncodeMetaInLabel returns meta as JSON, or "" when marshaling fails.
 func EncodeMetaInLabel(ctx context.Context, meta *types.LabelMeta) string {
 	data, err := json.Marshal(meta)
 	if err != nil {
-		log.WithFunc("utils.EncodeMetaInLabel").Error(ctx, err, "Encode meta failed")
+		log.WithFunc("utils.EncodeMetaInLabel").Error(ctx, err, "encode meta")
 		return ""
 	}
 	return string(data)
 }
 
-// DecodeMetaInLabel get meta from label and decode it
+// DecodeMetaInLabel returns the meta from labels, or an empty meta when absent or malformed.
 func DecodeMetaInLabel(ctx context.Context, labels map[string]string) *types.LabelMeta {
 	meta := &types.LabelMeta{}
 	metastr, ok := labels[cluster.LabelMeta]
 	if ok {
 		if err := json.Unmarshal([]byte(metastr), meta); err != nil {
-			log.WithFunc("utils.DecodeMetaInLabel").Error(ctx, err, "Decode failed")
+			log.WithFunc("utils.DecodeMetaInLabel").Error(ctx, err, "decode meta in label")
 		}
 	}
 	return meta
 }
 
-// ShortID short workload ID
+// ShortID returns the last 7 characters of workloadID.
 func ShortID(workloadID string) string {
 	return workloadID[Max(0, len(workloadID)-shortenLength):]
 }
 
-// LabelsFilter filter workload by labels
+// LabelsFilter reports whether every key/value in labels is present in extend.
 func LabelsFilter(extend, labels map[string]string) bool {
 	for k, v := range labels {
 		if n, ok := extend[k]; !ok || n != v {
@@ -175,12 +173,12 @@ func LabelsFilter(extend, labels map[string]string) bool {
 	return true
 }
 
-// CleanStatsdMetrics trans dot to _
+// CleanStatsdMetrics replaces "." with "-".
 func CleanStatsdMetrics(k string) string {
 	return strings.ReplaceAll(k, ".", "-")
 }
 
-// TempFile store a temp file
+// TempFile copies stream into a new temp file, closes stream, and returns the file name.
 func TempFile(stream io.ReadCloser) (name string, err error) {
 	f, err := os.CreateTemp(os.TempDir(), "")
 	if err != nil {
@@ -197,12 +195,11 @@ func TempFile(stream io.ReadCloser) (name string, err error) {
 	return f.Name(), err
 }
 
-// Round for float64 to int
+// Round rounds f to 9 decimal places.
 func Round(f float64) float64 {
 	return math.Round(f*1000000000) / 1000000000
 }
 
-// MergeHookOutputs merge hooks output
 func MergeHookOutputs(outputs []*bytes.Buffer) []byte {
 	r := []byte{}
 	for _, m := range outputs {
@@ -211,19 +208,18 @@ func MergeHookOutputs(outputs []*bytes.Buffer) []byte {
 	return r
 }
 
-// EnsureReaderClosed As the name says,
-// blocks until the stream is empty, until we meet EOF
+// EnsureReaderClosed drains stream to EOF and closes it; a nil stream is a no-op.
 func EnsureReaderClosed(ctx context.Context, stream io.ReadCloser) {
 	if stream == nil {
 		return
 	}
 	if _, err := io.Copy(io.Discard, stream); err != nil {
-		log.WithFunc("utils.EnsureReaderClosed").Error(ctx, err, "Empty stream failed")
+		log.WithFunc("utils.EnsureReaderClosed").Error(ctx, err, "drain stream")
 	}
 	_ = stream.Close()
 }
 
-// Range .
+// Range returns []int{0, 1, ..., n-1}.
 func Range(n int) (res []int) {
 	for i := range n {
 		res = append(res, i)
@@ -253,7 +249,6 @@ func Bool2Int(a bool) int {
 	return 0
 }
 
-// copied from https://gist.github.com/jmervine/d88c75329f98e09f5c87
 func safeSplit(s string) []string {
 	split := strings.Split(s, " ")
 

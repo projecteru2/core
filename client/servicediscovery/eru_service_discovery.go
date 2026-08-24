@@ -23,7 +23,6 @@ type EruServiceDiscovery struct {
 	authConfig types.AuthConfig
 }
 
-// New EruServiceDiscovery
 func New(endpoint string, authConfig types.AuthConfig) *EruServiceDiscovery {
 	return &EruServiceDiscovery{
 		endpoint:   endpoint,
@@ -31,12 +30,11 @@ func New(endpoint string, authConfig types.AuthConfig) *EruServiceDiscovery {
 	}
 }
 
-// Watch .
 func (w *EruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err error) {
 	cc, err := w.dial(w.endpoint, w.authConfig)
 	logger := log.WithFunc("servicediscovery.Watch").WithField("endpoint", w.endpoint)
 	if err != nil {
-		logger.Error(ctx, err, "dial failed")
+		logger.Error(ctx, err, "dial")
 		return nil, err
 	}
 	client := pb.NewCoreRPCClient(cc)
@@ -50,8 +48,8 @@ func (w *EruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err
 			watchCtx, cancelWatch := context.WithCancel(ctx)
 			stream, err := client.WatchServiceStatus(watchCtx, &pb.Empty{})
 			if err != nil {
-				logger.Error(ctx, err, "watch failed, try later")
-				time.Sleep(10 * time.Second) // TODO can config
+				logger.Error(ctx, err, "watch service status")
+				time.Sleep(10 * time.Second)
 				continue
 			}
 			expectedInterval := time.Duration(math.MaxInt64) / time.Second
@@ -71,7 +69,7 @@ func (w *EruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err
 				status, err := stream.Recv()
 				close(cancelTimer)
 				if err != nil {
-					logger.Error(ctx, err, "recv failed")
+					logger.Error(ctx, err, "recv service status")
 					break
 				}
 				expectedInterval = time.Duration(status.GetIntervalInSecond())

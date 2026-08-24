@@ -12,7 +12,7 @@ type numbers interface {
 		~complex64 | ~complex128
 }
 
-// Map like map in Python
+// Map returns f applied to every element of slice.
 func Map[T1, T2 any](slice []T1, f func(T1) T2) []T2 {
 	result := make([]T2, len(slice))
 	for i, v := range slice {
@@ -21,7 +21,6 @@ func Map[T1, T2 any](slice []T1, f func(T1) T2) []T2 {
 	return result
 }
 
-// Sum returns sum of all elements in slice
 func Sum[T numbers](slice []T) T {
 	var result T
 	for _, v := range slice {
@@ -30,7 +29,6 @@ func Sum[T numbers](slice []T) T {
 	return result
 }
 
-// Min returns the lesser one.
 func Min[T cmp.Ordered](x T, xs ...T) T {
 	if len(xs) == 0 {
 		return x
@@ -41,7 +39,6 @@ func Min[T cmp.Ordered](x T, xs ...T) T {
 	return x
 }
 
-// Max returns the biggest one.
 func Max[T cmp.Ordered](x T, xs ...T) T {
 	if len(xs) == 0 {
 		return x
@@ -52,12 +49,11 @@ func Max[T cmp.Ordered](x T, xs ...T) T {
 	return x
 }
 
-// Any returns true if any element in slice meets the requirement
 func Any[T any](slice []T, f func(T) bool) bool {
 	return slices.ContainsFunc(slice, f)
 }
 
-// Filter returns a new slice with elements that meet the requirement
+// Filter returns a new slice of the elements satisfying f, or nil when slice is nil.
 func Filter[T any](slice []T, f func(T) bool) []T {
 	if slice == nil {
 		return slice
@@ -71,7 +67,6 @@ func Filter[T any](slice []T, f func(T) bool) []T {
 	return result
 }
 
-// GenerateSlice generates a slice with factory function
 func GenerateSlice[T any](l int, factory func() T) []T {
 	result := make([]T, l)
 	for i := range l {
@@ -80,7 +75,7 @@ func GenerateSlice[T any](l int, factory func() T) []T {
 	return result
 }
 
-// AdvancedDivide returns 0 when 0/0
+// AdvancedDivide returns 0 when either operand is 0.
 func AdvancedDivide[T numbers](a, b T) T {
 	if a == 0 || b == 0 {
 		return 0
@@ -88,15 +83,13 @@ func AdvancedDivide[T numbers](a, b T) T {
 	return a / b
 }
 
-// Reverse any slice
 func Reverse[T any](s []T) {
 	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
 		s[i], s[j] = s[j], s[i]
 	}
 }
 
-// Unique return a index, where s[:index] is a unique slice
-// Unique requires sorted slice
+// Unique sorts s in place and returns n, where s[:n] holds the distinct elements.
 func Unique[T, E cmp.Ordered](s []T, getVal func(int) E) (j int) {
 	slices.Sort(s)
 	var lastVal E

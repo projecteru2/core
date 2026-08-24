@@ -20,7 +20,7 @@ var (
 	sentryDSN    string
 )
 
-// SetupLog init logger
+// SetupLog configures the global logger and the optional Sentry client.
 func SetupLog(ctx context.Context, cfg *types.ServerLogConfig, dsn string) error {
 	level, err := zerolog.ParseLevel(strings.ToLower(cfg.Level))
 	if err != nil {
@@ -50,7 +50,6 @@ func SetupLog(ctx context.Context, cfg *types.ServerLogConfig, dsn string) error
 		return errors.GetSafeDetails(err).SafeDetails
 	}
 	globalLogger = rslog
-	// Sentry
 	if dsn != "" {
 		sentryDSN = dsn
 		WithFunc("log.SetupLog").Infof(ctx, "sentry %v", sentryDSN)
@@ -59,52 +58,45 @@ func SetupLog(ctx context.Context, cfg *types.ServerLogConfig, dsn string) error
 	return nil
 }
 
-// GetGlobalLogger returns global logger
 func GetGlobalLogger() *zerolog.Logger {
 	return &globalLogger
 }
 
-// Fatalf forwards to sentry
+// Fatalf logs at fatal level and reports to Sentry.
 func Fatalf(ctx context.Context, err error, format string, args ...any) {
 	fatalf(ctx, err, format, nil, args...)
 }
 
-// Warnf is Warnf
 func Warnf(ctx context.Context, format string, args ...any) {
 	warnf(ctx, format, nil, args...)
 }
 
-// Warn is Warn
 func Warn(ctx context.Context, args ...any) {
 	Warnf(ctx, "%+v", args...)
 }
 
-// Infof is Infof
 func Infof(ctx context.Context, format string, args ...any) {
 	infof(ctx, format, nil, args...)
 }
 
-// Info is Info
 func Info(ctx context.Context, args ...any) {
 	Infof(ctx, "%+v", args...)
 }
 
-// Debugf is Debugf
 func Debugf(ctx context.Context, format string, args ...any) {
 	debugf(ctx, format, nil, args...)
 }
 
-// Debug is Debug
 func Debug(ctx context.Context, args ...any) {
 	Debugf(ctx, "%+v", args...)
 }
 
-// Errorf forwards to sentry
+// Errorf logs at error level and reports to Sentry.
 func Errorf(ctx context.Context, err error, format string, args ...any) {
 	errorf(ctx, err, format, nil, args...)
 }
 
-// Error forwards to sentry
+// Error logs at error level and reports to Sentry.
 func Error(ctx context.Context, err error, args ...any) {
 	Errorf(ctx, err, "%+v", args...)
 }

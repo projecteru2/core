@@ -18,7 +18,6 @@ type Resolver struct {
 	discovery servicediscovery.ServiceDiscovery
 }
 
-// New Resolver
 func New(cc resolver.ClientConn, endpoint, authority string) *Resolver {
 	var username, password string
 	if authority != "" {
@@ -35,10 +34,8 @@ func New(cc resolver.ClientConn, endpoint, authority string) *Resolver {
 	return r
 }
 
-// ResolveNow for interface
 func (r *Resolver) ResolveNow(_ resolver.ResolveNowOptions) {}
 
-// Close for interface
 func (r *Resolver) Close() {
 	r.cancel()
 }
@@ -46,22 +43,22 @@ func (r *Resolver) Close() {
 func (r *Resolver) sync(ctx context.Context) {
 	ctx, r.cancel = context.WithCancel(ctx)
 	defer r.cancel()
-	logger := log.WithFunc("resolver.sync")
+	logger := log.WithFunc("eru.Resolver.sync")
 	logger.Debug(ctx, "start sync service discovery")
 
 	ch, err := r.discovery.Watch(ctx)
 	if err != nil {
-		logger.Error(ctx, err, "failed to watch service status")
+		logger.Error(ctx, err, "watch service status")
 		return
 	}
 	for {
 		select {
 		case <-ctx.Done():
-			logger.Error(ctx, ctx.Err(), "watch interrupted")
+			logger.Debug(ctx, "watch interrupted")
 			return
 		case endpoints, ok := <-ch:
 			if !ok {
-				logger.Info(ctx, nil, "watch closed")
+				logger.Info(ctx, "watch closed")
 				return
 			}
 

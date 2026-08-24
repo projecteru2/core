@@ -11,7 +11,6 @@ import (
 	resourcetypes "github.com/projecteru2/core/resource/types"
 )
 
-// StatusMeta indicate contaienr runtime
 type StatusMeta struct {
 	ID string `json:"id"`
 
@@ -20,21 +19,18 @@ type StatusMeta struct {
 	Healthy   bool              `json:"healthy,omitempty"`
 	Extension []byte            `json:"extension,omitempty"`
 
-	// These attributes are only used when setting workload status.
+	// set only when writing workload status
 	Appname    string `json:"-"`
 	Nodename   string `json:"-"`
 	Entrypoint string `json:"-"`
 }
 
-// LabelMeta bind meta info store in labels
 type LabelMeta struct {
 	Publish     []string
 	HealthCheck *HealthCheck
 }
 
-// Workload store workload info
-// only relationship with pod and node is stored
-// if you wanna get realtime information, use Inspect method
+// Workload is the stored pod/node relation; use Inspect for live state.
 type Workload struct {
 	Resources    resourcetypes.Resources `json:"resources"`
 	EngineParams resourcetypes.Resources `json:"engine_params"`
@@ -53,7 +49,6 @@ type Workload struct {
 	Engine       engine.API              `json:"-"`
 }
 
-// Inspect a workload
 func (c *Workload) Inspect(ctx context.Context) (*enginetypes.VirtualizationInfo, error) {
 	if c.Engine == nil {
 		return nil, ErrNilEngine
@@ -62,7 +57,6 @@ func (c *Workload) Inspect(ctx context.Context) (*enginetypes.VirtualizationInfo
 	return info, err
 }
 
-// Start a workload
 func (c *Workload) Start(ctx context.Context) error {
 	if c.Engine == nil {
 		return ErrNilEngine
@@ -70,19 +64,17 @@ func (c *Workload) Start(ctx context.Context) error {
 	return c.Engine.VirtualizationStart(ctx, c.ID)
 }
 
-// Stop a workload
 func (c *Workload) Stop(ctx context.Context, force bool) error {
 	if c.Engine == nil {
 		return ErrNilEngine
 	}
-	gracefulTimeout := time.Duration(-1) // -1 indicates use engine default timeout
+	gracefulTimeout := time.Duration(-1) // -1 means engine default timeout
 	if force {
-		gracefulTimeout = 0 // don't wait, kill -15 && kill -9
+		gracefulTimeout = 0 // 0 means SIGTERM then SIGKILL, no wait
 	}
 	return c.Engine.VirtualizationStop(ctx, c.ID, gracefulTimeout)
 }
 
-// Suspend a workload
 func (c *Workload) Suspend(ctx context.Context) error {
 	if c.Engine == nil {
 		return ErrNilEngine
@@ -90,7 +82,6 @@ func (c *Workload) Suspend(ctx context.Context) error {
 	return c.Engine.VirtualizationSuspend(ctx, c.ID)
 }
 
-// Resume a workload
 func (c *Workload) Resume(ctx context.Context) error {
 	if c.Engine == nil {
 		return ErrNilEngine
@@ -98,7 +89,6 @@ func (c *Workload) Resume(ctx context.Context) error {
 	return c.Engine.VirtualizationResume(ctx, c.ID)
 }
 
-// Remove a workload
 func (c *Workload) Remove(ctx context.Context, force bool) (err error) {
 	if c.Engine == nil {
 		return ErrNilEngine
@@ -129,7 +119,6 @@ func (c *Workload) RawEngine(ctx context.Context, opts *RawEngineOptions) (ans *
 	return ans, err
 }
 
-// WorkloadStatus store deploy status
 type WorkloadStatus struct {
 	ID       string
 	Workload *Workload

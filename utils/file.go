@@ -7,7 +7,7 @@ import (
 
 const executablePerm = 0o111
 
-// ListAllExecutableFiles returns all the executable files in the given path
+// ListAllExecutableFiles returns the executable files directly under basedir, not recursing.
 func ListAllExecutableFiles(basedir string) ([]string, error) {
 	files := []string{}
 	err := filepath.Walk(basedir, func(path string, info fs.FileInfo, err error) error {
@@ -26,6 +26,7 @@ func ListAllExecutableFiles(basedir string) ([]string, error) {
 	return files, err
 }
 
+// ListAllSharedLibFiles returns the .so files directly under basedir, not recursing.
 func ListAllSharedLibFiles(basedir string) ([]string, error) {
 	files := []string{}
 	err := filepath.Walk(basedir, func(path string, info fs.FileInfo, err error) error {

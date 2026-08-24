@@ -448,7 +448,7 @@ func toRPCWorkloads(ctx context.Context, workloads []*types.Workload, labels map
 	for _, c := range workloads {
 		pWorkload, err := toRPCWorkload(ctx, c)
 		if err != nil {
-			log.WithFunc("transform.toRPCWorkloads").Error(ctx, err, "trans to pb workload failed")
+			log.WithFunc("transform.toRPCWorkloads").Error(ctx, err, "transform workload")
 			continue
 		}
 		if !utils.LabelsFilter(pWorkload.Labels, labels) {
@@ -544,7 +544,7 @@ func toCoreResources(resources map[string][]byte) resourcetypes.Resources {
 	for k, v := range resources {
 		rp := resourcetypes.RawParams{}
 		if err := json.Unmarshal(v, &rp); err != nil {
-			log.WithFunc("toCoreResources").Errorf(nil, err, "%v", string(v)) // nolint
+			log.WithFunc("transform.toCoreResources").Errorf(nil, err, "unmarshal resource %s", k) //nolint
 			continue
 		}
 		r[k] = rp

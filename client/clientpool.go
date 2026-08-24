@@ -11,7 +11,6 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-// PoolConfig config for client pool
 type PoolConfig struct {
 	EruAddrs          []string
 	Auth              types.AuthConfig
@@ -24,13 +23,11 @@ type clientWithStatus struct {
 	alive  bool
 }
 
-// Pool implement of RPCClientPool
 type Pool struct {
 	mu         sync.Mutex
 	rpcClients []*clientWithStatus
 }
 
-// NewCoreRPCClientPool .
 func NewCoreRPCClientPool(ctx context.Context, config *PoolConfig) (*Pool, error) {
 	if len(config.EruAddrs) == 0 {
 		return nil, types.ErrInvaildEruIPAddress
@@ -50,7 +47,6 @@ func NewCoreRPCClientPool(ctx context.Context, config *PoolConfig) (*Pool, error
 		c.rpcClients = append(c.rpcClients, &clientWithStatus{client: rpcClient, addr: addr})
 	}
 
-	// init client status
 	c.updateClientsStatus(ctx, config.ConnectionTimeout)
 
 	allFailed := true
@@ -80,7 +76,7 @@ func NewCoreRPCClientPool(ctx context.Context, config *PoolConfig) (*Pool, error
 	return c, nil
 }
 
-// GetClient finds the first *client.Client instance with an active connection. If all connections are dead, returns the first one.
+// GetClient returns the first alive client, or the first client when none are alive.
 func (c *Pool) GetClient() pb.CoreRPCClient {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -115,7 +111,7 @@ func checkAlive(ctx context.Context, rpc *clientWithStatus, timeout time.Duratio
 	})
 	logger := log.WithFunc("client.checkAlive")
 	if err != nil {
-		logger.Errorf(ctx, err, "connect to %s failed", rpc.addr)
+		logger.Warnf(ctx, "connect to %s failed: %+v", rpc.addr, err)
 		return false
 	}
 	logger.Debugf(ctx, "connect to %s success", rpc.addr)

@@ -4,7 +4,6 @@ import (
 	"strings"
 )
 
-// Hook define hooks
 type Hook struct {
 	AfterStart    []string `yaml:"after_start,omitempty"`
 	BeforeStop    []string `yaml:"before_stop,omitempty"`
@@ -13,7 +12,6 @@ type Hook struct {
 	Force         bool     `yaml:"force,omitempty"`
 }
 
-// HealthCheck define healthcheck
 type HealthCheck struct {
 	TCPPorts []string `yaml:"tcp_ports,omitempty,flow"`
 	HTTPPort string   `yaml:"http_port"`
@@ -21,7 +19,6 @@ type HealthCheck struct {
 	HTTPCode int      `yaml:"code,omitempty"`
 }
 
-// Entrypoint is a single entrypoint
 type Entrypoint struct {
 	Name        string            `yaml:"name,omitempty"`
 	Commands    []string          `yaml:"commands,omitempty"`
@@ -35,7 +32,6 @@ type Entrypoint struct {
 	Sysctls     map[string]string `yaml:"sysctls,omitempty,flow"`
 }
 
-// Validate checks entrypoint's name
 func (e *Entrypoint) Validate() error {
 	if e.Name == "" {
 		return ErrEmptyEntrypointName
@@ -46,7 +42,6 @@ func (e *Entrypoint) Validate() error {
 	return nil
 }
 
-// Bind define a single bind
 type Bind struct {
 	InWorkloadPath string `yaml:"bind,omitempty"`
 	ReadOnly       bool   `yaml:"ro,omitempty"`

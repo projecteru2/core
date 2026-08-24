@@ -2,8 +2,7 @@ package types
 
 import "time"
 
-// ServiceStatus Interval indicates when the expected next push shall reach before
 type ServiceStatus struct {
 	Addresses []string
-	Interval  time.Duration
+	Interval  time.Duration // deadline for the next expected push
 }

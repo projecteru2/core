@@ -12,7 +12,6 @@ type Resolver struct {
 	cc        resolver.ClientConn
 }
 
-// New Resolver
 func New(cc resolver.ClientConn, endpoints string) *Resolver {
 	var addresses []resolver.Address
 	for ep := range strings.SplitSeq(endpoints, ",") {
@@ -25,8 +24,6 @@ func New(cc resolver.ClientConn, endpoints string) *Resolver {
 	}
 }
 
-// ResolveNow for interface
 func (r *Resolver) ResolveNow(_ resolver.ResolveNowOptions) {}
 
-// Close for interface
 func (r *Resolver) Close() {}

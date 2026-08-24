@@ -6,7 +6,7 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-// LoadConfig load config from yaml
+// LoadConfig loads the config from the YAML file at configPath.
 func LoadConfig(configPath string) (types.Config, error) {
 	config := types.Config{}
 

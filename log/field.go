@@ -6,64 +6,56 @@ import (
 	"github.com/alphadose/haxmap"
 )
 
-// Fields is a wrapper for zerolog.Entry
-// we need to insert some sentry captures here
+// Fields carries key-value context for one log entry.
 type Fields struct {
 	kv *haxmap.Map[string, any]
 }
 
-// WithField .
 func (f *Fields) WithField(key string, value any) *Fields {
 	f.kv.Set(key, value)
 	return f
 }
 
-// Fatalf forwards to sentry
+// Fatalf logs at fatal level and reports to Sentry.
 func (f Fields) Fatalf(ctx context.Context, err error, format string, args ...any) {
 	fatalf(ctx, err, format, f.kv, args...)
 }
 
-// Warnf is Warnf
 func (f Fields) Warnf(ctx context.Context, format string, args ...any) {
 	warnf(ctx, format, f.kv, args...)
 }
 
-// Warn is Warn
 func (f Fields) Warn(ctx context.Context, args ...any) {
 	f.Warnf(ctx, "%+v", args...)
 }
 
-// Infof is Infof
 func (f Fields) Infof(ctx context.Context, format string, args ...any) {
 	infof(ctx, format, f.kv, args...)
 }
 
-// Info is Info
 func (f Fields) Info(ctx context.Context, args ...any) {
 	f.Infof(ctx, "%+v", args...)
 }
 
-// Debugf is Debugf
 func (f Fields) Debugf(ctx context.Context, format string, args ...any) {
 	debugf(ctx, format, f.kv, args...)
 }
 
-// Debug is Debug
 func (f Fields) Debug(ctx context.Context, args ...any) {
 	f.Debugf(ctx, "%+v", args...)
 }
 
-// Errorf forwards to sentry
+// Errorf logs at error level and reports to Sentry.
 func (f Fields) Errorf(ctx context.Context, err error, format string, args ...any) {
 	errorf(ctx, err, format, f.kv, args...)
 }
 
-// Error forwards to sentry
+// Error logs at error level and reports to Sentry.
 func (f Fields) Error(ctx context.Context, err error, args ...any) {
 	f.Errorf(ctx, err, "%+v", args...)
 }
 
-// WithField add kv into log entry
+// WithField returns a Fields tagged with key and value.
 func WithField(key string, value any) *Fields {
 	r := haxmap.New[string, any]()
 	r.Set(key, value)
@@ -72,7 +64,7 @@ func WithField(key string, value any) *Fields {
 	}
 }
 
-// WithFunc is short for WithField
+// WithFunc tags the entry with the enclosing function name.
 func WithFunc(fname string) *Fields {
 	return WithField("func", fname)
 }

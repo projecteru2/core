@@ -94,7 +94,6 @@ func TestRunAndWaitSync(t *testing.T) {
 	runAndWait := func(_ context.Context, _ *types.DeployOptions, _ <-chan []byte) <-chan *types.AttachWorkloadMessage {
 		ch := make(chan *types.AttachWorkloadMessage)
 		go func() {
-			// message to report output of process
 			ch <- &types.AttachWorkloadMessage{
 				WorkloadID:    "workloadidfortonic",
 				Data:          []byte("network not reachable"),
@@ -153,7 +152,6 @@ func TestRunAndWaitAsync(t *testing.T) {
 	runAndWait := func(_ context.Context, _ *types.DeployOptions, _ <-chan []byte) <-chan *types.AttachWorkloadMessage {
 		ch := make(chan *types.AttachWorkloadMessage)
 		go func() {
-			// message to report output of process
 			ch <- &types.AttachWorkloadMessage{
 				WorkloadID:    "workloadidfortonic",
 				Data:          []byte("network not reachable"),

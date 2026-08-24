@@ -9,18 +9,16 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-// BasicAuth use token to auth grcp request
+// BasicAuth checks a username and password carried in grpc metadata.
 type BasicAuth struct {
 	username string
 	password string
 }
 
-// NewBasicAuth return a basicauth obj
 func NewBasicAuth(username, password string) *BasicAuth {
 	return &BasicAuth{username, password}
 }
 
-// StreamInterceptor define stream interceptor
 func (b *BasicAuth) StreamInterceptor(srv any, stream grpc.ServerStream, _ *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 	ctx := stream.Context()
 	if err := b.doAuth(ctx); err != nil {
@@ -29,7 +27,6 @@ func (b *BasicAuth) StreamInterceptor(srv any, stream grpc.ServerStream, _ *grpc
 	return handler(srv, stream)
 }
 
-// UnaryInterceptor define unary interceptor
 func (b *BasicAuth) UnaryInterceptor(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 	if err := b.doAuth(ctx); err != nil {
 		return nil, err

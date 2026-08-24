@@ -8,19 +8,14 @@ import (
 )
 
 const (
-	// TriKeep .
 	TriKeep = iota
-	// TriTrue .
 	TriTrue
-	// TriFalse .
 	TriFalse
 
 	SendLargeFileChunkSize = 2 << 10
 )
 
-// TODO should validate options
-
-// Processing tracks workloads count yet finished
+// Processing tracks the unfinished workload count for one deploy.
 type Processing struct {
 	Appname   string
 	Entryname string
@@ -28,36 +23,34 @@ type Processing struct {
 	Ident     string
 }
 
-// DeployOptions is options for deploying
 type DeployOptions struct {
 	Resources      resourcetypes.Resources
-	Name           string            // Name of application
-	Entrypoint     *Entrypoint       // entrypoint
-	Podname        string            // Name of pod to deploy
-	NodeFilter     *NodeFilter       // filter of nodenames, using includes or not using excludes
-	Image          string            // Name of image to deploy
-	ExtraArgs      string            // Extra arguments to append to command
-	Count          int               // How many workloads needed, e.g. 4
-	Env            []string          // Env for workload
-	DNS            []string          // DNS for workload
-	ExtraHosts     []string          // Extra hosts for workload
-	Networks       map[string]string // Network names and specified IPs
-	User           string            // User for workload
-	Debug          bool              // debug mode, use syslog as log driver
-	OpenStdin      bool              // OpenStdin for workload
-	Labels         map[string]string // Labels for workloads
-	DeployStrategy string            // Deploy strategy
-	Files          []LinuxFile       // For additional file data
-	NodesLimit     int               // Limit nodes count
-	ProcessIdent   string            // ProcessIdent ident this deploy
-	IgnoreHook     bool              // IgnoreHook ignore hook process
-	AfterCreate    []string          // AfterCreate support run cmds after create
-	RawArgs        RawArgs           // RawArgs for raw args processing
-	Lambda         bool              // indicate is lambda workload or not
-	IgnorePull     bool              // ignore pull image
+	Name           string
+	Entrypoint     *Entrypoint
+	Podname        string
+	NodeFilter     *NodeFilter
+	Image          string
+	ExtraArgs      string // appended to the entrypoint command
+	Count          int
+	Env            []string
+	DNS            []string
+	ExtraHosts     []string
+	Networks       map[string]string // network name to specified IP
+	User           string
+	Debug          bool // use syslog as log driver
+	OpenStdin      bool
+	Labels         map[string]string
+	DeployStrategy string
+	Files          []LinuxFile
+	NodesLimit     int
+	ProcessIdent   string
+	IgnoreHook     bool
+	AfterCreate    []string
+	RawArgs        RawArgs
+	Lambda         bool
+	IgnorePull     bool
 }
 
-// GetProcessing .
 func (o DeployOptions) GetProcessing(nodename string) *Processing {
 	return &Processing{
 		Appname:   o.Name,
@@ -67,7 +60,6 @@ func (o DeployOptions) GetProcessing(nodename string) *Processing {
 	}
 }
 
-// Validate checks options
 func (o *DeployOptions) Validate() error {
 	if o.Name == "" {
 		return ErrEmptyAppName
@@ -84,12 +76,10 @@ func (o *DeployOptions) Validate() error {
 	return o.Entrypoint.Validate()
 }
 
-// CopyOptions for multiple workload files copy
 type CopyOptions struct {
 	Targets map[string][]string
 }
 
-// Validate checks options
 func (o *CopyOptions) Validate() error {
 	if len(o.Targets) == 0 {
 		return ErrNoFilesToCopy
@@ -97,7 +87,6 @@ func (o *CopyOptions) Validate() error {
 	return nil
 }
 
-// LinuxFile is used for copy file
 type LinuxFile struct {
 	Content  []byte
 	Filename string
@@ -106,7 +95,7 @@ type LinuxFile struct {
 	Mode     int64
 }
 
-// Clone returns a copy of content bytes
+// Clone deep-copies Content.
 func (f LinuxFile) Clone() LinuxFile {
 	c := make([]byte, len(f.Content))
 	copy(c, f.Content)
@@ -119,23 +108,20 @@ func (f LinuxFile) Clone() LinuxFile {
 	}
 }
 
-// String for %+v
 func (f LinuxFile) String() string {
 	return fmt.Sprintf("file %+v:%+v:%+v:%#o, len: %+v", f.Filename, f.UID, f.GID, f.Mode, len(f.Content))
 }
 
-// LitterDump for litter.Sdump
+// LitterDump renders the file for litter.Sdump.
 func (f LinuxFile) LitterDump(w io.Writer) {
 	_, _ = fmt.Fprintf(w, `{Content:{%d bytes},Filename:%s,UID:%d,GID:%d,Mode:%#o"}`, len(f.Content), f.Filename, f.UID, f.GID, f.Mode)
 }
 
-// SendOptions for send files to multiple workload
 type SendOptions struct {
 	IDs   []string
 	Files []LinuxFile
 }
 
-// Validate checks options
 func (o *SendOptions) Validate() error {
 	if len(o.IDs) == 0 {
 		return ErrNoWorkloadIDs
@@ -145,14 +131,13 @@ func (o *SendOptions) Validate() error {
 	}
 	for i, file := range o.Files {
 		if file.UID == 0 && file.GID == 0 && file.Mode == 0 {
-			// we see it as requiring "default perm"
+			// all-zero ownership means "default perm"
 			o.Files[i].Mode = 0o755
 		}
 	}
 	return nil
 }
 
-// ListWorkloadsOptions for list workloads
 type ListWorkloadsOptions struct {
 	Appname    string
 	Entrypoint string
@@ -161,7 +146,6 @@ type ListWorkloadsOptions struct {
 	Labels     map[string]string
 }
 
-// ReplaceOptions for replace workload
 type ReplaceOptions struct {
 	DeployOptions
 	NetworkInherit bool
@@ -170,9 +154,7 @@ type ReplaceOptions struct {
 	IDs            []string
 }
 
-// Validate doesn't check image here
-// because in cluster/calcium//helper.go, pullImage will check this
-// to keep the original behavior, no check here.
+// Validate skips Image; pullImage in cluster/calcium checks it.
 func (o *ReplaceOptions) Validate() error {
 	if o.Name == "" {
 		return ErrEmptyAppName
@@ -180,14 +162,13 @@ func (o *ReplaceOptions) Validate() error {
 	return o.Entrypoint.Validate()
 }
 
-// Normalize checks count
+// Normalize defaults Count to 1.
 func (o *ReplaceOptions) Normalize() {
 	if o.Count == 0 {
 		o.Count = 1
 	}
 }
 
-// ListNodesOptions for list nodes
 type ListNodesOptions struct {
 	Podname  string
 	Labels   map[string]string
@@ -195,7 +176,6 @@ type ListNodesOptions struct {
 	CallInfo bool
 }
 
-// AddNodeOptions for adding node
 type AddNodeOptions struct {
 	Nodename  string
 	Endpoint  string
@@ -208,7 +188,6 @@ type AddNodeOptions struct {
 	Test      bool
 }
 
-// Validate checks options
 func (o *AddNodeOptions) Validate() error {
 	if o.Nodename == "" {
 		return ErrEmptyNodeName
@@ -222,7 +201,6 @@ func (o *AddNodeOptions) Validate() error {
 	return nil
 }
 
-// SetNodeOptions for node set
 type SetNodeOptions struct {
 	Nodename      string
 	Endpoint      string
@@ -236,7 +214,6 @@ type SetNodeOptions struct {
 	Key           string
 }
 
-// Validate checks options
 func (o *SetNodeOptions) Validate() error {
 	if o.Nodename == "" {
 		return ErrEmptyNodeName
@@ -244,8 +221,7 @@ func (o *SetNodeOptions) Validate() error {
 	return nil
 }
 
-// ImageOptions wraps options for images
-// Prune is only used when remove image
+// ImageOptions carries image op options; Prune applies to remove only.
 type ImageOptions struct {
 	Podname   string
 	Nodenames []string
@@ -254,7 +230,6 @@ type ImageOptions struct {
 	Filter    string
 }
 
-// Validate checks the options
 func (o *ImageOptions) Validate() error {
 	if o.Podname == "" {
 		return ErrEmptyPodName
@@ -262,7 +237,6 @@ func (o *ImageOptions) Validate() error {
 	return nil
 }
 
-// ExecuteWorkloadOptions for executing commands in running workload
 type ExecuteWorkloadOptions struct {
 	WorkloadID string
 	Commands   []string
@@ -272,29 +246,25 @@ type ExecuteWorkloadOptions struct {
 	ReplCmd    []byte
 }
 
-// ReallocOptions .
 type ReallocOptions struct {
 	ID        string
 	Resources resourcetypes.Resources
 }
 
-// TriOptions .
 type TriOptions int
 
-// RawArgs .
 type RawArgs []byte
 
-// String for %+v
 func (r RawArgs) String() string {
 	return string(r)
 }
 
-// LitterDump from litter.Dumper
+// LitterDump renders the raw args for litter.Sdump.
 func (r RawArgs) LitterDump(w io.Writer) {
 	_, _ = w.Write(r)
 }
 
-// SendLargeFileOptions for LargeFileTransfer
+// SendLargeFileOptions carries one chunk of a SendLargeFile stream.
 type SendLargeFileOptions struct {
 	IDs   []string
 	Dst   string
@@ -305,7 +275,6 @@ type SendLargeFileOptions struct {
 	Chunk []byte
 }
 
-// Validate checks options
 func (o *SendLargeFileOptions) Validate() error {
 	if len(o.IDs) == 0 {
 		return ErrNoWorkloadIDs
@@ -314,7 +283,7 @@ func (o *SendLargeFileOptions) Validate() error {
 		return ErrNoFilesToSend
 	}
 	if o.UID == 0 && o.GID == 0 && o.Mode == 0 {
-		// we see it as requiring "default perm"
+		// all-zero ownership means "default perm"
 		o.Mode = 0o755
 	}
 	return nil
@@ -324,7 +293,7 @@ type RawEngineOptions struct {
 	ID         string
 	Op         string
 	Params     []byte
-	IgnoreLock bool // whether lock the workload
+	IgnoreLock bool // skip the workload lock
 }
 
 func (o *RawEngineOptions) Validate() error {
@@ -337,7 +306,6 @@ func (o *RawEngineOptions) Validate() error {
 	return nil
 }
 
-// ParseTriOption .
 func ParseTriOption(opt TriOptions, original bool) (res bool) {
 	switch opt {
 	case TriKeep:

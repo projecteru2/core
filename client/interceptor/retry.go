@@ -24,7 +24,7 @@ func NewUnaryRetry(retryOpts RetryOptions) grpc.UnaryClientInterceptor {
 	}
 }
 
-// NewStreamRetry make specific stream retry on error
+// NewStreamRetry retries the stream methods listed in RPCNeedRetry.
 func NewStreamRetry(retryOpts RetryOptions) grpc.StreamClientInterceptor {
 	return func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
 		stream, err := streamer(ctx, desc, cc, method, opts...)

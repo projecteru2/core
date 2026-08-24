@@ -15,7 +15,7 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-// EndpointPusher pushes endpoints to registered channels if the ep is L3 reachable
+// EndpointPusher pushes endpoints to registered channels once they are L3 reachable.
 type EndpointPusher struct {
 	sync.Mutex
 	chans              []chan []string
@@ -23,7 +23,6 @@ type EndpointPusher struct {
 	availableEndpoints *haxmap.Map[string, struct{}]
 }
 
-// NewEndpointPusher .
 func NewEndpointPusher() *EndpointPusher {
 	return &EndpointPusher{
 		pendingEndpoints:   haxmap.New[string, context.CancelFunc](),
@@ -31,12 +30,10 @@ func NewEndpointPusher() *EndpointPusher {
 	}
 }
 
-// Register registers a channel that will receive the endpoints later
 func (p *EndpointPusher) Register(ch chan []string) {
 	p.chans = append(p.chans, ch)
 }
 
-// Push pushes endpoint candicates
 func (p *EndpointPusher) Push(ctx context.Context, endpoints []string) {
 	p.delOutdated(ctx, endpoints)
 	p.addCheck(ctx, endpoints)
@@ -84,11 +81,11 @@ func (p *EndpointPusher) pollReachability(ctx context.Context, endpoint string) 
 	logger := log.WithFunc("utils.EndpointPusher.pollReachability")
 	parts := strings.Split(endpoint, ":")
 	if len(parts) != 2 {
-		logger.Errorf(ctx, types.ErrInvaildCoreEndpointType, "wrong format of endpoint: %s", endpoint)
+		logger.Warnf(ctx, "wrong endpoint format: %s", endpoint)
 		return
 	}
 
-	ticker := time.NewTicker(time.Second) // TODO config from outside?
+	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 	for {
 		select {
@@ -113,7 +110,7 @@ func (p *EndpointPusher) pollReachability(ctx context.Context, endpoint string) 
 func (p *EndpointPusher) checkReachability(ctx context.Context, host string) (err error) {
 	pinger, err := probing.NewPinger(host)
 	if err != nil {
-		log.WithFunc("utils.EndpointPusher.checkReachability").Error(ctx, err, "failed to create pinger")
+		log.WithFunc("utils.EndpointPusher.checkReachability").Error(ctx, err, "create pinger")
 		return err
 	}
 	pinger.SetPrivileged(os.Getuid() == 0)

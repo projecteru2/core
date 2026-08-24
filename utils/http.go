@@ -30,18 +30,15 @@ var (
 	httpsClientCache = haxmap.New[string, *http.Client]()
 )
 
-// GetHTTPClient returns a HTTP client
 func GetHTTPClient() *http.Client {
 	return defaultHTTPClient
 }
 
-// GetUnixSockClient .
 func GetUnixSockClient() *http.Client {
 	return defaultUnixSockClient
 }
 
-// GetHTTPSClient returns an HTTPS client
-// if cert_path/ca/cert/key is empty, it returns an HTTP client instead
+// GetHTTPSClient returns a per-cert cached HTTPS client, or the plain HTTP client when any of certPath/ca/cert/key is empty.
 func GetHTTPSClient(ctx context.Context, certPath, name, ca, cert, key string) (client *http.Client, err error) {
 	if certPath == "" || ca == "" || cert == "" || key == "" {
 		return GetHTTPClient(), nil
@@ -132,7 +129,7 @@ func dumpFromString(ctx context.Context, ca, cert, key *os.File, caStr, certStr,
 			return err
 		}
 	}
-	log.WithFunc("utils.dumpFromString").Debug(ctx, "Dump ca.pem, cert.pem, key.pem from string")
+	log.WithFunc("utils.dumpFromString").Debug(ctx, "dump ca/cert/key from string")
 	return nil
 }
 

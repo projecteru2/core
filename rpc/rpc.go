@@ -21,8 +21,7 @@ import (
 	"github.com/projecteru2/core/version"
 )
 
-// Vibranium is implementations for grpc server interface
-// Many data types should be transformed
+// Vibranium implements the CoreRPC gRPC server.
 type Vibranium struct {
 	cluster cluster.Cluster
 	config  types.Config
@@ -31,12 +30,11 @@ type Vibranium struct {
 	TaskNum int
 }
 
-// New will new a new cluster instance
+// New returns a Vibranium serving cluster.
 func New(cluster cluster.Cluster, config types.Config, stop chan struct{}) *Vibranium {
 	return &Vibranium{cluster: cluster, config: config, counter: sync.WaitGroup{}, stop: stop}
 }
 
-// Info show core info
 func (v *Vibranium) Info(context.Context, *pb.Empty) (*pb.CoreInfo, error) {
 	return &pb.CoreInfo{
 		Version:       version.VERSION,
@@ -48,7 +46,6 @@ func (v *Vibranium) Info(context.Context, *pb.Empty) (*pb.CoreInfo, error) {
 	}, nil
 }
 
-// WatchServiceStatus pushes sibling services
 func (v *Vibranium) WatchServiceStatus(_ *pb.Empty, stream pb.CoreRPC_WatchServiceStatusServer) (err error) {
 	task := v.newTask(stream.Context(), "WatchServiceStatus", false)
 	defer task.done()
@@ -75,7 +72,6 @@ func (v *Vibranium) WatchServiceStatus(_ *pb.Empty, stream pb.CoreRPC_WatchServi
 	}
 }
 
-// ListNetworks list networks for pod
 func (v *Vibranium) ListNetworks(ctx context.Context, opts *pb.ListNetworkOptions) (*pb.Networks, error) {
 	task := v.newTask(ctx, "ListNetworks", false)
 	defer task.done()
@@ -91,7 +87,6 @@ func (v *Vibranium) ListNetworks(ctx context.Context, opts *pb.ListNetworkOption
 	return &pb.Networks{Networks: ns}, nil
 }
 
-// ConnectNetwork connect network
 func (v *Vibranium) ConnectNetwork(ctx context.Context, opts *pb.ConnectNetworkOptions) (*pb.Network, error) {
 	task := v.newTask(ctx, "ConnectNetwork", false)
 	defer task.done()
@@ -102,7 +97,6 @@ func (v *Vibranium) ConnectNetwork(ctx context.Context, opts *pb.ConnectNetworkO
 	return &pb.Network{Name: opts.Network, Subnets: subnets}, nil
 }
 
-// DisconnectNetwork disconnect network
 func (v *Vibranium) DisconnectNetwork(ctx context.Context, opts *pb.DisconnectNetworkOptions) (*pb.Empty, error) {
 	task := v.newTask(ctx, "DisconnectNetwork", false)
 	defer task.done()
@@ -112,7 +106,6 @@ func (v *Vibranium) DisconnectNetwork(ctx context.Context, opts *pb.DisconnectNe
 	return &pb.Empty{}, nil
 }
 
-// AddPod saves a pod, and returns it to client
 func (v *Vibranium) AddPod(ctx context.Context, opts *pb.AddPodOptions) (*pb.Pod, error) {
 	task := v.newTask(ctx, "AddPod", false)
 	defer task.done()
@@ -124,7 +117,6 @@ func (v *Vibranium) AddPod(ctx context.Context, opts *pb.AddPodOptions) (*pb.Pod
 	return toRPCPod(p), nil
 }
 
-// RemovePod removes a pod only if it's empty
 func (v *Vibranium) RemovePod(ctx context.Context, opts *pb.RemovePodOptions) (*pb.Empty, error) {
 	task := v.newTask(ctx, "RemovePod", false)
 	defer task.done()
@@ -134,7 +126,6 @@ func (v *Vibranium) RemovePod(ctx context.Context, opts *pb.RemovePodOptions) (*
 	return &pb.Empty{}, nil
 }
 
-// GetPod show a pod
 func (v *Vibranium) GetPod(ctx context.Context, opts *pb.GetPodOptions) (*pb.Pod, error) {
 	task := v.newTask(ctx, "GetPod", false)
 	defer task.done()
@@ -146,7 +137,6 @@ func (v *Vibranium) GetPod(ctx context.Context, opts *pb.GetPodOptions) (*pb.Pod
 	return toRPCPod(p), nil
 }
 
-// ListPods returns a list of pods
 func (v *Vibranium) ListPods(ctx context.Context, _ *pb.Empty) (*pb.Pods, error) {
 	task := v.newTask(ctx, "ListPods", false)
 	defer task.done()
@@ -163,7 +153,6 @@ func (v *Vibranium) ListPods(ctx context.Context, _ *pb.Empty) (*pb.Pods, error)
 	return &pb.Pods{Pods: pods}, nil
 }
 
-// GetPodResource get pod nodes resource usage
 func (v *Vibranium) GetPodResource(opts *pb.GetPodOptions, stream pb.CoreRPC_GetPodResourceServer) error {
 	task := v.newTask(stream.Context(), "GetPodResource", false)
 	defer task.done()
@@ -179,7 +168,6 @@ func (v *Vibranium) GetPodResource(opts *pb.GetPodOptions, stream pb.CoreRPC_Get
 	return nil
 }
 
-// GetNodeResource check node resource
 func (v *Vibranium) GetNodeResource(ctx context.Context, opts *pb.GetNodeResourceOptions) (*pb.NodeResource, error) {
 	task := v.newTask(ctx, "GetNodeResource", false)
 	defer task.done()
@@ -191,8 +179,6 @@ func (v *Vibranium) GetNodeResource(ctx context.Context, opts *pb.GetNodeResourc
 	return toRPCNodeResource(nr), nil
 }
 
-// AddNode saves a node and returns it to client
-// Method must be called synchronously, or nothing will be returned
 func (v *Vibranium) AddNode(ctx context.Context, opts *pb.AddNodeOptions) (*pb.Node, error) {
 	task := v.newTask(ctx, "AddNode", false)
 	defer task.done()
@@ -205,7 +191,6 @@ func (v *Vibranium) AddNode(ctx context.Context, opts *pb.AddNodeOptions) (*pb.N
 	return toRPCNode(n), nil
 }
 
-// RemoveNode removes the node from etcd
 func (v *Vibranium) RemoveNode(ctx context.Context, opts *pb.RemoveNodeOptions) (*pb.Empty, error) {
 	task := v.newTask(ctx, "RemoveNode", false)
 	defer task.done()
@@ -215,7 +200,6 @@ func (v *Vibranium) RemoveNode(ctx context.Context, opts *pb.RemoveNodeOptions) 
 	return &pb.Empty{}, nil
 }
 
-// ListPodNodes returns a list of node for pod
 func (v *Vibranium) ListPodNodes(opts *pb.ListNodesOptions, stream pb.CoreRPC_ListPodNodesServer) error {
 	task := v.newTask(stream.Context(), "ListPodNodes", false)
 	defer task.done()
@@ -240,7 +224,6 @@ func (v *Vibranium) ListPodNodes(opts *pb.ListNodesOptions, stream pb.CoreRPC_Li
 	return nil
 }
 
-// GetNode get a node
 func (v *Vibranium) GetNode(ctx context.Context, opts *pb.GetNodeOptions) (*pb.Node, error) {
 	task := v.newTask(ctx, "GetNode", false)
 	defer task.done()
@@ -252,7 +235,6 @@ func (v *Vibranium) GetNode(ctx context.Context, opts *pb.GetNodeOptions) (*pb.N
 	return toRPCNode(n), nil
 }
 
-// GetNodeEngine get a node engine
 func (v *Vibranium) GetNodeEngineInfo(ctx context.Context, opts *pb.GetNodeOptions) (*pb.Engine, error) {
 	task := v.newTask(ctx, "GetNodeEngine", false)
 	defer task.done()
@@ -264,7 +246,6 @@ func (v *Vibranium) GetNodeEngineInfo(ctx context.Context, opts *pb.GetNodeOptio
 	return toRPCEngine(e), nil
 }
 
-// SetNode set node meta
 func (v *Vibranium) SetNode(ctx context.Context, opts *pb.SetNodeOptions) (*pb.Node, error) {
 	task := v.newTask(ctx, "SetNode", false)
 	defer task.done()
@@ -279,7 +260,6 @@ func (v *Vibranium) SetNode(ctx context.Context, opts *pb.SetNodeOptions) (*pb.N
 	return toRPCNode(n), nil
 }
 
-// GetNodeStatus set status of a node for reporting
 func (v *Vibranium) GetNodeStatus(ctx context.Context, opts *pb.GetNodeStatusOptions) (*pb.NodeStatusStreamMessage, error) {
 	task := v.newTask(ctx, "GetNodeStatus", false)
 	defer task.done()
@@ -294,7 +274,6 @@ func (v *Vibranium) GetNodeStatus(ctx context.Context, opts *pb.GetNodeStatusOpt
 	}, nil
 }
 
-// SetNodeStatus set status of a node for reporting
 func (v *Vibranium) SetNodeStatus(ctx context.Context, opts *pb.SetNodeStatusOptions) (*pb.Empty, error) {
 	task := v.newTask(ctx, "SetNodeStatus", false)
 	defer task.done()
@@ -304,7 +283,6 @@ func (v *Vibranium) SetNodeStatus(ctx context.Context, opts *pb.SetNodeStatusOpt
 	return &pb.Empty{}, nil
 }
 
-// NodeStatusStream watch and show deployed status
 func (v *Vibranium) NodeStatusStream(_ *pb.Empty, stream pb.CoreRPC_NodeStatusStreamServer) error {
 	task := v.newTask(stream.Context(), "NodeStatusStream", true)
 	defer task.done()
@@ -333,7 +311,6 @@ func (v *Vibranium) NodeStatusStream(_ *pb.Empty, stream pb.CoreRPC_NodeStatusSt
 	}
 }
 
-// GetWorkloadsStatus get workloads status
 func (v *Vibranium) GetWorkloadsStatus(ctx context.Context, opts *pb.WorkloadIDs) (*pb.WorkloadsStatus, error) {
 	task := v.newTask(ctx, "GetWorkloadsStatus", false)
 	defer task.done()
@@ -345,7 +322,6 @@ func (v *Vibranium) GetWorkloadsStatus(ctx context.Context, opts *pb.WorkloadIDs
 	return toRPCWorkloadsStatus(workloadsStatus), nil
 }
 
-// SetWorkloadsStatus set workloads status
 func (v *Vibranium) SetWorkloadsStatus(ctx context.Context, opts *pb.SetWorkloadsStatusOptions) (*pb.WorkloadsStatus, error) {
 	task := v.newTask(ctx, "SetWorkloadsStatus", false)
 	defer task.done()
@@ -376,14 +352,13 @@ func (v *Vibranium) SetWorkloadsStatus(ctx context.Context, opts *pb.SetWorkload
 	return toRPCWorkloadsStatus(status), nil
 }
 
-// WorkloadStatusStream watch and show deployed status
 func (v *Vibranium) WorkloadStatusStream(opts *pb.WorkloadStatusStreamOptions, stream pb.CoreRPC_WorkloadStatusStreamServer) error {
 	task := v.newTask(stream.Context(), "WorkloadStatusStream", true)
 	defer task.done()
 	logger := log.WithFunc("vibranium.WorkloadStatusStream").WithField("app", opts.Appname)
 
-	logger.Info(task.context, "WorkloadStatusStream start")
-	defer logger.Info(task.context, "WorkloadStatusStream stop")
+	logger.Info(task.context, "stream started")
+	defer logger.Info(task.context, "stream stopped")
 
 	ch := v.cluster.WorkloadStatusStream(
 		task.context,
@@ -415,7 +390,6 @@ func (v *Vibranium) WorkloadStatusStream(opts *pb.WorkloadStatusStreamOptions, s
 	}
 }
 
-// CalculateCapacity calculates capacity for each node
 func (v *Vibranium) CalculateCapacity(ctx context.Context, opts *pb.DeployOptions) (*pb.CapacityMessage, error) {
 	task := v.newTask(ctx, "CalculateCapacity", true)
 	defer task.done()
@@ -430,8 +404,6 @@ func (v *Vibranium) CalculateCapacity(ctx context.Context, opts *pb.DeployOption
 	return toRPCCapacityMessage(m), nil
 }
 
-// GetWorkload get a workload
-// More information will be shown
 func (v *Vibranium) GetWorkload(ctx context.Context, ID *pb.WorkloadID) (*pb.Workload, error) {
 	task := v.newTask(ctx, "GetWorkload", false)
 	defer task.done()
@@ -443,8 +415,6 @@ func (v *Vibranium) GetWorkload(ctx context.Context, ID *pb.WorkloadID) (*pb.Wor
 	return toRPCWorkload(task.context, workload)
 }
 
-// GetWorkloads get lots workloads
-// like GetWorkload, information should be returned
 func (v *Vibranium) GetWorkloads(ctx context.Context, cids *pb.WorkloadIDs) (*pb.Workloads, error) {
 	task := v.newTask(ctx, "GetWorkloads", false)
 	defer task.done()
@@ -456,7 +426,6 @@ func (v *Vibranium) GetWorkloads(ctx context.Context, cids *pb.WorkloadIDs) (*pb
 	return toRPCWorkloads(task.context, workloads, nil), nil
 }
 
-// ListWorkloads by appname with optional entrypoint and nodename
 func (v *Vibranium) ListWorkloads(opts *pb.ListWorkloadsOptions, stream pb.CoreRPC_ListWorkloadsServer) error {
 	task := v.newTask(stream.Context(), "ListWorkloads", true)
 	defer task.done()
@@ -481,7 +450,6 @@ func (v *Vibranium) ListWorkloads(opts *pb.ListWorkloadsOptions, stream pb.CoreR
 	return nil
 }
 
-// ListNodeWorkloads list node workloads
 func (v *Vibranium) ListNodeWorkloads(ctx context.Context, opts *pb.GetNodeOptions) (*pb.Workloads, error) {
 	task := v.newTask(ctx, "ListNodeWorkloads", false)
 	defer task.done()
@@ -492,7 +460,6 @@ func (v *Vibranium) ListNodeWorkloads(ctx context.Context, opts *pb.GetNodeOptio
 	return toRPCWorkloads(task.context, workloads, nil), nil
 }
 
-// Copy copy files from multiple workloads
 func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) error {
 	task := v.newTask(stream.Context(), "Copy", true)
 	defer task.done()
@@ -503,7 +470,6 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 	if err != nil {
 		return grpcstatus.Error(Copy, err.Error())
 	}
-	// 4K buffer
 	p := make([]byte, 4096)
 	for m := range ch {
 		msg := &pb.CopyMessage{
@@ -540,11 +506,11 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 					Size: int64(len(m.Content)),
 				}
 				if err = tw.WriteHeader(header); err != nil {
-					logger.Error(task.context, err, "Error during writing tarball header")
+					logger.Error(task.context, err, "write tarball header")
 					return
 				}
 				if _, err = tw.Write(m.Content); err != nil {
-					logger.Error(task.context, err, "Error during writing tarball content")
+					logger.Error(task.context, err, "write tarball content")
 					return
 				}
 			}
@@ -554,7 +520,7 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 			n, err := r.Read(p)
 			if err != nil {
 				if err != io.EOF {
-					logger.Error(task.context, err, "Error during buffer resp")
+					logger.Error(task.context, err, "read copy stream")
 					msg.Error = err.Error()
 					if err = stream.Send(msg); err != nil {
 						v.logUnsentMessages(task.context, "Copy", err, m)
@@ -573,7 +539,6 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 	return nil
 }
 
-// Send send files to some contaienrs
 func (v *Vibranium) Send(opts *pb.SendOptions, stream pb.CoreRPC_SendServer) error {
 	task := v.newTask(stream.Context(), "Send", true)
 	defer task.done()
@@ -624,12 +589,12 @@ func (v *Vibranium) SendLargeFile(stream pb.CoreRPC_SendLargeFileServer) error {
 				break
 			}
 			if err != nil {
-				log.Errorf(task.context, err, "[SendLargeFile]receive from rpc err: %v", err)
+				log.WithFunc("vibranium.SendLargeFile").Error(task.context, err, "recv from stream")
 				return
 			}
 			data, err := toSendLargeFileOptions(req)
 			if err != nil {
-				log.Errorf(task.context, err, "[SendLargeFile]transform data err: %v", err)
+				log.WithFunc("vibranium.SendLargeFile").Error(task.context, err, "transform file options")
 				return
 			}
 			inputChan <- data
@@ -651,7 +616,6 @@ func (v *Vibranium) SendLargeFile(stream pb.CoreRPC_SendLargeFileServer) error {
 	return nil
 }
 
-// BuildImage streamed returned functions
 func (v *Vibranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_BuildImageServer) error {
 	task := v.newTask(stream.Context(), "BuildImage", true)
 	defer task.done()
@@ -673,7 +637,6 @@ func (v *Vibranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_Bui
 	return nil
 }
 
-// CacheImage cache image
 func (v *Vibranium) CacheImage(opts *pb.CacheImageOptions, stream pb.CoreRPC_CacheImageServer) error {
 	task := v.newTask(stream.Context(), "CacheImage", true)
 	defer task.done()
@@ -691,7 +654,6 @@ func (v *Vibranium) CacheImage(opts *pb.CacheImageOptions, stream pb.CoreRPC_Cac
 	return nil
 }
 
-// RemoveImage remove image
 func (v *Vibranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_RemoveImageServer) error {
 	task := v.newTask(stream.Context(), "RemoveImage", true)
 	defer task.done()
@@ -709,7 +671,6 @@ func (v *Vibranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_R
 	return nil
 }
 
-// ListImage list image
 func (v *Vibranium) ListImage(opts *pb.ListImageOptions, stream pb.CoreRPC_ListImageServer) error {
 	task := v.newTask(stream.Context(), "ListImage", true)
 	defer task.done()
@@ -728,7 +689,6 @@ func (v *Vibranium) ListImage(opts *pb.ListImageOptions, stream pb.CoreRPC_ListI
 	return nil
 }
 
-// CreateWorkload create workloads
 func (v *Vibranium) CreateWorkload(opts *pb.DeployOptions, stream pb.CoreRPC_CreateWorkloadServer) error {
 	task := v.newTask(stream.Context(), "CreateWorkload", true)
 	defer task.done()
@@ -751,7 +711,6 @@ func (v *Vibranium) CreateWorkload(opts *pb.DeployOptions, stream pb.CoreRPC_Cre
 	return nil
 }
 
-// ReplaceWorkload replace workloads
 func (v *Vibranium) ReplaceWorkload(opts *pb.ReplaceOptions, stream pb.CoreRPC_ReplaceWorkloadServer) error {
 	task := v.newTask(stream.Context(), "ReplaceWorkload", true)
 	defer task.done()
@@ -774,7 +733,6 @@ func (v *Vibranium) ReplaceWorkload(opts *pb.ReplaceOptions, stream pb.CoreRPC_R
 	return nil
 }
 
-// RemoveWorkload remove workloads
 func (v *Vibranium) RemoveWorkload(opts *pb.RemoveWorkloadOptions, stream pb.CoreRPC_RemoveWorkloadServer) error {
 	task := v.newTask(stream.Context(), "RemoveWorkload", true)
 	defer task.done()
@@ -799,7 +757,6 @@ func (v *Vibranium) RemoveWorkload(opts *pb.RemoveWorkloadOptions, stream pb.Cor
 	return nil
 }
 
-// DissociateWorkload dissociate workload
 func (v *Vibranium) DissociateWorkload(opts *pb.DissociateWorkloadOptions, stream pb.CoreRPC_DissociateWorkloadServer) error {
 	task := v.newTask(stream.Context(), "DissociateWorkload", true)
 	defer task.done()
@@ -823,7 +780,6 @@ func (v *Vibranium) DissociateWorkload(opts *pb.DissociateWorkloadOptions, strea
 	return nil
 }
 
-// ControlWorkload control workloads
 func (v *Vibranium) ControlWorkload(opts *pb.ControlWorkloadOptions, stream pb.CoreRPC_ControlWorkloadServer) error {
 	task := v.newTask(stream.Context(), "ControlWorkload", true)
 	defer task.done()
@@ -850,7 +806,6 @@ func (v *Vibranium) ControlWorkload(opts *pb.ControlWorkloadOptions, stream pb.C
 	return nil
 }
 
-// ExecuteWorkload runs a command in a running workload
 func (v *Vibranium) ExecuteWorkload(stream pb.CoreRPC_ExecuteWorkloadServer) error {
 	task := v.newTask(stream.Context(), "ExecuteWorkload", true)
 	defer task.done()
@@ -871,7 +826,7 @@ func (v *Vibranium) ExecuteWorkload(stream pb.CoreRPC_ExecuteWorkloadServer) err
 			for {
 				execWorkloadOpt, recvErr := stream.Recv()
 				if execWorkloadOpt == nil || recvErr != nil {
-					log.WithFunc("vibranium.ExecuteWorkload").Error(task.context, recvErr, "Recv command error")
+					log.WithFunc("vibranium.ExecuteWorkload").Error(task.context, recvErr, "recv command")
 					return
 				}
 				inCh <- execWorkloadOpt.ReplCmd
@@ -887,7 +842,6 @@ func (v *Vibranium) ExecuteWorkload(stream pb.CoreRPC_ExecuteWorkloadServer) err
 	return nil
 }
 
-// ReallocResource realloc res for workloads
 func (v *Vibranium) ReallocResource(ctx context.Context, opts *pb.ReallocOptions) (msg *pb.ReallocResourceMessage, err error) {
 	task := v.newTask(ctx, "ReallocResource", true)
 	defer task.done()
@@ -916,7 +870,6 @@ func (v *Vibranium) ReallocResource(ctx context.Context, opts *pb.ReallocOptions
 	return msg, nil
 }
 
-// LogStream get workload logs
 func (v *Vibranium) LogStream(opts *pb.LogStreamOptions, stream pb.CoreRPC_LogStreamServer) error {
 	task := v.newTask(stream.Context(), "LogStream", true)
 	defer task.done()
@@ -924,8 +877,8 @@ func (v *Vibranium) LogStream(opts *pb.LogStreamOptions, stream pb.CoreRPC_LogSt
 	ID := opts.GetId()
 	logger := log.WithFunc("vibranium.LogStream").WithField("ID", ID)
 
-	logger.Info(task.context, "Get log start")
-	defer logger.Info(task.context, "Get log done")
+	logger.Info(task.context, "log stream started")
+	defer logger.Info(task.context, "log stream stopped")
 	ch, err := v.cluster.LogStream(task.context, &types.LogStreamOptions{
 		ID:     ID,
 		Tail:   opts.Tail,
@@ -952,7 +905,6 @@ func (v *Vibranium) LogStream(opts *pb.LogStreamOptions, stream pb.CoreRPC_LogSt
 	}
 }
 
-// RunAndWait is lambda
 func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	task := v.newTask(stream.Context(), "RunAndWait", true)
 	RunAndWaitOptions, err := stream.Recv()
@@ -980,8 +932,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 		if RunAndWaitOptions.AsyncTimeout != 0 {
 			timeout = time.Second * time.Duration(RunAndWaitOptions.AsyncTimeout)
 		}
-		ctx, cancel = context.WithTimeout(context.TODO(), timeout) // not use the stream ctx
-		// force mark stdin to false
+		ctx, cancel = context.WithTimeout(context.TODO(), timeout) // the async run outlives the stream
 		opts.OpenStdin = false
 	}
 
@@ -994,7 +945,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 		for {
 			replOpts, recvErr := stream.Recv()
 			if replOpts == nil || recvErr != nil {
-				logger.Error(ctx, recvErr, "Recv command")
+				logger.Error(ctx, recvErr, "recv command")
 				break
 			}
 			inCh <- replOpts.Cmd
@@ -1008,18 +959,16 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 		return grpcstatus.Error(RunAndWait, err.Error())
 	}
 
-	// send workload IDs to client first
 	for _, ID := range IDs {
 		if err = stream.Send(&pb.AttachWorkloadMessage{
 			WorkloadId:    ID,
 			Data:          []byte(""),
 			StdStreamType: pb.StdStreamType_TYPEWORKLOADID,
 		}); err != nil {
-			v.logUnsentMessages(ctx, "RunAndWait: first message send failed", err, ID)
+			v.logUnsentMessages(ctx, "RunAndWait", err, ID)
 		}
 	}
 
-	// then deal with the rest messages
 	runAndWait := func(f func(<-chan *types.AttachWorkloadMessage)) {
 		defer task.done()
 		defer cancel()
@@ -1060,7 +1009,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 				for {
 					if part, isPrefix, err = bufReader.ReadLine(); err != nil {
 						if err != io.EOF {
-							logger.Error(ctx, err, "read error")
+							logger.Error(ctx, err, "read line")
 						}
 						return
 					}
@@ -1093,5 +1042,5 @@ func (v *Vibranium) RawEngine(ctx context.Context, opts *pb.RawEngineOptions) (*
 }
 
 func (v *Vibranium) logUnsentMessages(ctx context.Context, msgType string, err error, msg any) {
-	log.WithFunc("vibranium.logUnsentMessages").Infof(ctx, "Unsent (%s) streamed message due to (%+v): (%+v)", msgType, err, msg)
+	log.WithFunc("vibranium.logUnsentMessages").Warnf(ctx, "unsent %s streamed message %+v: %+v", msgType, msg, err)
 }

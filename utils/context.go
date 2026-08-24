@@ -8,12 +8,12 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-// NewInheritCtx new a todo context and get the previous values
+// NewInheritCtx returns a background context carrying only ctx's peer and tracing ID.
 func NewInheritCtx(ctx context.Context) context.Context {
 	return InheritTracingInfo(ctx, context.TODO())
 }
 
-// InheritTracingInfo pass through the tracing info: peer, tracing id
+// InheritTracingInfo copies the peer and tracing ID from ctx onto newCtx.
 func InheritTracingInfo(ctx, newCtx context.Context) context.Context {
 	rCtx := newCtx
 	if ctx == nil {

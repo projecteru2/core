@@ -6,17 +6,14 @@ import (
 )
 
 var (
-	// NAME is app name
-	NAME = "Eru-Core"
-	// VERSION is app version
+	NAME    = "Eru-Core"
 	VERSION = "unknown"
-	// REVISION is app revision
+	// REVISION is the git hash, injected by goreleaser ldflags.
 	REVISION = "HEAD"
-	// BUILTAT is app built info
-	BUILTAT = "now"
+	BUILTAT  = "now"
 )
 
-// String show version thing
+// String returns the formatted build information.
 func String() string {
 	version := ""
 	version += fmt.Sprintf("Version:        %s\n", VERSION)

@@ -7,8 +7,7 @@ import (
 	"github.com/docker/go-units"
 )
 
-// ParseRAMInHuman returns int value in bytes of a human readable string
-// e.g. 100KB -> 102400
+// ParseRAMInHuman parses a human-readable size ("100KB", "-1T") into bytes.
 func ParseRAMInHuman(ram string) (int64, error) {
 	if ram == "" {
 		return 0, nil
