@@ -46,12 +46,12 @@ func (s *retryStream) RecvMsg(m any) (err error) {
 		}
 		s.setStream(stream)
 		s.mux.RLock()
-		err = s.getStream().SendMsg(s.sent)
+		sent := s.sent
 		s.mux.RUnlock()
-		if err != nil {
+		if err = stream.SendMsg(sent); err != nil {
 			return err
 		}
-		return s.getStream().RecvMsg(m)
+		return stream.RecvMsg(m)
 	}, backoff.WithMaxRetries(backoff.WithContext(backoff.NewExponentialBackOff(), s.ctx), s.retryOpts.Max))
 }
 
