@@ -160,5 +160,7 @@ func main() {
 		},
 		Action: serve,
 	}
-	_ = app.Run(context.Background(), os.Args)
+	if err := app.Run(context.Background(), os.Args); err != nil {
+		os.Exit(1)
+	}
 }
