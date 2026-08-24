@@ -22,7 +22,6 @@ func (t *task) done() {
 	}
 	t.cancel()
 	t.v.counter.Done()
-	t.v.TaskNum.Add(-1)
 }
 
 // Wait blocks until all in-flight tasks finish.
@@ -39,7 +38,6 @@ func (v *Vibranium) newTask(ctx context.Context, name string, verbose bool) *tas
 		log.WithFunc("vibranium.newTask").WithField("name", name).Debug(ctx, "task added")
 	}
 	v.counter.Add(1)
-	v.TaskNum.Add(1)
 	return &task{
 		v:       v,
 		name:    name,
