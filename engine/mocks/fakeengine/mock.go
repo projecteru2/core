@@ -33,7 +33,7 @@ func (wc *writeCloser) Close() error {
 // MakeClient builds an engine.API whose calls return canned data.
 func MakeClient(_ context.Context, _ coretypes.Config, nodename, endpoint, ca, cert, key string) (engine.API, error) {
 	e := &enginemocks.API{}
-	parmas := &enginetypes.Params{
+	params := &enginetypes.Params{
 		Nodename: nodename,
 		Endpoint: endpoint,
 		CA:       ca,
@@ -42,8 +42,8 @@ func MakeClient(_ context.Context, _ coretypes.Config, nodename, endpoint, ca, c
 	}
 	e.On("Info", mock.Anything).Return(&enginetypes.Info{NCPU: 100, MemTotal: units.GiB * 100, StorageTotal: units.GiB * 100}, nil)
 	e.On("Ping", mock.Anything).Return(nil)
-	e.On("GetParams").Return(parmas, nil)
-	var execID string
+	e.On("GetParams").Return(params)
+	e.On("CloseConn").Return(nil)
 	e.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return(
 		func(context.Context, string, *enginetypes.ExecConfig) string {
 			return utils.RandomString(64)
@@ -60,7 +60,7 @@ func MakeClient(_ context.Context, _ coretypes.Config, nodename, endpoint, ca, c
 		nil,
 	)
 	e.On("ExecResize", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	e.On("ExecExitCode", mock.Anything, execID).Return(0, nil)
+	e.On("ExecExitCode", mock.Anything, mock.Anything, mock.Anything).Return(0, nil)
 	e.On("NetworkConnect", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]string{}, nil)
 	e.On("NetworkDisconnect", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	e.On("NetworkList", mock.Anything, mock.Anything).Return([]*enginetypes.Network{{
@@ -83,8 +83,8 @@ func MakeClient(_ context.Context, _ coretypes.Config, nodename, endpoint, ca, c
 	imageDigest := utils.RandomString(64)
 	e.On("ImageLocalDigests", mock.Anything, mock.Anything).Return([]string{imageDigest}, nil)
 	e.On("ImageRemoteDigest", mock.Anything, mock.Anything).Return(imageDigest, nil)
-	e.On("ImageBuildFromExist", mock.Anything, mock.Anything, mock.Anything).Return("ImageBuildFromExist", nil)
-	e.On("BuildRefs", mock.Anything, mock.Anything, mock.Anything).Return([]string{"ref1", "ref2"})
+	e.On("ImageBuildFromExist", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return("ImageBuildFromExist", nil)
+	e.On("BuildRefs", mock.Anything, mock.Anything).Return([]string{"ref1", "ref2"})
 	buildContent := io.NopCloser(bytes.NewBufferString("this is content"))
 	e.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return("BuildContent", buildContent, nil)
 	var ID string
@@ -95,6 +95,7 @@ func MakeClient(_ context.Context, _ coretypes.Config, nodename, endpoint, ca, c
 		ID = utils.RandomString(64)
 		return &enginetypes.VirtualizationCreated{ID: ID, Name: "mock-test-cvm" + utils.RandomString(6)}
 	}, nil)
+	e.On("VirtualizationCopyTo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	e.On("VirtualizationCopyChunkTo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	e.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
 	e.On("VirtualizationStop", mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -118,5 +119,6 @@ func MakeClient(_ context.Context, _ coretypes.Config, nodename, endpoint, ca, c
 		},
 	)
 	e.On("VirtualizationCopyFrom", mock.Anything, mock.Anything, mock.Anything).Return([]byte("d1...\nd2...\n"), 0, 0, int64(0), nil)
+	e.On("RawEngine", mock.Anything, mock.Anything).Return(&enginetypes.RawEngineResult{ID: "mock-raw-engine"}, nil)
 	return e, nil
 }
