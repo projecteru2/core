@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -28,7 +29,7 @@ type Vibranium struct {
 	config  types.Config
 	counter sync.WaitGroup
 	stop    chan struct{}
-	TaskNum int
+	TaskNum atomic.Int64
 }
 
 // New returns a Vibranium serving cluster.
