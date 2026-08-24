@@ -9,11 +9,10 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-func (e *Engine) BuildRefs(context.Context, *enginetypes.BuildRefOptions) (refs []string) {
-	return refs
+func (e *Engine) BuildRefs(context.Context, *enginetypes.BuildRefOptions) []string {
+	return nil
 }
 
-func (e *Engine) BuildContent(context.Context, coresource.Source, *enginetypes.BuildContentOptions) (dir string, reader io.Reader, err error) {
-	err = types.ErrEngineNotImplemented
-	return dir, reader, err
+func (e *Engine) BuildContent(context.Context, coresource.Source, *enginetypes.BuildContentOptions) (string, io.Reader, error) {
+	return "", nil, types.ErrEngineNotImplemented
 }

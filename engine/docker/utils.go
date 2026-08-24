@@ -7,21 +7,20 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"math"
-	"net"
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"text/template"
 
 	"github.com/distribution/reference"
-	dockertypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/blkiodev"
 	dockercontainer "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/docker/registry"
-	"github.com/docker/go-units"
 	"github.com/moby/go-archive"
 	"github.com/moby/go-archive/compression"
 
@@ -32,25 +31,6 @@ import (
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
-
-type fuckDockerStream struct {
-	conn net.Conn
-	buf  io.Reader
-}
-
-// FuckDockerStream will copy docker stream to stdout and err
-func FuckDockerStream(stream dockertypes.HijackedResponse) io.ReadCloser {
-	outr := mergeStream(io.NopCloser(stream.Reader))
-	return fuckDockerStream{stream.Conn, outr}
-}
-
-func (f fuckDockerStream) Read(p []byte) (n int, err error) {
-	return f.buf.Read(p)
-}
-
-func (f fuckDockerStream) Close() error {
-	return f.conn.Close()
-}
 
 func CreateTarStream(path string) (io.ReadCloser, error) {
 	tarOpts := &archive.TarOptions{
@@ -131,28 +111,24 @@ func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int64, num
 	}
 
 	if len(cpuMap) > 0 {
-		cpuIDs := []string{}
-		for cpuID := range cpuMap {
-			cpuIDs = append(cpuIDs, cpuID)
-		}
-		resource.CpusetCpus = strings.Join(cpuIDs, ",")
+		resource.CpusetCpus = strings.Join(slices.Sorted(maps.Keys(cpuMap)), ",")
 		resource.CpusetMems = numaNode
 
 		if remap {
-			resource.CPUShares = int64(1024)
+			resource.CPUShares = defaultCPUShare
 		} else {
 			// bound cpus run without a quota
 			resource.CPUQuota = -1
 			if _, divpart := math.Modf(cpu); divpart > 0 {
-				resource.CPUShares = int64(math.Round(float64(1024) * divpart))
+				resource.CPUShares = int64(math.Round(defaultCPUShare * divpart))
 			}
 		}
 	}
 	resource.Memory = memory
 	resource.MemorySwap = memory
 	resource.MemoryReservation = memory / 2
-	if memory != 0 && memory/2 < int64(units.MiB*4) {
-		resource.MemoryReservation = int64(units.MiB * 4)
+	if memory != 0 && memory/2 < minMemory {
+		resource.MemoryReservation = minMemory
 	}
 
 	if len(IOPSOptions) > 0 {
@@ -300,10 +276,5 @@ func createDockerfile(dockerfile, buildDir string) (err error) {
 }
 
 func useCNI(labels map[string]string) bool {
-	for k, v := range labels {
-		if k == "cni" && v == "1" {
-			return true
-		}
-	}
-	return false
+	return labels["cni"] == "1"
 }

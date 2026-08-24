@@ -8,7 +8,6 @@ import (
 	"io"
 
 	"github.com/docker/go-units"
-	"github.com/mitchellh/mapstructure"
 	"github.com/sanity-io/litter"
 	mock "github.com/stretchr/testify/mock"
 
@@ -90,28 +89,8 @@ func MakeClient(_ context.Context, _ coretypes.Config, nodename, endpoint, ca, c
 	e.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return("BuildContent", buildContent, nil)
 	var ID string
 	e.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(func(_ context.Context, opts *enginetypes.VirtualizationCreateOptions) *enginetypes.VirtualizationCreated {
-		type virtualizationResource struct {
-			CPU           map[string]int64            `json:"cpu_map" mapstructure:"cpu_map"`
-			Quota         float64                     `json:"cpu" mapstructure:"cpu"`
-			Memory        int64                       `json:"memory" mapstructure:"memory"`
-			Storage       int64                       `json:"storage" mapstructure:"storage"`
-			NUMANode      string                      `json:"numa_node" mapstructure:"numa_node"`
-			Volumes       []string                    `json:"volumes" mapstructure:"volumes"`
-			VolumePlan    map[string]map[string]int64 `json:"volume_plan" mapstructure:"volume_plan"`
-			VolumeChanged bool                        `json:"volume_changed" mapstructure:"volume_changed"`
-			IOPSOptions   map[string]string           `json:"iops_options" mapstructure:"IOPS_options"`
-			Remap         bool                        `json:"remap" mapstructure:"remap"`
-		}
-
-		resourceOpts := &virtualizationResource{}
-		_ = engine.MakeVirtualizationResource(opts.EngineParams, resourceOpts, func(p resourcetypes.Resources, d *virtualizationResource) error {
-			for _, v := range p {
-				if err := mapstructure.Decode(v, d); err != nil {
-					return err
-				}
-			}
-			return nil
-		})
+		resourceOpts := &engine.VirtualizationResource{}
+		_ = resourceOpts.Decode(opts.EngineParams)
 		litter.Dump(resourceOpts)
 		ID = utils.RandomString(64)
 		return &enginetypes.VirtualizationCreated{ID: ID, Name: "mock-test-cvm" + utils.RandomString(6)}

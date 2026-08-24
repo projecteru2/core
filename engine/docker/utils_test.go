@@ -2,8 +2,7 @@ package docker
 
 import (
 	"bytes"
-	"context"
-	"io/ioutil"
+	"io"
 	"os"
 	"strings"
 	"testing"
@@ -15,7 +14,7 @@ import (
 
 func TestCreateTarStream(t *testing.T) {
 	buff := bytes.NewBufferString("test")
-	rc := ioutil.NopCloser(buff)
+	rc := io.NopCloser(buff)
 	fname, err := coreutils.TempFile(rc)
 	assert.NoError(t, err)
 	_, err = CreateTarStream(fname)
@@ -29,13 +28,13 @@ func TestWithDumpFiles(t *testing.T) {
 	}
 	fp := []string{}
 	for target, content := range data {
-		withTarfileDump(context.Background(), target, content, 0, 0, int64(0), func(target, tarfile string) error {
+		assert.NoError(t, withTarfileDump(t.Context(), target, content, 0, 0, int64(0), func(target, tarfile string) error {
 			assert.True(t, strings.HasPrefix(target, "/tmp/test"))
 			fp = append(fp, tarfile)
 			_, err := os.Stat(tarfile)
-			assert.Nil(t, err)
+			assert.NoError(t, err)
 			return nil
-		})
+		}))
 	}
 	for _, path := range fp {
 		_, err := os.Stat(path)

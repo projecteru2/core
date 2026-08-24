@@ -2,7 +2,6 @@ package virt
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 
 	"github.com/cockroachdb/errors"
@@ -13,23 +12,15 @@ import (
 const sep = "@"
 
 func splitUserImage(combined string) (user, imageName string, err error) {
-	inputErr := errors.Newf("input: \"%s\" not valid", combined)
-	if len(combined) < 1 {
-		return "", "", inputErr
-	}
-
 	un := strings.Split(combined, sep)
-	switch len(un) {
-	case 1:
+	switch {
+	case combined == "":
+	case len(un) == 1:
 		return "", combined, nil
-	case 2:
-		if len(un[0]) < 1 || len(un[1]) < 1 {
-			return "", "", inputErr
-		}
+	case len(un) == 2 && un[0] != "" && un[1] != "":
 		return un[0], un[1], nil
-	default:
-		return "", "", inputErr
 	}
+	return "", "", errors.Newf("input: %q not valid", combined)
 }
 
 func combineUserImage(user, imageName string) string {
@@ -39,7 +30,7 @@ func combineUserImage(user, imageName string) string {
 	if len(user) < 1 {
 		return imageName
 	}
-	return fmt.Sprintf("%s%s%s", user, sep, imageName)
+	return user + sep + imageName
 }
 
 func convertEngineParamsToResources(engineParams resourcetypes.Resources) map[string][]byte {

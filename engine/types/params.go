@@ -20,8 +20,6 @@ func (p *Params) CacheKey() string {
 
 // utils.SHA256 would create an import cycle
 func sha256String(input string) string {
-	c := sha256.New()
-	c.Write([]byte(input))
-	bytes := c.Sum(nil)
-	return hex.EncodeToString(bytes)
+	sum := sha256.Sum256([]byte(input))
+	return hex.EncodeToString(sum[:])
 }

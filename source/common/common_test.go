@@ -114,7 +114,6 @@ func TestSourceCode(t *testing.T) {
 	assert.Error(t, err)
 
 	os.Remove(privFile.Name())
-	os.Remove(privFile.Name())
 	os.RemoveAll(dname)
 }
 
@@ -143,7 +142,7 @@ func TestArtifact(t *testing.T) {
 		}
 		res.Write(data)
 	}))
-	defer func() { testServer.Close() }()
+	defer testServer.Close()
 	err = g.Artifact(context.Background(), "invaildurl", savedDir)
 	assert.Error(t, err)
 	err = g.Artifact(context.Background(), testServer.URL, savedDir)

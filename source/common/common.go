@@ -99,7 +99,7 @@ func (g *GitScm) SourceCode(ctx context.Context, repository, path, revision stri
 		}
 		return s.Update(&gogit.SubmoduleUpdateOptions{Init: true, Auth: opts.Auth})
 	}
-	return err
+	return nil
 }
 
 func (g *GitScm) Artifact(ctx context.Context, artifact, path string) error {
@@ -120,7 +120,7 @@ func (g *GitScm) Artifact(ctx context.Context, artifact, path string) error {
 	defer func() {
 		_ = resp.Body.Close()
 	}()
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		return errors.Wrapf(types.ErrDownloadArtifactsFailed, "code: %d", resp.StatusCode)
 	}
 

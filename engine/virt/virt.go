@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/cockroachdb/errors"
-	"github.com/go-viper/mapstructure/v2"
 	virtapi "github.com/projecteru2/libyavirt/client"
 	virttypes "github.com/projecteru2/libyavirt/types"
 
@@ -199,14 +198,7 @@ func (v *Virt) BuildContent(_ context.Context, _ coresource.Source, _ *enginetyp
 
 func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (guest *enginetypes.VirtualizationCreated, err error) {
 	resourceOpts := &engine.VirtualizationResource{}
-	if err = engine.MakeVirtualizationResource(opts.EngineParams, resourceOpts, func(p resourcetypes.Resources, d *engine.VirtualizationResource) error {
-		for _, v := range p {
-			if decodeErr := mapstructure.Decode(v, d); decodeErr != nil {
-				return decodeErr
-			}
-		}
-		return nil
-	}); err != nil {
+	if err = resourceOpts.Decode(opts.EngineParams); err != nil {
 		log.WithFunc("engine.virt.VirtualizationCreate").Errorf(ctx, err, "failed to parse engine args %+v", opts.EngineParams)
 		return nil, coretypes.ErrInvalidEngineArgs
 	}
@@ -352,14 +344,7 @@ func (v *Virt) VirtualizationWait(ctx context.Context, ID, _ string) (*enginetyp
 
 func (v *Virt) VirtualizationUpdateResource(ctx context.Context, ID string, engineParams resourcetypes.Resources) error {
 	resourceOpts := &engine.VirtualizationResource{}
-	if err := engine.MakeVirtualizationResource(engineParams, resourceOpts, func(p resourcetypes.Resources, d *engine.VirtualizationResource) error {
-		for _, v := range p {
-			if err := mapstructure.Decode(v, d); err != nil {
-				return err
-			}
-		}
-		return nil
-	}); err != nil {
+	if err := resourceOpts.Decode(engineParams); err != nil {
 		log.WithFunc("engine.virt.VirtualizationUpdateResource").Errorf(ctx, err, "failed to parse engine args %+v", engineParams)
 		return err
 	}

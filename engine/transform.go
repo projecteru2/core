@@ -1,6 +1,8 @@
 package engine
 
 import (
+	"github.com/go-viper/mapstructure/v2"
+
 	resourcetypes "github.com/projecteru2/core/resource/types"
 )
 
@@ -18,7 +20,12 @@ type VirtualizationResource struct {
 	Remap         bool                        `json:"remap" mapstructure:"remap"`
 }
 
-// MakeVirtualizationResource decodes engineParams into dst with f.
-func MakeVirtualizationResource[T any](engineParams resourcetypes.Resources, dst T, f func(resourcetypes.Resources, T) error) error {
-	return f(engineParams, dst)
+// Decode merges every plugin's engine params into r.
+func (r *VirtualizationResource) Decode(engineParams resourcetypes.Resources) error {
+	for _, params := range engineParams {
+		if err := mapstructure.Decode(params, r); err != nil {
+			return err
+		}
+	}
+	return nil
 }

@@ -19,7 +19,6 @@ import (
 	dockerslice "github.com/docker/docker/api/types/strslice"
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
-	"github.com/go-viper/mapstructure/v2"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/projecteru2/core/engine"
@@ -78,14 +77,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	var err error
 
 	resourceOpts := &engine.VirtualizationResource{}
-	if err = engine.MakeVirtualizationResource(opts.EngineParams, resourceOpts, func(p resourcetypes.Resources, d *engine.VirtualizationResource) error {
-		for _, v := range p {
-			if decodeErr := mapstructure.Decode(v, d); decodeErr != nil {
-				return decodeErr
-			}
-		}
-		return nil
-	}); err != nil {
+	if err = resourceOpts.Decode(opts.EngineParams); err != nil {
 		logger.Errorf(ctx, err, "failed to parse engine args %+v", opts.EngineParams)
 		return r, coretypes.ErrInvalidEngineArgs
 	}
@@ -218,8 +210,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 				return r, portErr
 			}
 			exposePorts[port] = struct{}{}
-			portMapping[port] = []nat.PortBinding{}
-			portMapping[port] = append(portMapping[port], nat.PortBinding{HostPort: p})
+			portMapping[port] = []nat.PortBinding{{HostPort: p}}
 		}
 		hostConfig.PortBindings = portMapping
 		config.ExposedPorts = exposePorts
@@ -447,14 +438,7 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, en
 	logger := log.WithFunc("engine.docker.VirtualizationUpdateResource")
 
 	resourceOpts := &engine.VirtualizationResource{}
-	if err := engine.MakeVirtualizationResource(engineParams, resourceOpts, func(p resourcetypes.Resources, d *engine.VirtualizationResource) error {
-		for _, v := range p {
-			if err := mapstructure.Decode(v, d); err != nil {
-				return err
-			}
-		}
-		return nil
-	}); err != nil {
+	if err := resourceOpts.Decode(engineParams); err != nil {
 		logger.WithField("ID", ID).Errorf(ctx, err, "failed to parse engine args %+v", engineParams)
 		return err
 	}
@@ -482,7 +466,7 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, en
 			return err
 		}
 		cpuMap = map[string]int64{}
-		for i := 0; i < info.NCPU; i++ {
+		for i := range info.NCPU {
 			cpuMap[strconv.Itoa(i)] = int64(e.config.Scheduler.ShareBase)
 		}
 		if quota == 0 {

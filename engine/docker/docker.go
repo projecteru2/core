@@ -52,7 +52,7 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 	var client *http.Client
 	var err error
 	logger := log.WithFunc("engine.docker.MakeClient")
-	if strings.HasPrefix(endpoint, "unix://") {
+	if strings.HasPrefix(endpoint, SockPrefixKey) {
 		client = utils.GetUnixSockClient()
 	} else {
 		client, err = utils.GetHTTPSClient(ctx, config.CertPath, nodename, ca, cert, key)

@@ -57,9 +57,3 @@ type VirtualizationWaitResult struct {
 	Message string
 	Code    int64
 }
-
-type SendMessage struct {
-	ID    string
-	Path  string
-	Error error
-}

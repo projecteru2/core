@@ -1,7 +1,5 @@
 package types
 
-type BuildMethod int
-
 // Image is an image's ID and tags.
 type Image struct {
 	ID   string
