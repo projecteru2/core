@@ -486,6 +486,9 @@ func (e *Engine) VirtualizationCopyFrom(ctx context.Context, ID, path string) (c
 	if err != nil {
 		return content, uid, gid, mode, err
 	}
+	defer func() {
+		_ = resp.Close()
+	}()
 	tarReader := tar.NewReader(resp)
 	header, err := tarReader.Next()
 	if err != nil {
