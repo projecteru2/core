@@ -309,7 +309,8 @@ func TestFilterNodesDedupesIncludes(t *testing.T) {
 	store.On("GetNode", mock.Anything, mock.Anything).Return(
 		func(_ context.Context, name string) *types.Node {
 			return &types.Node{NodeMeta: types.NodeMeta{Name: name}}
-		}, nil)
+		}, nil,
+	)
 
 	ns, err := c.filterNodes(ctx, &types.NodeFilter{Includes: []string{"A", "B", "A", "C"}})
 	assert.NoError(t, err)

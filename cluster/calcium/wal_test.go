@@ -32,9 +32,11 @@ func TestHandleWorkloadResourceAllocatedMultipleNodes(t *testing.T) {
 	store.On("GetNode", mock.Anything, mock.Anything).Return(
 		func(_ context.Context, name string) *types.Node {
 			return &types.Node{NodeMeta: types.NodeMeta{Name: name}}
-		}, nil)
+		}, nil,
+	)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		resourcetypes.Resources{}, resourcetypes.Resources{}, []string{}, nil)
+		resourcetypes.Resources{}, resourcetypes.Resources{}, []string{}, nil,
+	)
 
 	h := newWorkloadResourceAllocatedHandler(c.config, c, c.store)
 	nodes := []*types.Node{
