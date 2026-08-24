@@ -17,41 +17,41 @@ func (f *Fields) WithField(key string, value any) *Fields {
 }
 
 // Fatalf logs at fatal level and reports to Sentry.
-func (f Fields) Fatalf(ctx context.Context, err error, format string, args ...any) {
+func (f *Fields) Fatalf(ctx context.Context, err error, format string, args ...any) {
 	fatalf(ctx, err, format, f.kv, args...)
 }
 
-func (f Fields) Warnf(ctx context.Context, format string, args ...any) {
+func (f *Fields) Warnf(ctx context.Context, format string, args ...any) {
 	warnf(ctx, format, f.kv, args...)
 }
 
-func (f Fields) Warn(ctx context.Context, args ...any) {
+func (f *Fields) Warn(ctx context.Context, args ...any) {
 	f.Warnf(ctx, "%+v", args...)
 }
 
-func (f Fields) Infof(ctx context.Context, format string, args ...any) {
+func (f *Fields) Infof(ctx context.Context, format string, args ...any) {
 	infof(ctx, format, f.kv, args...)
 }
 
-func (f Fields) Info(ctx context.Context, args ...any) {
+func (f *Fields) Info(ctx context.Context, args ...any) {
 	f.Infof(ctx, "%+v", args...)
 }
 
-func (f Fields) Debugf(ctx context.Context, format string, args ...any) {
+func (f *Fields) Debugf(ctx context.Context, format string, args ...any) {
 	debugf(ctx, format, f.kv, args...)
 }
 
-func (f Fields) Debug(ctx context.Context, args ...any) {
+func (f *Fields) Debug(ctx context.Context, args ...any) {
 	f.Debugf(ctx, "%+v", args...)
 }
 
 // Errorf logs at error level and reports to Sentry.
-func (f Fields) Errorf(ctx context.Context, err error, format string, args ...any) {
+func (f *Fields) Errorf(ctx context.Context, err error, format string, args ...any) {
 	errorf(ctx, err, format, f.kv, args...)
 }
 
 // Error logs at error level and reports to Sentry.
-func (f Fields) Error(ctx context.Context, err error, args ...any) {
+func (f *Fields) Error(ctx context.Context, err error, args ...any) {
 	f.Errorf(ctx, err, "%+v", args...)
 }
 

@@ -48,9 +48,7 @@ func (c Config) Identifier() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	h := sha256.New()
-	h.Write(b)
-	return fmt.Sprintf("%x", h.Sum(nil)), nil
+	return fmt.Sprintf("%x", sha256.Sum256(b)), nil
 }
 
 // AuthConfig holds registry credentials, also reused for grpc basic auth.

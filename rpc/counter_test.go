@@ -1,7 +1,6 @@
 package rpc
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,7 +8,7 @@ import (
 
 func TestCounter(t *testing.T) {
 	v := Vibranium{}
-	task := v.newTask(context.Background(), "test", true)
+	task := v.newTask(t.Context(), "test", true)
 	assert.Equal(t, v.TaskNum, 1)
 
 	task.done()

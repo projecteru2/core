@@ -131,15 +131,15 @@ func TestMetaInLabel(t *testing.T) {
 	meta := &types.LabelMeta{
 		Publish: []string{"1", "2"},
 	}
-	r := EncodeMetaInLabel(context.Background(), meta)
+	r := EncodeMetaInLabel(t.Context(), meta)
 	assert.NotEmpty(t, r)
 
 	labels := map[string]string{
 		cluster.LabelMeta: "{\"Publish\":[\"5001\"],\"HealthCheck\":{\"TCPPorts\":[\"5001\"],\"HTTPPort\":\"\",\"HTTPURL\":\"\",\"HTTPCode\":0}}",
 	}
-	meta2 := DecodeMetaInLabel(context.Background(), labels)
+	meta2 := DecodeMetaInLabel(t.Context(), labels)
 	assert.Equal(t, meta2.Publish[0], "5001")
-	meta3 := DecodeMetaInLabel(context.Background(), map[string]string{cluster.LabelMeta: ""})
+	meta3 := DecodeMetaInLabel(t.Context(), map[string]string{cluster.LabelMeta: ""})
 	assert.Nil(t, meta3.HealthCheck)
 }
 
@@ -195,15 +195,15 @@ func TestMergeHookOutputs(t *testing.T) {
 }
 
 func TestEnsureReaderClosed(t *testing.T) {
-	EnsureReaderClosed(context.Background(), nil)
+	EnsureReaderClosed(t.Context(), nil)
 	s := io.NopCloser(bytes.NewBuffer([]byte{10, 10, 10}))
-	EnsureReaderClosed(context.Background(), s)
+	EnsureReaderClosed(t.Context(), s)
 }
 
 func TestRange(t *testing.T) {
 	res := Range(10)
 	assert.Equal(t, 10, len(res))
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		assert.Equal(t, i, res[i])
 	}
 }
@@ -213,7 +213,7 @@ func TestWithTimeout(t *testing.T) {
 	f := func(context.Context) {
 		r = false
 	}
-	WithTimeout(context.Background(), time.Second, f)
+	WithTimeout(t.Context(), time.Second, f)
 	assert.False(t, r)
 }
 

@@ -49,58 +49,57 @@ type Workload struct {
 	Engine       engine.API              `json:"-"`
 }
 
-func (c *Workload) Inspect(ctx context.Context) (*enginetypes.VirtualizationInfo, error) {
-	if c.Engine == nil {
+func (w *Workload) Inspect(ctx context.Context) (*enginetypes.VirtualizationInfo, error) {
+	if w.Engine == nil {
 		return nil, ErrNilEngine
 	}
-	info, err := c.Engine.VirtualizationInspect(ctx, c.ID)
-	return info, err
+	return w.Engine.VirtualizationInspect(ctx, w.ID)
 }
 
-func (c *Workload) Start(ctx context.Context) error {
-	if c.Engine == nil {
+func (w *Workload) Start(ctx context.Context) error {
+	if w.Engine == nil {
 		return ErrNilEngine
 	}
-	return c.Engine.VirtualizationStart(ctx, c.ID)
+	return w.Engine.VirtualizationStart(ctx, w.ID)
 }
 
-func (c *Workload) Stop(ctx context.Context, force bool) error {
-	if c.Engine == nil {
+func (w *Workload) Stop(ctx context.Context, force bool) error {
+	if w.Engine == nil {
 		return ErrNilEngine
 	}
 	gracefulTimeout := time.Duration(-1) // -1 means engine default timeout
 	if force {
 		gracefulTimeout = 0 // 0 means SIGTERM then SIGKILL, no wait
 	}
-	return c.Engine.VirtualizationStop(ctx, c.ID, gracefulTimeout)
+	return w.Engine.VirtualizationStop(ctx, w.ID, gracefulTimeout)
 }
 
-func (c *Workload) Suspend(ctx context.Context) error {
-	if c.Engine == nil {
+func (w *Workload) Suspend(ctx context.Context) error {
+	if w.Engine == nil {
 		return ErrNilEngine
 	}
-	return c.Engine.VirtualizationSuspend(ctx, c.ID)
+	return w.Engine.VirtualizationSuspend(ctx, w.ID)
 }
 
-func (c *Workload) Resume(ctx context.Context) error {
-	if c.Engine == nil {
+func (w *Workload) Resume(ctx context.Context) error {
+	if w.Engine == nil {
 		return ErrNilEngine
 	}
-	return c.Engine.VirtualizationResume(ctx, c.ID)
+	return w.Engine.VirtualizationResume(ctx, w.ID)
 }
 
-func (c *Workload) Remove(ctx context.Context, force bool) (err error) {
-	if c.Engine == nil {
+func (w *Workload) Remove(ctx context.Context, force bool) (err error) {
+	if w.Engine == nil {
 		return ErrNilEngine
 	}
-	if err = c.Engine.VirtualizationRemove(ctx, c.ID, true, force); errors.Is(err, ErrWorkloadNotExists) {
+	if err = w.Engine.VirtualizationRemove(ctx, w.ID, true, force); errors.Is(err, ErrWorkloadNotExists) {
 		err = nil
 	}
 	return err
 }
 
-func (c *Workload) RawEngine(ctx context.Context, opts *RawEngineOptions) (ans *RawEngineMessage, err error) {
-	if c.Engine == nil {
+func (w *Workload) RawEngine(ctx context.Context, opts *RawEngineOptions) (ans *RawEngineMessage, err error) {
+	if w.Engine == nil {
 		return nil, ErrNilEngine
 	}
 	eOpts := &enginetypes.RawEngineOptions{
@@ -108,15 +107,15 @@ func (c *Workload) RawEngine(ctx context.Context, opts *RawEngineOptions) (ans *
 		Op:     opts.Op,
 		Params: opts.Params,
 	}
-	eResp, err := c.Engine.RawEngine(ctx, eOpts)
+	eResp, err := w.Engine.RawEngine(ctx, eOpts)
 	if err != nil {
-		return ans, err
+		return nil, err
 	}
 	ans = &RawEngineMessage{
 		ID:   eResp.ID,
 		Data: eResp.Data,
 	}
-	return ans, err
+	return ans, nil
 }
 
 type WorkloadStatus struct {

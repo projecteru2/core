@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"time"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -92,8 +93,7 @@ func toCoreListNodesOptions(b *pb.ListNodesOptions) *types.ListNodesOptions {
 func toCoreCopyOptions(b *pb.CopyOptions) *types.CopyOptions {
 	r := &types.CopyOptions{Targets: map[string][]string{}}
 	for cid, paths := range b.Targets {
-		r.Targets[cid] = []string{}
-		r.Targets[cid] = append(r.Targets[cid], paths.Paths...)
+		r.Targets[cid] = slices.Clone(paths.Paths)
 	}
 	return r
 }
@@ -165,8 +165,8 @@ func toCoreBuildOptions(b *pb.BuildImageOptions) (*types.BuildOptions, error) {
 				Repo:       p.Repo,
 				Version:    p.Version,
 				Dir:        p.Dir,
-				Submodule:  p.Submodule || false,
-				Security:   p.Security || false,
+				Submodule:  p.Submodule,
+				Security:   p.Security,
 				Commands:   p.Commands,
 				Envs:       p.Envs,
 				Args:       p.Args,
@@ -430,16 +430,7 @@ func toRPCWorkloadStatus(workloadStatus *types.StatusMeta) *pb.WorkloadStatus {
 }
 
 func toRPCWorkloadsStatus(workloadsStatus []*types.StatusMeta) *pb.WorkloadsStatus {
-	ret := &pb.WorkloadsStatus{}
-	r := []*pb.WorkloadStatus{}
-	for _, cs := range workloadsStatus {
-		s := toRPCWorkloadStatus(cs)
-		if s != nil {
-			r = append(r, s)
-		}
-	}
-	ret.Status = r
-	return ret
+	return &pb.WorkloadsStatus{Status: utils.Map(workloadsStatus, toRPCWorkloadStatus)}
 }
 
 func toRPCWorkloads(ctx context.Context, workloads []*types.Workload, labels map[string]string) *pb.Workloads {
@@ -601,7 +592,7 @@ func toSendLargeFileOptions(opts *pb.FileOptions) (*types.SendLargeFileOptions, 
 
 func toSendLargeFileChunks(file types.LinuxFile, ids []string) []*types.SendLargeFileOptions {
 	maxChunkSize := types.SendLargeFileChunkSize
-	ret := make([]*types.SendLargeFileOptions, 0)
+	ret := make([]*types.SendLargeFileOptions, 0, (len(file.Content)+maxChunkSize-1)/maxChunkSize)
 	for idx := 0; idx < len(file.Content); idx += maxChunkSize {
 		sendLargeFileOptions := &types.SendLargeFileOptions{
 			IDs:  ids,

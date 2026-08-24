@@ -21,14 +21,6 @@ func Map[T1, T2 any](slice []T1, f func(T1) T2) []T2 {
 	return result
 }
 
-func Sum[T numbers](slice []T) T {
-	var result T
-	for _, v := range slice {
-		result += v
-	}
-	return result
-}
-
 func Min[T cmp.Ordered](x T, xs ...T) T {
 	if len(xs) == 0 {
 		return x
@@ -49,28 +41,16 @@ func Max[T cmp.Ordered](x T, xs ...T) T {
 	return x
 }
 
-func Any[T any](slice []T, f func(T) bool) bool {
-	return slices.ContainsFunc(slice, f)
-}
-
 // Filter returns a new slice of the elements satisfying f, or nil when slice is nil.
 func Filter[T any](slice []T, f func(T) bool) []T {
 	if slice == nil {
 		return slice
 	}
-	result := make([]T, 0)
+	result := make([]T, 0, len(slice))
 	for _, v := range slice {
 		if f(v) {
 			result = append(result, v)
 		}
-	}
-	return result
-}
-
-func GenerateSlice[T any](l int, factory func() T) []T {
-	result := make([]T, l)
-	for i := range l {
-		result[i] = factory()
 	}
 	return result
 }

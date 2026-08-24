@@ -66,7 +66,7 @@ func GetTag(image string) string {
 // NormalizeImageName appends ":latest" when the image reference has no tag.
 func NormalizeImageName(image string) string {
 	if !strings.Contains(image, ":") {
-		return fmt.Sprintf("%s:latest", image)
+		return image + ":latest"
 	}
 	return image
 }
@@ -160,7 +160,7 @@ func DecodeMetaInLabel(ctx context.Context, labels map[string]string) *types.Lab
 
 // ShortID returns the last 7 characters of workloadID.
 func ShortID(workloadID string) string {
-	return workloadID[Max(0, len(workloadID)-shortenLength):]
+	return workloadID[max(0, len(workloadID)-shortenLength):]
 }
 
 // LabelsFilter reports whether every key/value in labels is present in extend.
@@ -220,9 +220,10 @@ func EnsureReaderClosed(ctx context.Context, stream io.ReadCloser) {
 }
 
 // Range returns []int{0, 1, ..., n-1}.
-func Range(n int) (res []int) {
+func Range(n int) []int {
+	res := make([]int, n)
 	for i := range n {
-		res = append(res, i)
+		res[i] = i
 	}
 	return res
 }
@@ -236,10 +237,8 @@ func WithTimeout(ctx context.Context, timeout time.Duration, f func(context.Cont
 
 // SHA256 .
 func SHA256(input string) string {
-	c := sha256.New()
-	c.Write([]byte(input))
-	bytes := c.Sum(nil)
-	return hex.EncodeToString(bytes)
+	sum := sha256.Sum256([]byte(input))
+	return hex.EncodeToString(sum[:])
 }
 
 func Bool2Int(a bool) int {

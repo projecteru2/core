@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	grpcstatus "google.golang.org/grpc/status"
 
 	"github.com/projecteru2/core/cluster"
@@ -32,7 +33,7 @@ type Vibranium struct {
 
 // New returns a Vibranium serving cluster.
 func New(cluster cluster.Cluster, config types.Config, stop chan struct{}) *Vibranium {
-	return &Vibranium{cluster: cluster, config: config, counter: sync.WaitGroup{}, stop: stop}
+	return &Vibranium{cluster: cluster, config: config, stop: stop}
 }
 
 func (v *Vibranium) Info(context.Context, *pb.Empty) (*pb.CoreInfo, error) {
@@ -80,11 +81,7 @@ func (v *Vibranium) ListNetworks(ctx context.Context, opts *pb.ListNetworkOption
 		return nil, grpcstatus.Error(ListNetworks, err.Error())
 	}
 
-	ns := []*pb.Network{}
-	for _, n := range networks {
-		ns = append(ns, toRPCNetwork(n))
-	}
-	return &pb.Networks{Networks: ns}, nil
+	return &pb.Networks{Networks: utils.Map(networks, toRPCNetwork)}, nil
 }
 
 func (v *Vibranium) ConnectNetwork(ctx context.Context, opts *pb.ConnectNetworkOptions) (*pb.Network, error) {
@@ -145,12 +142,7 @@ func (v *Vibranium) ListPods(ctx context.Context, _ *pb.Empty) (*pb.Pods, error)
 		return nil, grpcstatus.Error(ListPods, err.Error())
 	}
 
-	pods := []*pb.Pod{}
-	for _, p := range ps {
-		pods = append(pods, toRPCPod(p))
-	}
-
-	return &pb.Pods{Pods: pods}, nil
+	return &pb.Pods{Pods: utils.Map(ps, toRPCPod)}, nil
 }
 
 func (v *Vibranium) GetPodResource(opts *pb.GetPodOptions, stream pb.CoreRPC_GetPodResourceServer) error {
@@ -326,9 +318,8 @@ func (v *Vibranium) SetWorkloadsStatus(ctx context.Context, opts *pb.SetWorkload
 	task := v.newTask(ctx, "SetWorkloadsStatus", false)
 	defer task.done()
 
-	var err error
-	statusData := []*types.StatusMeta{}
-	ttls := map[string]int64{}
+	statusData := make([]*types.StatusMeta, 0, len(opts.Status))
+	ttls := make(map[string]int64, len(opts.Status))
 	for _, status := range opts.Status {
 		r := &types.StatusMeta{
 			ID:        status.Id,
@@ -519,7 +510,7 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 		for {
 			n, err := r.Read(p)
 			if err != nil {
-				if err != io.EOF {
+				if !errors.Is(err, io.EOF) {
 					logger.Error(task.context, err, "read copy stream")
 					msg.Error = err.Error()
 					if err = stream.Send(msg); err != nil {
@@ -585,7 +576,7 @@ func (v *Vibranium) SendLargeFile(stream pb.CoreRPC_SendLargeFileServer) error {
 		defer close(inputChan)
 		for {
 			req, err := stream.Recv()
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				break
 			}
 			if err != nil {
@@ -1008,7 +999,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 				)
 				for {
 					if part, isPrefix, err = bufReader.ReadLine(); err != nil {
-						if err != io.EOF {
+						if !errors.Is(err, io.EOF) {
 							logger.Error(ctx, err, "read line")
 						}
 						return

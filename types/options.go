@@ -3,12 +3,13 @@ package types
 import (
 	"fmt"
 	"io"
+	"slices"
 
 	resourcetypes "github.com/projecteru2/core/resource/types"
 )
 
 const (
-	TriKeep = iota
+	TriKeep TriOptions = iota
 	TriTrue
 	TriFalse
 
@@ -97,10 +98,8 @@ type LinuxFile struct {
 
 // Clone deep-copies Content.
 func (f LinuxFile) Clone() LinuxFile {
-	c := make([]byte, len(f.Content))
-	copy(c, f.Content)
 	return LinuxFile{
-		Content:  c,
+		Content:  slices.Clone(f.Content),
 		Filename: f.Filename,
 		UID:      f.UID,
 		GID:      f.GID,
@@ -306,14 +305,13 @@ func (o *RawEngineOptions) Validate() error {
 	return nil
 }
 
-func ParseTriOption(opt TriOptions, original bool) (res bool) {
+func ParseTriOption(opt TriOptions, original bool) bool {
 	switch opt {
-	case TriKeep:
-		res = original
 	case TriTrue:
-		res = true
+		return true
 	case TriFalse:
-		res = false
+		return false
+	default:
+		return original
 	}
-	return res
 }

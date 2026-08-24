@@ -12,13 +12,13 @@ import (
 	grpcmocks "github.com/projecteru2/core/3rdmocks"
 )
 
-var defaultSrv = 1024
+const defaultSrv = 1024
 
 func TestBasicAuthStream(t *testing.T) {
 	user := "test"
 	pass := "pass"
 	ba := NewBasicAuth(user, pass)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	mockServerStream := &grpcmocks.ServerStream{}
 	mockServerStream.On("Context").Return(ctx)
@@ -45,7 +45,7 @@ func TestBasicAuthUnary(t *testing.T) {
 	user := "test"
 	pass := "pass"
 	ba := NewBasicAuth(user, pass)
-	ctx := context.Background()
+	ctx := t.Context()
 	_, err := ba.UnaryInterceptor(ctx, defaultSrv, nil, unaryHandler)
 	assert.Error(t, err)
 	incomingCtx := metadata.NewIncomingContext(ctx, metadata.MD{"what": []string{}})
@@ -64,7 +64,7 @@ func TestBasicAuthUnary(t *testing.T) {
 	assert.Equal(t, s, defaultSrv)
 }
 
-func streamHandler(srv interface{}, stream grpc.ServerStream) error {
+func streamHandler(srv any, stream grpc.ServerStream) error {
 	s, ok := srv.(int)
 	if !ok {
 		return errors.New("failed")
@@ -75,7 +75,7 @@ func streamHandler(srv interface{}, stream grpc.ServerStream) error {
 	return nil
 }
 
-func unaryHandler(ctx context.Context, req interface{}) (interface{}, error) {
+func unaryHandler(ctx context.Context, req any) (any, error) {
 	s, ok := req.(int)
 	if !ok {
 		return nil, errors.New("failed")

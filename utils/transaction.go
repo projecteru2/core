@@ -7,10 +7,13 @@ import (
 	"github.com/projecteru2/core/log"
 )
 
-type contextFunc = func(context.Context) error
+type (
+	contextFunc  func(context.Context) error
+	rollbackFunc func(context.Context, bool) error
+)
 
 // Txn runs cond then then; on any error it runs rollback under a fresh ttl-bounded context.
-func Txn(ctx context.Context, cond, then contextFunc, rollback func(context.Context, bool) error, ttl time.Duration) (txnErr error) {
+func Txn(ctx context.Context, cond, then contextFunc, rollback rollbackFunc, ttl time.Duration) (txnErr error) {
 	var condErr, thenErr error
 	txnCtx, txnCancel := context.WithTimeout(ctx, ttl)
 	defer txnCancel()
@@ -54,7 +57,7 @@ func Txn(ctx context.Context, cond, then contextFunc, rollback func(context.Cont
 }
 
 // PCR runs prepare, commit and rollback; prepare must be side-effect free.
-func PCR(ctx context.Context, prepare, commit, rollback func(ctx context.Context) error, ttl time.Duration) error {
+func PCR(ctx context.Context, prepare, commit, rollback contextFunc, ttl time.Duration) error {
 	return Txn(ctx, prepare, commit, func(ctx context.Context, failureByCond bool) error {
 		if !failureByCond {
 			return rollback(ctx)

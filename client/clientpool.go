@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"slices"
 	"sync"
 	"time"
 
@@ -49,14 +50,7 @@ func NewCoreRPCClientPool(ctx context.Context, config *PoolConfig) (*Pool, error
 
 	c.updateClientsStatus(ctx, config.ConnectionTimeout)
 
-	allFailed := true
-	for _, rpc := range c.rpcClients {
-		if rpc.alive {
-			allFailed = false
-		}
-	}
-
-	if allFailed {
+	if !slices.ContainsFunc(c.rpcClients, func(rpc *clientWithStatus) bool { return rpc.alive }) {
 		return nil, types.ErrAllConnectionsFailed
 	}
 
@@ -93,14 +87,12 @@ func (c *Pool) updateClientsStatus(ctx context.Context, timeout time.Duration) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	wg := &sync.WaitGroup{}
+	var wg sync.WaitGroup
 	defer wg.Wait()
 	for _, rpc := range c.rpcClients {
-		wg.Add(1)
-		go func(r *clientWithStatus) {
-			defer wg.Done()
-			r.alive = checkAlive(ctx, r, timeout)
-		}(rpc)
+		wg.Go(func() {
+			rpc.alive = checkAlive(ctx, rpc, timeout)
+		})
 	}
 }
 

@@ -1,7 +1,6 @@
 package types
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,7 +15,7 @@ func TestWorkloadInspect(t *testing.T) {
 	r := &enginetypes.VirtualizationInfo{ID: "12345"}
 	mockEngine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(r, nil)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	c := Workload{}
 	_, err := c.Inspect(ctx)
 	assert.Error(t, err)
@@ -33,7 +32,7 @@ func TestWorkloadControl(t *testing.T) {
 	mockEngine.On("VirtualizationSuspend", mock.Anything, mock.Anything).Return(nil)
 	mockEngine.On("VirtualizationResume", mock.Anything, mock.Anything).Return(nil)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	c := Workload{}
 	assert.Error(t, c.Start(ctx))
 	assert.Error(t, c.Stop(ctx, true))
@@ -58,7 +57,7 @@ func TestRawEngine(t *testing.T) {
 	mockEngine := &mocks.API{}
 	mockEngine.On("RawEngine", mock.Anything, mock.Anything).Return(&enginetypes.RawEngineResult{}, nil)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	c := Workload{}
 	_, err := c.RawEngine(ctx, &RawEngineOptions{})
 	assert.Error(t, err)

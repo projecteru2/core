@@ -118,7 +118,7 @@ func getDefaultUnixSockTransport() *http.Transport {
 func dumpFromString(ctx context.Context, ca, cert, key *os.File, caStr, certStr, keyStr string) error {
 	files := []*os.File{ca, cert, key}
 	data := []string{caStr, certStr, keyStr}
-	for i := range 3 {
+	for i := range files {
 		if _, err := files[i].WriteString(data[i]); err != nil {
 			return err
 		}

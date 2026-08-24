@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"context"
 	"net/http"
 	"os"
 	"testing"
@@ -18,7 +17,7 @@ func TestGetUnixSockClient(t *testing.T) {
 }
 
 func TestGetHTTPSClient(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	client, err := GetHTTPSClient(ctx, "", "abc", "", "", "")
 	assert.NoError(t, err)
 	assert.NotNil(t, client)

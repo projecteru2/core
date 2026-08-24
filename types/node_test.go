@@ -1,7 +1,6 @@
 package types
 
 import (
-	"context"
 	"strings"
 	"testing"
 
@@ -25,7 +24,7 @@ func TestNodeInfo(t *testing.T) {
 	mockEngine.On("Info", mock.Anything).Return(r, ErrNoOps).Once()
 
 	node := &Node{}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	node.Engine = mockEngine
 	err := node.Info(ctx)

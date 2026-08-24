@@ -10,7 +10,7 @@ import (
 
 // NewInheritCtx returns a background context carrying only ctx's peer and tracing ID.
 func NewInheritCtx(ctx context.Context) context.Context {
-	return InheritTracingInfo(ctx, context.TODO())
+	return InheritTracingInfo(ctx, context.Background())
 }
 
 // InheritTracingInfo copies the peer and tracing ID from ctx onto newCtx.
