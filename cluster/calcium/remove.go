@@ -8,8 +8,6 @@ import (
 	"github.com/cockroachdb/errors"
 
 	"github.com/projecteru2/core/log"
-	"github.com/projecteru2/core/resource/plugins"
-	resourcetypes "github.com/projecteru2/core/resource/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -36,27 +34,12 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 					for _, workloadID := range workloadIDs {
 						ret := &types.RemoveWorkloadMessage{WorkloadID: workloadID, Success: true, Hook: []*bytes.Buffer{}}
 						if workloadErr := c.withWorkloadLocked(ctx, workloadID, false, func(ctx context.Context, workload *types.Workload) error {
-							return utils.Txn(
-								ctx,
-								func(ctx context.Context) (err error) {
-									_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []resourcetypes.Resources{workload.Resources}, true, plugins.Decr)
-									return err
-								},
-								func(ctx context.Context) (err error) {
-									if err = c.doRemoveWorkload(ctx, workload, force); err == nil {
-										logger.Infof(ctx, "workload %s removed", workload.ID)
-									}
-									return err
-								},
-								func(ctx context.Context, failedByCond bool) (err error) {
-									if failedByCond {
-										return nil
-									}
-									_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []resourcetypes.Resources{workload.Resources}, true, plugins.Incr)
-									return err
-								},
-								c.config.GlobalTimeout,
-							)
+							return c.withResourceReleased(ctx, node, workload, func(ctx context.Context) (err error) {
+								if err = c.doRemoveWorkload(ctx, workload, force); err == nil {
+									logger.Infof(ctx, "workload %s removed", workload.ID)
+								}
+								return err
+							})
 						}); workloadErr != nil {
 							logger.WithField("id", workloadID).Error(ctx, workloadErr, "failed to remove workload")
 							ret.Hook = append(ret.Hook, bytes.NewBufferString(workloadErr.Error()))

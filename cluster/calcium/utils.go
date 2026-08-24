@@ -5,9 +5,30 @@ import (
 	"sync"
 
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/resource/plugins"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
+
+func (c *Calcium) withResourceReleased(ctx context.Context, node *types.Node, workload *types.Workload, then func(context.Context) error) error {
+	return utils.Txn(
+		ctx,
+		func(ctx context.Context) (err error) {
+			_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []resourcetypes.Resources{workload.Resources}, true, plugins.Decr)
+			return err
+		},
+		then,
+		func(ctx context.Context, failedByCond bool) (err error) {
+			if failedByCond {
+				return nil
+			}
+			_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []resourcetypes.Resources{workload.Resources}, true, plugins.Incr)
+			return err
+		},
+		c.config.GlobalTimeout,
+	)
+}
 
 func perNode[T any](c *Calcium, nodes []*types.Node, work func(*types.Node, chan<- T)) chan T {
 	ch := make(chan T)
