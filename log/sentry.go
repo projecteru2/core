@@ -64,7 +64,7 @@ func reportToSentry(ctx context.Context, level sentry.Level, err error, format s
 		event.Tags["tracing"] = tracingInfo
 	}
 
-	if res := string(*sentry.CaptureEvent(event)); res != "" {
-		WithFunc("log.reportToSentry").WithField("ID", res).Debug(ctx, "reported to sentry")
+	if id := sentry.CaptureEvent(event); id != nil && *id != "" {
+		WithFunc("log.reportToSentry").WithField("ID", string(*id)).Debug(ctx, "reported to sentry")
 	}
 }
