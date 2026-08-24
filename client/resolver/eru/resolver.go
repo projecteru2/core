@@ -25,12 +25,14 @@ func New(cc resolver.ClientConn, endpoint, authority string) *Resolver {
 		username, password = strings.TrimLeft(parts[0], "@"), parts[1]
 	}
 	authConfig := types.AuthConfig{Username: username, Password: password}
+	ctx, cancel := context.WithCancel(context.Background())
 	r := &Resolver{
 		cc:        cc,
+		cancel:    cancel,
 		discovery: servicediscovery.New(endpoint, authConfig),
 	}
 	cc.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: endpoint}}}) //nolint
-	go r.sync(context.TODO())
+	go r.sync(ctx)
 	return r
 }
 
@@ -41,7 +43,6 @@ func (r *Resolver) Close() {
 }
 
 func (r *Resolver) sync(ctx context.Context) {
-	ctx, r.cancel = context.WithCancel(ctx)
 	defer r.cancel()
 	logger := log.WithFunc("eru.Resolver.sync")
 	logger.Debug(ctx, "start sync service discovery")
