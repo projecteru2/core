@@ -2,6 +2,8 @@ package calcium
 
 import (
 	"context"
+	"fmt"
+	"sync"
 	"sync/atomic"
 	"testing"
 
@@ -409,6 +411,36 @@ func TestCreateWorkloadIngorePullTxn(t *testing.T) {
 	assert.True(t, walCommitted.Load())
 	store.AssertExpectations(t)
 	engine.AssertExpectations(t)
+}
+
+func TestDoMakeWorkloadOptionsEnvIsolation(t *testing.T) {
+	c := NewTestCluster()
+	ctx := context.Background()
+	node := &types.Node{NodeMeta: types.NodeMeta{Name: "n1"}}
+	opts := &types.DeployOptions{
+		Name:       "app",
+		Podname:    "pod",
+		Entrypoint: &types.Entrypoint{Name: "entry"},
+		Env:        append(make([]string, 0, 8), "A=1", "B=2"),
+	}
+
+	const n = 4
+	got := make([]*enginetypes.VirtualizationCreateOptions, n)
+	wg := sync.WaitGroup{}
+	for i := range n {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			got[i] = c.doMakeWorkloadOptions(ctx, i, &types.CreateWorkloadMessage{}, opts, node)
+		}()
+	}
+	wg.Wait()
+
+	for i := range n {
+		assert.Contains(t, got[i].Env, fmt.Sprintf("ERU_WORKLOAD_SEQ=%d", i))
+		assert.Contains(t, got[i].Env, "A=1")
+	}
+	assert.Equal(t, []string{"A=1", "B=2"}, opts.Env)
 }
 
 func newCreateWorkloadCluster(_ *testing.T) (*Calcium, []*types.Node) {

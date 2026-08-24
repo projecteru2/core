@@ -429,11 +429,12 @@ func (c *Calcium) doMakeWorkloadOptions(ctx context.Context, no int, msg *types.
 	createOpts.Name = utils.MakeWorkloadName(opts.Name, opts.Entrypoint.Name, suffix)
 	msg.WorkloadName = createOpts.Name
 	createOpts.Cmd = opts.Entrypoint.Commands
-	env := append(opts.Env, fmt.Sprintf("APP_NAME=%s", opts.Name)) //nolint
-	env = append(env, fmt.Sprintf("ERU_POD=%s", opts.Podname))
-	env = append(env, fmt.Sprintf("ERU_NODE_NAME=%s", node.Name))
-	env = append(env, fmt.Sprintf("ERU_WORKLOAD_SEQ=%d", no))
-	createOpts.Env = env
+	createOpts.Env = slices.Concat(opts.Env, []string{
+		fmt.Sprintf("APP_NAME=%s", opts.Name),
+		fmt.Sprintf("ERU_POD=%s", opts.Podname),
+		fmt.Sprintf("ERU_NODE_NAME=%s", node.Name),
+		fmt.Sprintf("ERU_WORKLOAD_SEQ=%d", no),
+	})
 	createOpts.Labels = map[string]string{
 		cluster.ERUMark: "1",
 		cluster.LabelMeta: utils.EncodeMetaInLabel(ctx, &types.LabelMeta{
