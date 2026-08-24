@@ -164,10 +164,16 @@ func (e *EngineCache) checkOneNodeStatus(ctx context.Context, params *enginetype
 	logger := log.WithFunc("engine.factory.checkOneNodeStatus")
 	nodename := params.Nodename
 	cacheKey := params.CacheKey()
-	if ns, err := e.stor.GetNodeStatus(ctx, nodename); (err != nil && errors.Is(err, types.ErrInvaildCount)) || (!ns.Alive) {
-		logger.Warnf(ctx, "node %s is offline, the cache will be removed", nodename)
-		e.Delete(cacheKey)
+	ns, err := e.stor.GetNodeStatus(ctx, nodename)
+	if err != nil && !errors.Is(err, types.ErrInvaildCount) {
+		logger.Errorf(ctx, err, "get status of node %s", nodename)
+		return
 	}
+	if err == nil && ns.Alive {
+		return
+	}
+	logger.Warnf(ctx, "node %s is offline, the cache will be removed", nodename)
+	e.Delete(cacheKey)
 }
 
 // InitEngineCache builds the global engine cache and starts its checkers.
