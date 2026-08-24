@@ -46,5 +46,5 @@ func listFiles(basedir string, match func(string, fs.FileInfo) bool) ([]string, 
 }
 
 func isExecutable(perm fs.FileMode) bool {
-	return perm&executablePerm == executablePerm
+	return perm&executablePerm != 0
 }

@@ -37,6 +37,16 @@ func TestListAllExecutableFiles(t *testing.T) {
 	assert.Len(t, fs, 1)
 }
 
+func TestListAllExecutableFilesFindsOwnerOnlyExecutables(t *testing.T) {
+	dir := t.TempDir()
+	name := filepath.Join(dir, "plugin")
+	assert.NoError(t, os.WriteFile(name, []byte("#!/bin/sh\n"), 0o700))
+
+	fs, err := ListAllExecutableFiles(dir)
+	assert.NoError(t, err)
+	assert.Equal(t, []string{name}, fs)
+}
+
 func TestListAllShareLibFiles(t *testing.T) {
 	dir, err := os.MkdirTemp(os.TempDir(), "test*")
 	assert.NoError(t, err)
