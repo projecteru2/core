@@ -14,6 +14,20 @@ type infoHeap struct {
 	limit int
 }
 
+func newInfoHeap(infos []Info, limit int) *infoHeap {
+	dup := infoHeap{
+		infos: []Info{},
+		limit: limit,
+	}
+	for _, info := range infos {
+		if info.Capacity == 0 || (limit > 0 && info.Count >= limit) {
+			continue
+		}
+		dup.infos = append(dup.infos, info)
+	}
+	return &dup
+}
+
 func (h infoHeap) Len() int {
 	return len(h.infos)
 }
@@ -39,20 +53,6 @@ func (h *infoHeap) Pop() any {
 	x := h.infos[length-1]
 	h.infos = h.infos[0 : length-1]
 	return x
-}
-
-func newInfoHeap(infos []Info, limit int) heap.Interface {
-	dup := infoHeap{
-		infos: []Info{},
-		limit: limit,
-	}
-	for _, info := range infos {
-		if info.Capacity == 0 || (limit > 0 && info.Count >= limit) {
-			continue
-		}
-		dup.infos = append(dup.infos, info)
-	}
-	return &dup
 }
 
 // CommunismPlan 吃我一记共产主义大锅饭

@@ -93,6 +93,9 @@ func (r RawParams) SliceRawParams(key string) []RawParams {
 	return n
 }
 
+// Resources all cosmos use this
+type Resources map[string]RawParams
+
 func sliceHelper[T any](r RawParams, key string) []T {
 	if !r.IsSet(key) {
 		return nil
@@ -127,6 +130,3 @@ func intHelper[T int | int64](r RawParams, key string) T {
 	res, _ := strconv.ParseInt(str, 10, 64)
 	return T(res)
 }
-
-// Resources all cosmos use this
-type Resources map[string]RawParams

@@ -31,6 +31,17 @@ var Plans = map[string]strategyFunc{
 	Drained: DrainedPlan,
 }
 
+// Info .
+type Info struct {
+	Nodename string
+
+	Usage float64
+	Rate  float64
+
+	Capacity int
+	Count    int
+}
+
 type strategyFunc = func(_ context.Context, _ []Info, need, total, limit int) (map[string]int, error)
 
 // Deploy .
@@ -45,15 +56,4 @@ func Deploy(ctx context.Context, strategy string, count, nodesLimit int, strateg
 
 	log.WithFunc("strategy.Deploy").Debugf(ctx, "strategy %s, infos %+v, need %d, total %d, limit %d", strategy, strategyInfos, count, total, nodesLimit)
 	return deployMethod(ctx, strategyInfos, count, total, nodesLimit)
-}
-
-// Info .
-type Info struct {
-	Nodename string
-
-	Usage float64
-	Rate  float64
-
-	Capacity int
-	Count    int
 }

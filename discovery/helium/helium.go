@@ -17,6 +17,12 @@ import (
 
 const interval = 15 * time.Second
 
+type entry struct {
+	ch     chan types.ServiceStatus
+	ctx    context.Context
+	cancel context.CancelFunc
+}
+
 // Helium .
 type Helium struct {
 	sync.Once
@@ -24,12 +30,6 @@ type Helium struct {
 	subs      *haxmap.Map[uint32, entry]
 	interval  time.Duration
 	unsubChan chan uint32
-}
-
-type entry struct {
-	ch     chan types.ServiceStatus
-	ctx    context.Context
-	cancel context.CancelFunc
 }
 
 // New .

@@ -302,13 +302,6 @@ func TestCPUOverSell(t *testing.T) {
 	})
 }
 
-func applyCPUPlans(t *testing.T, resourceInfo *types.NodeResourceInfo, cpuPlans []*types.CPUPlan) {
-	for _, cpuPlan := range cpuPlans {
-		resourceInfo.Usage.CPUMap.Add(cpuPlan.CPUMap)
-	}
-	assert.Nil(t, resourceInfo.Validate())
-}
-
 func TestCPUOverSellAndStableFragmentCore(t *testing.T) {
 	var cpuMap types.CPUMap
 	var resourceInfo *types.NodeResourceInfo
@@ -513,4 +506,11 @@ func BenchmarkGetCPUPlans(b *testing.B) {
 			MemRequest: 1,
 		})) > 0)
 	}
+}
+
+func applyCPUPlans(t *testing.T, resourceInfo *types.NodeResourceInfo, cpuPlans []*types.CPUPlan) {
+	for _, cpuPlan := range cpuPlans {
+		resourceInfo.Usage.CPUMap.Add(cpuPlan.CPUMap)
+	}
+	assert.Nil(t, resourceInfo.Validate())
 }

@@ -32,6 +32,12 @@ const (
 	counterType = "counter"
 )
 
+// Client is a metrics obj
+var (
+	Client = Metrics{}
+	once   sync.Once
+)
+
 // Metrics define metrics
 type Metrics struct {
 	Config types.Config
@@ -175,12 +181,6 @@ func (m *Metrics) count(ctx context.Context, key string, n int, rate float32) er
 	m.statsdClient.Count(key, n, rate)
 	return nil
 }
-
-// Client is a metrics obj
-var (
-	Client = Metrics{}
-	once   sync.Once
-)
 
 // InitMetrics new a metrics obj
 func InitMetrics(ctx context.Context, config types.Config, metricsDescriptions []*plugintypes.MetricsDescription) error {

@@ -9,11 +9,10 @@ import (
 	"github.com/sanity-io/litter"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
-	plugintypes "github.com/projecteru2/core/resource/plugins/types"
-	resourcetypes "github.com/projecteru2/core/resource/types"
-
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resource/plugins"
+	plugintypes "github.com/projecteru2/core/resource/plugins/types"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )

@@ -59,99 +59,6 @@ type host struct {
 	affinity         bool
 }
 
-// GetCPUPlans .
-func GetCPUPlans(resourceInfo *types.NodeResourceInfo, originCPUMap types.CPUMap, shareBase, maxFragmentCores int, req *types.WorkloadResourceRequest) []*types.CPUPlan {
-	cpuPlans := []*types.CPUPlan{}
-	availableResource := resourceInfo.GetAvailableResource()
-
-	numaCPUMap := map[string]types.CPUMap{}
-	for cpuID, numaNodeID := range resourceInfo.Capacity.NUMA {
-		if _, ok := numaCPUMap[numaNodeID]; !ok {
-			numaCPUMap[numaNodeID] = types.CPUMap{}
-		}
-		numaCPUMap[numaNodeID][cpuID] = availableResource.CPUMap[cpuID]
-	}
-
-	// get cpu plan for each numa node
-	for numaNodeID, cpuMap := range numaCPUMap {
-		numaCPUPlans := doGetCPUPlans(originCPUMap, cpuMap, availableResource.NUMAMemory[numaNodeID], shareBase, maxFragmentCores, req.CPURequest, req.MemRequest)
-		for _, workloadCPUMap := range numaCPUPlans {
-			cpuPlans = append(cpuPlans, &types.CPUPlan{
-				NUMANode: numaNodeID,
-				CPUMap:   workloadCPUMap,
-			})
-			availableResource.Sub(&types.NodeResource{
-				CPU:        req.CPURequest,
-				CPUMap:     workloadCPUMap,
-				Memory:     req.MemRequest,
-				NUMAMemory: types.NUMAMemory{numaNodeID: req.MemRequest},
-			})
-		}
-	}
-
-	// get cpu plan with the remaining resource
-	crossNUMACPUPlans := doGetCPUPlans(originCPUMap, availableResource.CPUMap, availableResource.Memory, shareBase, maxFragmentCores, req.CPURequest, req.MemRequest)
-	for _, workloadCPUMap := range crossNUMACPUPlans {
-		cpuPlans = append(cpuPlans, &types.CPUPlan{
-			CPUMap: workloadCPUMap,
-		})
-	}
-
-	return cpuPlans
-}
-
-// ensure that the old cpu core will still be allocated first
-func reorderByAffinity(oldH, newH *host) {
-	oldFull := map[string]int{}
-	oldFragment := map[string]int{}
-
-	for i, core := range oldH.fullCores {
-		oldFull[core.ID] = i + 1
-	}
-	for i, core := range oldH.fragmentCores {
-		oldFragment[core.ID] = i + 1
-	}
-
-	sortFunc := func(orderMap map[string]int, cores []*cpuCore) func(i, j int) bool {
-		return func(i, j int) bool {
-			idxI := orderMap[cores[i].ID]
-			idxJ := orderMap[cores[j].ID]
-
-			if idxI == 0 && idxJ == 0 {
-				return i < j
-			}
-			if idxI == 0 || idxJ == 0 {
-				return idxI > idxJ
-			}
-			return idxI < idxJ
-		}
-	}
-
-	sort.SliceStable(newH.fullCores, sortFunc(oldFull, newH.fullCores))
-	sort.SliceStable(newH.fragmentCores, sortFunc(oldFragment, newH.fragmentCores))
-	newH.affinity = true
-}
-
-// doGetCPUPlans .
-func doGetCPUPlans(originCPUMap, availableCPUMap types.CPUMap, availableMemory int64, shareBase, maxFragmentCores int, cpuRequest float64, memoryRequest int64) []types.CPUMap {
-	h := newHost(availableCPUMap, shareBase, maxFragmentCores)
-
-	// affinity
-	if len(originCPUMap) > 0 {
-		originH := newHost(originCPUMap, shareBase, maxFragmentCores)
-		reorderByAffinity(originH, h)
-	}
-
-	cpuPlans := h.getCPUPlans(cpuRequest)
-	if memoryRequest > 0 {
-		memoryCapacity := int(availableMemory / memoryRequest)
-		if memoryCapacity < len(cpuPlans) {
-			cpuPlans = cpuPlans[:memoryCapacity]
-		}
-	}
-	return cpuPlans
-}
-
 func newHost(cpuMap types.CPUMap, shareBase, maxFragmentCores int) *host {
 	h := &host{
 		shareBase:        shareBase,
@@ -328,4 +235,96 @@ func (h *host) getFragmentCPUPlans(cores []*cpuCore, fragment int) []types.CPUMa
 		}
 	}
 	return result
+}
+
+// GetCPUPlans .
+func GetCPUPlans(resourceInfo *types.NodeResourceInfo, originCPUMap types.CPUMap, shareBase, maxFragmentCores int, req *types.WorkloadResourceRequest) []*types.CPUPlan {
+	cpuPlans := []*types.CPUPlan{}
+	availableResource := resourceInfo.GetAvailableResource()
+
+	numaCPUMap := map[string]types.CPUMap{}
+	for cpuID, numaNodeID := range resourceInfo.Capacity.NUMA {
+		if _, ok := numaCPUMap[numaNodeID]; !ok {
+			numaCPUMap[numaNodeID] = types.CPUMap{}
+		}
+		numaCPUMap[numaNodeID][cpuID] = availableResource.CPUMap[cpuID]
+	}
+
+	// get cpu plan for each numa node
+	for numaNodeID, cpuMap := range numaCPUMap {
+		numaCPUPlans := doGetCPUPlans(originCPUMap, cpuMap, availableResource.NUMAMemory[numaNodeID], shareBase, maxFragmentCores, req.CPURequest, req.MemRequest)
+		for _, workloadCPUMap := range numaCPUPlans {
+			cpuPlans = append(cpuPlans, &types.CPUPlan{
+				NUMANode: numaNodeID,
+				CPUMap:   workloadCPUMap,
+			})
+			availableResource.Sub(&types.NodeResource{
+				CPU:        req.CPURequest,
+				CPUMap:     workloadCPUMap,
+				Memory:     req.MemRequest,
+				NUMAMemory: types.NUMAMemory{numaNodeID: req.MemRequest},
+			})
+		}
+	}
+
+	// get cpu plan with the remaining resource
+	crossNUMACPUPlans := doGetCPUPlans(originCPUMap, availableResource.CPUMap, availableResource.Memory, shareBase, maxFragmentCores, req.CPURequest, req.MemRequest)
+	for _, workloadCPUMap := range crossNUMACPUPlans {
+		cpuPlans = append(cpuPlans, &types.CPUPlan{
+			CPUMap: workloadCPUMap,
+		})
+	}
+
+	return cpuPlans
+}
+
+func doGetCPUPlans(originCPUMap, availableCPUMap types.CPUMap, availableMemory int64, shareBase, maxFragmentCores int, cpuRequest float64, memoryRequest int64) []types.CPUMap {
+	h := newHost(availableCPUMap, shareBase, maxFragmentCores)
+
+	// affinity
+	if len(originCPUMap) > 0 {
+		originH := newHost(originCPUMap, shareBase, maxFragmentCores)
+		reorderByAffinity(originH, h)
+	}
+
+	cpuPlans := h.getCPUPlans(cpuRequest)
+	if memoryRequest > 0 {
+		memoryCapacity := int(availableMemory / memoryRequest)
+		if memoryCapacity < len(cpuPlans) {
+			cpuPlans = cpuPlans[:memoryCapacity]
+		}
+	}
+	return cpuPlans
+}
+
+// ensure that the old cpu core will still be allocated first
+func reorderByAffinity(oldH, newH *host) {
+	oldFull := map[string]int{}
+	oldFragment := map[string]int{}
+
+	for i, core := range oldH.fullCores {
+		oldFull[core.ID] = i + 1
+	}
+	for i, core := range oldH.fragmentCores {
+		oldFragment[core.ID] = i + 1
+	}
+
+	sortFunc := func(orderMap map[string]int, cores []*cpuCore) func(i, j int) bool {
+		return func(i, j int) bool {
+			idxI := orderMap[cores[i].ID]
+			idxJ := orderMap[cores[j].ID]
+
+			if idxI == 0 && idxJ == 0 {
+				return i < j
+			}
+			if idxI == 0 || idxJ == 0 {
+				return idxI > idxJ
+			}
+			return idxI < idxJ
+		}
+	}
+
+	sort.SliceStable(newH.fullCores, sortFunc(oldFull, newH.fullCores))
+	sort.SliceStable(newH.fragmentCores, sortFunc(oldFragment, newH.fragmentCores))
+	newH.affinity = true
 }

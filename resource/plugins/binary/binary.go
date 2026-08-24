@@ -2,9 +2,8 @@ package binary
 
 import (
 	"context"
-	"path/filepath"
-
 	ppath "path"
+	"path/filepath"
 
 	coretypes "github.com/projecteru2/core/types"
 )
