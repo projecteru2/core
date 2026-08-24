@@ -15,6 +15,8 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
+var reachabilityInterval = time.Second
+
 // EndpointPusher pushes endpoints to registered channels once they are L3 reachable.
 type EndpointPusher struct {
 	sync.Mutex
@@ -91,7 +93,7 @@ func (p *EndpointPusher) pollReachability(ctx context.Context, endpoint string) 
 		return
 	}
 
-	ticker := time.NewTicker(time.Second)
+	ticker := time.NewTicker(reachabilityInterval)
 	defer ticker.Stop()
 	for {
 		select {
