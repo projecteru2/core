@@ -4,11 +4,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/projecteru2/core/engine/mocks"
-	enginetypes "github.com/projecteru2/core/engine/types"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+
+	"github.com/projecteru2/core/engine/mocks"
+	enginetypes "github.com/projecteru2/core/engine/types"
 )
 
 func TestWorkloadInspect(t *testing.T) {

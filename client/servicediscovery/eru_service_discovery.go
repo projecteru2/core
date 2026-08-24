@@ -6,15 +6,15 @@ import (
 	"math"
 	"time"
 
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+
 	"github.com/projecteru2/core/auth"
 	"github.com/projecteru2/core/client/interceptor"
 	"github.com/projecteru2/core/client/utils"
 	"github.com/projecteru2/core/log"
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 // EruServiceDiscovery watches eru service status

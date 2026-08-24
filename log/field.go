@@ -12,20 +12,6 @@ type Fields struct {
 	kv *haxmap.Map[string, any]
 }
 
-// WithFunc is short for WithField
-func WithFunc(fname string) *Fields {
-	return WithField("func", fname)
-}
-
-// WithField add kv into log entry
-func WithField(key string, value any) *Fields {
-	r := haxmap.New[string, any]()
-	r.Set(key, value)
-	return &Fields{
-		kv: r,
-	}
-}
-
 // WithField .
 func (f *Fields) WithField(key string, value any) *Fields {
 	f.kv.Set(key, value)
@@ -75,4 +61,18 @@ func (f Fields) Errorf(ctx context.Context, err error, format string, args ...an
 // Error forwards to sentry
 func (f Fields) Error(ctx context.Context, err error, args ...any) {
 	f.Errorf(ctx, err, "%+v", args...)
+}
+
+// WithField add kv into log entry
+func WithField(key string, value any) *Fields {
+	r := haxmap.New[string, any]()
+	r.Set(key, value)
+	return &Fields{
+		kv: r,
+	}
+}
+
+// WithFunc is short for WithField
+func WithFunc(fname string) *Fields {
+	return WithField("func", fname)
 }

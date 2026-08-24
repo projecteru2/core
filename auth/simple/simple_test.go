@@ -5,36 +5,14 @@ import (
 	"errors"
 	"testing"
 
-	grpcmocks "github.com/projecteru2/core/3rdmocks"
-
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
+
+	grpcmocks "github.com/projecteru2/core/3rdmocks"
 )
 
 var defaultSrv = 1024
-
-func streamHandler(srv interface{}, stream grpc.ServerStream) error {
-	s, ok := srv.(int)
-	if !ok {
-		return errors.New("failed")
-	}
-	if s != defaultSrv {
-		return errors.New("wrong srv")
-	}
-	return nil
-}
-
-func unaryHandler(ctx context.Context, req interface{}) (interface{}, error) {
-	s, ok := req.(int)
-	if !ok {
-		return nil, errors.New("failed")
-	}
-	if s != defaultSrv {
-		return nil, errors.New("wrong srv")
-	}
-	return s, nil
-}
 
 func TestBasicAuthStream(t *testing.T) {
 	user := "test"
@@ -92,4 +70,26 @@ func TestBasicAuthUnary(t *testing.T) {
 	s, ok := r.(int)
 	assert.True(t, ok)
 	assert.Equal(t, s, defaultSrv)
+}
+
+func streamHandler(srv interface{}, stream grpc.ServerStream) error {
+	s, ok := srv.(int)
+	if !ok {
+		return errors.New("failed")
+	}
+	if s != defaultSrv {
+		return errors.New("wrong srv")
+	}
+	return nil
+}
+
+func unaryHandler(ctx context.Context, req interface{}) (interface{}, error) {
+	s, ok := req.(int)
+	if !ok {
+		return nil, errors.New("failed")
+	}
+	if s != defaultSrv {
+		return nil, errors.New("wrong srv")
+	}
+	return s, nil
 }

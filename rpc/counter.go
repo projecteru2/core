@@ -16,6 +16,24 @@ type task struct {
 	cancel  context.CancelFunc
 }
 
+// 完成一个任务, 在任务执行完之后调用一次.
+// 否则计数器用完不会为0, 你也别想退出这个进程了.
+func (t *task) done() {
+	if t.verbose {
+		log.WithFunc("vibranium.done").WithField("name", t.name).Debug(t.context, "task done")
+	}
+	t.cancel()
+	t.v.counter.Done()
+	t.v.TaskNum--
+}
+
+// Wait for all tasks done
+// 会在外面graceful之后调用.
+// 不完成不给退出进程.
+func (v *Vibranium) Wait() {
+	v.counter.Wait()
+}
+
 // gRPC上全局的计数器
 // 只有在任务数为0的时候才给停止
 // 为啥会加在gRPC server上呢?
@@ -40,22 +58,4 @@ func (v *Vibranium) newTask(ctx context.Context, name string, verbose bool) *tas
 		context: ctx,
 		cancel:  cancel,
 	}
-}
-
-// 完成一个任务, 在任务执行完之后调用一次.
-// 否则计数器用完不会为0, 你也别想退出这个进程了.
-func (t *task) done() {
-	if t.verbose {
-		log.WithFunc("vibranium.done").WithField("name", t.name).Debug(t.context, "task done")
-	}
-	t.cancel()
-	t.v.counter.Done()
-	t.v.TaskNum--
-}
-
-// Wait for all tasks done
-// 会在外面graceful之后调用.
-// 不完成不给退出进程.
-func (v *Vibranium) Wait() {
-	v.counter.Wait()
 }

@@ -7,7 +7,26 @@ import (
 	resourcetypes "github.com/projecteru2/core/resource/types"
 )
 
+const (
+	// TriKeep .
+	TriKeep = iota
+	// TriTrue .
+	TriTrue
+	// TriFalse .
+	TriFalse
+
+	SendLargeFileChunkSize = 2 << 10
+)
+
 // TODO should validate options
+
+// Processing tracks workloads count yet finished
+type Processing struct {
+	Appname   string
+	Entryname string
+	Nodename  string
+	Ident     string
+}
 
 // DeployOptions is options for deploying
 type DeployOptions struct {
@@ -36,14 +55,6 @@ type DeployOptions struct {
 	RawArgs        RawArgs           // RawArgs for raw args processing
 	Lambda         bool              // indicate is lambda workload or not
 	IgnorePull     bool              // ignore pull image
-}
-
-// Processing tracks workloads count yet finished
-type Processing struct {
-	Appname   string
-	Entryname string
-	Nodename  string
-	Ident     string
 }
 
 // GetProcessing .
@@ -270,28 +281,6 @@ type ReallocOptions struct {
 // TriOptions .
 type TriOptions int
 
-const (
-	// TriKeep .
-	TriKeep = iota
-	// TriTrue .
-	TriTrue
-	// TriFalse .
-	TriFalse
-)
-
-// ParseTriOption .
-func ParseTriOption(opt TriOptions, original bool) (res bool) {
-	switch opt {
-	case TriKeep:
-		res = original
-	case TriTrue:
-		res = true
-	case TriFalse:
-		res = false
-	}
-	return res
-}
-
 // RawArgs .
 type RawArgs []byte
 
@@ -304,8 +293,6 @@ func (r RawArgs) String() string {
 func (r RawArgs) LitterDump(w io.Writer) {
 	_, _ = w.Write(r)
 }
-
-const SendLargeFileChunkSize = 2 << 10
 
 // SendLargeFileOptions for LargeFileTransfer
 type SendLargeFileOptions struct {
@@ -348,4 +335,17 @@ func (o *RawEngineOptions) Validate() error {
 		return ErrEmptyRawEngineOp
 	}
 	return nil
+}
+
+// ParseTriOption .
+func ParseTriOption(opt TriOptions, original bool) (res bool) {
+	switch opt {
+	case TriKeep:
+		res = original
+	case TriTrue:
+		res = true
+	case TriFalse:
+		res = false
+	}
+	return res
 }

@@ -3,9 +3,9 @@ package utils
 import (
 	"context"
 
-	"github.com/projecteru2/core/types"
-
 	"google.golang.org/grpc/peer"
+
+	"github.com/projecteru2/core/types"
 )
 
 // NewInheritCtx new a todo context and get the previous values

@@ -4,7 +4,11 @@ import (
 	"context"
 	"sync"
 
+	"github.com/cenkalti/backoff/v4"
+	"github.com/cockroachdb/errors"
 	"google.golang.org/grpc"
+
+	"github.com/projecteru2/core/log"
 )
 
 // RetryOptions .
@@ -19,6 +23,37 @@ type retryStream struct {
 	sent      any
 	newStream func() (grpc.ClientStream, error)
 	retryOpts RetryOptions
+}
+
+func (s *retryStream) SendMsg(m any) error {
+	s.mux.Lock()
+	s.sent = m
+	s.mux.Unlock()
+	return s.getStream().SendMsg(m)
+}
+
+func (s *retryStream) RecvMsg(m any) (err error) {
+	if err = s.ClientStream.RecvMsg(m); err == nil || errors.Is(err, context.Canceled) {
+		return err
+	}
+	logger := log.WithFunc("client.RecvMsg")
+
+	return backoff.Retry(func() error {
+		logger.Debug(s.ctx, "retry on new stream")
+		stream, err := s.newStream()
+		if err != nil {
+			// even io.EOF triggers retry, and it's what we want!
+			return err
+		}
+		s.setStream(stream)
+		s.mux.RLock()
+		err = s.getStream().SendMsg(s.sent)
+		s.mux.RUnlock()
+		if err != nil {
+			return err
+		}
+		return s.getStream().RecvMsg(m)
+	}, backoff.WithMaxRetries(backoff.WithContext(backoff.NewExponentialBackOff(), s.ctx), s.retryOpts.Max))
 }
 
 func (s *retryStream) getStream() grpc.ClientStream {

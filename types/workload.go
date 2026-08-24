@@ -4,11 +4,11 @@ import (
 	"context"
 	"time"
 
+	"github.com/cockroachdb/errors"
+
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	resourcetypes "github.com/projecteru2/core/resource/types"
-
-	"github.com/cockroachdb/errors"
 )
 
 // StatusMeta indicate contaienr runtime

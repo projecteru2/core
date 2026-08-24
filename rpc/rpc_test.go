@@ -4,23 +4,16 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+
 	grpcmocks "github.com/projecteru2/core/3rdmocks"
 	clustermock "github.com/projecteru2/core/cluster/mocks"
 	enginemock "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
-
-func newVibranium() *Vibranium {
-	v := &Vibranium{
-		cluster: &clustermock.Cluster{},
-	}
-	return v
-}
 
 func TestAddPod(t *testing.T) {
 	v := newVibranium()
@@ -181,4 +174,11 @@ func TestRunAndWaitAsync(t *testing.T) {
 	assert.Equal(t, m1.WorkloadId, "workloadidfortonic")
 	assert.Equal(t, m1.Data, []byte(""))
 	assert.Equal(t, m1.StdStreamType, pb.StdStreamType_TYPEWORKLOADID)
+}
+
+func newVibranium() *Vibranium {
+	v := &Vibranium{
+		cluster: &clustermock.Cluster{},
+	}
+	return v
 }

@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/types"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestRandomString(t *testing.T) {

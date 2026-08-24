@@ -11,14 +11,14 @@ import (
 	"sync"
 	"time"
 
+	grpcstatus "google.golang.org/grpc/status"
+
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/log"
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/version"
-
-	grpcstatus "google.golang.org/grpc/status"
 )
 
 // Vibranium is implementations for grpc server interface
@@ -29,6 +29,11 @@ type Vibranium struct {
 	counter sync.WaitGroup
 	stop    chan struct{}
 	TaskNum int
+}
+
+// New will new a new cluster instance
+func New(cluster cluster.Cluster, config types.Config, stop chan struct{}) *Vibranium {
+	return &Vibranium{cluster: cluster, config: config, counter: sync.WaitGroup{}, stop: stop}
 }
 
 // Info show core info
@@ -1089,9 +1094,4 @@ func (v *Vibranium) RawEngine(ctx context.Context, opts *pb.RawEngineOptions) (*
 
 func (v *Vibranium) logUnsentMessages(ctx context.Context, msgType string, err error, msg any) {
 	log.WithFunc("vibranium.logUnsentMessages").Infof(ctx, "Unsent (%s) streamed message due to (%+v): (%+v)", msgType, err, msg)
-}
-
-// New will new a new cluster instance
-func New(cluster cluster.Cluster, config types.Config, stop chan struct{}) *Vibranium {
-	return &Vibranium{cluster: cluster, config: config, counter: sync.WaitGroup{}, stop: stop}
 }

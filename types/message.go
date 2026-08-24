@@ -6,6 +6,21 @@ import (
 	resourcetypes "github.com/projecteru2/core/resource/types"
 )
 
+// StdStreamType shows stdout / stderr
+type StdStreamType int
+
+const (
+	// EruError means this message is carrying some error from eru
+	// not from user program
+	EruError StdStreamType = -1
+	// Stdout means this message is carrying stdout from user program
+	Stdout StdStreamType = 0
+	// Stderr means this message is carrying stderr from user program
+	Stderr StdStreamType = 1
+	// TypeWorkloadID means this is the workload id
+	TypeWorkloadID StdStreamType = 6
+)
+
 // RemoveWorkloadMessage for remove message
 type RemoveWorkloadMessage struct {
 	WorkloadID string
@@ -99,21 +114,6 @@ type ReplaceWorkloadMessage struct {
 	Error  error
 }
 
-// StdStreamType shows stdout / stderr
-type StdStreamType int
-
-const (
-	// EruError means this message is carrying some error from eru
-	// not from user program
-	EruError StdStreamType = -1
-	// Stdout means this message is carrying stdout from user program
-	Stdout StdStreamType = 0
-	// Stderr means this message is carrying stderr from user program
-	Stderr StdStreamType = 1
-	// TypeWorkloadID means this is the workload id
-	TypeWorkloadID StdStreamType = 6
-)
-
 // AttachWorkloadMessage for run and wait
 type AttachWorkloadMessage struct {
 	WorkloadID string
@@ -151,12 +151,12 @@ type CapacityMessage struct {
 	NodeCapacities map[string]int
 }
 
-type errorDetail struct {
-	Code    int    `json:"code,omitempty"`
-	Message string `json:"message,omitempty"`
-}
-
 type RawEngineMessage struct {
 	ID   string `json:"id,omitempty"`
 	Data []byte `json:"data,omitempty"`
+}
+
+type errorDetail struct {
+	Code    int    `json:"code,omitempty"`
+	Message string `json:"message,omitempty"`
 }

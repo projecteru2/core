@@ -19,6 +19,10 @@ func newLBResolver(cc resolver.ClientConn, endpoint string, updateCh <-chan []st
 	return r
 }
 
+func (r *lbResolver) ResolveNow(_ resolver.ResolveNowOptions) {}
+
+func (r lbResolver) Close() {}
+
 func (r *lbResolver) updateAddresses(endpoints ...string) {
 	addresses := []resolver.Address{}
 	for _, ep := range endpoints {
@@ -26,7 +30,3 @@ func (r *lbResolver) updateAddresses(endpoints ...string) {
 	}
 	r.cc.UpdateState(resolver.State{Addresses: addresses}) //nolint
 }
-
-func (r *lbResolver) ResolveNow(_ resolver.ResolveNowOptions) {}
-
-func (r lbResolver) Close() {}

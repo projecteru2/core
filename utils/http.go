@@ -17,16 +17,18 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-var defaultHTTPClient = &http.Client{
-	CheckRedirect: checkRedirect,
-	Transport:     getDefaultTransport(),
-}
+var (
+	defaultHTTPClient = &http.Client{
+		CheckRedirect: checkRedirect,
+		Transport:     getDefaultTransport(),
+	}
 
-var defaultUnixSockClient = &http.Client{
-	Transport: getDefaultUnixSockTransport(),
-}
+	defaultUnixSockClient = &http.Client{
+		Transport: getDefaultUnixSockTransport(),
+	}
 
-var httpsClientCache = haxmap.New[string, *http.Client]()
+	httpsClientCache = haxmap.New[string, *http.Client]()
+)
 
 // GetHTTPClient returns a HTTP client
 func GetHTTPClient() *http.Client {

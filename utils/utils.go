@@ -246,6 +246,13 @@ func SHA256(input string) string {
 	return hex.EncodeToString(bytes)
 }
 
+func Bool2Int(a bool) int {
+	if a {
+		return 1
+	}
+	return 0
+}
+
 // copied from https://gist.github.com/jmervine/d88c75329f98e09f5c87
 func safeSplit(s string) []string {
 	split := strings.Split(s, " ")
@@ -274,11 +281,4 @@ func safeSplit(s string) []string {
 	}
 
 	return result
-}
-
-func Bool2Int(a bool) int {
-	if a {
-		return 1
-	}
-	return 0
 }

@@ -11,17 +11,17 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-type clientWithStatus struct {
-	client pb.CoreRPCClient
-	addr   string
-	alive  bool
-}
-
 // PoolConfig config for client pool
 type PoolConfig struct {
 	EruAddrs          []string
 	Auth              types.AuthConfig
 	ConnectionTimeout time.Duration
+}
+
+type clientWithStatus struct {
+	client pb.CoreRPCClient
+	addr   string
+	alive  bool
 }
 
 // Pool implement of RPCClientPool
@@ -93,20 +93,6 @@ func (c *Pool) GetClient() pb.CoreRPCClient {
 	return c.rpcClients[0].client
 }
 
-func checkAlive(ctx context.Context, rpc *clientWithStatus, timeout time.Duration) bool {
-	var err error
-	utils.WithTimeout(ctx, timeout, func(ctx context.Context) {
-		_, err = rpc.client.Info(ctx, &pb.Empty{})
-	})
-	logger := log.WithFunc("client.checkAlive")
-	if err != nil {
-		logger.Errorf(ctx, err, "connect to %s failed", rpc.addr)
-		return false
-	}
-	logger.Debugf(ctx, "connect to %s success", rpc.addr)
-	return true
-}
-
 func (c *Pool) updateClientsStatus(ctx context.Context, timeout time.Duration) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -120,4 +106,18 @@ func (c *Pool) updateClientsStatus(ctx context.Context, timeout time.Duration) {
 			r.alive = checkAlive(ctx, r, timeout)
 		}(rpc)
 	}
+}
+
+func checkAlive(ctx context.Context, rpc *clientWithStatus, timeout time.Duration) bool {
+	var err error
+	utils.WithTimeout(ctx, timeout, func(ctx context.Context) {
+		_, err = rpc.client.Info(ctx, &pb.Empty{})
+	})
+	logger := log.WithFunc("client.checkAlive")
+	if err != nil {
+		logger.Errorf(ctx, err, "connect to %s failed", rpc.addr)
+		return false
+	}
+	logger.Debugf(ctx, "connect to %s success", rpc.addr)
+	return true
 }
