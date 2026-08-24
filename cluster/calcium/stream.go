@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"slices"
 	"sync"
 
 	"github.com/cockroachdb/errors"
@@ -134,7 +135,7 @@ func (c *Calcium) processVirtualizationOutStream(
 		scanner := bufio.NewScanner(outStream)
 		scanner.Split(splitFunc)
 		for scanner.Scan() {
-			bs := scanner.Bytes()
+			bs := slices.Clone(scanner.Bytes())
 			if split != 0 {
 				bs = append(bs, split)
 			}
