@@ -29,7 +29,7 @@ type window struct {
 	Width  uint `json:"Col"`
 }
 
-func (c *Calcium) execuateInside(ctx context.Context, client engine.API, ID, cmd, user string, env []string, privileged bool) ([]byte, error) {
+func (c *Calcium) executeInside(ctx context.Context, client engine.API, ID, cmd, user string, env []string, privileged bool) ([]byte, error) {
 	cmds := utils.MakeCommandLineArgs(cmd)
 	execConfig := &enginetypes.ExecConfig{
 		User:         user,

@@ -16,7 +16,7 @@ func (c *Calcium) doHook(
 ) ([]*bytes.Buffer, error) {
 	outputs := []*bytes.Buffer{}
 	for _, cmd := range cmds {
-		output, err := c.execuateInside(ctx, engine, ID, cmd, user, env, privileged)
+		output, err := c.executeInside(ctx, engine, ID, cmd, user, env, privileged)
 		if err != nil {
 			// abort only when the hook is forced and hook errors are not ignored
 			outputs = append(outputs, bytes.NewBufferString(err.Error()))
