@@ -124,7 +124,7 @@ func (e *Engine) preparedSource(ctx context.Context, build *enginetypes.Build, s
 	var cloneDir string
 	var err error
 	reponame := ""
-	if build.Repo != "" { //nolint
+	if build.Repo != "" { //nolint:nestif
 		version := build.Version
 		if version == "" {
 			version = "HEAD"
