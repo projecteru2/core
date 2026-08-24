@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 func (s *RediaronTestSuite) TestAddNode() {
@@ -245,4 +246,25 @@ func (s *RediaronTestSuite) TestNodeStatusStream() {
 		s.True(m.Alive)
 	}
 	s.False(statuses[len(statuses)-1].Alive)
+}
+
+func (s *RediaronTestSuite) TestGetNodesWhenPoolIsFull() {
+	ctx := context.Background()
+	node, err := s.rediaron.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", nil, false)
+	s.NoError(err)
+	s.Equal(node.Name, "test")
+
+	pool, err := utils.NewPool(1)
+	s.NoError(err)
+	old := s.rediaron.pool
+	defer func() { s.rediaron.pool = old }()
+	s.rediaron.pool = pool
+	blocked := make(chan struct{})
+	defer close(blocked)
+	s.NoError(pool.Invoke(func() { <-blocked }))
+	s.Error(pool.Invoke(func() {}))
+
+	nodes, err := s.rediaron.GetNodes(ctx, []string{"test"})
+	s.NoError(err)
+	s.Len(nodes, 1)
 }

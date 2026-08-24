@@ -164,7 +164,7 @@ func (m *Mercury) GetNodeStatus(ctx context.Context, nodename string) (*types.No
 func (m *Mercury) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
 	ch := make(chan *types.NodeStatus)
 	logger := log.WithFunc("store.etcdv3.NodeStatusStream")
-	_ = m.pool.Invoke(func() {
+	if err := m.pool.Invoke(func() {
 		defer func() {
 			logger.Info(ctx, "close NodeStatusStream channel")
 			close(ch)
@@ -193,7 +193,10 @@ func (m *Mercury) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
 				ch <- status
 			}
 		}
-	})
+	}); err != nil {
+		logger.Error(ctx, err, "invoke watcher")
+		close(ch)
+	}
 	return ch
 }
 
@@ -321,7 +324,7 @@ func (m *Mercury) doGetNodes(
 	nodesCh := make(chan *types.Node, len(allNodes))
 
 	for _, node := range allNodes {
-		_ = m.pool.Invoke(func() {
+		task := func() {
 			defer wg.Done()
 			if node.Test {
 				node.Available = !node.Bypass
@@ -343,7 +346,10 @@ func (m *Mercury) doGetNodes(
 				}
 			}
 			nodesCh <- node
-		})
+		}
+		if err := m.pool.Invoke(task); err != nil {
+			task()
+		}
 	}
 	wg.Wait()
 	close(nodesCh)

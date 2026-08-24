@@ -152,7 +152,7 @@ func (r *Rediaron) GetNodeStatus(ctx context.Context, nodename string) (*types.N
 func (r *Rediaron) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
 	ch := make(chan *types.NodeStatus)
 	logger := log.WithFunc("store.redis.NodeStatusStream")
-	_ = r.pool.Invoke(func() {
+	if err := r.pool.Invoke(func() {
 		defer func() {
 			logger.Info(ctx, "close NodeStatusStream channel")
 			close(ch)
@@ -174,7 +174,10 @@ func (r *Rediaron) NodeStatusStream(ctx context.Context) chan *types.NodeStatus 
 			}
 			ch <- status
 		}
-	})
+	}); err != nil {
+		logger.Error(ctx, err, "invoke watcher")
+		close(ch)
+	}
 	return ch
 }
 
@@ -299,7 +302,7 @@ func (r *Rediaron) doGetNodes(
 	nodeChan := make(chan *types.Node, len(allNodes))
 
 	for _, node := range allNodes {
-		_ = r.pool.Invoke(func() {
+		task := func() {
 			defer wg.Done()
 			if node.Test {
 				node.Available = !node.Bypass
@@ -321,7 +324,10 @@ func (r *Rediaron) doGetNodes(
 					node.Engine = client
 				}
 			}
-		})
+		}
+		if err := r.pool.Invoke(task); err != nil {
+			task()
+		}
 	}
 	wg.Wait()
 	close(nodeChan)

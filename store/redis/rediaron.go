@@ -85,7 +85,8 @@ type KNotifyMessage struct {
 // KNotify streams key change notifications, the redis counterpart of an etcd watch.
 func (r *Rediaron) KNotify(ctx context.Context, pattern string) chan *KNotifyMessage {
 	ch := make(chan *KNotifyMessage)
-	_ = r.pool.Invoke(func() {
+	logger := log.WithFunc("store.redis.KNotify")
+	if err := r.pool.Invoke(func() {
 		defer close(ch)
 
 		prefix := fmt.Sprintf(keyNotifyPrefix, r.db, "")
@@ -100,7 +101,7 @@ func (r *Rediaron) KNotify(ctx context.Context, pattern string) chan *KNotifyMes
 				return
 			case v := <-subC:
 				if v == nil {
-					log.WithFunc("store.redis.KNotify").Warn(ctx, "channel closed, knotify returns")
+					logger.Warn(ctx, "channel closed, knotify returns")
 					return
 				}
 				ch <- &KNotifyMessage{
@@ -109,7 +110,10 @@ func (r *Rediaron) KNotify(ctx context.Context, pattern string) chan *KNotifyMes
 				}
 			}
 		}
-	})
+	}); err != nil {
+		logger.Error(ctx, err, "invoke knotify")
+		close(ch)
+	}
 	return ch
 }
 

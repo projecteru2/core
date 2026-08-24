@@ -126,7 +126,7 @@ func (m *Mercury) WorkloadStatusStream(ctx context.Context, appname, entrypoint,
 	statusKey := filepath.Join(workloadStatusPrefix, appname, entrypoint, nodename) + "/"
 	ch := make(chan *types.WorkloadStatus)
 	logger := log.WithFunc("store.etcdv3.WorkloadStatusStream")
-	_ = m.pool.Invoke(func() {
+	if err := m.pool.Invoke(func() {
 		defer func() {
 			logger.Info(ctx, "close WorkloadStatus channel")
 			close(ch)
@@ -156,7 +156,10 @@ func (m *Mercury) WorkloadStatusStream(ctx context.Context, appname, entrypoint,
 				ch <- msg
 			}
 		}
-	})
+	}); err != nil {
+		logger.Error(ctx, err, "invoke watcher")
+		close(ch)
+	}
 	return ch
 }
 

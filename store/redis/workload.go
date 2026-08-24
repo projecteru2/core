@@ -123,7 +123,7 @@ func (r *Rediaron) WorkloadStatusStream(ctx context.Context, appname, entrypoint
 	statusKey := filepath.Join(workloadStatusPrefix, appname, entrypoint, nodename) + "/*"
 	ch := make(chan *types.WorkloadStatus)
 	logger := log.WithFunc("store.redis.WorkloadStatusStream")
-	_ = r.pool.Invoke(func() {
+	if err := r.pool.Invoke(func() {
 		defer func() {
 			logger.Info(ctx, "close WorkloadStatus channel")
 			close(ch)
@@ -148,7 +148,10 @@ func (r *Rediaron) WorkloadStatusStream(ctx context.Context, appname, entrypoint
 			}
 			ch <- msg
 		}
-	})
+	}); err != nil {
+		logger.Error(ctx, err, "invoke watcher")
+		close(ch)
+	}
 	return ch
 }
 

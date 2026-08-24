@@ -17,7 +17,7 @@ import (
 func (m *Mercury) ServiceStatusStream(ctx context.Context) (chan []string, error) {
 	ch := make(chan []string)
 	logger := log.WithFunc("store.etcdv3.ServiceStatusStream")
-	_ = m.pool.Invoke(func() {
+	if err := m.pool.Invoke(func() {
 		defer close(ch)
 
 		// must watch prior to get
@@ -56,7 +56,9 @@ func (m *Mercury) ServiceStatusStream(ctx context.Context) (chan []string, error
 				ch <- eps.ToSlice()
 			}
 		}
-	})
+	}); err != nil {
+		return nil, err
+	}
 	return ch, nil
 }
 

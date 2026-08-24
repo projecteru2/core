@@ -14,7 +14,7 @@ import (
 func (r *Rediaron) ServiceStatusStream(ctx context.Context) (chan []string, error) {
 	key := fmt.Sprintf(serviceStatusKey, "*")
 	ch := make(chan []string)
-	_ = r.pool.Invoke(func() {
+	if err := r.pool.Invoke(func() {
 		defer close(ch)
 
 		watchC := r.KNotify(ctx, key)
@@ -43,7 +43,9 @@ func (r *Rediaron) ServiceStatusStream(ctx context.Context) (chan []string, erro
 				ch <- eps.ToSlice()
 			}
 		}
-	})
+	}); err != nil {
+		return nil, err
+	}
 	return ch, nil
 }
 
