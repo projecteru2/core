@@ -14,7 +14,7 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-func (m Mercury) AddWorkload(ctx context.Context, workload *types.Workload, processing *types.Processing) error {
+func (m *Mercury) AddWorkload(ctx context.Context, workload *types.Workload, processing *types.Processing) error {
 	return m.doOpsWorkload(ctx, workload, processing, true)
 }
 
@@ -224,9 +224,6 @@ func (m *Mercury) bindWorkloadsAdditions(ctx context.Context, workloads []*types
 			return nil, types.ErrInvaildWorkloadMeta
 		}
 		workloads[index].Engine = nodes[workload.Nodename].Engine
-		if _, ok := statusKeys[workload.ID]; !ok {
-			continue
-		}
 		kv, err := m.GetOne(ctx, statusKeys[workload.ID])
 		if err != nil {
 			continue
@@ -242,7 +239,6 @@ func (m *Mercury) bindWorkloadsAdditions(ctx context.Context, workloads []*types
 }
 
 func (m *Mercury) doOpsWorkload(ctx context.Context, workload *types.Workload, processing *types.Processing, create bool) error {
-	var err error
 	appname, entrypoint, _, err := utils.ParseWorkloadName(workload.Name)
 	if err != nil {
 		return err

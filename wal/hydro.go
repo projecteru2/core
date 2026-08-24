@@ -55,7 +55,7 @@ func (h *Hydro) Recover(ctx context.Context) {
 	}
 
 	for _, event := range events {
-		handler, ok := h.getEventHandler(event.Type)
+		handler, ok := h.Get(event.Type)
 		if !ok {
 			logger.Warnf(ctx, "no such event handler for %s", event.Type)
 			continue
@@ -69,7 +69,7 @@ func (h *Hydro) Recover(ctx context.Context) {
 }
 
 func (h *Hydro) Log(eventyp string, item any) (Commit, error) {
-	handler, ok := h.getEventHandler(eventyp)
+	handler, ok := h.Get(eventyp)
 	if !ok {
 		return nil, errors.Wrap(coretypes.ErrInvaildWALEventType, eventyp)
 	}
@@ -119,14 +119,6 @@ func (h *Hydro) recover(ctx context.Context, handler EventHandler, event HydroEv
 		}
 	}
 	return del()
-}
-
-func (h *Hydro) getEventHandler(eventyp string) (EventHandler, bool) {
-	handler, ok := h.Get(eventyp)
-	if !ok {
-		return nil, ok
-	}
-	return handler, ok
 }
 
 func (h *Hydro) decodeEvent(scanEntry kv.ScanEntry) (event HydroEvent, err error) {

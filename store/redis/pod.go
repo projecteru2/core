@@ -18,8 +18,10 @@ func (r *Rediaron) AddPod(ctx context.Context, name, desc string) (*types.Pod, e
 	if err != nil {
 		return nil, err
 	}
-	err = r.BatchCreate(ctx, map[string]string{key: string(bytes)})
-	return pod, err
+	if err = r.BatchCreate(ctx, map[string]string{key: string(bytes)}); err != nil {
+		return nil, err
+	}
+	return pod, nil
 }
 
 func (r *Rediaron) RemovePod(ctx context.Context, podname string) error {
@@ -50,7 +52,7 @@ func (r *Rediaron) GetPod(ctx context.Context, name string) (*types.Pod, error) 
 	if err = json.Unmarshal([]byte(data), pod); err != nil {
 		return nil, err
 	}
-	return pod, err
+	return pod, nil
 }
 
 func (r *Rediaron) GetAllPods(ctx context.Context) ([]*types.Pod, error) {

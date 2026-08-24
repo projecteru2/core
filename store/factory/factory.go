@@ -8,13 +8,10 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-// NewStore creates a store
-func NewStore(config types.Config, embeddedETCD *embedded.Cluster) (stor store.Store, err error) {
-	switch config.Store {
-	case types.Redis:
-		stor, err = redis.New(config)
-	default:
-		stor, err = etcdv3.New(config, embeddedETCD)
+// NewStore creates the store backend named by config.
+func NewStore(config types.Config, embeddedETCD *embedded.Cluster) (store.Store, error) {
+	if config.Store == types.Redis {
+		return redis.New(config)
 	}
-	return stor, err
+	return etcdv3.New(config, embeddedETCD)
 }

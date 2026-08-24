@@ -67,7 +67,7 @@ func (l *Lithium) Put(key, value []byte) (err error) {
 }
 
 func (l *Lithium) Get(key []byte) (dst []byte, err error) {
-	err = l.view(func(bkt *bbolt.Bucket) error {
+	err = l.update(func(bkt *bbolt.Bucket) error {
 		src := bkt.Get(key)
 		dst = make([]byte, len(src))
 		copy(dst, src)
@@ -106,7 +106,7 @@ func (l *Lithium) Scan(prefix []byte) (<-chan ScanEntry, func()) {
 			return nil
 		}
 
-		if err := l.view(scan); err != nil {
+		if err := l.update(scan); err != nil {
 			select {
 			case <-exit:
 			case ch <- LithiumScanEntry{err: err}:
@@ -142,16 +142,6 @@ func (l *Lithium) open() (err error) {
 
 func (l *Lithium) close() error {
 	return l.bolt.Close()
-}
-
-func (l *Lithium) view(fn func(*bbolt.Bucket) error) error {
-	return l.bolt.Update(func(tx *bbolt.Tx) error {
-		bkt, err := l.getBucket(tx, l.RootBucketKey)
-		if err != nil {
-			return err
-		}
-		return fn(bkt)
-	})
 }
 
 func (l *Lithium) update(fn func(*bbolt.Bucket) error) error {

@@ -54,17 +54,17 @@ func (r *Rediaron) RegisterService(ctx context.Context, serviceAddress string, e
 
 type endpoints map[string]struct{}
 
-func (e *endpoints) Add(endpoint string) (changed bool) {
-	if _, ok := (*e)[endpoint]; !ok {
-		(*e)[endpoint] = struct{}{}
+func (e endpoints) Add(endpoint string) (changed bool) {
+	if _, ok := e[endpoint]; !ok {
+		e[endpoint] = struct{}{}
 		changed = true
 	}
 	return changed
 }
 
-func (e *endpoints) Remove(endpoint string) (changed bool) {
-	if _, ok := (*e)[endpoint]; ok {
-		delete(*e, endpoint)
+func (e endpoints) Remove(endpoint string) (changed bool) {
+	if _, ok := e[endpoint]; ok {
+		delete(e, endpoint)
 		changed = true
 	}
 	return changed

@@ -178,48 +178,42 @@ func (r *Rediaron) NodeStatusStream(ctx context.Context) chan *types.NodeStatus 
 	return ch
 }
 
-func (r *Rediaron) LoadNodeCert(ctx context.Context, node *types.Node) (err error) {
-	keyFormats := []string{nodeCaKey, nodeCertKey, nodeKeyKey}
-	data := []string{"", "", ""}
-	for i := range 3 {
-		v, err := r.GetOne(ctx, fmt.Sprintf(keyFormats[i], node.Name))
-		if err != nil {
-			if !isRedisNoKeyError(err) {
-				log.WithFunc("store.redis.LoadNodeCert").Error(ctx, err, "get key")
-				return err
-			}
-			continue
-		}
-		data[i] = v
+func (r *Rediaron) LoadNodeCert(ctx context.Context, node *types.Node) error {
+	ca, cert, key, err := r.loadCert(ctx, node.Name)
+	if err != nil {
+		return err
 	}
-	node.Ca, node.Cert, node.Key = data[0], data[1], data[2]
+	node.Ca, node.Cert, node.Key = ca, cert, key
 	return nil
 }
 
-func (r *Rediaron) makeClient(ctx context.Context, node *types.Node) (client engine.API, err error) {
+func (r *Rediaron) makeClient(ctx context.Context, node *types.Node) (engine.API, error) {
 	// cache lookup ignores ca/cert/key
-	if client = enginefactory.GetEngineFromCache(ctx, node.Endpoint, "", "", ""); client != nil {
+	if client := enginefactory.GetEngineFromCache(ctx, node.Endpoint, "", "", ""); client != nil {
 		return client, nil
 	}
-	keyFormats := []string{nodeCaKey, nodeCertKey, nodeKeyKey}
+
+	ca, cert, key, err := r.loadCert(ctx, node.Name)
+	if err != nil {
+		return nil, err
+	}
+	return enginefactory.GetEngine(ctx, r.config, node.Name, node.Endpoint, ca, cert, key)
+}
+
+func (r *Rediaron) loadCert(ctx context.Context, nodename string) (ca, cert, key string, err error) {
 	data := []string{"", "", ""}
-	for i := range 3 {
-		v, getErr := r.GetOne(ctx, fmt.Sprintf(keyFormats[i], node.Name))
-		if getErr != nil {
-			if !isRedisNoKeyError(getErr) {
-				log.WithFunc("store.redis.makeClient").Error(ctx, getErr, "get key")
-				return nil, getErr
+	for i, format := range []string{nodeCaKey, nodeCertKey, nodeKeyKey} {
+		v, err := r.GetOne(ctx, fmt.Sprintf(format, nodename))
+		if err != nil {
+			if !isRedisNoKeyError(err) {
+				log.WithFunc("store.redis.loadCert").Error(ctx, err, "get key")
+				return "", "", "", err
 			}
 			continue
 		}
 		data[i] = v
 	}
-
-	client, err = enginefactory.GetEngine(ctx, r.config, node.Name, node.Endpoint, data[0], data[1], data[2])
-	if err != nil {
-		return nil, err
-	}
-	return client, nil
+	return data[0], data[1], data[2], nil
 }
 
 func (r *Rediaron) doAddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, labels map[string]string, test bool) (*types.Node, error) {

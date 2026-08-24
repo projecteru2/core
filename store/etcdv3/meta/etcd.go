@@ -148,11 +148,15 @@ func (e *ETCD) Update(ctx context.Context, key, val string, opts ...clientv3.OpO
 }
 
 func (e *ETCD) Watch(ctx context.Context, key string, opts ...clientv3.OpOption) clientv3.WatchChan {
-	return e.watch(ctx, key, opts...)
+	return e.cliv3.Watch(ctx, key, opts...)
 }
 
 func (e *ETCD) BatchDelete(ctx context.Context, keys []string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	return e.batchDelete(ctx, keys, opts...)
+	txn := ETCDTxn{}
+	for _, key := range keys {
+		txn.Then = append(txn.Then, clientv3.OpDelete(key, opts...))
+	}
+	return e.doBatchOp(ctx, []ETCDTxn{txn})
 }
 
 func (e *ETCD) BatchCreate(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
@@ -223,26 +227,11 @@ func (e *ETCD) BatchCreateAndDecr(ctx context.Context, data map[string]string, d
 	return nil
 }
 
-func (e *ETCD) watch(ctx context.Context, key string, opts ...clientv3.OpOption) clientv3.WatchChan {
-	return e.cliv3.Watch(ctx, key, opts...)
-}
-
 func (e *ETCD) batchGet(ctx context.Context, keys []string, opt ...clientv3.OpOption) (txnResponse *clientv3.TxnResponse, err error) {
 	txn := ETCDTxn{}
 	for _, key := range keys {
-		op := clientv3.OpGet(key, opt...)
-		txn.Then = append(txn.Then, op)
+		txn.Then = append(txn.Then, clientv3.OpGet(key, opt...))
 	}
-	return e.doBatchOp(ctx, []ETCDTxn{txn})
-}
-
-func (e *ETCD) batchDelete(ctx context.Context, keys []string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	txn := ETCDTxn{}
-	for _, key := range keys {
-		op := clientv3.OpDelete(key, opts...)
-		txn.Then = append(txn.Then, op)
-	}
-
 	return e.doBatchOp(ctx, []ETCDTxn{txn})
 }
 

@@ -313,7 +313,7 @@ func TestETCD(t *testing.T) {
 	require.EqualError(t, err, "key not exists")
 	require.False(t, r.Succeeded)
 	ctx2, cancel := context.WithCancel(ctx)
-	ch := m.watch(ctx2, "watchkey", clientv3.WithPrefix())
+	ch := m.Watch(ctx2, "watchkey", clientv3.WithPrefix())
 	go func() {
 		for r := range ch {
 			require.NotEmpty(t, r.Events)

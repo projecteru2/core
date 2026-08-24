@@ -216,9 +216,6 @@ func (r *Rediaron) bindWorkloadsAdditions(ctx context.Context, workloads []*type
 			return nil, types.ErrInvaildWorkloadMeta
 		}
 		workloads[index].Engine = nodes[workload.Nodename].Engine
-		if _, ok := statusKeys[workload.ID]; !ok {
-			continue
-		}
 		v, err := r.GetOne(ctx, statusKeys[workload.ID])
 		if err != nil {
 			continue
@@ -234,7 +231,6 @@ func (r *Rediaron) bindWorkloadsAdditions(ctx context.Context, workloads []*type
 }
 
 func (r *Rediaron) doOpsWorkload(ctx context.Context, workload *types.Workload, processing *types.Processing, create bool) error {
-	var err error
 	appname, entrypoint, _, err := utils.ParseWorkloadName(workload.Name)
 	if err != nil {
 		return err

@@ -38,30 +38,30 @@ func (m *MockedKV) Close() error {
 	return nil
 }
 
-func (m *MockedKV) NextSequence() (nextSeq uint64, err error) {
+func (m *MockedKV) NextSequence() (uint64, error) {
 	m.Lock()
 	defer m.Unlock()
-	nextSeq = m.nextSeq
+	nextSeq := m.nextSeq
 	m.nextSeq++
-	return nextSeq, err
+	return nextSeq, nil
 }
 
-func (m *MockedKV) Put(key, value []byte) (err error) {
+func (m *MockedKV) Put(key, value []byte) error {
 	m.pool.Set(string(key), value)
-	return err
+	return nil
 }
 
-func (m *MockedKV) Get(key []byte) (value []byte, err error) {
+func (m *MockedKV) Get(key []byte) ([]byte, error) {
 	value, ok := m.pool.Get(string(key))
 	if !ok {
 		return value, errors.Wrapf(types.ErrInvaildCount, "no such key: %s", key)
 	}
-	return value, err
+	return value, nil
 }
 
-func (m *MockedKV) Delete(key []byte) (err error) {
+func (m *MockedKV) Delete(key []byte) error {
 	m.pool.Del(string(key))
-	return err
+	return nil
 }
 
 func (m *MockedKV) Scan(prefix []byte) (<-chan ScanEntry, func()) {

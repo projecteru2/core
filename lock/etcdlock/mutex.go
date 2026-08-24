@@ -49,36 +49,7 @@ func (m *Mutex) Lock(ctx context.Context) (context.Context, error) {
 	if err := m.mutex.Lock(lockCtx); err != nil {
 		return nil, err
 	}
-
-	ctx, cancel = context.WithCancel(ctx)
-	rCtx := &lockContext{Context: ctx}
-
-	m.lockedMux.Lock()
-	m.locked = true
-	m.lockedMux.Unlock()
-
-	go func() {
-		defer cancel()
-
-		// session.Done() fires both on a lost lock and on our own Unlock
-		select {
-		case <-m.session.Done():
-			m.lockedMux.Lock()
-			if m.locked {
-				rCtx.setError(types.ErrLockSessionDone)
-				m.lockedMux.Unlock()
-				return
-			}
-			m.lockedMux.Unlock()
-			<-ctx.Done()
-			return
-
-		case <-ctx.Done():
-			return
-		}
-	}()
-
-	return rCtx, nil
+	return m.watchSession(ctx), nil
 }
 
 func (m *Mutex) TryLock(ctx context.Context) (context.Context, error) {
@@ -88,35 +59,7 @@ func (m *Mutex) TryLock(ctx context.Context) (context.Context, error) {
 	if err := m.mutex.TryLock(lockCtx); err != nil {
 		return nil, err
 	}
-
-	ctx, cancel = context.WithCancel(ctx)
-	rCtx := &lockContext{Context: ctx}
-
-	m.lockedMux.Lock()
-	m.locked = true
-	m.lockedMux.Unlock()
-
-	go func() {
-		defer cancel()
-
-		select {
-		case <-m.session.Done():
-			m.lockedMux.Lock()
-			if m.locked {
-				rCtx.setError(types.ErrLockSessionDone)
-				m.lockedMux.Unlock()
-				return
-			}
-			m.lockedMux.Unlock()
-			<-ctx.Done()
-			return
-
-		case <-ctx.Done():
-			return
-		}
-	}()
-
-	return rCtx, nil
+	return m.watchSession(ctx), nil
 }
 
 func (m *Mutex) Unlock(ctx context.Context) error {
@@ -137,6 +80,35 @@ func (m *Mutex) unlock(ctx context.Context) error {
 	_, err := m.session.Client().Txn(ctx).If(m.mutex.IsOwner()).
 		Then(clientv3.OpDelete(m.mutex.Key())).Commit()
 	return err
+}
+
+func (m *Mutex) watchSession(ctx context.Context) context.Context {
+	ctx, cancel := context.WithCancel(ctx)
+	rCtx := &lockContext{Context: ctx}
+
+	m.lockedMux.Lock()
+	m.locked = true
+	m.lockedMux.Unlock()
+
+	go func() {
+		defer cancel()
+
+		// session.Done() fires both on a lost lock and on our own Unlock
+		select {
+		case <-m.session.Done():
+			m.lockedMux.Lock()
+			if m.locked {
+				rCtx.setError(types.ErrLockSessionDone)
+				m.lockedMux.Unlock()
+				return
+			}
+			m.lockedMux.Unlock()
+			<-ctx.Done()
+		case <-ctx.Done():
+		}
+	}()
+
+	return rCtx
 }
 
 type lockContext struct {

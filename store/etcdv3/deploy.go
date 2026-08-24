@@ -22,7 +22,7 @@ func (m *Mercury) GetDeployStatus(ctx context.Context, appname, entryname string
 		log.WithFunc("store.etcdv3.GetDeployStatus").Warnf(ctx, "deploy status not found %s.%s", appname, entryname)
 	}
 
-	deployCount := m.doGetDeployStatus(ctx, resp)
+	deployCount := m.doGetDeployStatus(resp)
 	processingCount, err := m.doLoadProcessing(ctx, appname, entryname)
 	if err != nil {
 		return nil, err
@@ -38,7 +38,7 @@ func (m *Mercury) GetDeployStatus(ctx context.Context, appname, entryname string
 }
 
 // doGetDeployStatus counts the deployed workloads per node.
-func (m *Mercury) doGetDeployStatus(_ context.Context, resp *clientv3.GetResponse) map[string]int {
+func (m *Mercury) doGetDeployStatus(resp *clientv3.GetResponse) map[string]int {
 	nodesCount := map[string]int{}
 	for _, ev := range resp.Kvs {
 		key := string(ev.Key)

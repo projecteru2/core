@@ -42,14 +42,12 @@ const (
 )
 
 var (
-	// ErrMaxRetryExceeded indicates a redis transaction failed after all the retries.
-	ErrMaxRetryExceeded = errors.New("max retry exceeded")
 	// ErrAlreadyExists indicates SETNX found the key already set.
 	ErrAlreadyExists = errors.New("key already exists")
 	// ErrBadCmdType indicates a redis command replied with an unexpected type.
 	ErrBadCmdType = errors.New("bad redis cmd type")
-	// ErrKeyNotExitsts indicates an update targeted a missing key, as the etcd store reports it.
-	ErrKeyNotExitsts = errors.New("key not exists")
+	// ErrKeyNotExists indicates an update targeted a missing key, as the etcd store reports it.
+	ErrKeyNotExists = errors.New("key not exists")
 )
 
 // Rediaron is a store implemented by redis
@@ -172,7 +170,7 @@ func (r *Rediaron) BatchUpdate(ctx context.Context, data map[string]string) erro
 		return err
 	}
 	if int(e) != len(keys) {
-		return ErrKeyNotExitsts
+		return ErrKeyNotExists
 	}
 
 	update := func(pipe redis.Pipeliner) error {

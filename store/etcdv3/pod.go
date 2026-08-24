@@ -27,7 +27,7 @@ func (m *Mercury) AddPod(ctx context.Context, name, desc string) (*types.Pod, er
 	if !resp.Succeeded {
 		return nil, types.ErrTxnConditionFailed
 	}
-	return pod, err
+	return pod, nil
 }
 
 func (m *Mercury) RemovePod(ctx context.Context, podname string) error {
@@ -64,7 +64,7 @@ func (m *Mercury) GetPod(ctx context.Context, name string) (*types.Pod, error) {
 	if err = json.Unmarshal(ev.Value, pod); err != nil {
 		return nil, err
 	}
-	return pod, err
+	return pod, nil
 }
 
 func (m *Mercury) GetAllPods(ctx context.Context) ([]*types.Pod, error) {

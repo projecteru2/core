@@ -20,7 +20,7 @@ func (r *Rediaron) GetDeployStatus(ctx context.Context, appname, entryname strin
 		log.WithFunc("store.redis.GetDeployStatus").Warnf(ctx, "deploy status not found %s.%s", appname, entryname)
 	}
 
-	deployCount := r.doGetDeployStatus(ctx, data)
+	deployCount := r.doGetDeployStatus(data)
 
 	processingCount, err := r.doLoadProcessing(ctx, appname, entryname)
 	if err != nil {
@@ -37,7 +37,7 @@ func (r *Rediaron) GetDeployStatus(ctx context.Context, appname, entryname strin
 }
 
 // doGetDeployStatus counts the deployed workloads per node.
-func (r *Rediaron) doGetDeployStatus(_ context.Context, data map[string]string) map[string]int {
+func (r *Rediaron) doGetDeployStatus(data map[string]string) map[string]int {
 	nodesCount := map[string]int{}
 	for key := range data {
 		parts := strings.Split(key, "/")
