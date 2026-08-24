@@ -19,12 +19,14 @@ func (c *Calcium) RemapResourceAndLog(ctx context.Context, logger *log.Fields, n
 	defer cancel()
 
 	err := c.withNodeOperationLocked(ctx, node.Name, func(ctx context.Context, node *types.Node) error {
-		if ch, err := c.doRemapResource(ctx, node); err == nil {
-			for msg := range ch {
-				logger.Infof(ctx, "remap workload ID %+v", msg.ID)
-				if msg.err != nil {
-					logger.Error(ctx, msg.err)
-				}
+		ch, err := c.doRemapResource(ctx, node)
+		if err != nil {
+			return err
+		}
+		for msg := range ch {
+			logger.Infof(ctx, "remap workload ID %+v", msg.ID)
+			if msg.err != nil {
+				logger.Error(ctx, msg.err)
 			}
 		}
 		return nil
