@@ -43,6 +43,7 @@ type Metrics struct {
 
 	StatsdAddr   string
 	Hostname     string
+	statsdMu     sync.Mutex
 	statsdClient *statsdlib.Client
 
 	Collectors map[string]prometheus.Collector
@@ -137,30 +138,33 @@ func (m *Metrics) RemoveInvalidNodes(invalidNodes ...string) {
 	}
 }
 
-func (m *Metrics) checkConn(ctx context.Context) error {
+func (m *Metrics) client(ctx context.Context) (*statsdlib.Client, error) {
+	m.statsdMu.Lock()
+	defer m.statsdMu.Unlock()
 	if m.statsdClient != nil {
-		return nil
+		return m.statsdClient, nil
 	}
-	logger := log.WithFunc("metrics.checkConn")
+	logger := log.WithFunc("metrics.client")
 	var err error
 	// UDP is connectionless, so a failed client never needs reconnecting
 	if m.statsdClient, err = statsdlib.New(m.StatsdAddr, statsdlib.WithErrorHandler(func(err error) {
 		logger.Error(ctx, err, "failed to send to statsd")
 	})); err != nil {
 		logger.Error(ctx, err, "failed to connect statsd")
-		return err
+		return nil, err
 	}
-	return nil
+	return m.statsdClient, nil
 }
 
 func (m *Metrics) gauge(ctx context.Context, key string, value float64) error {
 	if m.StatsdAddr == "" {
 		return nil
 	}
-	if err := m.checkConn(ctx); err != nil {
+	c, err := m.client(ctx)
+	if err != nil {
 		return err
 	}
-	m.statsdClient.Gauge(key, value)
+	c.Gauge(key, value)
 	return nil
 }
 
@@ -168,10 +172,11 @@ func (m *Metrics) count(ctx context.Context, key string, n int, rate float32) er
 	if m.StatsdAddr == "" {
 		return nil
 	}
-	if err := m.checkConn(ctx); err != nil {
+	c, err := m.client(ctx)
+	if err != nil {
 		return err
 	}
-	m.statsdClient.Count(key, n, rate)
+	c.Count(key, n, rate)
 	return nil
 }
 

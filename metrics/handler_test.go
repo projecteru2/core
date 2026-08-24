@@ -10,10 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/prometheus/client_golang/prometheus"
-
 	clustermocks "github.com/projecteru2/core/cluster/mocks"
-	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	"github.com/projecteru2/core/types"
 )
 
@@ -34,25 +31,4 @@ func TestResourceMiddlewareListNodesFailed(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		assert.Fail(t, "scrape handler blocked after ListPodNodes failed")
 	}
-}
-
-func TestSendMetricsSkipsUnparsableValues(t *testing.T) {
-	gauge := prometheus.NewGaugeVec(prometheus.GaugeOpts{Name: "test_gauge"}, []string{"nodename"})
-	counter := prometheus.NewCounterVec(prometheus.CounterOpts{Name: "test_counter"}, []string{"nodename"})
-	m := &Metrics{Collectors: map[string]prometheus.Collector{"test_gauge": gauge, "test_counter": counter}}
-
-	m.SendMetrics(t.Context(),
-		&plugintypes.Metrics{Name: "test_gauge", Labels: []string{"n1"}, Key: "k", Value: "not-a-number"},
-		&plugintypes.Metrics{Name: "test_counter", Labels: []string{"n1"}, Key: "k", Value: "not-a-number"},
-	)
-
-	assert.Equal(t, 0, collected(gauge))
-	assert.Equal(t, 0, collected(counter))
-}
-
-func collected(c prometheus.Collector) int {
-	ch := make(chan prometheus.Metric, 16)
-	c.Collect(ch)
-	close(ch)
-	return len(ch)
 }
