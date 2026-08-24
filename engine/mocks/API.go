@@ -9,11 +9,10 @@ import (
 	"io"
 	"time"
 
-	mock "github.com/stretchr/testify/mock"
-
 	"github.com/projecteru2/core/engine/types"
 	types0 "github.com/projecteru2/core/resource/types"
 	"github.com/projecteru2/core/source"
+	mock "github.com/stretchr/testify/mock"
 )
 
 // NewAPI creates a new instance of API. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.

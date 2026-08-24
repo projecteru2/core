@@ -15,8 +15,7 @@ import (
 func NewSource(t interface {
 	mock.TestingT
 	Cleanup(func())
-},
-) *Source {
+}) *Source {
 	mock := &Source{}
 	mock.Mock.Test(t)
 
@@ -39,7 +38,7 @@ func (_m *Source) EXPECT() *Source_Expecter {
 }
 
 // Artifact provides a mock function for the type Source
-func (_mock *Source) Artifact(ctx context.Context, artifact, path string) error {
+func (_mock *Source) Artifact(ctx context.Context, artifact string, path string) error {
 	ret := _mock.Called(ctx, artifact, path)
 
 	if len(ret) == 0 {
@@ -64,11 +63,11 @@ type Source_Artifact_Call struct {
 //   - ctx context.Context
 //   - artifact string
 //   - path string
-func (_e *Source_Expecter) Artifact(ctx, artifact, path any) *Source_Artifact_Call {
+func (_e *Source_Expecter) Artifact(ctx any, artifact any, path any) *Source_Artifact_Call {
 	return &Source_Artifact_Call{Call: _e.mock.On("Artifact", ctx, artifact, path)}
 }
 
-func (_c *Source_Artifact_Call) Run(run func(ctx context.Context, artifact, path string)) *Source_Artifact_Call {
+func (_c *Source_Artifact_Call) Run(run func(ctx context.Context, artifact string, path string)) *Source_Artifact_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -96,7 +95,7 @@ func (_c *Source_Artifact_Call) Return(err error) *Source_Artifact_Call {
 	return _c
 }
 
-func (_c *Source_Artifact_Call) RunAndReturn(run func(ctx context.Context, artifact, path string) error) *Source_Artifact_Call {
+func (_c *Source_Artifact_Call) RunAndReturn(run func(ctx context.Context, artifact string, path string) error) *Source_Artifact_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -153,7 +152,7 @@ func (_c *Source_Security_Call) RunAndReturn(run func(path string) error) *Sourc
 }
 
 // SourceCode provides a mock function for the type Source
-func (_mock *Source) SourceCode(ctx context.Context, repository, path, revision string, submodule bool) error {
+func (_mock *Source) SourceCode(ctx context.Context, repository string, path string, revision string, submodule bool) error {
 	ret := _mock.Called(ctx, repository, path, revision, submodule)
 
 	if len(ret) == 0 {
@@ -180,11 +179,11 @@ type Source_SourceCode_Call struct {
 //   - path string
 //   - revision string
 //   - submodule bool
-func (_e *Source_Expecter) SourceCode(ctx, repository, path, revision, submodule any) *Source_SourceCode_Call {
+func (_e *Source_Expecter) SourceCode(ctx any, repository any, path any, revision any, submodule any) *Source_SourceCode_Call {
 	return &Source_SourceCode_Call{Call: _e.mock.On("SourceCode", ctx, repository, path, revision, submodule)}
 }
 
-func (_c *Source_SourceCode_Call) Run(run func(ctx context.Context, repository, path, revision string, submodule bool)) *Source_SourceCode_Call {
+func (_c *Source_SourceCode_Call) Run(run func(ctx context.Context, repository string, path string, revision string, submodule bool)) *Source_SourceCode_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -222,7 +221,7 @@ func (_c *Source_SourceCode_Call) Return(err error) *Source_SourceCode_Call {
 	return _c
 }
 
-func (_c *Source_SourceCode_Call) RunAndReturn(run func(ctx context.Context, repository, path, revision string, submodule bool) error) *Source_SourceCode_Call {
+func (_c *Source_SourceCode_Call) RunAndReturn(run func(ctx context.Context, repository string, path string, revision string, submodule bool) error) *Source_SourceCode_Call {
 	_c.Call.Return(run)
 	return _c
 }
