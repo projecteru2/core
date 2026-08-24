@@ -101,8 +101,11 @@ func TestListImage(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	store := c.store.(*storemocks.Store)
+	_, err := c.ListImage(ctx, &types.ImageOptions{})
+	assert.ErrorIs(t, err, types.ErrEmptyPodName)
+
 	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
-	_, err := c.ListImage(ctx, &types.ImageOptions{Podname: "podname"})
+	_, err = c.ListImage(ctx, &types.ImageOptions{Podname: "podname"})
 	assert.Error(t, err)
 	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{}, nil).Once()
 	_, err = c.ListImage(ctx, &types.ImageOptions{Podname: "podname"})

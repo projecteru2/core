@@ -119,6 +119,10 @@ func (c *Calcium) RemoveImage(ctx context.Context, opts *types.ImageOptions) (ch
 
 func (c *Calcium) ListImage(ctx context.Context, opts *types.ImageOptions) (chan *types.ListImageMessage, error) {
 	logger := log.WithFunc("calcium.ListImage").WithField("opts", opts)
+	if err := opts.Validate(); err != nil {
+		logger.Error(ctx, err)
+		return nil, err
+	}
 
 	nodes, err := c.filterNodes(ctx, &types.NodeFilter{Podname: opts.Podname, Includes: opts.Nodenames})
 	if err != nil {
