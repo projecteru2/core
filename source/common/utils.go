@@ -6,6 +6,9 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
+
+	"github.com/cockroachdb/errors"
 )
 
 func unzipFile(body io.Reader, path string) error {
@@ -19,36 +22,41 @@ func unzipFile(body io.Reader, path string) error {
 		return err
 	}
 
+	root := filepath.Clean(path)
 	for _, f := range reader.File {
-		zipped, err := f.Open()
-		if err != nil {
-			return err
-		}
-
-		defer func() {
-			_ = zipped.Close()
-		}()
-
-		//  G305: File traversal when extracting zip archive
-		p := filepath.Join(path, f.Name) //nolint
-
-		if f.FileInfo().IsDir() {
-			_ = os.MkdirAll(p, f.Mode())
-			continue
-		}
-
-		writer, err := os.OpenFile(filepath.Clean(p), os.O_WRONLY|os.O_CREATE, f.Mode())
-		if err != nil {
-			return err
-		}
-
-		defer func() {
-			_ = writer.Close()
-		}()
-		if _, err = io.Copy(writer, zipped); err != nil { //nolint
-			// G110: Potential DoS vulnerability via decompression bomb
+		if err := extractZipEntry(f, root); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func extractZipEntry(f *zip.File, root string) error {
+	target := filepath.Join(root, f.Name) //nolint:gosec // G305: the escape check below rejects a traversing name
+	if target != root && !strings.HasPrefix(target, root+string(os.PathSeparator)) {
+		return errors.Newf("illegal path in archive: %q", f.Name)
+	}
+
+	if f.FileInfo().IsDir() {
+		return os.MkdirAll(target, f.Mode())
+	}
+
+	zipped, err := f.Open()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = zipped.Close()
+	}()
+
+	writer, err := os.OpenFile(filepath.Clean(target), os.O_WRONLY|os.O_CREATE, f.Mode())
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = writer.Close()
+	}()
+
+	_, err = io.Copy(writer, zipped) //nolint:gosec // G110: extraction is not size-capped; see the report
+	return err
 }
