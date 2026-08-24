@@ -42,7 +42,7 @@ func (c *Calcium) GetWorkloadsStatus(ctx context.Context, IDs []string) ([]*type
 }
 
 func (c *Calcium) SetWorkloadsStatus(ctx context.Context, statusMetas []*types.StatusMeta, ttls map[string]int64) ([]*types.StatusMeta, error) {
-	logger := log.WithFunc("calcium.SetWorkloadsStatus").WithField("status", statusMetas[0]).WithField("ttls", ttls)
+	logger := log.WithFunc("calcium.SetWorkloadsStatus").WithField("count", len(statusMetas)).WithField("ttls", ttls)
 	r := []*types.StatusMeta{}
 	for _, statusMeta := range statusMetas {
 		// old callers omit appname, nodename and entrypoint; look them up

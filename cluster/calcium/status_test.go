@@ -99,6 +99,13 @@ func TestGetWorkloadsStatus(t *testing.T) {
 	store.AssertExpectations(t)
 }
 
+func TestSetWorkloadsStatusEmpty(t *testing.T) {
+	c := NewTestCluster()
+	r, err := c.SetWorkloadsStatus(context.Background(), []*types.StatusMeta{}, nil)
+	assert.NoError(t, err)
+	assert.Empty(t, r)
+}
+
 func TestSetWorkloadsStatus(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
