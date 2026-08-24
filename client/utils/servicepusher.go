@@ -2,9 +2,9 @@ package utils
 
 import (
 	"context"
+	"net"
 	"os"
 	"slices"
-	"strings"
 	"sync"
 	"time"
 
@@ -85,8 +85,8 @@ func (p *EndpointPusher) addCheck(ctx context.Context, endpoints []string) {
 
 func (p *EndpointPusher) pollReachability(ctx context.Context, endpoint string) {
 	logger := log.WithFunc("utils.EndpointPusher.pollReachability")
-	parts := strings.Split(endpoint, ":")
-	if len(parts) != 2 {
+	host, _, err := net.SplitHostPort(endpoint)
+	if err != nil {
 		logger.Warnf(ctx, "wrong endpoint format: %s", endpoint)
 		return
 	}
@@ -99,7 +99,7 @@ func (p *EndpointPusher) pollReachability(ctx context.Context, endpoint string) 
 			logger.Debugf(ctx, "reachability goroutine ends: %s", endpoint)
 			return
 		case <-ticker.C:
-			if err := p.checkReachability(ctx, parts[0]); err != nil {
+			if err := p.checkReachability(ctx, host); err != nil {
 				continue
 			}
 			p.Lock()

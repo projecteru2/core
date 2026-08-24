@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"fmt"
 	"net"
 
 	"github.com/cockroachdb/errors"
@@ -34,5 +33,5 @@ func getOutboundAddress(port, probeTarget string) (string, error) {
 	}()
 
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
-	return fmt.Sprintf("%s:%s", localAddr.IP, port), nil
+	return net.JoinHostPort(localAddr.IP.String(), port), nil
 }
