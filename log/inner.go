@@ -2,6 +2,7 @@ package log
 
 import (
 	"context"
+	"strings"
 
 	"github.com/alphadose/haxmap"
 	"github.com/getsentry/sentry-go"
@@ -9,26 +10,22 @@ import (
 )
 
 func fatalf(ctx context.Context, err error, format string, fields *haxmap.Map[string, any], args ...any) {
-	args = argsValidate(args)
 	reportToSentry(ctx, sentry.LevelFatal, err, format, args...)
 	f := globalLogger.Fatal()
 	wrap(f, fields).Err(err).Msgf(format, args...)
 }
 
 func warnf(_ context.Context, format string, fields *haxmap.Map[string, any], args ...any) {
-	args = argsValidate(args)
 	f := globalLogger.Warn()
 	wrap(f, fields).Msgf(format, args...)
 }
 
 func infof(_ context.Context, format string, fields *haxmap.Map[string, any], args ...any) {
-	args = argsValidate(args)
 	f := globalLogger.Info()
 	wrap(f, fields).Msgf(format, args...)
 }
 
 func debugf(_ context.Context, format string, fields *haxmap.Map[string, any], args ...any) {
-	args = argsValidate(args)
 	f := globalLogger.Debug()
 	wrap(f, fields).Msgf(format, args...)
 }
@@ -37,17 +34,16 @@ func errorf(ctx context.Context, err error, format string, fields *haxmap.Map[st
 	if err == nil {
 		return
 	}
-	args = argsValidate(args)
 	reportToSentry(ctx, sentry.LevelError, err, format, args...)
 	f := globalLogger.Error()
 	wrap(f, fields).Stack().Err(err).Msgf(format, args...)
 }
 
-func argsValidate(args []any) []any {
-	if len(args) > 0 {
-		return args
+func formatArgs(args []any) string {
+	if len(args) == 0 {
+		return ""
 	}
-	return []any{""}
+	return strings.TrimSuffix(strings.Repeat("%+v ", len(args)), " ")
 }
 
 func wrap(f *zerolog.Event, kv *haxmap.Map[string, any]) *zerolog.Event {

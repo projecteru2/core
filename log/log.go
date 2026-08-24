@@ -74,7 +74,7 @@ func Warnf(ctx context.Context, format string, args ...any) {
 }
 
 func Warn(ctx context.Context, args ...any) {
-	Warnf(ctx, "%+v", args...)
+	Warnf(ctx, formatArgs(args), args...)
 }
 
 func Infof(ctx context.Context, format string, args ...any) {
@@ -82,7 +82,7 @@ func Infof(ctx context.Context, format string, args ...any) {
 }
 
 func Info(ctx context.Context, args ...any) {
-	Infof(ctx, "%+v", args...)
+	Infof(ctx, formatArgs(args), args...)
 }
 
 func Debugf(ctx context.Context, format string, args ...any) {
@@ -90,7 +90,7 @@ func Debugf(ctx context.Context, format string, args ...any) {
 }
 
 func Debug(ctx context.Context, args ...any) {
-	Debugf(ctx, "%+v", args...)
+	Debugf(ctx, formatArgs(args), args...)
 }
 
 // Errorf logs at error level and reports to Sentry.
@@ -100,5 +100,5 @@ func Errorf(ctx context.Context, err error, format string, args ...any) {
 
 // Error logs at error level and reports to Sentry.
 func Error(ctx context.Context, err error, args ...any) {
-	Errorf(ctx, err, "%+v", args...)
+	Errorf(ctx, err, formatArgs(args), args...)
 }

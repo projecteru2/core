@@ -26,7 +26,7 @@ func (f *Fields) Warnf(ctx context.Context, format string, args ...any) {
 }
 
 func (f *Fields) Warn(ctx context.Context, args ...any) {
-	f.Warnf(ctx, "%+v", args...)
+	f.Warnf(ctx, formatArgs(args), args...)
 }
 
 func (f *Fields) Infof(ctx context.Context, format string, args ...any) {
@@ -34,7 +34,7 @@ func (f *Fields) Infof(ctx context.Context, format string, args ...any) {
 }
 
 func (f *Fields) Info(ctx context.Context, args ...any) {
-	f.Infof(ctx, "%+v", args...)
+	f.Infof(ctx, formatArgs(args), args...)
 }
 
 func (f *Fields) Debugf(ctx context.Context, format string, args ...any) {
@@ -42,7 +42,7 @@ func (f *Fields) Debugf(ctx context.Context, format string, args ...any) {
 }
 
 func (f *Fields) Debug(ctx context.Context, args ...any) {
-	f.Debugf(ctx, "%+v", args...)
+	f.Debugf(ctx, formatArgs(args), args...)
 }
 
 // Errorf logs at error level and reports to Sentry.
@@ -52,7 +52,7 @@ func (f *Fields) Errorf(ctx context.Context, err error, format string, args ...a
 
 // Error logs at error level and reports to Sentry.
 func (f *Fields) Error(ctx context.Context, err error, args ...any) {
-	f.Errorf(ctx, err, "%+v", args...)
+	f.Errorf(ctx, err, formatArgs(args), args...)
 }
 
 // WithField returns a Fields tagged with key and value.
