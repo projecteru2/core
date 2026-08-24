@@ -182,42 +182,40 @@ func InitMetrics(config types.Config, rmgr resource.Manager, metricsDescriptions
 		return err
 	}
 
-	Client = Metrics{
-		Config:     config,
-		StatsdAddr: config.Statsd,
-		Hostname:   utils.CleanStatsdMetrics(hostname),
-		Collectors: map[string]prometheus.Collector{},
-		rmgr:       rmgr,
-	}
-
-	for _, desc := range metricsDescriptions {
-		switch desc.Type {
-		case gaugeType:
-			collector := prometheus.NewGaugeVec(prometheus.GaugeOpts{
-				Name: desc.Name,
-				Help: desc.Help,
-			}, desc.Labels)
-			Client.Collectors[desc.Name] = collector
-		case counterType:
-			collector := prometheus.NewCounterVec(prometheus.CounterOpts{
-				Name: desc.Name,
-				Help: desc.Help,
-			}, desc.Labels)
-			Client.Collectors[desc.Name] = collector
-		}
-	}
-
-	Client.Collectors[deployCountName] = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: deployCountName,
-		Help: "core deploy counter",
-	}, []string{"hostname"})
-
-	Client.Collectors[podNodeStatusName] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: podNodeStatusName,
-		Help: "node status",
-	}, []string{"hostname", "podname", "nodename"})
-
 	once.Do(func() {
+		Client = Metrics{
+			Config:     config,
+			StatsdAddr: config.Statsd,
+			Hostname:   utils.CleanStatsdMetrics(hostname),
+			Collectors: map[string]prometheus.Collector{},
+			rmgr:       rmgr,
+		}
+
+		for _, desc := range metricsDescriptions {
+			switch desc.Type {
+			case gaugeType:
+				Client.Collectors[desc.Name] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+					Name: desc.Name,
+					Help: desc.Help,
+				}, desc.Labels)
+			case counterType:
+				Client.Collectors[desc.Name] = prometheus.NewCounterVec(prometheus.CounterOpts{
+					Name: desc.Name,
+					Help: desc.Help,
+				}, desc.Labels)
+			}
+		}
+
+		Client.Collectors[deployCountName] = prometheus.NewCounterVec(prometheus.CounterOpts{
+			Name: deployCountName,
+			Help: "core deploy counter",
+		}, []string{"hostname"})
+
+		Client.Collectors[podNodeStatusName] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: podNodeStatusName,
+			Help: "node status",
+		}, []string{"hostname", "podname", "nodename"})
+
 		prometheus.MustRegister(slices.Collect(maps.Values(Client.Collectors))...)
 	})
 	return nil
