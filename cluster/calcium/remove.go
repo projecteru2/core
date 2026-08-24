@@ -5,6 +5,8 @@ import (
 	"context"
 	"sync"
 
+	"github.com/cockroachdb/errors"
+
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resource/plugins"
 	resourcetypes "github.com/projecteru2/core/resource/types"
@@ -104,10 +106,16 @@ func (c *Calcium) doRemoveWorkloadSync(ctx context.Context, IDs []string) error 
 		return err
 	}
 
+	logger := log.WithFunc("calcium.doRemoveWorkloadSync")
+	errs := []error{}
 	for m := range ch {
-		log.WithFunc("calcium.doRemoveWorkloadSync").Debugf(ctx, "removed %s", m.WorkloadID)
+		if !m.Success {
+			errs = append(errs, errors.Newf("failed to remove workload %s: %s", m.WorkloadID, utils.MergeHookOutputs(m.Hook)))
+			continue
+		}
+		logger.Debugf(ctx, "removed %s", m.WorkloadID)
 	}
-	return nil
+	return errors.Join(errs...)
 }
 
 func (c *Calcium) groupWorkloadsByNode(ctx context.Context, IDs []string) (map[string][]string, error) {

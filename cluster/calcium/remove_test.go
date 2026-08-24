@@ -68,7 +68,7 @@ func TestRemoveWorkload(t *testing.T) {
 	for r := range ch {
 		assert.False(t, r.Success)
 	}
-	assert.NoError(t, c.doRemoveWorkloadSync(ctx, []string{"xx"}))
+	assert.Error(t, c.doRemoveWorkloadSync(ctx, []string{"xx"}))
 	time.Sleep(time.Second)
 	store.AssertExpectations(t)
 
