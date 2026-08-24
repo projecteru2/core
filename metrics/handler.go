@@ -19,6 +19,8 @@ func (m *Metrics) ResourceMiddleware(cluster cluster.Cluster) func(http.Handler)
 			nodes, err := cluster.ListPodNodes(ctx, &types.ListNodesOptions{All: true})
 			if err != nil {
 				logger.Error(ctx, err, "failed to list nodes")
+				h.ServeHTTP(w, r)
+				return
 			}
 			for node := range nodes {
 				m.SendPodNodeStatus(ctx, node)
