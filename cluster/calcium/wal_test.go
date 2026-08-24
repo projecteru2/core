@@ -20,6 +20,32 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
+func TestHandleWorkloadResourceAllocatedMultipleNodes(t *testing.T) {
+	c := NewTestCluster()
+	store := c.store.(*storemocks.Store)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	lock := &lockmocks.DistributedLock{}
+	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
+	lock.On("Unlock", mock.Anything).Return(nil)
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
+	store.On("GetNode", mock.Anything, mock.Anything).Return(
+		func(_ context.Context, name string) *types.Node {
+			return &types.Node{NodeMeta: types.NodeMeta{Name: name}}
+		}, nil)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		resourcetypes.Resources{}, resourcetypes.Resources{}, []string{}, nil)
+
+	h := newWorkloadResourceAllocatedHandler(c.config, c, c.store)
+	nodes := []*types.Node{
+		{NodeMeta: types.NodeMeta{Name: "n1"}},
+		{NodeMeta: types.NodeMeta{Name: "n2"}},
+		{NodeMeta: types.NodeMeta{Name: "n3"}},
+		{NodeMeta: types.NodeMeta{Name: "n4"}},
+	}
+	require.NoError(t, h.Handle(context.Background(), nodes))
+}
+
 func TestHandleCreateWorkloadNoHandle(t *testing.T) {
 	c := NewTestCluster()
 	wal, err := enableWAL(c.config, c, c.store)

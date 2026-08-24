@@ -207,7 +207,7 @@ func (h *WorkloadResourceAllocatedHandler) Decode(bs []byte) (any, error) {
 	return nodes, json.Unmarshal(bs, &nodes)
 }
 
-func (h *WorkloadResourceAllocatedHandler) Handle(ctx context.Context, raw any) (err error) {
+func (h *WorkloadResourceAllocatedHandler) Handle(ctx context.Context, raw any) error {
 	nodes, _ := raw.([]*types.Node)
 	logger := log.WithFunc("calcium.WorkloadResourceAllocatedHandler.Handle").WithField("event", eventWorkloadResourceAllocated)
 
@@ -220,8 +220,8 @@ func (h *WorkloadResourceAllocatedHandler) Handle(ctx context.Context, raw any) 
 	for _, node := range nodes {
 		_ = h.pool.Invoke(func() {
 			defer wg.Done()
-			if _, err = h.calcium.NodeResource(ctx, node.Name, true); err != nil {
-				logger.Errorf(ctx, err, "failed to fix node resource: %s", node.Name)
+			if _, e := h.calcium.NodeResource(ctx, node.Name, true); e != nil {
+				logger.Errorf(ctx, e, "failed to fix node resource: %s", node.Name)
 				return
 			}
 			logger.Infof(ctx, "fixed node resource: %s", node.Name)
