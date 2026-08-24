@@ -122,33 +122,7 @@ Response shapes are the JSON encodings of the types in `resource/plugins/types/`
 [resource-extend](https://github.com/projecteru2/resource-extend) implements gpu and storage
 plugins this way.
 
-## Go plugins
-
-Files ending in `.so` directly inside `resource_plugin.dir` are opened with Go's `plugin` package
-and must export
-
-```go
-func NewPlugin(ctx context.Context, config coretypes.Config) (plugins.Plugin, error)
-```
-
-This runs in-process — no subprocess, no JSON round-trip.
-[`build-goplugin.sh`](https://github.com/projecteru2/core/blob/master/build-goplugin.sh) in the
-repo root wires a plugin package into core's module and builds it with `-buildmode=plugin`.
-
-Two constraints make this the harder path:
-
-- Go's `plugin` package needs cgo. Every shipped `eru-core` — `make build`, the goreleaser
-  archives, the container image and CI — is built with `CGO_ENABLED=0`, where `plugin.Open` is a
-  stub that always fails. Using Go plugins means building core yourself with cgo enabled.
-- Even then, the plugin must be built with the identical toolchain version and identical versions
-  of every shared dependency as the binary loading it.
-
-A failure here is fatal, not skipped: if `resource_plugin.dir` contains an `.so` that cannot be
-opened, `LoadPlugins` returns the error and core does not start. Prefer binary plugins unless you
-have a specific reason not to.
-
 ## Load order and name collisions
 
-At startup cobalt loads, in order: `cpumem`, then every `.so`, then every executable. A plugin
-whose `Name()` is already taken is skipped — so `cpumem` cannot be shadowed, and an `.so` wins
-over a binary of the same name.
+At startup cobalt loads `cpumem`, then every executable in `resource_plugin.dir`. A plugin whose
+`Name()` is already taken is skipped, so `cpumem` cannot be shadowed.

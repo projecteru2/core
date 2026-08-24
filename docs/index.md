@@ -15,7 +15,7 @@ cli / agent / your service
    │   rpc ──► cluster/calcium ──► strategy      │  deploy plan
    │             │      │                        │
    │             │      ├──► resource/cobalt ──► cpumem (built in)
-   │             │      │                    └─► binary / go plugins
+   │             │      │                    └─► binary plugins
    │             │      └──► wal (bbolt)         │  crash recovery
    │             ▼                               │
    │           store ──► etcd | redis            │  metadata, locks, status
@@ -34,7 +34,7 @@ cli / agent / your service
 - [Architecture](architecture.md) — the packages, what each owns, and how a deploy request flows
 - [gRPC API](api.md) — every rpc grouped by domain, with the key request fields
 - [Engines](engines.md) — docker, virt, systemd and fake; endpoint schemes, the engine cache, TLS
-- [Resource plugins](resource-plugins.md) — the plugin contract, cpumem, binary and Go plugins
+- [Resource plugins](resource-plugins.md) — the plugin contract, cpumem and binary plugins
 - [Deploy strategies](deploy-strategies.md) — AUTO, FILL, EACH, GLOBAL, DRAINED and when to use each
 - [Storage](storage.md) — etcd key layout, the redis backend, locks, embedded etcd
 - [Go client](client.md) — the client library, connection pool and service-discovery resolvers
