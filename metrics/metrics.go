@@ -13,7 +13,6 @@ import (
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resource"
-	"github.com/projecteru2/core/resource/cobalt"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -109,17 +108,14 @@ func (m *Metrics) SendMetrics(ctx context.Context, metrics ...*plugintypes.Metri
 	}
 }
 
-// RemoveInvalidNodes drops Prometheus label sets for nodes that no longer exist.
-func (m *Metrics) RemoveInvalidNodes(invalidNodes ...string) {
-	if len(invalidNodes) == 0 {
-		return
-	}
+// RemoveInvalidNodes drops Prometheus label sets for a node that no longer exists.
+func (m *Metrics) RemoveInvalidNodes(invalidNode string) {
 	metrics, _ := prometheus.DefaultGatherer.Gather()
 	for _, collector := range m.Collectors {
 		for _, metric := range metrics {
 			for _, mf := range metric.GetMetric() {
 				if !slices.ContainsFunc(mf.Label, func(label *promClient.LabelPair) bool {
-					return label.GetName() == "nodename" && slices.Contains(invalidNodes, label.GetValue())
+					return label.GetName() == "nodename" && label.GetValue() == invalidNode
 				}) {
 					continue
 				}
@@ -181,16 +177,9 @@ func (m *Metrics) count(ctx context.Context, key string, n int, rate float32) er
 }
 
 // InitMetrics builds the global metrics client and registers its collectors.
-func InitMetrics(ctx context.Context, config types.Config, metricsDescriptions []*plugintypes.MetricsDescription) error {
+func InitMetrics(config types.Config, rmgr resource.Manager, metricsDescriptions []*plugintypes.MetricsDescription) error {
 	hostname, err := os.Hostname()
 	if err != nil {
-		return err
-	}
-	rmgr, err := cobalt.New(config)
-	if err != nil {
-		return err
-	}
-	if err := rmgr.LoadPlugins(ctx, nil); err != nil {
 		return err
 	}
 
