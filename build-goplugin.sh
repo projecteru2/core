@@ -18,7 +18,6 @@ fi
 echo "Building $pkg($codeDIR)"
 
 go mod tidy
-go mod vendor
 
 tee -a go.mod <<EOF
 require $pkg v0.0.0-00010101000000-000000000000

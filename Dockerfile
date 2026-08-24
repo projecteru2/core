@@ -1,16 +1,16 @@
-FROM golang:alpine AS BUILD
+FROM golang:1.27-alpine AS build
 
-# make binary
-RUN apk add --no-cache build-base musl-dev git curl make cmake binutils-gold
-COPY . /go/src/github.com/projecteru2/core
-WORKDIR /go/src/github.com/projecteru2/core
+RUN apk add --no-cache git make
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
 ARG KEEP_SYMBOL
 RUN make build && ./eru-core --version
 
-FROM alpine:latest
+FROM alpine:3.22
 
-RUN mkdir /etc/eru/
 LABEL ERU=1
-RUN apk --no-cache add libcurl libssh2 && rm -rf /var/cache/apk/*
-COPY --from=BUILD /go/src/github.com/projecteru2/core/eru-core /usr/bin/eru-core
-COPY --from=BUILD /go/src/github.com/projecteru2/core/core.yaml.sample /etc/eru/core.yaml.sample
+RUN mkdir -p /etc/eru
+COPY --from=build /src/eru-core /usr/bin/eru-core
+COPY --from=build /src/core.yaml.sample /etc/eru/core.yaml.sample

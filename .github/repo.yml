@@ -1,0 +1,12 @@
+description: "Eru core: a stateless gRPC resource scheduler that deploys workloads on Docker and virtual-machine engines, with pluggable resource plugins and etcd or redis metadata storage."
+homepage: https://projecteru2.github.io/core/
+topics:
+  - eru
+  - golang
+  - grpc
+  - scheduler
+  - orchestration
+  - docker
+  - virtual-machine
+  - etcd
+  - redis

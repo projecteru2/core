@@ -1,0 +1,29 @@
+name: lint
+
+on:
+  push:
+    tags:
+      - '!v*'
+    branches:
+      - '*'
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: 'go.mod'
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.13.1
+
+      - name: Check formatting (gofumpt + goimports)
+        run: golangci-lint fmt --diff

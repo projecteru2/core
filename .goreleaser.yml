@@ -1,8 +1,7 @@
-# This is an example goreleaser.yaml file with some sane defaults.
-# Make sure to check the documentation at http://goreleaser.com
+version: 2
+
 before:
   hooks:
-    # You may remove this if you don't use go modules.
     - go mod download
 
 builds:
@@ -14,52 +13,59 @@ builds:
       - -X github.com/projecteru2/core/version.REVISION={{.Commit}}
       - -X github.com/projecteru2/core/version.VERSION={{.Env.VERSION}}
       - -X github.com/projecteru2/core/version.BUILTAT={{.Date}}
-    hooks:
-      post:
-        - cp {{.Path}} ./eru-core-{{.Os}}.dbg
-    goos:
-      - darwin
-      - linux
-    goarch:
-      - amd64
-
-  # the best practice is using prebuilt builder
-  # however it's a Pro feature
-  - id: eru-core-linux
-    binary: eru-core
-    env:
-      - CGO_ENABLED=0
-    ldflags:
-      - -X github.com/projecteru2/core/version.REVISION={{.Commit}}
-      - -X github.com/projecteru2/core/version.VERSION={{.Env.VERSION}}
-      - -X github.com/projecteru2/core/version.BUILTAT={{.Date}}
-    hooks:
-      post:
-        - cp ./eru-core-{{.Os}}.dbg {{.Path}}
-        - strip {{.Path}}
     goos:
       - linux
     goarch:
       - amd64
+      - arm64
+    main: .
 
-  - id: eru-core-darwin
+  - id: eru-core-release
     binary: eru-core
     env:
       - CGO_ENABLED=0
     ldflags:
-      - -w -s
+      - -s
       - -X github.com/projecteru2/core/version.REVISION={{.Commit}}
       - -X github.com/projecteru2/core/version.VERSION={{.Env.VERSION}}
       - -X github.com/projecteru2/core/version.BUILTAT={{.Date}}
     goos:
+      - linux
       - darwin
     goarch:
       - amd64
+      - arm64
+    main: .
 
 archives:
-  - id: core
+  - id: release
+    ids:
+      - eru-core-release
     name_template: >-
       {{- .ProjectName }}_{{- .Version }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end -}}
+
+  - id: debug
+    ids:
+      - eru-core-debug
+    name_template: >-
+      {{- .ProjectName }}_{{- .Version }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}_debug
+      {{- if .Arm }}v{{ .Arm }}{{ end -}}
+
+  # Unversioned alias so releases/latest/download/eru-core_Linux_x86_64.tar.gz resolves.
+  - id: release-latest
+    ids:
+      - eru-core-release
+    name_template: >-
+      {{- .ProjectName }}_
       {{- title .Os }}_
       {{- if eq .Arch "amd64" }}x86_64
       {{- else if eq .Arch "386" }}i386
@@ -72,12 +78,9 @@ checksum:
 release:
   prerelease: auto
 
-snapshot:
-  name_template: "{{ .Tag }}-next"
-
 changelog:
   sort: asc
   filters:
     exclude:
-    - '^docs:'
-    - '^test:'
+      - '^docs:'
+      - '^test:'
