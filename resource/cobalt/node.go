@@ -269,8 +269,8 @@ func (m Manager) GetNodesDeployCapacity(ctx context.Context, nodenames []string,
 	for _, info := range resp {
 		info.Rate /= info.Weight
 		info.Usage /= info.Weight
-		if info.Capacity == math.MaxInt64 {
-			total = math.MaxInt64
+		if total == math.MaxInt || info.Capacity == math.MaxInt {
+			total = math.MaxInt
 		} else {
 			total += info.Capacity
 		}
