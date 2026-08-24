@@ -912,6 +912,9 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	}
 
 	opts := RunAndWaitOptions.DeployOptions
+	if RunAndWaitOptions.Async {
+		opts.OpenStdin = false
+	}
 	deployOpts, err := toCoreDeployOptions(opts)
 	if err != nil {
 		task.done()
@@ -925,7 +928,6 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 			timeout = time.Second * time.Duration(RunAndWaitOptions.AsyncTimeout)
 		}
 		ctx, cancel = context.WithTimeout(context.TODO(), timeout) // the async run outlives the stream
-		opts.OpenStdin = false
 	}
 
 	inCh := make(chan []byte)
