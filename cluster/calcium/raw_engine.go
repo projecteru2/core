@@ -13,7 +13,7 @@ func (c *Calcium) RawEngine(ctx context.Context, opts *types.RawEngineOptions) (
 	logger := log.WithFunc("calcium.RawEngine").WithField("ID", opts.ID)
 	var wg sync.WaitGroup
 	wg.Add(1)
-	_ = c.pool.Invoke(func() {
+	run := func() {
 		defer wg.Done()
 		if err = c.withWorkloadLocked(ctx, ID, opts.IgnoreLock, func(ctx context.Context, workload *types.Workload) error {
 			msg, err = workload.RawEngine(ctx, opts)
@@ -21,7 +21,10 @@ func (c *Calcium) RawEngine(ctx context.Context, opts *types.RawEngineOptions) (
 		}); err == nil {
 			logger.Infof(ctx, "workload %s raw engine result: %+v", ID, msg)
 		}
-	})
+	}
+	if invokeErr := c.pool.Invoke(run); invokeErr != nil {
+		run()
+	}
 	wg.Wait()
 
 	logger.Error(ctx, err)
