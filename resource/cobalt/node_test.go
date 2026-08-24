@@ -35,3 +35,23 @@ func newCapacityPlugin(t *testing.T, name string, capacities map[string]*plugint
 	p.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(resp, nil)
 	return p
 }
+
+func TestGetNodesDeployCapacityWeightsEveryPlugin(t *testing.T) {
+	m, err := New(coretypes.Config{})
+	assert.NoError(t, err)
+	m.AddPlugins(
+		newCapacityPlugin(t, "cpumem", map[string]*plugintypes.NodeDeployCapacity{
+			"n1": {Capacity: 10, Rate: 0.5, Usage: 0.5, Weight: 100},
+		}),
+		newCapacityPlugin(t, "storage", map[string]*plugintypes.NodeDeployCapacity{
+			"n1": {Capacity: 10, Rate: 0.1, Usage: 0.1, Weight: 1},
+		}),
+	)
+
+	for range 50 {
+		resp, _, err := m.GetNodesDeployCapacity(t.Context(), []string{"n1"}, resourcetypes.Resources{})
+		assert.NoError(t, err)
+		assert.InDelta(t, (0.5*100+0.1*1)/101, resp["n1"].Rate, 1e-9)
+		assert.InDelta(t, (0.5*100+0.1*1)/101, resp["n1"].Usage, 1e-9)
+	}
+}

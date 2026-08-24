@@ -334,11 +334,19 @@ func (m Manager) SetNodeResourceCapacity(ctx context.Context, nodename string, n
 }
 
 func (m Manager) mergeCapacity(m1, m2 map[string]*plugintypes.NodeDeployCapacity) map[string]*plugintypes.NodeDeployCapacity {
+	resp := map[string]*plugintypes.NodeDeployCapacity{}
 	if m1 == nil {
-		return m2
+		for nodename, info := range m2 {
+			resp[nodename] = &plugintypes.NodeDeployCapacity{
+				Capacity: info.Capacity,
+				Rate:     info.Rate * info.Weight,
+				Usage:    info.Usage * info.Weight,
+				Weight:   info.Weight,
+			}
+		}
+		return resp
 	}
 
-	resp := map[string]*plugintypes.NodeDeployCapacity{}
 	for nodename, info1 := range m1 {
 		if info2, ok := m2[nodename]; ok {
 			resp[nodename] = &plugintypes.NodeDeployCapacity{
