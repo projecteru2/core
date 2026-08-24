@@ -2,6 +2,7 @@ package fakeengine
 
 import (
 	"context"
+	"io"
 	"strings"
 	"testing"
 	"time"
@@ -24,6 +25,41 @@ func TestEveryAPIMethodIsAnswered(t *testing.T) {
 			assert.NotPanics(t, func() { tt.call(t.Context(), api) })
 		})
 	}
+}
+
+func TestStreamsAreFreshOnEveryCall(t *testing.T) {
+	api, err := MakeClient(t.Context(), coretypes.Config{}, "node", PrefixKey+"host", "", "", "")
+	require.NoError(t, err)
+
+	for _, tt := range []struct {
+		name string
+		read func(context.Context) (io.ReadCloser, error)
+	}{
+		{"ImagePull", func(ctx context.Context) (io.ReadCloser, error) { return api.ImagePull(ctx, "img", false) }},
+		{"ImagePush", func(ctx context.Context) (io.ReadCloser, error) { return api.ImagePush(ctx, "img") }},
+		{"ImageBuild", func(ctx context.Context) (io.ReadCloser, error) {
+			return api.ImageBuild(ctx, strings.NewReader(""), nil, "")
+		}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			for i := range 2 {
+				rc, err := tt.read(t.Context())
+				require.NoError(t, err)
+				body, err := io.ReadAll(rc)
+				require.NoError(t, err)
+				assert.NotEmpty(t, body, "call %d returned an exhausted stream", i+1)
+			}
+		})
+	}
+}
+
+func TestVirtualizationInspectReportsTheRequestedID(t *testing.T) {
+	api, err := MakeClient(t.Context(), coretypes.Config{}, "node", PrefixKey+"host", "", "", "")
+	require.NoError(t, err)
+
+	info, err := api.VirtualizationInspect(t.Context(), "workload-id")
+	require.NoError(t, err)
+	assert.Equal(t, "workload-id", info.ID)
 }
 
 func apiCalls() []struct {
