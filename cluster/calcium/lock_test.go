@@ -3,6 +3,7 @@ package calcium
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -32,6 +33,26 @@ func TestDoLock(t *testing.T) {
 	lock.On("Lock", mock.Anything).Return(ctx, nil)
 	_, _, err = c.doLock(ctx, "somename", 1)
 	assert.NoError(t, err)
+}
+
+func TestDoLockUnlocksWithDetachedContext(t *testing.T) {
+	c := NewTestCluster()
+	ctx, cancel := context.WithCancel(context.Background())
+	store := c.store.(*storemocks.Store)
+	lock := &lockmocks.DistributedLock{}
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	lock.On("Lock", mock.Anything).Return(context.Background(), types.ErrMockError).Once()
+
+	var unlockCtxErr error
+	lock.On("Unlock", mock.Anything).Return(nil).Once().Run(func(args mock.Arguments) {
+		unlockCtxErr = args.Get(0).(context.Context).Err()
+	})
+
+	cancel()
+	_, _, err := c.doLock(ctx, "somename", time.Minute)
+	assert.Error(t, err)
+	assert.NoError(t, unlockCtxErr)
+	lock.AssertExpectations(t)
 }
 
 func TestDoUnlockAll(t *testing.T) {
