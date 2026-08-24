@@ -1017,7 +1017,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 						break
 					}
 				}
-				logger.Info(ctx, line)
+				logger.Infof(ctx, "%s", line)
 			}
 		})
 	})
