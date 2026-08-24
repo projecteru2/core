@@ -5,12 +5,12 @@ import (
 	"context"
 	"sync"
 
+	"github.com/cockroachdb/errors"
+
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	"github.com/cockroachdb/errors"
 )
 
 // ReplaceWorkload replace workloads with same resource

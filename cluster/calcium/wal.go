@@ -24,19 +24,6 @@ const (
 	eventProcessingCreated         = "create-processing" // processing created but yet to delete
 )
 
-func enableWAL(config types.Config, calcium cluster.Cluster, store store.Store) (wal.WAL, error) {
-	hydro, err := wal.NewHydro(config.WALFile, config.WALOpenTimeout)
-	if err != nil {
-		return nil, err
-	}
-
-	hydro.Register(newCreateLambdaHandler(config, calcium, store))
-	hydro.Register(newCreateWorkloadHandler(config, calcium, store))
-	hydro.Register(newWorkloadResourceAllocatedHandler(config, calcium, store))
-	hydro.Register(newProcessingCreatedHandler(config, calcium, store))
-	return hydro, nil
-}
-
 // CreateLambdaHandler indicates event handler for creating lambda.
 type CreateLambdaHandler struct {
 	typ     string
@@ -317,6 +304,19 @@ func (h *ProcessingCreatedHandler) Handle(ctx context.Context, raw any) (err err
 	}
 	logger.Infof(ctx, "obsolete processing deleted")
 	return err
+}
+
+func enableWAL(config types.Config, calcium cluster.Cluster, store store.Store) (wal.WAL, error) {
+	hydro, err := wal.NewHydro(config.WALFile, config.WALOpenTimeout)
+	if err != nil {
+		return nil, err
+	}
+
+	hydro.Register(newCreateLambdaHandler(config, calcium, store))
+	hydro.Register(newCreateWorkloadHandler(config, calcium, store))
+	hydro.Register(newWorkloadResourceAllocatedHandler(config, calcium, store))
+	hydro.Register(newProcessingCreatedHandler(config, calcium, store))
+	return hydro, nil
 }
 
 func getReplayContext(ctx context.Context) (context.Context, context.CancelFunc) {

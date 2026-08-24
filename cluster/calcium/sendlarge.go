@@ -48,6 +48,14 @@ type workloadSender struct {
 	resp    chan *types.SendMessage
 }
 
+func (s *workloadSender) send(chunk *types.SendLargeFileOptions) {
+	s.buffer <- chunk
+}
+
+func (s *workloadSender) close() {
+	close(s.buffer)
+}
+
 func (c *Calcium) newWorkloadSender(ctx context.Context, ID string, resp chan *types.SendMessage, wg *sync.WaitGroup) *workloadSender {
 	sender := &workloadSender{
 		calcium: c,
@@ -95,12 +103,4 @@ func (c *Calcium) newWorkloadSender(ctx context.Context, ID string, resp chan *t
 		_ = writer.Close()
 	})
 	return sender
-}
-
-func (s *workloadSender) send(chunk *types.SendLargeFileOptions) {
-	s.buffer <- chunk
-}
-
-func (s *workloadSender) close() {
-	close(s.buffer)
 }

@@ -7,21 +7,13 @@ import (
 	"io"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
-
-type inStream struct {
-	*bytes.Buffer
-}
-
-func (i *inStream) Close() error {
-	return nil
-}
 
 func TestExecuteWorkload(t *testing.T) {
 	c := NewTestCluster()
@@ -87,4 +79,12 @@ func TestExecuteWorkload(t *testing.T) {
 		data = append(data, ac.Data...)
 	}
 	assert.Contains(t, inS.String(), "a")
+}
+
+type inStream struct {
+	*bytes.Buffer
+}
+
+func (i *inStream) Close() error {
+	return nil
 }

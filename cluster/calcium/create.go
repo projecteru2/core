@@ -9,6 +9,7 @@ import (
 
 	"github.com/alphadose/haxmap"
 	"github.com/cockroachdb/errors"
+	"github.com/sanity-io/litter"
 
 	"github.com/projecteru2/core/cluster"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -18,8 +19,6 @@ import (
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/wal"
-
-	"github.com/sanity-io/litter"
 )
 
 // CreateWorkload use options to create workloads

@@ -15,9 +15,7 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-const (
-	exitDataPrefix = "[exitcode] "
-)
+const exitDataPrefix = "[exitcode] "
 
 // RunAndWait implement lambda
 func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inCh <-chan []byte) ([]string, <-chan *types.AttachWorkloadMessage, error) {

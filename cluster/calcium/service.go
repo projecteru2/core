@@ -5,11 +5,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cockroachdb/errors"
+
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	"github.com/cockroachdb/errors"
 )
 
 // WatchServiceStatus returns chan of available service address

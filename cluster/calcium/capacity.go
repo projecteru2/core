@@ -5,15 +5,13 @@ import (
 	"maps"
 	"slices"
 
+	"github.com/cockroachdb/errors"
 	"github.com/sanity-io/litter"
 
 	"github.com/projecteru2/core/log"
+	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
-
-	"github.com/cockroachdb/errors"
-
-	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 )
 
 // CalculateCapacity calculates capacity

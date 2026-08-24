@@ -5,18 +5,17 @@ import (
 	"testing"
 	"time"
 
-	enginemocks "github.com/projecteru2/core/engine/mocks"
-	lockmocks "github.com/projecteru2/core/lock/mocks"
-	resourcemocks "github.com/projecteru2/core/resource/mocks"
-	plugintypes "github.com/projecteru2/core/resource/plugins/types"
-	storemocks "github.com/projecteru2/core/store/mocks"
-	"github.com/projecteru2/core/types"
-
 	"github.com/cockroachdb/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
+	enginemocks "github.com/projecteru2/core/engine/mocks"
+	lockmocks "github.com/projecteru2/core/lock/mocks"
+	resourcemocks "github.com/projecteru2/core/resource/mocks"
+	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	resourcetypes "github.com/projecteru2/core/resource/types"
+	storemocks "github.com/projecteru2/core/store/mocks"
+	"github.com/projecteru2/core/types"
 )
 
 func TestRemoveWorkload(t *testing.T) {
