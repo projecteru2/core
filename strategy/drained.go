@@ -1,9 +1,9 @@
 package strategy
 
 import (
+	"cmp"
 	"context"
 	"slices"
-	"sort"
 
 	"github.com/projecteru2/core/types"
 
@@ -19,11 +19,8 @@ func DrainedPlan(_ context.Context, infos []Info, need, total, _ int) (map[strin
 	deploy := map[string]int{}
 
 	infosCopy := slices.Clone(infos)
-	sort.Slice(infosCopy, func(i, j int) bool {
-		if infosCopy[i].Capacity < infosCopy[j].Capacity {
-			return true
-		}
-		return infosCopy[i].Usage > infosCopy[j].Usage
+	slices.SortFunc(infosCopy, func(a, b Info) int {
+		return cmp.Or(cmp.Compare(a.Capacity, b.Capacity), cmp.Compare(b.Usage, a.Usage))
 	})
 
 	for _, info := range infosCopy {
@@ -33,5 +30,5 @@ func DrainedPlan(_ context.Context, infos []Info, need, total, _ int) (map[strin
 			return deploy, nil
 		}
 	}
-	return nil, errors.Wrapf(types.ErrInsufficientResource, "BUG: never reach here")
+	return nil, errors.Wrap(types.ErrInsufficientResource, "not enough node capacity to satisfy the plan")
 }

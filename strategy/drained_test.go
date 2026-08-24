@@ -60,3 +60,14 @@ func TestDrainedPlan(t *testing.T) {
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, []int{12, 12, 15, 15}, getFinalStatus(r, nodes))
 }
+
+func TestDrainedPlanOrdersByCapacityThenUsage(t *testing.T) {
+	nodes := []Info{
+		{Nodename: "small-idle", Capacity: 5, Usage: 0.1},
+		{Nodename: "big-busy", Capacity: 10, Usage: 0.9},
+	}
+
+	r, err := DrainedPlan(t.Context(), nodes, 5, 15, 0)
+	assert.NoError(t, err)
+	assert.Equal(t, map[string]int{"small-idle": 5}, r)
+}
