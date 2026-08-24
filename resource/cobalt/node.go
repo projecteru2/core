@@ -74,7 +74,7 @@ func (m Manager) RemoveNode(ctx context.Context, nodename string) error {
 	return utils.PCR(ctx,
 		func(ctx context.Context) error {
 			var err error
-			nodeCapacity, nodeUsage, _, err = m.GetNodeResourceInfo(ctx, nodename, nil, false)
+			nodeCapacity, nodeUsage, _, err = m.getNodeResourceInfo(ctx, nodename, m.plugins, nil, false)
 			if err != nil {
 				logger.Error(ctx, err, "failed to get node resource")
 				return err
@@ -148,49 +148,13 @@ func (m Manager) GetMostIdleNode(ctx context.Context, nodenames []string) (strin
 }
 
 func (m Manager) GetNodeResourceInfo(ctx context.Context, nodename string, workloads []*types.Workload, fix bool) (resourcetypes.Resources, resourcetypes.Resources, []string, error) {
-	nodeCapacity := resourcetypes.Resources{}
-	nodeUsage := resourcetypes.Resources{}
-	resourceDiffs := []string{}
-
 	ps := m.plugins
 	if m.config.ResourcePlugin.Whitelist != nil {
 		ps = utils.Filter(ps, func(plugin plugins.Plugin) bool {
 			return slices.Contains(m.config.ResourcePlugin.Whitelist, plugin.Name())
 		})
 	}
-
-	resps, err := call(ctx, ps, func(plugin plugins.Plugin) (*plugintypes.GetNodeResourceInfoResponse, error) {
-		var resp *plugintypes.GetNodeResourceInfoResponse
-		var err error
-
-		wrks := []plugintypes.WorkloadResource{}
-
-		for _, wrk := range workloads {
-			r := wrk.Resources[plugin.Name()]
-			wrks = append(wrks, r)
-		}
-
-		if fix {
-			resp, err = plugin.FixNodeResource(ctx, nodename, wrks)
-		} else {
-			resp, err = plugin.GetNodeResourceInfo(ctx, nodename, wrks)
-		}
-		if err != nil {
-			log.WithFunc("resource.cobalt.GetNodeResourceInfo").WithField("node", nodename).Errorf(ctx, err, "plugin %+v failed to get node resource", plugin.Name())
-		}
-		return resp, err
-	})
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	for plugin, resp := range resps {
-		nodeCapacity[plugin.Name()] = resp.Capacity
-		nodeUsage[plugin.Name()] = resp.Usage
-		resourceDiffs = append(resourceDiffs, resp.Diffs...)
-	}
-
-	return nodeCapacity, nodeUsage, resourceDiffs, nil
+	return m.getNodeResourceInfo(ctx, nodename, ps, workloads, fix)
 }
 
 func (m Manager) SetNodeResourceUsage(ctx context.Context, nodename string, nodeResource, nodeResourceRequest resourcetypes.Resources, workloadsResource []resourcetypes.Resources, delta, incr bool) (resourcetypes.Resources, resourcetypes.Resources, error) {
@@ -331,6 +295,45 @@ func (m Manager) SetNodeResourceCapacity(ctx context.Context, nodename string, n
 		},
 		m.config.GlobalTimeout,
 	)
+}
+
+func (m Manager) getNodeResourceInfo(ctx context.Context, nodename string, ps []plugins.Plugin, workloads []*types.Workload, fix bool) (resourcetypes.Resources, resourcetypes.Resources, []string, error) {
+	nodeCapacity := resourcetypes.Resources{}
+	nodeUsage := resourcetypes.Resources{}
+	resourceDiffs := []string{}
+
+	resps, err := call(ctx, ps, func(plugin plugins.Plugin) (*plugintypes.GetNodeResourceInfoResponse, error) {
+		var resp *plugintypes.GetNodeResourceInfoResponse
+		var err error
+
+		wrks := []plugintypes.WorkloadResource{}
+
+		for _, wrk := range workloads {
+			r := wrk.Resources[plugin.Name()]
+			wrks = append(wrks, r)
+		}
+
+		if fix {
+			resp, err = plugin.FixNodeResource(ctx, nodename, wrks)
+		} else {
+			resp, err = plugin.GetNodeResourceInfo(ctx, nodename, wrks)
+		}
+		if err != nil {
+			log.WithFunc("resource.cobalt.GetNodeResourceInfo").WithField("node", nodename).Errorf(ctx, err, "plugin %+v failed to get node resource", plugin.Name())
+		}
+		return resp, err
+	})
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	for plugin, resp := range resps {
+		nodeCapacity[plugin.Name()] = resp.Capacity
+		nodeUsage[plugin.Name()] = resp.Usage
+		resourceDiffs = append(resourceDiffs, resp.Diffs...)
+	}
+
+	return nodeCapacity, nodeUsage, resourceDiffs, nil
 }
 
 func (m Manager) mergeCapacity(m1, m2 map[string]*plugintypes.NodeDeployCapacity) map[string]*plugintypes.NodeDeployCapacity {
