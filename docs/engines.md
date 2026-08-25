@@ -69,8 +69,13 @@ ctr --address <containerd.socket> --namespace <containerd.namespace> tasks exec 
 ctr --address <containerd.socket> --namespace <containerd.namespace> tasks attach <workload>
 ```
 
-`ctr tasks exec` has no env flag, so the deploy's environment rides as an `env K=V …` prefix
-inside the container. `ctr tasks attach` takes no flags at all: it reads `process.terminal` off
+`ctr tasks exec` in containerd 2.3.4 takes only `--cwd`, `--tty`, `--detach`, `--exec-id`,
+`--fifo-dir`, `--log-uri` and `--user` — there is no env flag — so the deploy's environment rides
+as an `env K=V …` prefix inside the container. That makes `/usr/bin/env` an image requirement for
+`exec` with an environment, and `tar` one for `copy` into or out of a *running* workload; a
+workload with no task is copied into through its snapshot instead and needs neither. `ctr` builds
+the exec's process from the container's own spec, so `ExecConfig.Privileged` has nothing to add:
+an exec always runs with the capabilities the workload itself was created with. `ctr tasks attach` takes no flags at all: it reads `process.terminal` off
 the container's own spec and allocates a console only when the spec has one, so core asks the SSH
 session for a pty exactly when the workload was created with `open_stdin`. `ExecResize` and
 `VirtualizationResize` are both the SSH session's window change — `ctr` forwards its console
