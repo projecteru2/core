@@ -69,6 +69,7 @@ func TestUnitArgvRendersARawWorkload(t *testing.T) {
 	u := &unit{
 		ID:      "abcdef",
 		Podname: "prod",
+		Bundle:  testRoot + "/abcdef/lower",
 		Working: testRoot + "/abcdef/lower",
 		Opts: &enginetypes.VirtualizationCreateOptions{
 			Name: "app_web_xyz",
@@ -87,7 +88,7 @@ func TestUnitArgvRendersARawWorkload(t *testing.T) {
 		"-p", "WorkingDirectory=" + testRoot + "/abcdef/lower",
 		"-p", "CPUQuota=200%",
 		"-p", "BindPaths=/data/app:/data",
-		"--", "./server",
+		"--", testRoot + "/abcdef/lower/server",
 	}
 	if got := u.argv(); !slices.Equal(got, want) {
 		t.Errorf("got %q, want %q", got, want)
@@ -112,6 +113,49 @@ func TestCPUWeight(t *testing.T) {
 				t.Errorf("got %d, want %d", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestUnitCommandIsAlwaysAbsolute(t *testing.T) {
+	tests := []struct {
+		name string
+		unit *unit
+		want []string
+	}{
+		{
+			"an overlay workload resolves against its own root",
+			&unit{Root: testRoot + "/abcdef/merged", Bundle: testRoot + "/abcdef/lower"},
+			[]string{"/server", "-p", "80"},
+		},
+		{
+			"a raw workload resolves against the bundle",
+			&unit{Bundle: testRoot + "/abcdef/lower"},
+			[]string{testRoot + "/abcdef/lower/server", "-p", "80"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.unit.Opts = &enginetypes.VirtualizationCreateOptions{Cmd: []string{"./server", "-p", "80"}}
+			if got := tt.unit.command(); !slices.Equal(got, tt.want) {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestUnitCommandLeavesAnAbsolutePathAlone(t *testing.T) {
+	u := &unit{Bundle: testRoot + "/abcdef/lower", Opts: &enginetypes.VirtualizationCreateOptions{Cmd: []string{"/bin/sh"}}}
+
+	if got := u.command(); !slices.Equal(got, []string{"/bin/sh"}) {
+		t.Errorf("got %q, want %q", got, []string{"/bin/sh"})
+	}
+}
+
+func TestBindSourcesListOnlyWritablePaths(t *testing.T) {
+	volumes := []string{"/rw/src:/dst", "/ro/src:/dst2:ro"}
+
+	if got := bindSources(volumes, nil); !slices.Equal(got, []string{"/rw/src"}) {
+		t.Errorf("got %q, want %q", got, []string{"/rw/src"})
 	}
 }
 

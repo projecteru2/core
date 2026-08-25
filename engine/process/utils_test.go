@@ -98,6 +98,7 @@ func TestSystemdEnvQuotesTheValue(t *testing.T) {
 		{"plain", "FOO=bar", `FOO="bar"`},
 		{"value with spaces", "OPTS=-a -b", `OPTS="-a -b"`},
 		{"value with a quote", `MSG=say "hi"`, `MSG="say \"hi\""`},
+		{"a literal percent is doubled for systemd", "FMT=100%", `FMT="100%%"`},
 		{"no assignment", "FOO", "FOO"},
 	}
 	for _, tt := range tests {

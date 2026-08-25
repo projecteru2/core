@@ -23,7 +23,8 @@ const (
 	idBytes     = 16
 )
 
-var envEscaper = strings.NewReplacer(`\`, `\\`, `"`, `\"`)
+// systemd expands % specifiers in unit settings, so a literal one has to be doubled.
+var envEscaper = strings.NewReplacer(`\`, `\\`, `"`, `\"`, "%", "%%")
 
 // parseEndpoint splits process://[user@]host[:port] into its ssh user, host and dial address.
 func parseEndpoint(endpoint string) (user, host, addr string, err error) {

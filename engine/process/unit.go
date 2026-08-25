@@ -5,6 +5,7 @@ import (
 	"maps"
 	"math"
 	"os"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -32,6 +33,7 @@ type unit struct {
 	Podname     string
 	User        string
 	Root        string // RootDirectory, empty for a raw host process
+	Bundle      string // the unpacked artifact, where a raw process resolves a relative command
 	Working     string
 	TasksMax    int
 	StopTimeout time.Duration
@@ -73,7 +75,20 @@ func (u *unit) argv() []string {
 	if u.StopTimeout > 0 {
 		argv = append(argv, "-p", "TimeoutStopSec="+strconv.FormatInt(int64(u.StopTimeout.Seconds()), 10))
 	}
-	return append(append(argv, "--"), u.Opts.Cmd...)
+	return append(append(argv, "--"), u.command()...)
+}
+
+// command makes ExecStart absolute, which systemd requires; a relative one resolves
+// against the unit's own root, or against the bundle when there is none.
+func (u *unit) command() []string {
+	if len(u.Opts.Cmd) == 0 || filepath.IsAbs(u.Opts.Cmd[0]) {
+		return u.Opts.Cmd
+	}
+	base := "/"
+	if u.Root == "" {
+		base = u.Bundle
+	}
+	return slices.Concat([]string{filepath.Join(base, u.Opts.Cmd[0])}, u.Opts.Cmd[1:])
 }
 
 func (u *unit) description() string {
@@ -188,6 +203,20 @@ func bindPaths(volumes, env []string) []string {
 		props = append(props, property+parts[0]+":"+parts[1])
 	}
 	return props
+}
+
+// bindSources lists the read-write host paths the unit binds; docker creates a missing bind source.
+func bindSources(volumes, env []string) []string {
+	sources := []string{}
+	for _, property := range bindPaths(volumes, env) {
+		spec, ok := strings.CutPrefix(property, "BindPaths=")
+		if !ok {
+			continue
+		}
+		source, _, _ := strings.Cut(spec, ":")
+		sources = append(sources, source)
+	}
+	return sources
 }
 
 func throttles(options map[string]string) []string {
