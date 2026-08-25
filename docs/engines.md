@@ -14,7 +14,6 @@ The scheme prefix of `AddNode`'s `endpoint` selects the implementation:
 | Prefix | Implementation | Notes |
 | --- | --- | --- |
 | `containerd://` | `engine/containerd` | containerd's own API, over an SSH forward of the node's socket |
-| `virt-grpc://` | `engine/virt` | yavirt (archived), over the libyavirt gRPC client |
 | `process://` | `engine/process` | Bare processes as systemd transient units, over SSH |
 | `mock://` | `engine/mocks/fakeengine` | Fully mocked engine, for tests and dry runs |
 
@@ -232,20 +231,6 @@ containerd ≥ 2.0 with the restart plugin, `runc`, `ctr`, the CNI plugin binari
 `/opt/cni/bin` with conf in `/etc/cni/net.d`, the eru-agent binary at `/usr/local/bin/eru-agent`,
 `sshd` with core's key in `authorized_keys`, journald rate limits raised for the `eru` identifier,
 and `buildkitd` on the nodes `build.node_filter` selects.
-
-## virt (yavirt)
-
-[yavirt](https://github.com/projecteru2/yavirt) is archived and no longer developed; the engine and
-its [libyavirt](https://github.com/projecteru2/libyavirt) dependency still ship and still resolve,
-so existing VM nodes keep working. `virt-grpc://host:port` is rewritten to
-`grpc://host:port` for the client. `virt.version` selects the yavirtd API version. Only the `ca`
-field is used, written to a temp file under `cert_path`.
-
-This is the engine that implements `RawEngine`: `op` and `params` are forwarded verbatim to
-yavirt, so VM-specific operations reachable through core need no proto change.
-
-Node info from yavirt carries a `resources` map, which the resource plugins read when the node is
-added — this is how a VM node reports its real CPU, memory and storage.
 
 ## process
 

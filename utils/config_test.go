@@ -84,7 +84,7 @@ func TestLoadConfigLetsTheFileOverrideDefaults(t *testing.T) {
 		{"nested struct field", config.Registry.Hub, "hub.docker.com"},
 		{"map inside a twice-nested struct", config.Build.NodeFilter.Labels, map[string]string{"eru.build": "1"}},
 		{"slice", config.Etcd.Machines, []string{"http://127.0.0.1:2379"}},
-		{"untouched default alongside overrides", config.Virt.APIVersion, "v1"},
+		{"untouched default alongside overrides", config.Cocoon.Binary, "cocoon"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

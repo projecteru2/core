@@ -20,7 +20,6 @@ Durations are Go duration strings (`30s`, `5m`).
 | `ha_keepalive_interval` | duration | `16s` | TTL of the node-status-watcher election key; see [Operations](operations.md) |
 | `statsd` | string | — | `host:port` of a statsd server. Empty disables statsd; Prometheus is unaffected |
 | `profile` | string | — | `host:port` for the HTTP server exposing `/metrics` and net/http/pprof. Empty disables it |
-| `cert_path` | string | — | Directory the virt engine materializes a node's CA into. Empty means plain HTTP |
 | `max_concurrency` | int | `100000` | Size of the goroutine pools core uses for fan-out work |
 | `store` | string | `etcd` | Metadata backend: `etcd` or `redis` |
 | `sentry_dsn` | string | — | Sentry DSN. Empty disables Sentry |
@@ -143,12 +142,6 @@ request. With nothing configured, every node is a candidate.
 | --- | --- | --- | --- |
 | `process.root` | string | `/var/lib/eru/process` | Node directory holding the per-workload overlays and the artifact cache |
 | `process.stop_timeout` | duration | `10s` | Rendered as `TimeoutStopSec=` on every unit: how long systemd waits after `SIGTERM` before it kills the workload |
-
-## Virt (yavirt)
-
-| Key | Type | Default | Meaning |
-| --- | --- | --- | --- |
-| `virt.version` | string | `v1` | yavirtd API version |
 
 ## Scheduler
 

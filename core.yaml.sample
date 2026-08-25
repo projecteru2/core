@@ -6,7 +6,6 @@ connection_timeout: 10s                                                 # requir
 ha_keepalive_interval: 16s                                              # required, default 16s
 statsd: "127.0.0.1:8125"                                                # optional
 profile: ":12346"                                                       # optional
-cert_path: "/etc/eru/tls"                                               # optional, where the virt engine materializes a node's ca
 max_concurrency: 100000                                                 # optional, default 100000 for pool size
 store: etcd                                                             # optional, default etcd can choose redis
 sentry_dsn: "https://examplePublicKey@o0.ingest.sentry.io/0"            # optional
@@ -74,9 +73,6 @@ containerd:
 process:
     root: "/var/lib/eru/process"                                        # default /var/lib/eru/process
     stop_timeout: 10s                                                   # default 10s, grace period before SIGKILL
-
-virt:
-    version: "v1"
 
 scheduler:
     maxshare: -1                                                        # required default -1

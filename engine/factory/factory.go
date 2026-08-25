@@ -16,7 +16,6 @@ import (
 	"github.com/projecteru2/core/engine/mocks/fakeengine"
 	"github.com/projecteru2/core/engine/process"
 	enginetypes "github.com/projecteru2/core/engine/types"
-	"github.com/projecteru2/core/engine/virt"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/metrics"
 	"github.com/projecteru2/core/store"
@@ -26,7 +25,6 @@ import (
 
 var (
 	engines = map[string]factory{
-		virt.GRPCPrefixKey:   virt.MakeClient,
 		containerd.Prefix:    containerd.MakeClient,
 		cocoon.Prefix:        cocoon.MakeClient,
 		process.Prefix:       process.MakeClient,
