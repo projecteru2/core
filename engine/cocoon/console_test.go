@@ -35,6 +35,18 @@ func TestConsoleFallsBackToTheSerialSocket(t *testing.T) {
 	}
 }
 
+func TestConsoleFallsBackToTheSocketWhenTheAPIIsUnreachable(t *testing.T) {
+	e := testEngine(t, &sshrunnertest.Fake{})
+
+	console, err := e.console(t.Context(), &vmRecord{ID: testVMID, Hypervisor: "cloud-hypervisor"})
+	if err == nil {
+		t.Fatal("an unreachable api.sock must be reported to the caller")
+	}
+	if want := testRunDir + "/cloudhypervisor/" + testVMID + "/console.sock"; console != want {
+		t.Errorf("got %q, want %q", console, want)
+	}
+}
+
 func TestConsoleOfAFirecrackerGuestIsTheSocketWithoutAQuery(t *testing.T) {
 	e := testEngine(t, &sshrunnertest.Fake{})
 

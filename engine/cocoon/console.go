@@ -12,6 +12,7 @@ import (
 	"github.com/cockroachdb/errors"
 
 	"github.com/projecteru2/core/engine/sshrunner"
+	"github.com/projecteru2/core/log"
 )
 
 const (
@@ -49,21 +50,21 @@ func (e *Engine) console(ctx context.Context, vm *vmRecord) (string, error) {
 	defer client.CloseIdleConnections()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, vmInfoURL, nil)
 	if err != nil {
-		return "", err
+		return serial, err
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", err
+		return serial, err
 	}
 	defer func() {
 		_ = resp.Body.Close()
 	}()
 	if resp.StatusCode != http.StatusOK {
-		return "", errors.Newf("vm.info of %s: %s", vm.ID, resp.Status)
+		return serial, errors.Newf("vm.info of %s: %s", vm.ID, resp.Status)
 	}
 	info := &vmInfo{}
 	if err = json.NewDecoder(resp.Body).Decode(info); err != nil {
-		return "", err
+		return serial, err
 	}
 	return cmp.Or(info.Config.Console.File, serial), nil
 }
@@ -72,7 +73,7 @@ func (e *Engine) console(ctx context.Context, vm *vmRecord) (string, error) {
 func (e *Engine) refreshRecord(ctx context.Context, ID string, vm *vmRecord) error {
 	console, err := e.console(ctx, vm)
 	if err != nil {
-		return err
+		log.WithFunc("engine.cocoon.refreshRecord").WithField("ID", ID).Warnf(ctx, "the console stays the serial socket: %v", err)
 	}
 	_, err = e.run(ctx, sshrunner.Shell(refreshScript, durablePath(e.cocoon.Root, ID), metaPath(ID), console, strconv.Itoa(vm.PID))...)
 	return err

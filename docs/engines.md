@@ -253,7 +253,7 @@ the cocoon daemon's events on it. The eru name stays in the meta file and in cor
 | `engine.API` | cocoon |
 | --- | --- |
 | `VirtualizationCreate` | `vm create --output json --name <id> [--cpu N] [--memory B] [--storage B] [--data-disk …] [--network <name>] [--windows \| --user U] <image>` — no boot; then the meta record is written. A failure after the create removes the VM again |
-| `VirtualizationStart` | `vm inspect`, `vm start` and `vm inspect` again in one script; then this boot's console is read from Cloud Hypervisor's `vm.info` over a forward of the VM's `api.sock`, and both copies of the meta record are rewritten with it and with the VMM pid; a Windows guest on its first boot then gets its address programmed through `vm exec` |
+| `VirtualizationStart` | `vm inspect`, `vm start` and `vm inspect` again in one script; then this boot's console is read from Cloud Hypervisor's `vm.info` over a forward of the VM's `api.sock`, and both copies of the meta record are rewritten with it and with the VMM pid. A `vm.info` core cannot reach keeps the recorded socket path, warns once per boot and starts the guest anyway; a Windows guest on its first boot then gets its address programmed through `vm exec` |
 | `VirtualizationStop` | `vm stop`, `--force` for a forced stop, `--timeout` when a grace period is given |
 | `VirtualizationRemove` | `vm rm [--force]`, then the hibernate snapshot and both copies of the meta record; a running guest is refused unless forced |
 | `VirtualizationSuspend` / `Resume` | `vm hibernate --name eru-<id>` / `vm restore --restore-mode copy` followed by `snapshot rm` and `vm inspect`, then the record rewrite as at start |
@@ -313,6 +313,12 @@ boot; a UEFI cloud image gets the serial socket
 `<cocoon.run_dir>/<cloudhypervisor|firecracker>/<cocoon vm id>/console.sock`, which is also what
 create records before the first boot. The field keeps its name for a pty; start and resume rewrite
 it and the pid, and eru-agent re-reads the file when it reconnects.
+
+Cloud Hypervisor creates `api.sock` with mode 0700 and root ownership, so reading the pty of a
+direct-boot image needs a login that owns it — root, or the login `cocoon.binary` runs as — until
+[cocoonstack/cocoon#201](https://github.com/cocoonstack/cocoon/issues/201) relaxes the mode. Every
+other login gets `open failed` from sshd, and the record keeps the serial socket path; the guest
+still boots, and only its console logs are missing.
 
 ### Node prerequisites
 
