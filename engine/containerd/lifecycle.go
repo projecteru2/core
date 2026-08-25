@@ -88,6 +88,13 @@ func (e *Engine) VirtualizationRemove(ctx context.Context, ID string, _, force b
 	if err != nil {
 		return err
 	}
+	labels, err := found.Labels(ctx)
+	if err != nil {
+		return err
+	}
+	if err = e.setDesiredStatus(ctx, found, labels, client.Stopped); err != nil {
+		return err
+	}
 	if task, taskErr := found.Task(ctx, nil); taskErr == nil {
 		status, statusErr := task.Status(ctx)
 		if statusErr == nil && status.Status == client.Running && !force {
