@@ -37,6 +37,7 @@ type Config struct {
 	Etcd           EtcdConfig           `yaml:"etcd"`
 	Redis          RedisConfig          `yaml:"redis"`
 	Docker         DockerConfig         `yaml:"docker"`
+	Build          BuildConfig          `yaml:"build"`
 	Process        ProcessConfig        `yaml:"process"`
 	Virt           VirtConfig           `yaml:"virt"`
 	Scheduler      SchedulerConfig      `yaml:"scheduler"`
@@ -107,6 +108,11 @@ type ProcessConfig struct {
 	Root string `yaml:"root" default:"/var/lib/eru/process"`
 }
 
+// BuildConfig selects the nodes allowed to run in-cluster image builds.
+type BuildConfig struct {
+	NodeFilter NodeFilter `yaml:"node_filter"`
+}
+
 type DockerConfig struct {
 	NetworkMode string    `yaml:"network_mode" required:"true" default:"host"`
 	UseLocalDNS bool      `yaml:"use_local_dns"` // use node IP as dns
@@ -114,7 +120,6 @@ type DockerConfig struct {
 
 	Hub         string                `yaml:"hub"`
 	Namespace   string                `yaml:"namespace"` // image path becomes $Hub/$Namespace/$appname
-	BuildPod    string                `yaml:"build_pod"` // podname used to build
 	AuthConfigs map[string]AuthConfig `yaml:"auths"`     // docker registry credentials
 }
 

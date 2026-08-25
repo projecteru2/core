@@ -30,4 +30,6 @@ type BuildOptions struct {
 	Tar      io.Reader
 	ExistID  string
 	Platform string
+	// NodeFilter narrows the configured build node selection; it can never widen it.
+	NodeFilter *NodeFilter
 }

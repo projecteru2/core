@@ -30,3 +30,78 @@ func TestNodeInfo(t *testing.T) {
 	node.Bypass = true
 	assert.True(t, node.IsDown())
 }
+
+func TestNodeFilterNarrow(t *testing.T) {
+	configured := NodeFilter{
+		Podname:  "buildpod",
+		Includes: []string{"n1", "n2"},
+		Excludes: []string{"n3"},
+		Labels:   map[string]string{"eru.build": "1"},
+		All:      true,
+	}
+
+	tests := []struct {
+		name      string
+		requested *NodeFilter
+		want      *NodeFilter
+	}{
+		{"no request keeps the configured filter", nil, &configured},
+		{
+			"names intersect",
+			&NodeFilter{Includes: []string{"n2", "n9"}},
+			&NodeFilter{Podname: "buildpod", Includes: []string{"n2"}, Excludes: []string{"n3"}, Labels: configured.Labels, All: true},
+		},
+		{
+			"exclusions accumulate",
+			&NodeFilter{Excludes: []string{"n1"}},
+			&NodeFilter{Podname: "buildpod", Includes: []string{"n1", "n2"}, Excludes: []string{"n3", "n1"}, Labels: configured.Labels, All: true},
+		},
+		{
+			"a new label is added",
+			&NodeFilter{Labels: map[string]string{"zone": "a"}},
+			&NodeFilter{
+				Podname: "buildpod", Includes: []string{"n1", "n2"}, Excludes: []string{"n3"},
+				Labels: map[string]string{"eru.build": "1", "zone": "a"}, All: true,
+			},
+		},
+		{
+			"all stays with the configured value",
+			&NodeFilter{All: false},
+			&configured,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := configured.Narrow(tt.requested)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestNodeFilterNarrowRejectsWidening(t *testing.T) {
+	configured := NodeFilter{Podname: "buildpod", Labels: map[string]string{"eru.build": "1"}}
+
+	tests := []struct {
+		name      string
+		requested *NodeFilter
+	}{
+		{"another pod", &NodeFilter{Podname: "elsewhere"}},
+		{"another value for a configured label", &NodeFilter{Labels: map[string]string{"eru.build": "0"}}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := configured.Narrow(tt.requested)
+			assert.ErrorIs(t, err, ErrInvaildNodeFilter)
+		})
+	}
+}
+
+func TestNodeFilterNarrowLeavesTheConfiguredFilterAlone(t *testing.T) {
+	configured := NodeFilter{Includes: []string{"n1", "n2"}, Labels: map[string]string{"eru.build": "1"}}
+
+	_, err := configured.Narrow(&NodeFilter{Includes: []string{"n1"}, Labels: map[string]string{"zone": "a"}})
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"n1", "n2"}, configured.Includes)
+	assert.Equal(t, map[string]string{"eru.build": "1"}, configured.Labels)
+}

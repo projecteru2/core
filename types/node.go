@@ -3,6 +3,10 @@ package types
 import (
 	"context"
 	"encoding/json"
+	"maps"
+	"slices"
+
+	"github.com/cockroachdb/errors"
 
 	engine "github.com/projecteru2/core/engine"
 	resourcetypes "github.com/projecteru2/core/resource/types"
@@ -70,9 +74,52 @@ type NodeStatus struct {
 
 // NodeFilter selects nodes in a pod by Includes, then drops Excludes.
 type NodeFilter struct {
-	Podname  string
-	Includes []string
-	Excludes []string
-	Labels   map[string]string
-	All      bool
+	Podname  string            `yaml:"podname"`
+	Includes []string          `yaml:"includes"`
+	Excludes []string          `yaml:"excludes"`
+	Labels   map[string]string `yaml:"labels"`
+	All      bool              `yaml:"all"`
+}
+
+// Narrow intersects other into f on pod, names and labels; other may only shrink the selection.
+func (f NodeFilter) Narrow(other *NodeFilter) (*NodeFilter, error) {
+	if other == nil {
+		return &f, nil
+	}
+	if other.Podname != "" {
+		if f.Podname != "" && f.Podname != other.Podname {
+			return nil, errors.Wrapf(ErrInvaildNodeFilter, "pod %s is outside pod %s", other.Podname, f.Podname)
+		}
+		f.Podname = other.Podname
+	}
+	f.Includes = narrowNames(f.Includes, other.Includes)
+	f.Excludes = slices.Concat(f.Excludes, other.Excludes)
+
+	if len(other.Labels) > 0 {
+		labels := maps.Clone(f.Labels)
+		if labels == nil {
+			labels = map[string]string{}
+		}
+		for key, value := range other.Labels {
+			if kept, ok := labels[key]; ok && kept != value {
+				return nil, errors.Wrapf(ErrInvaildNodeFilter, "label %s=%s is outside %s=%s", key, value, key, kept)
+			}
+			labels[key] = value
+		}
+		f.Labels = labels
+	}
+	return &f, nil
+}
+
+// narrowNames keeps the requested names the configured list allows; an empty configured list allows every name.
+func narrowNames(configured, requested []string) []string {
+	if len(requested) == 0 {
+		return configured
+	}
+	if len(configured) == 0 {
+		return requested
+	}
+	return slices.DeleteFunc(slices.Clone(requested), func(name string) bool {
+		return !slices.Contains(configured, name)
+	})
 }

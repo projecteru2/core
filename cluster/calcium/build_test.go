@@ -56,9 +56,11 @@ func TestBuild(t *testing.T) {
 	_, err := c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	c = NewTestCluster()
+	c.config.Build.NodeFilter = types.NodeFilter{Podname: "buildpod"}
+	opts.NodeFilter = &types.NodeFilter{Podname: "elsewhere"}
 	_, err = c.BuildImage(ctx, opts)
-	assert.Error(t, err)
-	c.config.Docker.BuildPod = "test"
+	assert.ErrorIs(t, err, types.ErrInvaildNodeFilter)
+	opts.NodeFilter = nil
 	store := c.store.(*storemocks.Store)
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrInvaildWorkloadMeta).Once()
 	ch, err := c.BuildImage(ctx, opts)

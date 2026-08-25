@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -22,7 +23,7 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 	if c.source == nil {
 		return nil, types.ErrNoSCMSetting
 	}
-	node, err := c.selectBuildNode(ctx)
+	node, err := c.selectBuildNode(ctx, opts)
 	if err != nil {
 		logger.Error(ctx, err)
 		return nil, err
@@ -51,15 +52,20 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 	return c.pushImageAndClean(ctx, resp, node, refs), nil
 }
 
-func (c *Calcium) selectBuildNode(ctx context.Context) (*types.Node, error) {
-	if c.config.Docker.BuildPod == "" {
-		return nil, types.ErrNoBuildPod
-	}
-
-	nodes, err := c.store.GetNodesByPod(ctx, &types.NodeFilter{Podname: c.config.Docker.BuildPod}, false)
+func (c *Calcium) selectBuildNode(ctx context.Context, opts *types.BuildOptions) (*types.Node, error) {
+	filter, err := c.config.Build.NodeFilter.Narrow(opts.NodeFilter)
 	if err != nil {
 		return nil, err
 	}
+
+	nodes, err := c.store.GetNodesByPod(ctx, filter, false)
+	if err != nil {
+		return nil, err
+	}
+	nodes = slices.DeleteFunc(nodes, func(n *types.Node) bool {
+		return len(filter.Includes) > 0 && !slices.Contains(filter.Includes, n.Name) ||
+			slices.Contains(filter.Excludes, n.Name)
+	})
 
 	if len(nodes) == 0 {
 		return nil, types.ErrInsufficientCapacity

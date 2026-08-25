@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -145,6 +146,19 @@ func toCoreSetNodeOptions(b *pb.SetNodeOptions) *types.SetNodeOptions {
 	}
 }
 
+// toCoreNodeFilter maps a request-side filter; All stays off, so a request can never widen a selection.
+func toCoreNodeFilter(f *pb.NodeFilter) *types.NodeFilter {
+	if f == nil {
+		return nil
+	}
+	return &types.NodeFilter{
+		Podname:  f.Podname,
+		Includes: f.Includes,
+		Excludes: f.Excludes,
+		Labels:   f.Labels,
+	}
+}
+
 func toCoreBuildOptions(b *pb.BuildImageOptions) (*types.BuildOptions, error) {
 	var builds *types.Builds
 	if b.GetBuilds() != nil {
@@ -197,6 +211,7 @@ func toCoreBuildOptions(b *pb.BuildImageOptions) (*types.BuildOptions, error) {
 		Tar:         bytes.NewReader(b.Tar),
 		ExistID:     b.GetExistId(),
 		Platform:    b.Platform,
+		NodeFilter:  toCoreNodeFilter(b.GetNodeFilter()),
 	}, nil
 }
 
@@ -281,10 +296,9 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		Includes: d.Nodenames,
 		Labels:   d.Nodelabels,
 	}
-	if d.NodeFilter != nil {
-		nodeFilter.Includes = d.NodeFilter.Includes
-		nodeFilter.Excludes = d.NodeFilter.Excludes
-		nodeFilter.Labels = d.NodeFilter.Labels
+	if requested := toCoreNodeFilter(d.GetNodeFilter()); requested != nil {
+		requested.Podname = cmp.Or(requested.Podname, d.Podname)
+		nodeFilter = requested
 	}
 
 	return &types.DeployOptions{
