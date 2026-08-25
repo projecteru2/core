@@ -11,13 +11,6 @@ import (
 	enginetypes "github.com/projecteru2/core/engine/types"
 )
 
-func TestNodeMeta(t *testing.T) {
-	nm := NodeMeta{Name: "1"}
-	nnm, err := nm.DeepCopy()
-	assert.NoError(t, err)
-	assert.Equal(t, nm.Name, nnm.Name)
-}
-
 func TestNodeInfo(t *testing.T) {
 	mockEngine := &enginemocks.API{}
 	r := &enginetypes.Info{ID: "test"}

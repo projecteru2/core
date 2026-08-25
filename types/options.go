@@ -304,14 +304,3 @@ func (o *RawEngineOptions) Validate() error {
 	}
 	return nil
 }
-
-func ParseTriOption(opt TriOptions, original bool) bool {
-	switch opt {
-	case TriTrue:
-		return true
-	case TriFalse:
-		return false
-	default:
-		return original
-	}
-}

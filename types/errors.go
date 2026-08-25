@@ -78,12 +78,11 @@ var (
 	ErrUnderlineInEntrypointName   = errors.New("entrypoint name has '_' character")
 	ErrEmptyRawEngineOp            = errors.New("raw engine op is empty")
 
-	ErrKeyNotExists        = errors.New("key not exists")
-	ErrKeyExists           = errors.New("key exists")
-	ErrNoOps               = errors.New("no txn ops")
-	ErrTxnConditionFailed  = errors.New("etcd txn condition failed")
-	ErrInvaildCount        = errors.New("bad `Count` value, entity count invalid")
-	ErrStoreNotImplemented = errors.New("not implemented")
+	ErrKeyNotExists       = errors.New("key not exists")
+	ErrKeyExists          = errors.New("key exists")
+	ErrNoOps              = errors.New("no txn ops")
+	ErrTxnConditionFailed = errors.New("etcd txn condition failed")
+	ErrInvaildCount       = errors.New("bad `Count` value, entity count invalid")
 
 	ErrInvaildWALEventType = errors.New("invalid WAL event type")
 	ErrInvaildWALEvent     = errors.New("encode WAL event failed")
@@ -98,8 +97,6 @@ var (
 
 	ErrNoFilesToSend = errors.New("no files to send")
 	ErrNoFilesToCopy = errors.New("no files to copy")
-
-	ErrInvaildCoreEndpointType = errors.New("invalid core endpoint type")
 
 	ErrMockError = errors.New("mock error")
 

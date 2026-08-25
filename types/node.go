@@ -4,25 +4,19 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/go-viper/mapstructure/v2"
-
 	engine "github.com/projecteru2/core/engine"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 )
 
 type NodeMeta struct {
-	Name     string            `json:"name" mapstructure:"name"`
-	Endpoint string            `json:"endpoint" mapstructure:"endpoint"`
-	Podname  string            `json:"podname" mapstructure:"podname"`
-	Labels   map[string]string `json:"labels" mapstructure:"labels"`
+	Name     string            `json:"name"`
+	Endpoint string            `json:"endpoint"`
+	Podname  string            `json:"podname"`
+	Labels   map[string]string `json:"labels"`
 
-	Ca   string `json:"-" mapstructure:"-"`
-	Cert string `json:"-" mapstructure:"-"`
-	Key  string `json:"-" mapstructure:"-"`
-}
-
-func (n NodeMeta) DeepCopy() (nn NodeMeta, err error) {
-	return nn, mapstructure.Decode(n, &nn)
+	Ca   string `json:"-"`
+	Cert string `json:"-"`
+	Key  string `json:"-"`
 }
 
 type NodeResourceInfo struct {
