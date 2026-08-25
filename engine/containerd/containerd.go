@@ -158,11 +158,7 @@ func (e *Engine) container(ctx context.Context, ID string) (client.Container, er
 
 // run executes argv on the node; the node answers what containerd's API does not carry.
 func (e *Engine) run(ctx context.Context, argv ...string) (*sshrunner.Result, error) {
-	res, err := e.runner.Run(ctx, sshrunner.Quote(argv), nil)
-	if err != nil {
-		return nil, err
-	}
-	return res, sshrunner.ExitError(argv, res)
+	return sshrunner.Run(ctx, e.runner, argv...)
 }
 
 // nodePlatform is what the client matches manifests against; core's platform is not the node's.
