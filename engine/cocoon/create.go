@@ -55,7 +55,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 			return nil, err
 		}
 	}
-	network, err := requestedNetwork(opts.Networks)
+	network, err := requestedNetwork(ctx, opts.Networks)
 	if err != nil {
 		return nil, err
 	}
@@ -149,13 +149,13 @@ func dataDisks(volumes []string, windows bool) ([]string, error) {
 }
 
 // requestedNetwork picks the conflist a deploy names; cocoon's IPAM assigns the address.
-func requestedNetwork(networks map[string]string) (string, error) {
+func requestedNetwork(ctx context.Context, networks map[string]string) (string, error) {
 	if len(networks) > 1 {
 		return "", errors.Wrapf(coretypes.ErrInvalidEngineArgs, "a vm takes one network, got %v", slices.Sorted(maps.Keys(networks)))
 	}
 	for name, ip := range networks {
 		if ip != "" {
-			return "", errors.Wrapf(coretypes.ErrInvalidEngineArgs, "cocoon assigns addresses through CNI, %s=%s cannot be fixed", name, ip)
+			log.WithFunc("engine.cocoon.requestedNetwork").Debugf(ctx, "cocoon assigns addresses through CNI, %s=%s is not carried over", name, ip)
 		}
 		return name, nil
 	}

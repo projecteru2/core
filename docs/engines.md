@@ -280,8 +280,10 @@ by cloud-init on a Linux guest and left unformatted on a Windows one; a volume w
 refused, since a VM has no bind mounts.
 
 A deploy names at most one network, the CNI conflist cocoon should use; none means cocoon's
-default conflist. cocoon's IPAM assigns the address, so a fixed IP in the request is refused with
-`ErrInvalidEngineArgs`. The address lands in the meta file and in `VirtualizationInspect` under the
+default conflist. Two networks are refused with `ErrInvalidEngineArgs`. cocoon's IPAM assigns the
+address, so an address in the request — which is what `replace --network-inherit` sends back, the
+old guest's `{conflist: ip}` — keeps only its conflist name and is logged at debug: a VM cannot be
+given a fixed IP. The address lands in the meta file and in `VirtualizationInspect` under the
 network's name, `default` when none was named.
 
 ### Windows guests

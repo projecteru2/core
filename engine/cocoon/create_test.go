@@ -114,16 +114,24 @@ func TestVirtualizationCreateDiscardsAVMWhoseDeadlineExpired(t *testing.T) {
 	}
 }
 
-func TestVirtualizationCreateRefusesAFixedAddress(t *testing.T) {
-	e := testEngine(t, &sshrunnertest.Fake{})
+func TestVirtualizationCreateKeepsTheConflistOfAnInheritedNetwork(t *testing.T) {
+	runner := &sshrunnertest.Fake{Respond: func(line string) *sshrunner.Result {
+		if strings.Contains(line, "'create'") {
+			return &sshrunner.Result{Stdout: linuxVM}
+		}
+		return &sshrunner.Result{}
+	}}
+	e := testEngine(t, runner)
 
-	_, err := e.VirtualizationCreate(t.Context(), &enginetypes.VirtualizationCreateOptions{
+	if _, err := e.VirtualizationCreate(t.Context(), &enginetypes.VirtualizationCreateOptions{
 		Name:     "app_web_xyz",
 		Image:    testImage,
 		Networks: map[string]string{"eru-cni": "10.22.0.9"},
-	})
-	if !errors.Is(err, coretypes.ErrInvalidEngineArgs) {
-		t.Errorf("got %v, want ErrInvalidEngineArgs", err)
+	}); err != nil {
+		t.Fatalf("an inherited network must not fail the replace: %v", err)
+	}
+	if lines := runner.Lines(); !strings.Contains(lines[0], "'--network' 'eru-cni'") || strings.Contains(lines[0], "10.22.0.9") {
+		t.Errorf("got %q, want the conflist name without the old address", lines[0])
 	}
 }
 
@@ -173,12 +181,12 @@ func TestRequestedNetwork(t *testing.T) {
 	}{
 		{"none means the default conflist", nil, "", false},
 		{"one name", map[string]string{"mgmt": ""}, "mgmt", false},
-		{"a fixed address is refused", map[string]string{"mgmt": "10.0.0.2"}, "", true},
+		{"an inherited address keeps only its conflist", map[string]string{"mgmt": "10.0.0.2"}, "mgmt", false},
 		{"two networks are refused", map[string]string{"a": "", "b": ""}, "", true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := requestedNetwork(tt.networks)
+			got, err := requestedNetwork(t.Context(), tt.networks)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("got error %v, wantErr %v", err, tt.wantErr)
 			}
