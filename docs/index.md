@@ -45,5 +45,7 @@ cli / agent / your service
 Source and issue tracker: [github.com/projecteru2/core](https://github.com/projecteru2/core).
 Part of the [Eru](https://github.com/projecteru2) cluster stack, alongside
 [agent](https://github.com/projecteru2/agent), [cli](https://github.com/projecteru2/cli),
-[resource-extend](https://github.com/projecteru2/resource-extend) and
-[yavirt](https://github.com/projecteru2/yavirt).
+[resource-extend](https://github.com/projecteru2/resource-extend),
+[quickstart](https://github.com/projecteru2/quickstart) and
+[footstone](https://github.com/projecteru2/footstone).
+The `virt` engine targets [yavirt](https://github.com/projecteru2/yavirt), which is archived.
