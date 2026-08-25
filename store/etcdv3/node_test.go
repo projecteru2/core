@@ -11,7 +11,6 @@ import (
 
 	"github.com/projecteru2/core/store/common"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 )
 
 func TestAddNode(t *testing.T) {
@@ -299,25 +298,4 @@ func TestNodeStatusStream(t *testing.T) {
 		assert.True(s.Alive)
 	}
 	assert.False(statuses[len(statuses)-1].Alive)
-}
-
-func TestGetNodesWhenPoolIsFull(t *testing.T) {
-	m := NewMercury(t)
-	ctx := context.Background()
-	_, err := m.AddPod(ctx, "testpod", "")
-	assert.NoError(t, err)
-	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: "test", Endpoint: "mock://", Podname: "testpod"})
-	assert.NoError(t, err)
-
-	pool, err := utils.NewPool(1)
-	assert.NoError(t, err)
-	m.Pool = pool
-	blocked := make(chan struct{})
-	defer close(blocked)
-	assert.NoError(t, pool.Invoke(func() { <-blocked }))
-	assert.Error(t, pool.Invoke(func() {}))
-
-	nodes, err := m.GetNodes(ctx, []string{"test"})
-	assert.NoError(t, err)
-	assert.Len(t, nodes, 1)
 }

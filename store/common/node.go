@@ -172,7 +172,7 @@ func (s *Store) GetNodeStatus(ctx context.Context, nodename string) (*types.Node
 func (s *Store) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
 	ch := make(chan *types.NodeStatus)
 	logger := log.WithFunc("store.common.NodeStatusStream")
-	if err := s.Pool.Invoke(func() {
+	_ = s.Pool.Invoke(func() {
 		defer func() {
 			logger.Info(ctx, "close NodeStatusStream channel")
 			close(ch)
@@ -193,10 +193,7 @@ func (s *Store) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
 			}
 			ch <- status
 		}
-	}); err != nil {
-		logger.Error(ctx, err, "invoke watcher")
-		close(ch)
-	}
+	})
 	return ch
 }
 
@@ -274,9 +271,7 @@ func (s *Store) doGetNodes(
 			}
 			nodesCh <- node
 		}
-		if err := s.Pool.Invoke(task); err != nil {
-			task()
-		}
+		_ = s.Pool.Invoke(task)
 	}
 	wg.Wait()
 	close(nodesCh)

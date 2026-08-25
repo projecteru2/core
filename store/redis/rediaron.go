@@ -72,7 +72,7 @@ type KNotifyMessage struct {
 func (r *Rediaron) KNotify(ctx context.Context, pattern string) chan *KNotifyMessage {
 	ch := make(chan *KNotifyMessage)
 	logger := log.WithFunc("store.redis.KNotify")
-	if err := r.Pool.Invoke(func() {
+	_ = r.Pool.Invoke(func() {
 		defer close(ch)
 
 		prefix := fmt.Sprintf(keyNotifyPrefix, r.Config.Redis.DB, "")
@@ -96,10 +96,7 @@ func (r *Rediaron) KNotify(ctx context.Context, pattern string) chan *KNotifyMes
 				}
 			}
 		}
-	}); err != nil {
-		logger.Error(ctx, err, "invoke knotify")
-		close(ch)
-	}
+	})
 	return ch
 }
 

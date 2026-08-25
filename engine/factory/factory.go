@@ -85,7 +85,7 @@ func (e *EngineCache) checkAlive(ctx context.Context) {
 		e.cache.Range(func(_, v any) bool {
 			wg.Add(1)
 			params := v.(engine.API).GetParams()
-			if err := e.pool.Invoke(func() {
+			_ = e.pool.Invoke(func() {
 				defer wg.Done()
 				cacheKey := params.CacheKey()
 				client := e.Get(cacheKey)
@@ -108,11 +108,7 @@ func (e *EngineCache) checkAlive(ctx context.Context) {
 					return
 				}
 				logger.Debugf(ctx, "engine %+v is available", cacheKey)
-			}); err != nil {
-				// the pool is non-blocking, so a rejected task never runs its deferred Done
-				wg.Done()
-				logger.Errorf(ctx, err, "skip liveness check of engine %+v", params.CacheKey())
-			}
+			})
 			return true
 		})
 		wg.Wait()

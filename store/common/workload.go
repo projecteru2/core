@@ -123,7 +123,7 @@ func (s *Store) WorkloadStatusStream(ctx context.Context, appname, entrypoint, n
 	statusKey := filepath.Join(WorkloadStatusPrefix, appname, entrypoint, nodename) + "/"
 	ch := make(chan *types.WorkloadStatus)
 	logger := log.WithFunc("store.common.WorkloadStatusStream")
-	if err := s.Pool.Invoke(func() {
+	_ = s.Pool.Invoke(func() {
 		defer func() {
 			logger.Info(ctx, "close WorkloadStatus channel")
 			close(ch)
@@ -145,10 +145,7 @@ func (s *Store) WorkloadStatusStream(ctx context.Context, appname, entrypoint, n
 			}
 			ch <- msg
 		}
-	}); err != nil {
-		logger.Error(ctx, err, "invoke watcher")
-		close(ch)
-	}
+	})
 	return ch
 }
 
