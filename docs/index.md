@@ -1,10 +1,10 @@
 # core
 
 Eru core is a stateless gRPC resource scheduler. It keeps cluster metadata in etcd or redis,
-allocates resources through pluggable resource plugins, and deploys workloads onto Docker
-containers or yavirt virtual machines. Every instance is interchangeable: state lives in the
-store, coordination happens through distributed locks, and clients find live instances through
-the built-in service discovery.
+allocates resources through pluggable resource plugins, and deploys workloads onto containerd
+containers, bare processes or yavirt virtual machines. Every instance is interchangeable: state
+lives in the store, coordination happens through distributed locks, and clients find live
+instances through the built-in service discovery.
 
 ```
 cli / agent / your service
@@ -23,7 +23,7 @@ cli / agent / your service
    │           engine/factory (cached, per node) │
    └─────────────┼───────────────────────────────┘
                  ▼
-   tcp:// unix:// | virt-grpc:// | process:// | mock://
+   containerd:// | virt-grpc:// | process:// | mock://
 ```
 
 ## Guides
@@ -33,7 +33,7 @@ cli / agent / your service
 - [Configuration](configuration.md) — every key core reads, with types and defaults
 - [Architecture](architecture.md) — the packages, what each owns, and how a deploy request flows
 - [gRPC API](api.md) — every rpc grouped by domain, with the key request fields
-- [Engines](engines.md) — docker, virt, process and fake; endpoint schemes, the engine cache, TLS
+- [Engines](engines.md) — containerd, virt, process and fake; endpoint schemes and the engine cache
 - [Resource plugins](resource-plugins.md) — the plugin contract, cpumem and binary plugins
 - [Deploy strategies](deploy-strategies.md) — AUTO, FILL, EACH, GLOBAL, DRAINED and when to use each
 - [Storage](storage.md) — etcd key layout, the redis backend, locks, embedded etcd

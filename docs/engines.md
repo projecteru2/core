@@ -13,39 +13,132 @@ The scheme prefix of `AddNode`'s `endpoint` selects the implementation:
 
 | Prefix | Implementation | Notes |
 | --- | --- | --- |
-| `tcp://` | `engine/docker` | Docker daemon over TCP, optionally TLS |
-| `unix://` | `engine/docker` | Docker daemon over a local socket |
+| `containerd://` | `engine/containerd` | containerd's own API, over an SSH forward of the node's socket |
 | `virt-grpc://` | `engine/virt` | yavirt (archived), over the libyavirt gRPC client |
 | `process://` | `engine/process` | Bare processes as systemd transient units, over SSH |
 | `mock://` | `engine/mocks/fakeengine` | Fully mocked engine, for tests and dry runs |
 
 An endpoint with any other prefix is rejected with `ErrInvaildNodeEndpoint`.
 
-## docker
+## containerd
 
-The default. Uses the moby client (`github.com/moby/moby/client`), pinning `docker.version` as the API
-version, which disables API-version negotiation.
+`containerd://[user@]host[:port]` nodes run OCI containers. containerd serves only its CRI plugin
+on TCP — `plugins/server/grpc` registers on the TCP listener just the plugins implementing
+`RegisterTCP`, and CRI is the only one — so the native API (containers, tasks, images, content,
+diff, events) is reachable on the unix socket alone. Core therefore dials it the way it dials a
+process node: one SSH connection per node, with containerd's gRPC client running over an OpenSSH
+socket forward (`direct-streamlocal`, on by default in sshd) of `containerd.socket`. The same
+connection carries `journalctl`, `ctr` and the CNI conf listing. `types.Node.{ca,cert,key}` are
+unused by this engine.
 
-- Network mode comes from the deploy request, falling back to `docker.network_mode`.
-- If a deploy specifies no DNS and `docker.use_local_dns` is on, the node's own IP is injected as
-  the workload's resolver.
-- Log driver: core forces `mode=non-blocking`, `max-buffer-size=4m` and a per-workload `tag`, then
-  merges `docker.log.config`; the driver itself is the entrypoint's `log.type`, or
-  `docker.log.type`.
-- Registry credentials for pull, push and build come from `registry.auths`, matched by registry host.
-- Image builds happen here — `BuildRefs` composes `hub/namespace/appname:tag` from
-  `docker.hub` and `docker.namespace`. Which nodes may build is decided by `build.node_filter`,
-  not by the engine.
+Everything containerd's API cannot answer from core is asked of the node over that connection: a
+task's stdio lives in node-local FIFOs, so `Execute` and the copy verbs run `ctr tasks exec`; the
+node's own CPU, memory and disk totals come from `/proc` and `df`; the block devices the IOPS
+knobs name are resolved with `stat`; and the node's architecture (`uname -m`) is what the client
+matches an image's manifests against, since core's own platform is not the node's.
 
-### TLS
+| `engine.API` | containerd |
+| --- | --- |
+| `VirtualizationCreate` | `NewContainer` with a new snapshot and the rendered OCI spec; the container id **is** the workload name, so eru-agent reads appname, entrypoint and ident straight off it |
+| `VirtualizationStart` | `NewTask` with the log-shim `LogURI`, `task.Start`, then `containerd.io/restart.status=running` |
+| `VirtualizationStop` | `containerd.io/restart.status=stopped` first so the restart plugin does not race, then `SIGTERM`, `SIGKILL` after the grace period, then `task.Delete` |
+| `VirtualizationRemove` | refuses a running workload unless forced, kills the task and deletes the container with its snapshot |
+| `VirtualizationSuspend` / `Resume` | `task.Pause` / `task.Resume` |
+| `VirtualizationInspect` | the container record for labels and spec, one task-service `Get` for the running state |
+| `VirtualizationWait` | `task.Wait` |
+| `VirtualizationLogs` | `journalctl SYSLOG_IDENTIFIER=eru ERU_ID=<id>` over SSH, with `-n`, `--since` and `--until`; a followed stream ends when the task exits |
+| `VirtualizationAttach` | logs-follow; stdin returns `ErrEngineNotImplemented` — a task's stdin is a node-local FIFO |
+| `Execute` / `ExecResize` / `ExecExitCode` | `ctr tasks exec` over the SSH session: stdio is the session's, the TTY is the session's pty, and the exit status is the session's |
+| `VirtualizationUpdateResource` | `container.Update` of the stored spec **and** `task.Update` of the live cgroup, so a restart replays the new limits |
+| `VirtualizationCopyTo` / `CopyFrom` | a tar stream through `ctr tasks exec` |
+| `ImagePull` / `ImageList` / `ImageRemove` / `ImagesPrune` | `client.Pull` with unpack, the image store, and a prune of every image no container is built on |
+| `ImageBuildFromExist` | pause the task, diff the workload's snapshot against its image, write the new config and manifest into the content store and tag them |
+| `ImageBuild` | BuildKit, see below |
+| `NetworkList` | the CNI conf dir (`/etc/cni/net.d`) |
+| `NetworkConnect` / `Disconnect` | `ErrEngineNotImplemented`: under CNI a network is attached when the netns is created |
 
-`AddNode` and `SetNode` accept `ca`, `cert` and `key` as *inline PEM content*, not paths. Core
-writes them to temporary files under `cert_path`, builds the TLS config, and deletes the temp
-files immediately; the resulting HTTP client is cached. If `cert_path` is empty, or any of the
-three is missing, core falls back to a plain HTTP client. The PEM material is stored per node in
-the metadata store, under `/node/<nodename>:ca`, `:cert` and `:key`.
+### Resources
 
-`unix://` endpoints always use the local socket client and ignore TLS.
+Every eru knob lands on the OCI spec: `cpuset.cpus` and `cpuset.mems` for bound CPUs and NUMA,
+CPU shares split so that a bound whole core keeps the default
+weight, `memory.max` with swap pinned to the same value and a reservation of half the limit
+(never under 4 MiB), `pids.max`, the four `io.max` rates per device, rlimits, devices,
+capabilities, sysctls and privileged mode. Volumes become bind mounts, with the source expanded
+against the workload's environment and created before the container starts.
+
+Two things the daemon used to do for core have no containerd equivalent and are done from the
+node side: `/etc/resolv.conf` and `/etc/hosts` are bind-mounted from the node unless the deploy
+asks for its own DNS or extra hosts, in which case core writes them under
+`/var/lib/eru/containerd/<id>/` and binds those instead.
+
+`user` must be numeric (`uid` or `uid:gid`): resolving a name needs the image's `/etc/passwd`,
+which only the node can read, so a named user is refused with `ErrInvalidEngineArgs` rather than
+silently running as the image's user.
+
+### Networking
+
+Core has no netns on the node, so CNI runs there. The spec carries a `createRuntime` and a
+`poststop` hook with identical argv:
+
+```
+/usr/local/bin/eru-agent oci-hook --network <conflist name> [--socket <containerd socket>]
+```
+
+runc invokes `createRuntime` with the runtime state in status `creating` and `poststop` with
+status `stopped` and pid 0, which is how the hook tells an attach from a detach. The containerd
+namespace reaches the hook as the OCI annotation `eru.namespace`, because a hook is handed the
+runtime state and never the container's labels. The hook records each address it gets back as the
+container label `eru.network.<name>=<ipv4>`, and that is where `VirtualizationInspect` reads a
+workload's networks from.
+
+A host-network workload is one whose spec has **no** `network` entry in `linux.namespaces` — the
+nerdctl and CRI convention — and carries no hooks; it inspects as `{"host": <node ip>}`.
+
+### Logs
+
+containerd keeps no log store, so the task is created with
+
+```
+cio.LogURI = binary:///usr/local/bin/eru-agent?log-shim
+```
+
+containerd execs that binary per task with stdout and stderr on fds 3 and 4, `CONTAINER_ID` and
+`CONTAINER_NAMESPACE` in the environment, and the URI's query flattened into argv pairs — a query
+key with no value becomes the key followed by an empty positional, which is what makes `log-shim`
+arrive as the agent's subcommand. The shim writes each line to journald as
+`SYSLOG_IDENTIFIER=eru`, `ERU_ID=<id>`; `journalctl` over SSH reads them back. The same URI is
+stored as `containerd.io/restart.loguri` so a restarted task keeps logging.
+
+### Restart policy
+
+`RestartPolicy` maps onto containerd's restart plugin: the policy goes into
+`containerd.io/restart.policy` at create, and core drives `containerd.io/restart.status` — the
+plugin's *desired* state — at start and stop. A workload with no policy, or `no`, carries neither
+label and the plugin never looks at it.
+
+### Builds on BuildKit
+
+The build spec is rendered into one multi-stage Dockerfile exactly as before — `BuildContent`
+clones the repo, downloads the artifacts and writes `Dockerfile` next to them, then tars the
+directory. `ImageBuild` unpacks that tar into a temporary directory, dials the build node's
+`buildkitd` over the same SSH forward (a `tcp://` value in `containerd.buildkit` is dialed
+directly instead) and solves it with the `dockerfile.v0` frontend, exporting to the image
+exporter with `push=true` and the refs `BuildRefs` composed. Registry credentials reach the
+solve as a session auth provider fed from `registry.auths`.
+
+Two consequences: BuildKit pushes the image itself, so the image never lands in the node's own
+image store and `ImagePush` has nothing left to send; and `ImageBuildCachePrune` is BuildKit's
+`Prune`, whose reclaimed bytes core reports. The build status stream — vertices and their logs —
+is converted into the same `BuildImageMessage` stream clients already read.
+
+Which nodes may build is decided by `build.node_filter`, not by the engine.
+
+### Node prerequisites
+
+containerd ≥ 2.0 with the restart plugin, `runc`, `ctr`, the CNI plugin binaries in
+`/opt/cni/bin` with conf in `/etc/cni/net.d`, the eru-agent binary at `/usr/local/bin/eru-agent`,
+`sshd` with core's key in `authorized_keys`, journald rate limits raised for the `eru` identifier,
+and `buildkitd` on the nodes `build.node_filter` selects.
 
 ## virt (yavirt)
 
@@ -115,7 +208,7 @@ properties: it execs `chroot --userspec=<user> <merged>` for an overlay workload
 artifact as it builds it.
 
 Resources land on cgroup v2 unit properties: `AllowedCPUs`, `AllowedMemoryNodes` and `CPUWeight`
-for bound CPUs, `CPUQuota` whenever a quota is set, then `MemoryMax`, `MemoryLow` (docker's
+for bound CPUs, `CPUQuota` whenever a quota is set, then `MemoryMax`, `MemoryLow` (half the
 reservation), `MemorySwapMax=0`, `TasksMax` and the four `IO*Max` knobs per device. Volume
 bindings become `BindPaths=` — `BindReadOnlyPaths=` for an `ro` mode — with the source expanded
 against the workload's environment and created before the unit starts; a bind needs no
