@@ -24,16 +24,6 @@ type attach struct {
 	exited <-chan client.ExitStatus
 }
 
-// sessionReader closes the ssh session backing a follow stream.
-type sessionReader struct {
-	io.Reader
-	sess sshrunner.Session
-}
-
-func (r *sessionReader) Close() error {
-	return r.sess.Close()
-}
-
 func (e *Engine) VirtualizationLogs(ctx context.Context, opts *enginetypes.VirtualizationLogStreamOptions) (stdout, stderr io.ReadCloser, err error) {
 	found, err := e.container(ctx, opts.ID)
 	if err != nil {
@@ -60,7 +50,7 @@ func (e *Engine) VirtualizationLogs(ctx context.Context, opts *enginetypes.Virtu
 	}
 	// journalctl -f never ends by itself, and RunAndWait drains the stream before it reads the exit code
 	go endWithTask(ctx, task, running)
-	return &sessionReader{Reader: running.Stdout(), sess: running}, nil, nil
+	return sshrunner.Reader(running), nil, nil
 }
 
 // VirtualizationAttach without stdin is the journald follow; with stdin it is `ctr tasks attach`
@@ -105,7 +95,7 @@ func (e *Engine) startAttach(ctx context.Context, ID string, tty bool, exited <-
 	e.mu.Lock()
 	e.attaches[ID] = &attach{sess: running, exited: exited}
 	e.mu.Unlock()
-	return &sessionReader{Reader: running.Stdout(), sess: running}, running.Stderr(), running.Stdin(), nil
+	return sshrunner.Reader(running), running.Stderr(), running.Stdin(), nil
 }
 
 func endWithTask(ctx context.Context, task client.Task, running sshrunner.Session) {

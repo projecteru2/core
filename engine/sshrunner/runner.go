@@ -56,3 +56,17 @@ type FileInfo struct {
 	GID  int
 	Mode os.FileMode
 }
+
+// Reader streams a running command's stdout and closes the session with it.
+func Reader(sess Session) io.ReadCloser {
+	return &sessionReader{Reader: sess.Stdout(), sess: sess}
+}
+
+type sessionReader struct {
+	io.Reader
+	sess Session
+}
+
+func (r *sessionReader) Close() error {
+	return r.sess.Close()
+}
