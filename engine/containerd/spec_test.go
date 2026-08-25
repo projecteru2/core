@@ -2,6 +2,7 @@ package containerd
 
 import (
 	"slices"
+	"strconv"
 	"testing"
 
 	"github.com/cockroachdb/errors"
@@ -42,6 +43,24 @@ func TestResourceSpecSharesACpuBoundFraction(t *testing.T) {
 	}
 	if *limits.Pids.Limit != 128 {
 		t.Errorf("got %d, want 128", *limits.Pids.Limit)
+	}
+}
+
+func TestResourceSpecKeepsTheQuotaThroughARemap(t *testing.T) {
+	cpus := map[string]int64{}
+	for i := range 8 {
+		cpus[strconv.Itoa(i)] = 100
+	}
+	limits := resourceSpec(&engine.VirtualizationResource{CPU: cpus, Quota: 0.5, Remap: true}, &RawArgs{}, nil)
+
+	if limits.CPU.Cpus != "0,1,2,3,4,5,6,7" {
+		t.Errorf("got %q, want every cpu", limits.CPU.Cpus)
+	}
+	if limits.CPU.Quota == nil || *limits.CPU.Quota != 50000 {
+		t.Fatalf("got %v, want 50000: a remap shares the cpus, the quota is the only throttle left", limits.CPU.Quota)
+	}
+	if *limits.CPU.Shares != defaultCPUShare {
+		t.Errorf("got %d, want %d", *limits.CPU.Shares, defaultCPUShare)
 	}
 }
 

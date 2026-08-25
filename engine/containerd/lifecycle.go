@@ -201,7 +201,11 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, en
 	if err != nil {
 		return err
 	}
-	limits := resourceSpec(resource, &RawArgs{}, nil)
+	devices, err := e.resolveThrottles(ctx, resource.IOPSOptions)
+	if err != nil {
+		return err
+	}
+	limits := resourceSpec(resource, &RawArgs{}, devices)
 	// the stored spec is what a restart replays, so both it and the live task are updated
 	if err = found.Update(ctx, withSpecResources(limits)); err != nil {
 		return err
@@ -273,7 +277,12 @@ func withSpecResources(limits *specs.LinuxResources) client.UpdateContainerOpts 
 		if spec.Linux == nil {
 			spec.Linux = &specs.Linux{}
 		}
-		spec.Linux.Resources = limits
+		if spec.Linux.Resources == nil {
+			spec.Linux.Resources = &specs.LinuxResources{}
+		}
+		spec.Linux.Resources.CPU = limits.CPU
+		spec.Linux.Resources.Memory = limits.Memory
+		spec.Linux.Resources.BlockIO = limits.BlockIO
 		updated, err := typeurl.MarshalAny(spec)
 		if err != nil {
 			return err

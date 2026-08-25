@@ -251,9 +251,11 @@ func resourceSpec(resource *engine.VirtualizationResource, rArgs *RawArgs, devic
 	if len(resource.CPU) > 0 {
 		limits.CPU.Cpus = strings.Join(slices.Sorted(maps.Keys(resource.CPU)), ",")
 		limits.CPU.Mems = resource.NUMANode
-		limits.CPU.Quota = nil
-		if _, fraction := math.Modf(resource.Quota); !resource.Remap && fraction > 0 {
-			shares = uint64(math.Round(defaultCPUShare * fraction))
+		if !resource.Remap {
+			limits.CPU.Quota = nil
+			if _, fraction := math.Modf(resource.Quota); fraction > 0 {
+				shares = uint64(math.Round(defaultCPUShare * fraction))
+			}
 		}
 	}
 	limits.CPU.Shares = &shares

@@ -134,17 +134,26 @@ func (e *Engine) prepareNode(ctx context.Context, opts *enginetypes.Virtualizati
 	for _, mount := range volumeMounts(resource.Volumes, opts.Env) {
 		paths = append(paths, mountMark+mount.Source)
 	}
-	devices := make([]blockDevice, 0, len(resource.IOPSOptions))
-	for _, path := range slices.Sorted(maps.Keys(resource.IOPSOptions)) {
-		devices = append(devices, blockDevice{Path: path, Rates: strings.Split(resource.IOPSOptions[path], ":")})
-		paths = append(paths, deviceMark+path)
-	}
+	devices, marks := throttleDevices(resource.IOPSOptions)
+	paths = append(paths, marks...)
 
 	resolv, hosts := resolverFiles(opts)
 	if len(paths) == 0 && resolv == "" && hosts == "" {
 		return nil, nil
 	}
 	res, err := e.run(ctx, sshrunner.Shell(prepareScript, slices.Concat([]string{dir, resolv, hosts}, paths)...)...)
+	if err != nil {
+		return nil, err
+	}
+	return resolveDevices(devices, res.Stdout)
+}
+
+func (e *Engine) resolveThrottles(ctx context.Context, options map[string]string) ([]blockDevice, error) {
+	devices, marks := throttleDevices(options)
+	if len(devices) == 0 {
+		return nil, nil
+	}
+	res, err := e.run(ctx, sshrunner.Shell(prepareScript, slices.Concat([]string{"", "", ""}, marks)...)...)
 	if err != nil {
 		return nil, err
 	}
@@ -223,6 +232,16 @@ func resolveDevices(devices []blockDevice, out string) ([]blockDevice, error) {
 		devices[i].Major, devices[i].Minor = major, minor
 	}
 	return devices, nil
+}
+
+func throttleDevices(options map[string]string) (devices []blockDevice, marks []string) {
+	devices = make([]blockDevice, 0, len(options))
+	marks = make([]string, 0, len(options))
+	for _, path := range slices.Sorted(maps.Keys(options)) {
+		devices = append(devices, blockDevice{Path: path, Rates: strings.Split(options[path], ":")})
+		marks = append(marks, deviceMark+path)
+	}
+	return devices, marks
 }
 
 func workloadDir(ID string) string {
