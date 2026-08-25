@@ -80,8 +80,7 @@ type blockDevice struct {
 	Rates []string
 }
 
-// withImageConfig applies what the image declares. containerd's own oci.WithImageConfig cannot
-// be used: it resolves users by temp-mounting the rootfs on the client, and core is not the node.
+// withImageConfig applies what the image declares; oci.WithImageConfig would mount the rootfs on core.
 func withImageConfig(config *ocispec.ImageConfig) oci.SpecOpts {
 	return func(ctx context.Context, client oci.Client, container *containers.Container, spec *specs.Spec) error {
 		if err := oci.WithEnv(config.Env)(ctx, client, container, spec); err != nil {
@@ -143,8 +142,7 @@ func withMounts(opts *enginetypes.VirtualizationCreateOptions, resource *engine.
 	}
 }
 
-// withNetwork drops the network namespace for a host-network workload — its absence is what
-// the agent and CNI read as host networking; a CNI workload keeps the private one.
+// withNetwork drops the network namespace, which is how CNI and the agent read host networking.
 func withNetwork(opts *enginetypes.VirtualizationCreateOptions) oci.SpecOpts {
 	return func(ctx context.Context, client oci.Client, container *containers.Container, spec *specs.Spec) error {
 		if spec.Linux == nil {
@@ -160,8 +158,7 @@ func withNetwork(opts *enginetypes.VirtualizationCreateOptions) oci.SpecOpts {
 	}
 }
 
-// withHooks hands the netns to eru-agent, which is where CNI can run. Both hooks carry the
-// same argv; the hook tells an attach from a detach by the runtime state on its stdin.
+// withHooks hands the netns to eru-agent; the hook reads attach or detach off the runtime state.
 func withHooks(networks map[string]string, namespace, socket string) oci.SpecOpts {
 	return func(_ context.Context, _ oci.Client, _ *containers.Container, spec *specs.Spec) error {
 		if spec.Annotations == nil {
@@ -322,7 +319,7 @@ func volumeMounts(volumes, env []string) []specs.Mount {
 	return mounts
 }
 
-// resolverMounts give the container a resolver: containerd writes neither file itself.
+// resolverMounts gives the container a resolver: containerd writes neither file itself.
 func resolverMounts(opts *enginetypes.VirtualizationCreateOptions, dir string) []specs.Mount {
 	resolv, hosts := "/etc/resolv.conf", "/etc/hosts"
 	if len(opts.DNS) > 0 {
@@ -361,8 +358,7 @@ func applyUser(spec *specs.Spec, user string) error {
 	return nil
 }
 
-// numericUser parses uid[:gid]; an unnamed group is root, since the passwd entry that would
-// carry the user's own group lives in the image.
+// numericUser parses uid[:gid]; an unnamed group is root, the image owns the passwd entry.
 func numericUser(user string) (uid, gid uint32, ok bool) {
 	switch user {
 	case "":

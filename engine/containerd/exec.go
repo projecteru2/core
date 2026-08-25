@@ -12,8 +12,7 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-// ctrBinary ships with containerd; a task's stdio lives in node-local fifos, so an exec
-// core can stream has to start on the node.
+// ctrBinary ships with containerd; a task's stdio is a node-local fifo, so exec starts there.
 const ctrBinary = "ctr"
 
 var errAttachNotFound = errors.New("attach not found")

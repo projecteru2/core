@@ -24,8 +24,7 @@ const (
 
 	listScript = `ls -1 "$1" 2>/dev/null || true`
 
-	// a bundle layer is a tar of the rootfs, so oras leaves it packed; an artifact pushed as a
-	// directory arrives unpacked and is left alone.
+	// oras leaves a bundle layer packed; an artifact pushed as a directory arrives unpacked
 	unpackFunc = `unpack() {
 for archive in "$1"/*.tar; do
 [ -f "$archive" ] || continue

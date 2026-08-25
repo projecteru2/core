@@ -91,8 +91,7 @@ func (e *Engine) ImagePull(ctx context.Context, ref string, _ bool) (io.ReadClos
 	return io.NopCloser(strings.NewReader("")), nil
 }
 
-// ImagePush has nothing left to send after a BuildKit solve: the exporter pushed the image
-// and never wrote it into the node's own store.
+// ImagePush has nothing to send after a solve: BuildKit's exporter already pushed the image.
 func (e *Engine) ImagePush(ctx context.Context, ref string) (io.ReadCloser, error) {
 	ref = normalizeRef(ref)
 	image, err := e.client.GetImage(ctx, ref)

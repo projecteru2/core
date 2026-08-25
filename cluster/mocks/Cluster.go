@@ -7,9 +7,10 @@ package mocks
 import (
 	"context"
 
+	mock "github.com/stretchr/testify/mock"
+
 	types0 "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
-	mock "github.com/stretchr/testify/mock"
 )
 
 // NewCluster creates a new instance of Cluster. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.

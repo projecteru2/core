@@ -80,8 +80,7 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 	}
 	socket := cmp.Or(config.Containerd.Socket, defaultSocket)
 	namespace := cmp.Or(config.Containerd.Namespace, defaultNamespace)
-	// containerd serves only the CRI plugin on TCP, so the native API is reached
-	// through an OpenSSH socket forward of the node's own unix socket.
+	// containerd serves only CRI on TCP, so the native API rides an ssh socket forward
 	cli, err := client.New(socket,
 		client.WithDefaultNamespace(namespace),
 		client.WithDefaultPlatform(platforms.Only(platform)),
@@ -160,8 +159,7 @@ func (e *Engine) run(ctx context.Context, argv ...string) (*sshrunner.Result, er
 	return res, sshrunner.ExitError(argv, res)
 }
 
-// nodePlatform is what the client matches an image's manifests against; core's own
-// platform is not the node's.
+// nodePlatform is what the client matches manifests against; core's platform is not the node's.
 func nodePlatform(ctx context.Context, runner sshrunner.Runner) (ocispec.Platform, error) {
 	res, err := runner.Run(ctx, sshrunner.Quote([]string{"uname", "-m"}), nil)
 	if err != nil {

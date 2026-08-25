@@ -2,7 +2,6 @@ package calcium
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"io"
 	"testing"
@@ -89,7 +88,7 @@ func TestBuildImageOnlyNeedsTheSCMForARepo(t *testing.T) {
 
 func TestBuild(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	opts := &types.BuildOptions{
 		Name:        "xx",
 		BuildMethod: types.BuildFromSCM,

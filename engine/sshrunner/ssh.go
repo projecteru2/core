@@ -140,8 +140,7 @@ func (r *sshRunner) Files(ctx context.Context) (Files, error) {
 	return &sftpFiles{client: remote, release: release}, nil
 }
 
-// Dial opens a forwarded connection from the node; a socket forward is not a session,
-// so sshd's MaxSessions does not bound it.
+// Dial forwards a node socket; a forward is not a session, so MaxSessions does not bound it.
 func (r *sshRunner) Dial(ctx context.Context, network, addr string) (net.Conn, error) {
 	client, err := r.connect(ctx, false)
 	if err != nil {
@@ -321,8 +320,7 @@ func closeOnDone(ctx context.Context, sess *ssh.Session) func() {
 	return sync.OnceFunc(func() { close(done) })
 }
 
-// isTransportError separates a dead connection from sshd refusing one more channel,
-// which redialing would only make worse.
+// isTransportError separates a dead connection from sshd refusing one more channel.
 func isTransportError(err error) bool {
 	var openErr *ssh.OpenChannelError
 	if errors.As(err, &openErr) {

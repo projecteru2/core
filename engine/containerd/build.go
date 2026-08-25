@@ -42,7 +42,6 @@ func (e *Engine) BuildRefs(_ context.Context, opts *enginetypes.BuildRefOptions)
 }
 
 // BuildContent renders the build spec into a Dockerfile and tars the context around it.
-// Layout: <buildDir>/<reponame>/<code> next to <buildDir>/Dockerfile.
 func (e *Engine) BuildContent(ctx context.Context, scm coresource.Source, opts *enginetypes.BuildContentOptions) (string, io.Reader, error) {
 	if opts.Builds == nil {
 		return "", nil, coretypes.ErrNoBuildsInSpec
@@ -147,7 +146,6 @@ func (e *Engine) buildkit(ctx context.Context) (*bkclient.Client, error) {
 	}))
 }
 
-// buildAuth hands core's registry credentials to the solve session.
 func (e *Engine) buildAuth() session.Attachable {
 	auths := e.config.Registry.Auths
 	return authprovider.NewDockerAuthProvider(authprovider.DockerAuthProviderConfig{

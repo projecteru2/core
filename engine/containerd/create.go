@@ -26,8 +26,7 @@ import (
 )
 
 const (
-	// logShimURI runs the agent's log-shim, which writes the task's output to journald.
-	// containerd flattens the query into argv pairs, so the mode arrives as a subcommand.
+	// containerd flattens the query into argv pairs, so log-shim arrives as the agent's subcommand
 	logShimURI = "binary://" + hookBinary + "?log-shim"
 
 	mountMark  = "mount:"
@@ -75,8 +74,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		}
 	}
 
-	// the container id is the workload name: eru-agent reads appname, entrypoint and
-	// ident straight off it, and containerd carries no name of its own
+	// the container id is the workload name: containerd carries no name eru-agent could read
 	ID := opts.Name
 	if err := identifiers.Validate(ID); err != nil {
 		return nil, errors.Wrapf(coretypes.ErrInvalidWorkloadName, "containerd cannot name %q", ID)
@@ -127,8 +125,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	return &enginetypes.VirtualizationCreated{ID: created.ID(), Name: opts.Name, Labels: opts.Labels}, nil
 }
 
-// prepareNode creates the bind sources, writes the resolver files and resolves the
-// block devices the IOPS knobs address; only the node can answer any of it.
+// prepareNode asks the node for what containerd's API cannot answer about a create.
 func (e *Engine) prepareNode(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions, resource *engine.VirtualizationResource, dir string) ([]blockDevice, error) {
 	paths := []string{}
 	for _, mount := range volumeMounts(resource.Volumes, opts.Env) {
