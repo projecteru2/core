@@ -292,12 +292,6 @@ func TestETCD(t *testing.T) {
 	r, err = m.BatchCreate(ctx, data)
 	require.Error(t, err)
 	require.False(t, r.Succeeded)
-	r, err = m.Update(ctx, "test/2", "b")
-	require.NoError(t, err)
-	require.True(t, r.Succeeded)
-	r, err = m.Update(ctx, "test/3", "b")
-	require.EqualError(t, err, "key not exists")
-	require.False(t, r.Succeeded)
 	data = map[string]string{
 		"k1": "b1",
 		"k2": "b2",

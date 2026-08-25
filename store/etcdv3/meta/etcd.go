@@ -143,10 +143,6 @@ func (e *ETCD) Create(ctx context.Context, key, val string, opts ...clientv3.OpO
 	return e.BatchCreate(ctx, map[string]string{key: val}, opts...)
 }
 
-func (e *ETCD) Update(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	return e.BatchUpdate(ctx, map[string]string{key: val}, opts...)
-}
-
 func (e *ETCD) Watch(ctx context.Context, key string, opts ...clientv3.OpOption) clientv3.WatchChan {
 	return e.cliv3.Watch(ctx, key, opts...)
 }
