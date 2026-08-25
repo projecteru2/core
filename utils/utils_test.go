@@ -49,22 +49,6 @@ func TestGetGitRepoName(t *testing.T) {
 	assert.Equal(t, r1, "core")
 }
 
-func TestGetTag(t *testing.T) {
-	v := GetTag("xx")
-	assert.Equal(t, v, DefaultVersion)
-	v = GetTag("xx:1:2")
-	assert.Equal(t, v, "2")
-	v = GetTag("xx:2")
-	assert.Equal(t, v, "2")
-}
-
-func TestNormalizeImageName(t *testing.T) {
-	i := NormalizeImageName("image")
-	assert.Equal(t, i, "image:latest")
-	i = NormalizeImageName("image:1")
-	assert.Equal(t, i, "image:1")
-}
-
 func TestMakeCommandLine(t *testing.T) {
 	r1 := MakeCommandLineArgs("/bin/bash -l -c 'echo \"foo bar bah bin\"'")
 	assert.Equal(t, r1, []string{"/bin/bash", "-l", "-c", "echo \"foo bar bah bin\""})
@@ -116,15 +100,6 @@ func TestPublishInfo(t *testing.T) {
 	assert.Equal(t, len(e), 2)
 	assert.Equal(t, e["n1"], "233.233.233.233:123,233.233.233.233:233")
 	assert.Equal(t, e["host"], "127.0.0.1:123,127.0.0.1:233")
-
-	r2 := DecodePublishInfo(e)
-	assert.Equal(t, len(r2), 2)
-	assert.Equal(t, len(r2["n1"]), 2)
-	assert.Equal(t, len(r2["host"]), 2)
-	assert.Equal(t, r2["n1"][0], "233.233.233.233:123")
-	assert.Equal(t, r2["n1"][1], "233.233.233.233:233")
-	assert.Equal(t, r2["host"][0], "127.0.0.1:123")
-	assert.Equal(t, r2["host"][1], "127.0.0.1:233")
 }
 
 func TestMetaInLabel(t *testing.T) {

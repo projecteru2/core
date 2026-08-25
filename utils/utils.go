@@ -55,22 +55,6 @@ func GetGitRepoName(url string) (string, error) {
 	return strings.TrimSuffix(Tail(url), ".git"), nil
 }
 
-// GetTag returns the image tag, or DefaultVersion when the reference has none.
-func GetTag(image string) string {
-	if !strings.Contains(image, ":") {
-		return DefaultVersion
-	}
-	return image[strings.LastIndex(image, ":")+1:]
-}
-
-// NormalizeImageName appends ":latest" when the image reference has no tag.
-func NormalizeImageName(image string) string {
-	if !strings.Contains(image, ":") {
-		return image + ":latest"
-	}
-	return image
-}
-
 // MakeCommandLineArgs splits s into argv, honoring single and double quotes.
 func MakeCommandLineArgs(s string) []string {
 	r := []string{}
@@ -120,17 +104,6 @@ func EncodePublishInfo(info map[string][]string) map[string]string {
 	for nm, publishs := range info {
 		if len(publishs) > 0 {
 			result[nm] = strings.Join(publishs, ",")
-		}
-	}
-	return result
-}
-
-// DecodePublishInfo splits each network's comma-joined addresses.
-func DecodePublishInfo(info map[string]string) map[string][]string {
-	result := map[string][]string{}
-	for nm, publishs := range info {
-		if publishs != "" {
-			result[nm] = strings.Split(publishs, ",")
 		}
 	}
 	return result
