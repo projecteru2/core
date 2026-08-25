@@ -2,10 +2,9 @@ package helium
 
 import (
 	"context"
+	"math/rand/v2"
 	"sync"
 	"time"
-
-	"github.com/google/uuid"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/store"
@@ -42,22 +41,25 @@ func New(ctx context.Context, config types.GRPCConfig, store store.Store) *Heliu
 	return h
 }
 
-func (h *Helium) Subscribe(ctx context.Context) (uuid.UUID, <-chan types.ServiceStatus) {
-	ID := uuid.New()
-	key := ID.ID()
+func (h *Helium) Subscribe(ctx context.Context) (uint32, <-chan types.ServiceStatus) {
 	subCtx, cancel := context.WithCancel(ctx)
 	ch := make(chan types.ServiceStatus)
-	h.subs.Store(key, entry{
+	sub := entry{
 		ch:     ch,
 		ctx:    subCtx,
 		cancel: cancel,
-	})
-	return ID, ch
+	}
+	for {
+		ID := rand.Uint32() //nolint:gosec
+		if _, taken := h.subs.LoadOrStore(ID, sub); !taken {
+			return ID, ch
+		}
+	}
 }
 
-func (h *Helium) Unsubscribe(ID uuid.UUID) {
+func (h *Helium) Unsubscribe(ID uint32) {
 	select {
-	case h.unsubChan <- ID.ID():
+	case h.unsubChan <- ID:
 	case <-h.done:
 	}
 }

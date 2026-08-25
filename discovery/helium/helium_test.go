@@ -24,7 +24,7 @@ func TestHelium(t *testing.T) {
 	service := New(t.Context(), grpcConfig, store)
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
-	uuid, chStatus := service.Subscribe(ctx)
+	ID, chStatus := service.Subscribe(ctx)
 
 	addresses1 := []string{
 		"10.0.0.1",
@@ -45,7 +45,7 @@ func TestHelium(t *testing.T) {
 	assert.Equal(t, addresses2, status2.Addresses)
 	assert.NotEqual(t, status1.Addresses, status2.Addresses)
 
-	service.Unsubscribe(uuid)
+	service.Unsubscribe(ID)
 	close(chAddr)
 }
 
@@ -64,9 +64,9 @@ func TestPanic(t *testing.T) {
 
 	for range 1000 {
 		go func() {
-			uuid, _ := service.Subscribe(ctx)
+			ID, _ := service.Subscribe(ctx)
 			time.Sleep(time.Second)
-			service.Unsubscribe(uuid)
+			service.Unsubscribe(ID)
 		}()
 	}
 
@@ -87,7 +87,7 @@ func TestUnsubscribeAfterWatchClosed(t *testing.T) {
 
 	grpcConfig := types.GRPCConfig{ServiceDiscoveryPushInterval: time.Second}
 	service := New(t.Context(), grpcConfig, store)
-	uuid, _ := service.Subscribe(t.Context())
+	ID, _ := service.Subscribe(t.Context())
 
 	close(chAddr)
 	<-service.done
@@ -95,7 +95,7 @@ func TestUnsubscribeAfterWatchClosed(t *testing.T) {
 	returned := make(chan struct{})
 	go func() {
 		defer close(returned)
-		service.Unsubscribe(uuid)
+		service.Unsubscribe(ID)
 	}()
 
 	select {

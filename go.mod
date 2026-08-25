@@ -14,7 +14,6 @@ require (
 	github.com/getsentry/sentry-go v0.48.0
 	github.com/go-git/go-git/v5 v5.19.2
 	github.com/go-viper/mapstructure/v2 v2.5.0
-	github.com/google/uuid v1.6.0
 	github.com/jinzhu/configor v1.2.2
 	github.com/moby/go-archive v0.3.3
 	github.com/opencontainers/image-spec v1.1.1
@@ -73,6 +72,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0 // indirect
