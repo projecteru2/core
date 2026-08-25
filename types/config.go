@@ -36,6 +36,7 @@ type Config struct {
 	Docker         DockerConfig         `yaml:"docker"`
 	Registry       RegistryConfig       `yaml:"registry"`
 	Build          BuildConfig          `yaml:"build"`
+	Containerd     ContainerdConfig     `yaml:"containerd"`
 	Process        ProcessConfig        `yaml:"process"`
 	Virt           VirtConfig           `yaml:"virt"`
 	Scheduler      SchedulerConfig      `yaml:"scheduler"`
@@ -128,6 +129,12 @@ type RegistryConfig struct {
 // BuildConfig selects the nodes allowed to run in-cluster image builds.
 type BuildConfig struct {
 	NodeFilter NodeFilter `yaml:"node_filter"`
+}
+
+// ContainerdConfig is the node-side socket the containerd engine reaches over SSH.
+type ContainerdConfig struct {
+	Socket    string `yaml:"socket" default:"/run/containerd/containerd.sock"`
+	Namespace string `yaml:"namespace" default:"eru"`
 }
 
 // ProcessConfig is the node-side layout the process engine writes into.

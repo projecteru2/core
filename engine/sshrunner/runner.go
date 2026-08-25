@@ -3,6 +3,7 @@ package sshrunner
 import (
 	"context"
 	"io"
+	"net"
 	"os"
 )
 
@@ -11,6 +12,7 @@ type Runner interface {
 	Run(ctx context.Context, line string, stdin io.Reader) (*Result, error)
 	Start(ctx context.Context, line string, opts *StartOptions) (Session, error)
 	Files(ctx context.Context) (Files, error)
+	Dial(ctx context.Context, network, addr string) (net.Conn, error)
 	Close() error
 }
 

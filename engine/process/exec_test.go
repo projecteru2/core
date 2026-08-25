@@ -8,13 +8,14 @@ import (
 	"github.com/cockroachdb/errors"
 
 	"github.com/projecteru2/core/engine/sshrunner"
+	"github.com/projecteru2/core/engine/sshrunner/sshrunnertest"
 	enginetypes "github.com/projecteru2/core/engine/types"
 )
 
 func TestExecuteRunsAScopeInTheWorkloadSlice(t *testing.T) {
-	runner := &fakeRunner{
-		started: &fakeSession{code: 7},
-		respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: "1\n" + overlayMeta} },
+	runner := &sshrunnertest.Fake{
+		Started: &sshrunnertest.Session{Code: 7},
+		Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: "1\n" + overlayMeta} },
 	}
 	e := testEngine(t, runner)
 
@@ -33,16 +34,16 @@ func TestExecuteRunsAScopeInTheWorkloadSlice(t *testing.T) {
 		"--setenv=FOO=bar", "--",
 		"chroot", "--userspec=app", "/var/lib/eru/process/w1/merged", "ls", "-l",
 	})
-	if len(runner.lines) != 2 || runner.lines[1] != want {
-		t.Fatalf("got %q, want the meta read then %q", runner.lines, want)
+	if len(runner.Lines()) != 2 || runner.Lines()[1] != want {
+		t.Fatalf("got %q, want the meta read then %q", runner.Lines(), want)
 	}
-	if !strings.Contains(runner.lines[0], workloadDir(testRoot, "w1")) {
+	if !strings.Contains(runner.Lines()[0], workloadDir(testRoot, "w1")) {
 		t.Errorf("the first command must read the record under %q", workloadDir(testRoot, "w1"))
 	}
 
 	code, err := e.ExecExitCode(t.Context(), "w1", execID)
 	if err != nil {
-		t.Fatalf("exit code: %v", err)
+		t.Fatalf("exit Code: %v", err)
 	}
 	if code != 7 {
 		t.Errorf("got exit code %d, want 7", code)
@@ -50,7 +51,7 @@ func TestExecuteRunsAScopeInTheWorkloadSlice(t *testing.T) {
 }
 
 func TestExecExitCodeRejectsAnUnknownExec(t *testing.T) {
-	e := testEngine(t, &fakeRunner{})
+	e := testEngine(t, &sshrunnertest.Fake{})
 
 	if _, err := e.ExecExitCode(t.Context(), "w1", "missing"); !errors.Is(err, errExecNotFound) {
 		t.Errorf("got %v, want errExecNotFound", err)

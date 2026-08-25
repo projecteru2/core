@@ -140,6 +140,23 @@ func (r *sshRunner) Files(ctx context.Context) (Files, error) {
 	return &sftpFiles{client: remote, release: release}, nil
 }
 
+// Dial opens a forwarded connection from the node; a socket forward is not a session,
+// so sshd's MaxSessions does not bound it.
+func (r *sshRunner) Dial(ctx context.Context, network, addr string) (net.Conn, error) {
+	client, err := r.connect(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	conn, err := client.Dial(network, addr)
+	if err == nil || !isTransportError(err) {
+		return conn, err
+	}
+	if client, err = r.connect(ctx, true); err != nil {
+		return nil, err
+	}
+	return client.Dial(network, addr)
+}
+
 func (r *sshRunner) Close() error {
 	r.mu.Lock()
 	defer r.mu.Unlock()

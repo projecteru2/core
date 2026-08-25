@@ -9,6 +9,7 @@ import (
 	"github.com/cockroachdb/errors"
 
 	"github.com/projecteru2/core/engine/sshrunner"
+	"github.com/projecteru2/core/engine/sshrunner/sshrunnertest"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	coretypes "github.com/projecteru2/core/types"
@@ -25,7 +26,7 @@ User=app
 `
 
 func TestVirtualizationCreateRecordsTheUnitAndTheMetaFile(t *testing.T) {
-	runner := &fakeRunner{}
+	runner := &sshrunnertest.Fake{}
 	e := testEngine(t, runner)
 
 	created, err := e.VirtualizationCreate(t.Context(), &enginetypes.VirtualizationCreateOptions{
@@ -37,8 +38,8 @@ func TestVirtualizationCreateRecordsTheUnitAndTheMetaFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}
-	if len(runner.lines) != 1 {
-		t.Fatalf("got %d commands, want 1", len(runner.lines))
+	if len(runner.Lines()) != 1 {
+		t.Fatalf("got %d commands, want 1", len(runner.Lines()))
 	}
 
 	for _, want := range []string{
@@ -54,14 +55,14 @@ func TestVirtualizationCreateRecordsTheUnitAndTheMetaFile(t *testing.T) {
 		`"podname":"prod"`,
 		`"root_directory":"` + workloadDir(testRoot, created.ID) + `/merged"`,
 	} {
-		if !strings.Contains(runner.lines[0], want) {
+		if !strings.Contains(runner.Lines()[0], want) {
 			t.Errorf("create command does not carry %q", want)
 		}
 	}
 }
 
 func TestVirtualizationCreateSkipsTheOverlayForARawWorkload(t *testing.T) {
-	runner := &fakeRunner{}
+	runner := &sshrunnertest.Fake{}
 	e := testEngine(t, runner)
 
 	created, err := e.VirtualizationCreate(t.Context(), &enginetypes.VirtualizationCreateOptions{
@@ -74,21 +75,21 @@ func TestVirtualizationCreateSkipsTheOverlayForARawWorkload(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}
-	if strings.Contains(runner.lines[0], "RootDirectory=") {
+	if strings.Contains(runner.Lines()[0], "RootDirectory=") {
 		t.Error("a raw workload must not get a RootDirectory")
 	}
 	for _, want := range []string{
 		"WorkingDirectory=" + workloadDir(testRoot, created.ID) + "/lower",
 		"TasksMax=64",
 	} {
-		if !strings.Contains(runner.lines[0], want) {
+		if !strings.Contains(runner.Lines()[0], want) {
 			t.Errorf("create command does not carry %q", want)
 		}
 	}
 }
 
 func TestVirtualizationCreateRejectsAnUnusablePodname(t *testing.T) {
-	e := testEngine(t, &fakeRunner{})
+	e := testEngine(t, &sshrunnertest.Fake{})
 
 	_, err := e.VirtualizationCreate(t.Context(), &enginetypes.VirtualizationCreateOptions{
 		Name:  "app_web_xyz",
@@ -101,7 +102,7 @@ func TestVirtualizationCreateRejectsAnUnusablePodname(t *testing.T) {
 }
 
 func TestVirtualizationLifecycleCommandSequence(t *testing.T) {
-	runner := &fakeRunner{}
+	runner := &sshrunnertest.Fake{}
 	e := testEngine(t, runner)
 	ctx := t.Context()
 
@@ -128,8 +129,8 @@ func TestVirtualizationLifecycleCommandSequence(t *testing.T) {
 		sshrunner.Quote([]string{"systemctl", "thaw", "eru-w1.service"}),
 		sshrunner.Quote([]string{"sh", "-c", removeScript, "sh", "eru-w1.service", testRoot + "/w1", "/run/eru/workloads/w1.json", "1"}),
 	}
-	if !slices.Equal(runner.lines, want) {
-		t.Errorf("got %q, want %q", runner.lines, want)
+	if !slices.Equal(runner.Lines(), want) {
+		t.Errorf("got %q, want %q", runner.Lines(), want)
 	}
 }
 
@@ -144,22 +145,22 @@ func TestVirtualizationStopOnlyKillsWhenForced(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			runner := &fakeRunner{}
+			runner := &sshrunnertest.Fake{}
 			e := testEngine(t, runner)
 
 			if err := e.VirtualizationStop(t.Context(), "w1", tt.timeout); err != nil {
 				t.Fatalf("stop: %v", err)
 			}
 			want := sshrunner.Quote([]string{"sh", "-c", stopScript, "sh", "eru-w1.service", testRoot + "/w1", tt.force})
-			if len(runner.lines) != 1 || runner.lines[0] != want {
-				t.Errorf("got %q, want %q", runner.lines, want)
+			if len(runner.Lines()) != 1 || runner.Lines()[0] != want {
+				t.Errorf("got %q, want %q", runner.Lines(), want)
 			}
 		})
 	}
 }
 
 func TestVirtualizationRemoveReportsAMissingWorkload(t *testing.T) {
-	runner := &fakeRunner{respond: func(string) *sshrunner.Result { return &sshrunner.Result{Code: notExistsCode} }}
+	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Code: notExistsCode} }}
 	e := testEngine(t, runner)
 
 	if err := e.VirtualizationRemove(t.Context(), "w1", true, false); !errors.Is(err, coretypes.ErrWorkloadNotExists) {
@@ -168,7 +169,7 @@ func TestVirtualizationRemoveReportsAMissingWorkload(t *testing.T) {
 }
 
 func TestVirtualizationInspectParsesSystemctlShow(t *testing.T) {
-	runner := &fakeRunner{respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: showOutput} }}
+	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: showOutput} }}
 	e := testEngine(t, runner)
 
 	info, err := e.VirtualizationInspect(t.Context(), "w1")
@@ -187,7 +188,7 @@ func TestVirtualizationInspectParsesSystemctlShow(t *testing.T) {
 }
 
 func TestVirtualizationInspectReportsAnExitedWorkloadAsStopped(t *testing.T) {
-	runner := &fakeRunner{respond: func(string) *sshrunner.Result {
+	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result {
 		return &sshrunner.Result{Stdout: "LoadState=not-found\nActiveState=inactive\nSubState=dead\nUser=\n"}
 	}}
 	e := testEngine(t, runner)
@@ -202,7 +203,7 @@ func TestVirtualizationInspectReportsAnExitedWorkloadAsStopped(t *testing.T) {
 }
 
 func TestVirtualizationInspectReportsAMissingWorkload(t *testing.T) {
-	runner := &fakeRunner{respond: func(string) *sshrunner.Result { return &sshrunner.Result{Code: notExistsCode} }}
+	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Code: notExistsCode} }}
 	e := testEngine(t, runner)
 
 	_, err := e.VirtualizationInspect(t.Context(), "w1")
@@ -212,7 +213,7 @@ func TestVirtualizationInspectReportsAMissingWorkload(t *testing.T) {
 }
 
 func TestVirtualizationWaitReturnsExecMainStatus(t *testing.T) {
-	runner := &fakeRunner{respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: "3\n"} }}
+	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: "3\n"} }}
 	e := testEngine(t, runner)
 
 	waited, err := e.VirtualizationWait(t.Context(), "w1", "")
@@ -225,7 +226,7 @@ func TestVirtualizationWaitReturnsExecMainStatus(t *testing.T) {
 }
 
 func TestVirtualizationWaitFailsOnAnUnreadableStatus(t *testing.T) {
-	runner := &fakeRunner{respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: "\n"} }}
+	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: "\n"} }}
 	e := testEngine(t, runner)
 
 	waited, err := e.VirtualizationWait(t.Context(), "w1", "")
@@ -238,7 +239,7 @@ func TestVirtualizationWaitFailsOnAnUnreadableStatus(t *testing.T) {
 }
 
 func TestVirtualizationRemoveRefusesARunningWorkload(t *testing.T) {
-	runner := &fakeRunner{respond: func(string) *sshrunner.Result { return &sshrunner.Result{Code: runningCode} }}
+	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Code: runningCode} }}
 	e := testEngine(t, runner)
 
 	if err := e.VirtualizationRemove(t.Context(), "w1", true, false); !errors.Is(err, coretypes.ErrInvaildWorkloadOps) {
@@ -247,7 +248,7 @@ func TestVirtualizationRemoveRefusesARunningWorkload(t *testing.T) {
 }
 
 func TestVirtualizationUpdateResourceSetsLiveProperties(t *testing.T) {
-	runner := &fakeRunner{}
+	runner := &sshrunnertest.Fake{}
 	e := testEngine(t, runner)
 
 	params := resourcetypes.Resources{"cpumem": {"cpu": 2.0, "memory": 1 << 30}}
@@ -260,13 +261,13 @@ func TestVirtualizationUpdateResourceSetsLiveProperties(t *testing.T) {
 		"MemoryMax=1073741824", "MemoryLow=536870912", "MemorySwapMax=0",
 		"IOReadIOPSMax=", "IOWriteIOPSMax=", "IOReadBandwidthMax=", "IOWriteBandwidthMax=",
 	})
-	if len(runner.lines) != 1 || runner.lines[0] != want {
-		t.Errorf("got %q, want %q", runner.lines, want)
+	if len(runner.Lines()) != 1 || runner.Lines()[0] != want {
+		t.Errorf("got %q, want %q", runner.Lines(), want)
 	}
 }
 
 func TestVirtualizationUpdateResourceClearsTheOldShape(t *testing.T) {
-	runner := &fakeRunner{}
+	runner := &sshrunnertest.Fake{}
 	e := testEngine(t, runner)
 
 	if err := e.VirtualizationUpdateResource(t.Context(), "w1", resourcetypes.Resources{}); err != nil {
@@ -278,7 +279,7 @@ func TestVirtualizationUpdateResourceClearsTheOldShape(t *testing.T) {
 		"MemoryMax=infinity", "MemoryLow=0", "MemorySwapMax=0",
 		"IOReadIOPSMax=", "IOWriteIOPSMax=", "IOReadBandwidthMax=", "IOWriteBandwidthMax=",
 	})
-	if len(runner.lines) != 1 || runner.lines[0] != want {
-		t.Errorf("got %q, want %q", runner.lines, want)
+	if len(runner.Lines()) != 1 || runner.Lines()[0] != want {
+		t.Errorf("got %q, want %q", runner.Lines(), want)
 	}
 }
