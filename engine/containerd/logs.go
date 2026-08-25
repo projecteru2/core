@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/containerd/containerd/v2/client"
 
 	"github.com/projecteru2/core/engine/journal"
@@ -17,8 +18,8 @@ import (
 // logFlushGrace lets journald hand over the last lines a dying task wrote.
 const logFlushGrace = time.Second
 
-// attach is a live `ctr tasks attach`: the session core resizes, and the task exit registered
-// before ctr started, because ctr deletes the task when the attach ends.
+// attach is the `ctr tasks start` session an interactive workload runs under: it owns the
+// task's fifos, so it is at once the workload's stdio, its console and its exit status.
 type attach struct {
 	sess   sshrunner.Session
 	exited <-chan client.ExitStatus
@@ -53,49 +54,46 @@ func (e *Engine) VirtualizationLogs(ctx context.Context, opts *enginetypes.Virtu
 	return sshrunner.Reader(running), nil, nil
 }
 
-// VirtualizationAttach without stdin is the journald follow; with stdin it is `ctr tasks attach`
-// on the node, since a task's stdio lives in fifos core cannot reach.
+// VirtualizationAttach without stdin is the journald follow; with stdin it hands back the
+// session the workload was started under, which is the only thing holding its fifos.
 func (e *Engine) VirtualizationAttach(ctx context.Context, ID string, _, stdin bool) (io.ReadCloser, io.ReadCloser, io.WriteCloser, error) {
 	if !stdin {
 		stdout, stderr, err := e.VirtualizationLogs(ctx, &enginetypes.VirtualizationLogStreamOptions{ID: ID, Follow: true})
 		return stdout, stderr, nil, err
 	}
 
-	found, err := e.container(ctx, ID)
-	if err != nil {
-		return nil, nil, nil, err
+	e.mu.Lock()
+	running, ok := e.attaches[ID]
+	e.mu.Unlock()
+	if !ok {
+		return nil, nil, nil, errors.Wrap(errAttachNotFound, ID)
 	}
-	info, err := found.Info(ctx, client.WithoutRefreshedMetadata)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	spec, err := containerSpec(info)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	task, err := found.Task(ctx, nil)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	exited, err := task.Wait(ctx)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	return e.startAttach(ctx, found.ID(), spec.Process != nil && spec.Process.Terminal, exited)
+	return io.NopCloser(running.sess.Stdout()), io.NopCloser(running.sess.Stderr()), running.sess.Stdin(), nil
 }
 
-// startAttach wires the node-side attach onto the streams core reads and writes.
-func (e *Engine) startAttach(ctx context.Context, ID string, tty bool, exited <-chan client.ExitStatus) (io.ReadCloser, io.ReadCloser, io.WriteCloser, error) {
-	argv := []string{ctrBinary, "--address", e.socket, "--namespace", e.namespace, "tasks", "attach", ID}
-	running, err := e.runner.Start(ctx, sshrunner.Quote(argv), &sshrunner.StartOptions{Stdin: true, TTY: tty})
+// startInteractive runs the task under `ctr tasks start`, which reads process.terminal off the
+// spec, makes the fifos on the node and relays them to the session's own stdio.
+func (e *Engine) startInteractive(ctx context.Context, ID string) error {
+	argv := []string{ctrBinary, "--address", e.socket, "--namespace", e.namespace, "tasks", "start", ID}
+	running, err := e.runner.Start(ctx, sshrunner.Quote(argv), &sshrunner.StartOptions{Stdin: true, TTY: true})
 	if err != nil {
-		return nil, nil, nil, err
+		return err
 	}
 
+	exited := make(chan client.ExitStatus, 1)
+	go waitSession(running, exited)
 	e.mu.Lock()
 	e.attaches[ID] = &attach{sess: running, exited: exited}
 	e.mu.Unlock()
-	return sshrunner.Reader(running), running.Stderr(), running.Stdin(), nil
+	return nil
+}
+
+// waitSession turns ctr's own exit into the workload's: it exits with the task's status.
+func waitSession(running sshrunner.Session, exited chan<- client.ExitStatus) {
+	code, err := running.Wait()
+	_ = running.Close()
+	exited <- *client.NewExitStatus(uint32(max(code, 0)), time.Now(), err) //nolint:gosec // a shell exit status is never past 255
+	close(exited)
 }
 
 func endWithTask(ctx context.Context, task client.Task, running sshrunner.Session) {

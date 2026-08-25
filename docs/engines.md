@@ -41,15 +41,15 @@ matches an image's manifests against, since core's own platform is not the node'
 | `engine.API` | containerd |
 | --- | --- |
 | `VirtualizationCreate` | `NewContainer` with a new snapshot and the rendered OCI spec; the container id **is** the workload name, so eru-agent reads appname, entrypoint and ident straight off it, and it is also the workload's hostname — which caps it at 64 bytes, `HOST_NAME_MAX` |
-| `VirtualizationStart` | `NewTask` with the log-shim `LogURI`, `task.Start`, then `containerd.io/restart.status=running` |
+| `VirtualizationStart` | `NewTask` with the log-shim `LogURI`, `task.Start`, then `containerd.io/restart.status=running`; a workload created with `open_stdin` is started by `ctr tasks start` over a session core keeps open |
 | `VirtualizationStop` | `containerd.io/restart.status=stopped` first so the restart plugin does not race, then the image's stop signal and `SIGKILL` after the grace period, then `task.Delete`. A plain stop takes `containerd.stop_timeout`, a forced one kills at once |
 | `VirtualizationRemove` | refuses a running workload unless forced, kills the task and deletes the container with its snapshot |
 | `VirtualizationSuspend` / `Resume` | `task.Pause` / `task.Resume` |
 | `VirtualizationInspect` | the container record for labels and spec, one task-service `Get` for the running state |
 | `VirtualizationWait` | `task.Wait` |
 | `VirtualizationLogs` | `journalctl SYSLOG_IDENTIFIER=eru ERU_ID=<id>` over SSH, with `-n`, `--since` and `--until`; a followed stream ends when the task exits |
-| `VirtualizationAttach` | without stdin, the journald follow; with stdin, `ctr tasks attach` over the SSH session |
-| `VirtualizationResize` | the attach session's window change |
+| `VirtualizationAttach` | without stdin, the journald follow; with stdin, the streams of the session the workload was started under |
+| `VirtualizationResize` | that session's window change |
 | `Execute` / `ExecResize` / `ExecExitCode` | `ctr tasks exec` over the SSH session: stdio is the session's, the TTY is the session's pty, and the exit status is the session's |
 | `VirtualizationUpdateResource` | `container.Update` of the stored spec **and** `task.Update` of the live cgroup, so a restart replays the new limits |
 | `VirtualizationCopyTo` / `CopyFrom` | a tar stream through `ctr tasks exec`; a workload whose task has not started yet is written into through its own snapshot, mounted on the node with `ctr snapshots mounts` |
@@ -65,9 +65,24 @@ Both run `ctr` on the node, so `ctr` is a prerequisite alongside containerd itse
 stream through the SSH session rather than through the containerd API:
 
 ```
-ctr --address <containerd.socket> --namespace <containerd.namespace> tasks exec   --exec-id <id> [--tty] [--user U] [--cwd D] <workload> [env K=V …] <cmd…>
-ctr --address <containerd.socket> --namespace <containerd.namespace> tasks attach <workload>
+ctr --address <containerd.socket> --namespace <containerd.namespace> tasks exec  --exec-id <id> [--tty] [--user U] [--cwd D] <workload> [env K=V …] <cmd…>
+ctr --address <containerd.socket> --namespace <containerd.namespace> tasks start <workload>
 ```
+
+### Interactive workloads
+
+A task has fifos **or** a log URI, never both. `cio.LogURI` creates it with no stdin fifo and
+`Terminal=false`, so a workload deployed with `open_stdin` cannot be given the log shim: runc
+refuses to start it (`cannot allocate tty … without setting console socket`), and `ctr tasks
+attach` cannot reach it either, because the task's recorded stdio paths are the `binary://` URI.
+
+Core therefore starts such a workload differently: `ctr tasks start <id>` over an SSH session
+that stays open for the workload's life. `ctr` reads `process.terminal` off the spec, creates the
+fifos on the node and relays them to its own stdio, so that session *is* the attach — its streams
+are what `VirtualizationAttach` hands back, its window change is what `VirtualizationResize`
+sends, and its exit status is the workload's, which is what `VirtualizationWait` reports once
+`ctr` has deleted the task. Such a workload has no log shim and nothing in journald: its output
+travels the stream, exactly as it did with docker. Everything else keeps `NewTask` + `LogURI`.
 
 `ctr tasks exec` in containerd 2.3.4 takes only `--cwd`, `--tty`, `--detach`, `--exec-id`,
 `--fifo-dir`, `--log-uri` and `--user` — there is no env flag — so the deploy's environment rides
@@ -86,10 +101,6 @@ A deploy's `--file` arrives before the workload starts, so `VirtualizationCopyTo
 exec in. For a container with no task the engine mounts the container's own snapshot on the node
 — `ctr snapshots mounts` prints the mount command, which the same SSH session evaluates — untars
 into it and unmounts. The exec path stays for a running workload.
-
-`ctr tasks attach` deletes the task when the attach ends. Core therefore registers the task's
-exit watch *before* starting `ctr`, and `VirtualizationWait` takes the exit status from that
-watch: by the time a lambda finishes draining the stream, the task record is already gone.
 
 ### Resources
 
@@ -151,7 +162,7 @@ nerdctl and CRI convention — and carries no hooks; it inspects as `{"host": <n
 
 ### Logs
 
-containerd keeps no log store, so the task is created with
+containerd keeps no log store, so a task that is not interactive is created with
 
 ```
 cio.LogURI = binary:///usr/local/bin/eru-agent?log-shim

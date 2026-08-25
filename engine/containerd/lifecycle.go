@@ -34,6 +34,24 @@ func (e *Engine) VirtualizationStart(ctx context.Context, ID string) error {
 	if err != nil {
 		return err
 	}
+	info, err := found.Info(ctx, client.WithoutRefreshedMetadata)
+	if err != nil {
+		return err
+	}
+	spec, err := containerSpec(info)
+	if err != nil {
+		return err
+	}
+
+	// a task has fifos or a log uri, never both: an interactive workload needs the fifos, so
+	// ctr makes them on the node and the session it runs under carries them
+	if spec.Process != nil && spec.Process.Terminal {
+		if err = e.startInteractive(ctx, found.ID()); err != nil {
+			return err
+		}
+		return e.setDesiredStatus(ctx, found, info.Labels, client.Running)
+	}
+
 	uri, err := url.Parse(logShimURI)
 	if err != nil {
 		return err
@@ -50,11 +68,7 @@ func (e *Engine) VirtualizationStart(ctx context.Context, ID string) error {
 	if err = task.Start(ctx); err != nil && !cerrdefs.IsFailedPrecondition(err) {
 		return err
 	}
-	labels, err := found.Labels(ctx)
-	if err != nil {
-		return err
-	}
-	return e.setDesiredStatus(ctx, found, labels, client.Running)
+	return e.setDesiredStatus(ctx, found, info.Labels, client.Running)
 }
 
 func (e *Engine) VirtualizationStop(ctx context.Context, ID string, gracefulTimeout time.Duration) error {
@@ -228,8 +242,8 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, en
 	return task.Update(ctx, client.WithResources(limits))
 }
 
-// exitWatch prefers the watch an attach registered: `ctr tasks attach` deletes the task when it
-// ends, so by the time core waits, the task itself may already be gone.
+// exitWatch prefers the watch a start session registered: ctr owns an interactive workload's
+// task and deletes it when it ends, so by the time core waits the task may be gone.
 func (e *Engine) exitWatch(ctx context.Context, ID string) (<-chan client.ExitStatus, error) {
 	e.mu.Lock()
 	running, ok := e.attaches[ID]
