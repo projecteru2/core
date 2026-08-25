@@ -41,9 +41,7 @@ func (c *Calcium) SendLargeFile(ctx context.Context, inputChan chan *types.SendL
 type workloadSender struct {
 	calcium *Calcium
 	id      string
-	wg      *sync.WaitGroup
 	buffer  chan *types.SendLargeFileOptions
-	resp    chan *types.SendMessage
 }
 
 func (s *workloadSender) send(chunk *types.SendLargeFileOptions) {
@@ -59,9 +57,7 @@ func (c *Calcium) newWorkloadSender(ctx context.Context, ID string, resp chan *t
 	sender := &workloadSender{
 		calcium: c,
 		id:      ID,
-		wg:      wg,
 		buffer:  make(chan *types.SendLargeFileOptions, 10),
-		resp:    resp,
 	}
 	utils.SentryGo(func() {
 		defer wg.Done()
@@ -78,19 +74,17 @@ func (c *Calcium) newWorkloadSender(ctx context.Context, ID string, resp chan *t
 				pr, pw := io.Pipe()
 				writer = pw
 				wg.Add(1)
-				utils.SentryGo(func(ID, name string, size int64, content *io.PipeReader, uid, gid int, mode int64) func() {
-					return func() {
-						defer wg.Done()
-						defer func() { _ = content.Close() }()
-						if err := sender.calcium.withWorkloadLocked(ctx, ID, false, func(ctx context.Context, workload *types.Workload) error {
-							err := errors.WithStack(workload.Engine.VirtualizationCopyChunkTo(ctx, ID, name, size, content, uid, gid, mode))
-							resp <- &types.SendMessage{ID: ID, Path: name, Error: err}
-							return nil
-						}); err != nil {
-							resp <- &types.SendMessage{ID: ID, Error: err}
-						}
+				utils.SentryGo(func() {
+					defer wg.Done()
+					defer func() { _ = pr.Close() }()
+					if err := sender.calcium.withWorkloadLocked(ctx, ID, false, func(ctx context.Context, workload *types.Workload) error {
+						err := errors.WithStack(workload.Engine.VirtualizationCopyChunkTo(ctx, ID, curFile, data.Size, pr, data.UID, data.GID, data.Mode))
+						resp <- &types.SendMessage{ID: ID, Path: curFile, Error: err}
+						return nil
+					}); err != nil {
+						resp <- &types.SendMessage{ID: ID, Error: err}
 					}
-				}(ID, curFile, data.Size, pr, data.UID, data.GID, data.Mode))
+				})
 			}
 			n, err := writer.Write(data.Chunk)
 			if err != nil || n != len(data.Chunk) {
