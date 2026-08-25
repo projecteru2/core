@@ -94,7 +94,7 @@ type RedisConfig struct {
 }
 
 type DockerConfig struct {
-	APIVersion  string    `yaml:"version" required:"true" default:"1.32"`
+	APIVersion  string    `yaml:"version" required:"true" default:"1.40"`
 	NetworkMode string    `yaml:"network_mode" required:"true" default:"host"`
 	UseLocalDNS bool      `yaml:"use_local_dns"` // use node IP as dns
 	Log         LogConfig `yaml:"log"`           // docker log driver
