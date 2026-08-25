@@ -39,7 +39,6 @@ func TestRecover(t *testing.T) {
 	var wal WAL
 	wal, err := NewHydro(context.Background(), newMemStore(), "127.0.0.1:5001", testConfig())
 	require.NoError(t, err)
-	defer wal.Close()
 
 	eventype := "create"
 	wal.Register(simpleEventHandler{

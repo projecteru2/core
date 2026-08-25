@@ -107,10 +107,6 @@ func (c *Calcium) DisasterRecover(ctx context.Context) {
 }
 
 func (c *Calcium) Finalizer() {
-	ctx := context.Background()
-	if err := c.wal.Close(); err != nil {
-		log.WithFunc("calcium.Finalizer").Error(ctx, err, "close wal")
-	}
 	c.pool.Release()
 }
 

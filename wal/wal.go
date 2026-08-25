@@ -13,7 +13,6 @@ type WAL interface {
 	Recover(context.Context)
 	Takeover(ctx context.Context, live []string)
 	Log(string, any) (Commit, error)
-	Close() error
 }
 
 type EventHandler interface {

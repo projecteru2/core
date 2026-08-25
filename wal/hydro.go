@@ -46,10 +46,6 @@ func NewHydro(ctx context.Context, store Store, address string, config coretypes
 	return hydro, nil
 }
 
-func (h *Hydro) Close() error {
-	return nil
-}
-
 func (h *Hydro) Register(handler EventHandler) {
 	h.handlers.Store(handler.Typ(), handler)
 }
