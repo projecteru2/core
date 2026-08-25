@@ -38,7 +38,9 @@ func TestInteractiveStartRunsCtrStartOverTheSession(t *testing.T) {
 }
 
 func TestAttachHandsBackTheStartSessionsStreams(t *testing.T) {
-	running := &sshrunnertest.Session{Out: "hello\n", Err: "oops\n"}
+	hold := make(chan struct{})
+	t.Cleanup(func() { close(hold) })
+	running := &sshrunnertest.Session{Out: "hello\n", Err: "oops\n", Hold: hold}
 	e := testEngine(t, &sshrunnertest.Fake{Started: running})
 
 	if err := e.startInteractive(t.Context(), &fakeTaskContainer{id: "app_web_abc123"}); err != nil {
