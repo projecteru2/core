@@ -61,7 +61,7 @@ func TestGrant(t *testing.T) {
 	e := NewMockedETCD(t)
 	expErr := fmt.Errorf("exp")
 	e.cliv3.(*mocks.ETCDClientV3).On("Grant", mock.Anything, mock.Anything).Return(nil, expErr)
-	resp, err := e.Grant(context.Background(), 1)
+	resp, err := e.grant(context.Background(), 1)
 	require.Equal(t, expErr, err)
 	require.Nil(t, resp)
 }

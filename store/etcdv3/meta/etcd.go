@@ -196,10 +196,6 @@ func (e *ETCD) BindStatus(ctx context.Context, entityKey, statusKey, statusValue
 	return e.bindStatusWithTTL(ctx, entityKey, statusKey, statusValue, ttl)
 }
 
-func (e *ETCD) Grant(ctx context.Context, ttl int64) (*clientv3.LeaseGrantResponse, error) {
-	return e.cliv3.Grant(ctx, ttl)
-}
-
 func (e *ETCD) BatchCreateAndDecr(ctx context.Context, data map[string]string, decrKey string) (err error) {
 	resp, err := e.Get(ctx, decrKey)
 	if err != nil {
@@ -277,6 +273,10 @@ func (e *ETCD) batchPut(ctx context.Context, data map[string]string, limit map[s
 	return e.doBatchOp(ctx, txnes)
 }
 
+func (e *ETCD) grant(ctx context.Context, ttl int64) (*clientv3.LeaseGrantResponse, error) {
+	return e.cliv3.Grant(ctx, ttl)
+}
+
 func (e *ETCD) isTTLChanged(ctx context.Context, key string, ttl int64) (bool, error) {
 	resp, err := e.GetOne(ctx, key)
 	if err != nil {
@@ -305,7 +305,7 @@ func (e *ETCD) isTTLChanged(ctx context.Context, key string, ttl int64) (bool, e
 }
 
 func (e *ETCD) bindStatusWithTTL(ctx context.Context, entityKey, statusKey, statusValue string, ttl int64) error {
-	lease, err := e.Grant(ctx, ttl)
+	lease, err := e.grant(ctx, ttl)
 	if err != nil {
 		return err
 	}
