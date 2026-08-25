@@ -13,6 +13,7 @@ import (
 )
 
 func (c *Calcium) SendLargeFile(ctx context.Context, inputChan chan *types.SendLargeFileOptions) chan *types.SendMessage {
+	logger := log.WithFunc("calcium.SendLargeFile")
 	resp := make(chan *types.SendMessage)
 	wg := &sync.WaitGroup{}
 	utils.SentryGo(func() {
@@ -21,7 +22,7 @@ func (c *Calcium) SendLargeFile(ctx context.Context, inputChan chan *types.SendL
 		for data := range inputChan {
 			for _, id := range data.IDs {
 				if _, ok := senders[id]; !ok {
-					log.Debugf(ctx, "[SendLargeFile] create sender for %s", id)
+					logger.Debugf(ctx, "create sender for %s", id)
 					wg.Add(1)
 					sender := c.newWorkloadSender(ctx, id, resp, wg)
 					senders[id] = sender
@@ -54,6 +55,7 @@ func (s *workloadSender) close() {
 }
 
 func (c *Calcium) newWorkloadSender(ctx context.Context, ID string, resp chan *types.SendMessage, wg *sync.WaitGroup) *workloadSender {
+	logger := log.WithFunc("calcium.newWorkloadSender")
 	sender := &workloadSender{
 		calcium: c,
 		id:      ID,
@@ -67,11 +69,11 @@ func (c *Calcium) newWorkloadSender(ctx context.Context, ID string, resp chan *t
 		curFile := ""
 		for data := range sender.buffer {
 			if curFile != "" && curFile != data.Dst {
-				log.Warnf(ctx, "[newWorkloadExecutor] receive different files %s, %s", curFile, data.Dst)
+				logger.Warnf(ctx, "receive different files %s, %s", curFile, data.Dst)
 				break
 			}
 			if curFile == "" {
-				log.Debugf(ctx, "[newWorkloadExecutor] receive new file %s to %s", data.Dst, sender.id)
+				logger.Debugf(ctx, "receive new file %s to %s", data.Dst, sender.id)
 				curFile = data.Dst
 				pr, pw := io.Pipe()
 				writer = pw
@@ -92,7 +94,7 @@ func (c *Calcium) newWorkloadSender(ctx context.Context, ID string, resp chan *t
 			}
 			n, err := writer.Write(data.Chunk)
 			if err != nil || n != len(data.Chunk) {
-				log.Errorf(ctx, err, "[newWorkloadExecutor] send file to engine err, file = %s", curFile)
+				logger.Errorf(ctx, err, "send file to engine err, file = %s", curFile)
 				break
 			}
 		}
