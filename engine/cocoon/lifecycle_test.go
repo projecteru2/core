@@ -84,6 +84,22 @@ func TestVirtualizationStartLeavesABootedWindowsGuestAlone(t *testing.T) {
 	}
 }
 
+func TestVirtualizationStartSurvivesAConsoleQueryItCannotRun(t *testing.T) {
+	runner := &sshrunnertest.Fake{
+		Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: linuxVM + "\n" + runningVM} },
+	}
+	e := testEngine(t, runner)
+
+	if err := e.VirtualizationStart(t.Context(), "w1"); err != nil {
+		t.Fatalf("a console query core cannot run must not fail the boot: %v", err)
+	}
+	want := sshrunner.Quote(sshrunner.Shell(refreshScript, testRoot+"/w1.json", "/run/eru/workloads/w1.json",
+		testRunDir+"/cloudhypervisor/"+testVMID+"/console.sock", "4242"))
+	if lines := runner.Lines(); len(lines) != 2 || lines[1] != want {
+		t.Errorf("got %q, want the recorded socket path %q", lines, want)
+	}
+}
+
 func TestVirtualizationStartReportsAMissingWorkload(t *testing.T) {
 	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Code: notExistsCode} }}
 	e := testEngine(t, runner)
