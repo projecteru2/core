@@ -19,9 +19,14 @@ const (
 	rootUser  = "root"
 
 	createScript = `set -e
-dir=$1; ref=$2; launcher=$3; record=$4; overlay=$5; metadata=$6
+dir=$1; ref=$2; cache=$3; launcher=$4; record=$5; overlay=$6; metadata=$7
 mkdir -p "$dir/lower"
+if [ -d "$cache" ]; then
+cp -a "$cache/." "$dir/lower/"
+rm -f "$dir/lower/` + digestFile + `"
+else
 oras pull "$ref" -o "$dir/lower"
+fi
 if [ "$overlay" = 1 ]; then mkdir -p "$dir/upper" "$dir/work" "$dir/merged"; fi
 printf '%s\n' "$launcher" > "$dir/run.sh"
 mkdir -p "$(dirname "$record")"
@@ -76,7 +81,8 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		return nil, err
 	}
 	overlay := strconv.Itoa(utils.Bool2Int(!rArgs.Raw))
-	argv := shell(createScript, dir, opts.Image, quote(u.argv()), metaPath(ID), overlay, string(record))
+	argv := shell(createScript,
+		dir, opts.Image, imageDir(e.root, opts.Image), quote(u.argv()), metaPath(ID), overlay, string(record))
 	if _, err = e.run(ctx, argv...); err != nil {
 		return nil, err
 	}

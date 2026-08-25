@@ -73,7 +73,7 @@ One transient service per workload (`eru-<id>.service`), one slice per pod (`eru
 
 | `engine.API` | Node command |
 | --- | --- |
-| `VirtualizationCreate` | `oras pull` the artifact into `<process.root>/<id>/lower`, prepare `upper`, `work` and `merged`, write the meta file, and record the rendered `systemd-run` command in `<process.root>/<id>/run.sh`. Nothing runs yet |
+| `VirtualizationCreate` | copy the artifact from the cache into `<process.root>/<id>/lower`, or `oras pull` it there when the cache has no entry; prepare `upper`, `work` and `merged`, write the meta file, and record the rendered `systemd-run` command in `<process.root>/<id>/run.sh`. Nothing runs yet |
 | `VirtualizationStart` | mount the overlay at `merged`, then run `run.sh` |
 | `VirtualizationStop` | `systemctl stop`, then unmount; a forced stop sends `SIGKILL` first |
 | `VirtualizationRemove` | `systemctl reset-failed`, unmount, delete the workload directory and the meta file |

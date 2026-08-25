@@ -42,6 +42,7 @@ func TestVirtualizationCreateRecordsTheUnitAndTheMetaFile(t *testing.T) {
 
 	for _, want := range []string{
 		"oras pull",
+		imageDir(testRoot, "hub.io/ns/app:v1"),
 		workloadDir(testRoot, created.ID),
 		metaPath(created.ID),
 		"--unit=" + unitName(created.ID),
