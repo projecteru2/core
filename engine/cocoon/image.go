@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"slices"
 	"strings"
 
 	"github.com/cockroachdb/errors"
@@ -37,19 +38,16 @@ type cocoonImage struct {
 	Name string `json:"name"`
 }
 
+type layer struct {
+	MediaType string `json:"mediaType"`
+}
+
 type manifest struct {
-	Layers []struct {
-		MediaType string `json:"mediaType"`
-	} `json:"layers"`
+	Layers []layer `json:"layers"`
 }
 
 func (m *manifest) parts() bool {
-	for _, layer := range m.Layers {
-		if layer.MediaType == partsMedia {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(m.Layers, func(l layer) bool { return l.MediaType == partsMedia })
 }
 
 func (e *Engine) ImageList(ctx context.Context, image string) ([]*enginetypes.Image, error) {
