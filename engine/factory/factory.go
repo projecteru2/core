@@ -245,6 +245,7 @@ func newEngine(ctx context.Context, config types.Config, params *enginetypes.Par
 	}
 	if err = validateEngine(ctx, client, config.ConnectionTimeout); err != nil {
 		log.WithFunc("engine.factory.newEngine").Errorf(ctx, err, "engine of %+v is unavailable", params.Endpoint)
+		closeEngine(client)
 		return nil, err
 	}
 	return client, nil
