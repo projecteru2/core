@@ -24,8 +24,21 @@ const (
 // cniConf is the subset of a CNI network configuration core reports.
 type cniConf struct {
 	Name    string    `json:"name"`
+	Type    string    `json:"type"`
 	IPAM    cniIPAM   `json:"ipam"`
 	Plugins []cniConf `json:"plugins"`
+}
+
+func (c cniConf) drives(drivers []string) bool {
+	if len(drivers) == 0 {
+		return true
+	}
+	if slices.Contains(drivers, c.Type) {
+		return true
+	}
+	return slices.ContainsFunc(c.Plugins, func(plugin cniConf) bool {
+		return slices.Contains(drivers, plugin.Type)
+	})
 }
 
 func (c cniConf) subnets() []string {
@@ -82,7 +95,7 @@ func (e *Engine) NetworkList(ctx context.Context, drivers []string) ([]*enginety
 			}
 			return nil, decodeErr
 		}
-		if conf.Name == "" || len(drivers) > 0 && !slices.Contains(drivers, conf.Name) {
+		if conf.Name == "" || !conf.drives(drivers) {
 			continue
 		}
 		networks = append(networks, &enginetypes.Network{Name: conf.Name, Subnets: conf.subnets()})

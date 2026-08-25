@@ -44,15 +44,39 @@ func TestNetworkListReadsTheCNIConfDir(t *testing.T) {
 	}
 }
 
-func TestNetworkListNarrowsToTheAskedNetworks(t *testing.T) {
+func TestNetworkListNarrowsByPluginType(t *testing.T) {
+	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: testConfList} }}
+
+	networks, err := testEngine(t, runner).NetworkList(t.Context(), []string{"macvlan"})
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if len(networks) != 1 || networks[0].Name != "mgmt" {
+		t.Errorf("got %+v, want the macvlan conf, not a name match", networks)
+	}
+}
+
+func TestNetworkListFindsAPluginInsideAConflist(t *testing.T) {
+	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: testConfList} }}
+
+	networks, err := testEngine(t, runner).NetworkList(t.Context(), []string{"bridge"})
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if len(networks) != 1 || networks[0].Name != "eru-cni" {
+		t.Errorf("got %+v, want the conflist whose plugin is a bridge", networks)
+	}
+}
+
+func TestNetworkListIgnoresANameThatIsNoDriver(t *testing.T) {
 	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: testConfList} }}
 
 	networks, err := testEngine(t, runner).NetworkList(t.Context(), []string{"mgmt"})
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
-	if len(networks) != 1 || networks[0].Name != "mgmt" {
-		t.Errorf("got %+v, want only mgmt", networks)
+	if len(networks) != 0 {
+		t.Errorf("got %+v, want nothing: mgmt is a network name, not a driver", networks)
 	}
 }
 
