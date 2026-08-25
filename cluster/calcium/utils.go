@@ -5,6 +5,8 @@ import (
 	"slices"
 	"sync"
 
+	"github.com/cockroachdb/errors"
+
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resource/plugins"
 	resourcetypes "github.com/projecteru2/core/resource/types"
@@ -46,6 +48,21 @@ func perNode[T any](c *Calcium, nodes []*types.Node, work func(*types.Node, chan
 		}
 	})
 	return ch
+}
+
+func removeWorkloadByName(ctx context.Context, node *types.Node, name string) error {
+	info, err := node.Engine.VirtualizationInspect(ctx, name)
+	if err != nil {
+		if errors.Is(err, types.ErrWorkloadNotExists) {
+			return nil
+		}
+		return err
+	}
+
+	if err = node.Engine.VirtualizationRemove(ctx, info.ID, true, true); err != nil && !errors.Is(err, types.ErrWorkloadNotExists) {
+		return err
+	}
+	return nil
 }
 
 func distributionInspect(ctx context.Context, node *types.Node, image string, digests []string) bool {

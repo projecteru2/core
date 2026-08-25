@@ -159,6 +159,7 @@ func TestReplaceWorkload(t *testing.T) {
 	engine.AssertExpectations(t)
 
 	engine.On("VirtualizationStop", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(types.ErrMockError).Once()
 	ch, err = c.ReplaceWorkload(ctx, opts)
@@ -189,7 +190,6 @@ func TestReplaceWorkload(t *testing.T) {
 	store.AssertExpectations(t)
 	engine.AssertExpectations(t)
 
-	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
 	ch, err = c.ReplaceWorkload(ctx, opts)

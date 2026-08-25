@@ -135,17 +135,7 @@ func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw any) error {
 		return err
 	}
 
-	ID, err := h.engineWorkloadID(ctx, node, wrk)
-	switch {
-	case errors.Is(err, types.ErrWorkloadNotExists):
-		logger.Info(ctx, "workload never reached the engine")
-		return nil
-	case err != nil:
-		logger.Error(ctx, err)
-		return err
-	}
-
-	if err = node.Engine.VirtualizationRemove(ctx, ID, true, true); err != nil && !errors.Is(err, types.ErrWorkloadNotExists) {
+	if err = h.removeFromEngine(ctx, node, wrk); err != nil {
 		logger.Error(ctx, err)
 		return err
 	}
@@ -173,15 +163,14 @@ func (h *CreateWorkloadHandler) storedWorkloadID(ctx context.Context, wrk *types
 	return workloads[index].ID, nil
 }
 
-func (h *CreateWorkloadHandler) engineWorkloadID(ctx context.Context, node *types.Node, wrk *types.Workload) (string, error) {
-	if wrk.ID != "" {
-		return wrk.ID, nil
+func (h *CreateWorkloadHandler) removeFromEngine(ctx context.Context, node *types.Node, wrk *types.Workload) error {
+	if wrk.ID == "" {
+		return removeWorkloadByName(ctx, node, wrk.Name)
 	}
-	info, err := node.Engine.VirtualizationInspect(ctx, wrk.Name)
-	if err != nil {
-		return "", err
+	if err := node.Engine.VirtualizationRemove(ctx, wrk.ID, true, true); err != nil && !errors.Is(err, types.ErrWorkloadNotExists) {
+		return err
 	}
-	return info.ID, nil
+	return nil
 }
 
 type workloadReplacement struct {

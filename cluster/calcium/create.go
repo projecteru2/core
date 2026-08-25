@@ -1,6 +1,7 @@
 package calcium
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"maps"
@@ -379,9 +380,9 @@ func (c *Calcium) doDeployOneWorkload(
 		},
 
 		func(ctx context.Context, _ bool) error {
-			logger.Warnf(ctx, "failed to deploy workload %s, rollback", workload.ID)
+			logger.Warnf(ctx, "failed to deploy workload %s, rollback", cmp.Or(workload.ID, workload.Name))
 			if workload.ID == "" {
-				return nil
+				return removeWorkloadByName(ctx, node, workload.Name)
 			}
 
 			if err := c.store.RemoveWorkload(ctx, workload); err != nil {
