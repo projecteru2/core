@@ -5,9 +5,9 @@ import (
 	"context"
 	"slices"
 
-	"github.com/projecteru2/core/types"
-
 	"github.com/cockroachdb/errors"
+
+	"github.com/projecteru2/core/types"
 )
 
 // DrainedPlan fills the lowest-capacity nodes first, draining each before moving to the next.

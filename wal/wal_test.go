@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/projecteru2/core/wal/kv"
-
 	"github.com/stretchr/testify/assert"
+
+	"github.com/projecteru2/core/wal/kv"
 )
 
 func TestRecover(t *testing.T) {

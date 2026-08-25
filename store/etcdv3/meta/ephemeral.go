@@ -5,11 +5,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/projecteru2/core/log"
-	"github.com/projecteru2/core/types"
-
 	"github.com/cockroachdb/errors"
 	clientv3 "go.etcd.io/etcd/client/v3"
+
+	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/types"
 )
 
 func (e *ETCD) StartEphemeral(ctx context.Context, path string, heartbeat time.Duration) (<-chan struct{}, func(), error) {

@@ -10,14 +10,13 @@ import (
 	"strings"
 
 	"github.com/cockroachdb/errors"
-
-	"github.com/projecteru2/core/log"
-	"github.com/projecteru2/core/types"
-
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	gitssh "github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"golang.org/x/crypto/ssh"
+
+	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/types"
 )
 
 // GitScm is the GitHub/GitLab source code manager.
