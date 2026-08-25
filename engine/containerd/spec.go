@@ -353,12 +353,9 @@ func volumeMounts(volumes, env []string) []specs.Mount {
 
 // resolverMounts gives the container a resolver: containerd writes neither file itself.
 func resolverMounts(opts *enginetypes.VirtualizationCreateOptions, dir string) []specs.Mount {
-	resolv, hosts := "/etc/resolv.conf", "/etc/hosts"
+	resolv, hosts := "/etc/resolv.conf", filepath.Join(dir, "hosts")
 	if len(opts.DNS) > 0 {
 		resolv = filepath.Join(dir, "resolv.conf")
-	}
-	if len(opts.Hosts) > 0 {
-		hosts = filepath.Join(dir, "hosts")
 	}
 	return []specs.Mount{
 		{Type: bindType, Source: resolv, Destination: "/etc/resolv.conf", Options: []string{bindOption, readOnlyMode}},

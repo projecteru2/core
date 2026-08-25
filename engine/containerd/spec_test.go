@@ -419,8 +419,8 @@ func TestResolverMountsPreferTheWorkloadsOwnFiles(t *testing.T) {
 	if mounts[0].Source != "/var/lib/eru/containerd/w1/resolv.conf" {
 		t.Errorf("got %q, want the workload's resolv.conf", mounts[0].Source)
 	}
-	if mounts[1].Source != "/etc/hosts" {
-		t.Errorf("got %q, want the node's hosts file", mounts[1].Source)
+	if mounts[1].Source != "/var/lib/eru/containerd/w1/hosts" {
+		t.Errorf("got %q, want the generated hosts file: only it resolves the hostname", mounts[1].Source)
 	}
 }
 

@@ -1,6 +1,7 @@
 package containerd
 
 import (
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -152,7 +153,7 @@ func TestResolverFilesRenderWhatCoreWasAsked(t *testing.T) {
 	resolv, hosts := resolverFiles(&enginetypes.VirtualizationCreateOptions{
 		DNS:   []string{"10.0.0.1", "10.0.0.2"},
 		Hosts: []string{"db:10.0.0.9"},
-	})
+	}, "app_web_abc123")
 
 	if resolv != "nameserver 10.0.0.1\nnameserver 10.0.0.2\n" {
 		t.Errorf("got %q, want both resolvers", resolv)
@@ -162,8 +163,16 @@ func TestResolverFilesRenderWhatCoreWasAsked(t *testing.T) {
 	}
 }
 
-func TestResolverFilesStayEmptyWithoutAnOverride(t *testing.T) {
-	if resolv, hosts := resolverFiles(&enginetypes.VirtualizationCreateOptions{}); resolv != "" || hosts != "" {
-		t.Errorf("got %q %q, want the node's own files", resolv, hosts)
+func TestResolverFilesAlwaysResolveTheWorkloadsOwnHostname(t *testing.T) {
+	resolv, hosts := resolverFiles(&enginetypes.VirtualizationCreateOptions{}, "app_web_abc123")
+
+	if resolv != "" {
+		t.Errorf("got %q, want the node's own resolver", resolv)
+	}
+	if !strings.Contains(hosts, "127.0.1.1\tapp_web_abc123\n") {
+		t.Errorf("got %q, want the hostname to resolve", hosts)
+	}
+	if !strings.Contains(hosts, "127.0.0.1\tlocalhost\n") {
+		t.Errorf("got %q, want the localhost preamble", hosts)
 	}
 }

@@ -29,6 +29,7 @@ const (
 	// containerd flattens the query into argv pairs, so log-shim arrives as the agent's subcommand
 	logShimURI = "binary://" + hookBinary + "?log-shim"
 
+	hostNameMax  = 64
 	mountMark    = "mount:"
 	deviceMark   = "device:"
 	deviceBase   = 16
@@ -79,6 +80,9 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	ID := opts.Name
 	if err := identifiers.Validate(ID); err != nil {
 		return nil, errors.Wrapf(coretypes.ErrInvalidWorkloadName, "containerd cannot name %q", ID)
+	}
+	if len(ID) > hostNameMax {
+		return nil, errors.Wrapf(coretypes.ErrInvalidWorkloadName, "%q is longer than a hostname may be (%d)", ID, hostNameMax)
 	}
 	dir := workloadDir(ID)
 	throttled, devices, err := e.prepareNode(ctx, opts, resource, rArgs, dir)
@@ -136,7 +140,7 @@ func (e *Engine) prepareNode(ctx context.Context, opts *enginetypes.Virtualizati
 	devices, deviceMarks := requestedDevices(rArgs.Devices)
 	paths = slices.Concat(paths, throttleMarks, deviceMarks)
 
-	resolv, hosts := resolverFiles(opts)
+	resolv, hosts := resolverFiles(opts, filepath.Base(dir))
 	if len(paths) == 0 && resolv == "" && hosts == "" {
 		return nil, nil, nil
 	}
@@ -216,16 +220,14 @@ func runtimeOpts(rArgs *RawArgs) []client.NewContainerOpts {
 	return []client.NewContainerOpts{client.WithRuntime(rArgs.Runtime, nil)}
 }
 
-func resolverFiles(opts *enginetypes.VirtualizationCreateOptions) (resolv, hosts string) {
+func resolverFiles(opts *enginetypes.VirtualizationCreateOptions, ID string) (resolv, hosts string) {
 	for _, server := range opts.DNS {
 		resolv += "nameserver " + server + "\n"
 	}
-	if len(opts.Hosts) > 0 {
-		hosts = "127.0.0.1\tlocalhost\n::1\tlocalhost ip6-localhost ip6-loopback\n"
-		for _, entry := range opts.Hosts {
-			if name, addr, ok := strings.Cut(entry, ":"); ok {
-				hosts += addr + "\t" + name + "\n"
-			}
+	hosts = "127.0.0.1\tlocalhost\n::1\tlocalhost ip6-localhost ip6-loopback\n127.0.1.1\t" + ID + "\n"
+	for _, entry := range opts.Hosts {
+		if name, addr, ok := strings.Cut(entry, ":"); ok {
+			hosts += addr + "\t" + name + "\n"
 		}
 	}
 	return resolv, hosts

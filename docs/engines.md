@@ -40,7 +40,7 @@ matches an image's manifests against, since core's own platform is not the node'
 
 | `engine.API` | containerd |
 | --- | --- |
-| `VirtualizationCreate` | `NewContainer` with a new snapshot and the rendered OCI spec; the container id **is** the workload name, so eru-agent reads appname, entrypoint and ident straight off it |
+| `VirtualizationCreate` | `NewContainer` with a new snapshot and the rendered OCI spec; the container id **is** the workload name, so eru-agent reads appname, entrypoint and ident straight off it, and it is also the workload's hostname — which caps it at 64 bytes, `HOST_NAME_MAX` |
 | `VirtualizationStart` | `NewTask` with the log-shim `LogURI`, `task.Start`, then `containerd.io/restart.status=running` |
 | `VirtualizationStop` | `containerd.io/restart.status=stopped` first so the restart plugin does not race, then the image's stop signal and `SIGKILL` after the grace period, then `task.Delete`. A plain stop takes `containerd.stop_timeout`, a forced one kills at once |
 | `VirtualizationRemove` | refuses a running workload unless forced, kills the task and deletes the container with its snapshot |
@@ -96,9 +96,10 @@ capabilities, sysctls and privileged mode. Volumes become bind mounts, with the 
 against the workload's environment and created before the container starts.
 
 Two things the daemon used to do for core have no containerd equivalent and are done from the
-node side: `/etc/resolv.conf` and `/etc/hosts` are bind-mounted from the node unless the deploy
-asks for its own DNS or extra hosts, in which case core writes them under
-`/var/lib/eru/containerd/<id>/` and binds those instead.
+node side. `/etc/hosts` is always generated under `/var/lib/eru/containerd/<id>/` — the localhost
+preamble, `127.0.1.1 <id>` so the workload's own hostname resolves, then any `--add-host` entries
+— and bind-mounted. `/etc/resolv.conf` is the node's own unless the deploy names its own DNS, in
+which case it is generated beside the hosts file.
 
 ### The image config
 
