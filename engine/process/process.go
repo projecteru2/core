@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -51,9 +50,7 @@ type Engine struct {
 	root        string
 	host        string
 	stopTimeout time.Duration
-
-	mu    sync.Mutex
-	execs map[string]sshrunner.Session
+	execs       *sshrunner.Execs
 }
 
 func MakeClient(_ context.Context, config coretypes.Config, nodename, endpoint, ca, cert, key string) (engine.API, error) {
@@ -72,7 +69,7 @@ func MakeClient(_ context.Context, config coretypes.Config, nodename, endpoint, 
 		root:        cmp.Or(config.Process.Root, defaultRoot),
 		host:        host,
 		stopTimeout: cmp.Or(config.Process.StopTimeout, defaultStopTimeout),
-		execs:       map[string]sshrunner.Session{},
+		execs:       sshrunner.NewExecs(),
 	}, nil
 }
 

@@ -6,13 +6,9 @@ import (
 	"io"
 	"strings"
 
-	"github.com/cockroachdb/errors"
-
 	"github.com/projecteru2/core/engine/sshrunner"
 	enginetypes "github.com/projecteru2/core/engine/types"
 )
-
-var errExecNotFound = errors.New("exec not found")
 
 func (e *Engine) Execute(ctx context.Context, ID string, config *enginetypes.ExecConfig) (execID string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
 	record, _, err := e.workloadMeta(ctx, ID)
@@ -26,9 +22,7 @@ func (e *Engine) Execute(ctx context.Context, ID string, config *enginetypes.Exe
 	}
 
 	execID = newID()
-	e.mu.Lock()
-	e.execs[execID] = running
-	e.mu.Unlock()
+	e.execs.Add(execID, running)
 	if config.AttachStdin {
 		return execID, running.Stdout(), nil, running.Stdin(), nil
 	}
@@ -36,27 +30,11 @@ func (e *Engine) Execute(ctx context.Context, ID string, config *enginetypes.Exe
 }
 
 func (e *Engine) ExecResize(_ context.Context, execID string, height, width uint) error {
-	e.mu.Lock()
-	running, ok := e.execs[execID]
-	e.mu.Unlock()
-	if !ok {
-		return errors.Wrap(errExecNotFound, execID)
-	}
-	return running.Resize(height, width)
+	return e.execs.Resize(execID, height, width)
 }
 
 func (e *Engine) ExecExitCode(_ context.Context, _, execID string) (int, error) {
-	e.mu.Lock()
-	running, ok := e.execs[execID]
-	delete(e.execs, execID)
-	e.mu.Unlock()
-	if !ok {
-		return -1, errors.Wrap(errExecNotFound, execID)
-	}
-	defer func() {
-		_ = running.Close()
-	}()
-	return running.Wait()
+	return e.execs.ExitCode(execID)
 }
 
 // scopeArgv runs the command in the workload's own slice and root, without namespaces.

@@ -22,6 +22,6 @@ func testEngine(t *testing.T, runner *sshrunnertest.Fake) *Engine {
 		root:        testRoot,
 		host:        "10.0.0.1",
 		stopTimeout: defaultStopTimeout,
-		execs:       map[string]sshrunner.Session{},
+		execs:       sshrunner.NewExecs(),
 	}
 }

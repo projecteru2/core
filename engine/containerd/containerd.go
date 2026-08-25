@@ -62,8 +62,9 @@ type Engine struct {
 	host      string
 	platform  ocispec.Platform
 
+	execs *sshrunner.Execs
+
 	mu       sync.Mutex
-	execs    map[string]sshrunner.Session
 	attaches map[string]*attach
 }
 
@@ -112,7 +113,8 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 		socket:    socket,
 		host:      host,
 		platform:  platform,
-		execs:     map[string]sshrunner.Session{},
+		execs:     sshrunner.NewExecs(),
+		attaches:  map[string]*attach{},
 	}, nil
 }
 

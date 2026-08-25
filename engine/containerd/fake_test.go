@@ -21,7 +21,7 @@ func testEngine(t *testing.T, runner *sshrunnertest.Fake) *Engine {
 		socket:    defaultSocket,
 		host:      "10.0.0.1",
 		platform:  ocispec.Platform{OS: "linux", Architecture: "amd64"},
-		execs:     map[string]sshrunner.Session{},
+		execs:     sshrunner.NewExecs(),
 		attaches:  map[string]*attach{},
 	}
 }

@@ -5,8 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cockroachdb/errors"
-
 	"github.com/projecteru2/core/engine/sshrunner"
 	"github.com/projecteru2/core/engine/sshrunner/sshrunnertest"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -47,14 +45,6 @@ func TestExecuteRunsAScopeInTheWorkloadSlice(t *testing.T) {
 	}
 	if code != 7 {
 		t.Errorf("got exit code %d, want 7", code)
-	}
-}
-
-func TestExecExitCodeRejectsAnUnknownExec(t *testing.T) {
-	e := testEngine(t, &sshrunnertest.Fake{})
-
-	if _, err := e.ExecExitCode(t.Context(), "w1", "missing"); !errors.Is(err, errExecNotFound) {
-		t.Errorf("got %v, want errExecNotFound", err)
 	}
 }
 

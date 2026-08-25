@@ -15,10 +15,7 @@ import (
 // core can stream has to start on the node.
 const ctrBinary = "ctr"
 
-var (
-	errExecNotFound   = errors.New("exec not found")
-	errAttachNotFound = errors.New("attach not found")
-)
+var errAttachNotFound = errors.New("attach not found")
 
 func (e *Engine) Execute(ctx context.Context, ID string, config *enginetypes.ExecConfig) (execID string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
 	found, err := e.container(ctx, ID)
@@ -32,9 +29,7 @@ func (e *Engine) Execute(ctx context.Context, ID string, config *enginetypes.Exe
 		return "", nil, nil, nil, err
 	}
 
-	e.mu.Lock()
-	e.execs[execID] = running
-	e.mu.Unlock()
+	e.execs.Add(execID, running)
 	if config.AttachStdin {
 		return execID, running.Stdout(), nil, running.Stdin(), nil
 	}
@@ -42,27 +37,11 @@ func (e *Engine) Execute(ctx context.Context, ID string, config *enginetypes.Exe
 }
 
 func (e *Engine) ExecResize(_ context.Context, execID string, height, width uint) error {
-	e.mu.Lock()
-	running, ok := e.execs[execID]
-	e.mu.Unlock()
-	if !ok {
-		return errors.Wrap(errExecNotFound, execID)
-	}
-	return running.Resize(height, width)
+	return e.execs.Resize(execID, height, width)
 }
 
 func (e *Engine) ExecExitCode(_ context.Context, _, execID string) (int, error) {
-	e.mu.Lock()
-	running, ok := e.execs[execID]
-	delete(e.execs, execID)
-	e.mu.Unlock()
-	if !ok {
-		return -1, errors.Wrap(errExecNotFound, execID)
-	}
-	defer func() {
-		_ = running.Close()
-	}()
-	return running.Wait()
+	return e.execs.ExitCode(execID)
 }
 
 // execArgv renders one `ctr tasks exec`; ctr has no env flag, so env rides in the command.
