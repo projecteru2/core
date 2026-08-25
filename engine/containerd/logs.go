@@ -25,6 +25,7 @@ const (
 
 	fifoDirName  = "fifo"
 	relayStreams = 3
+	stdinStream  = "stdin"
 
 	fifoMakeScript = `set -e
 mkdir -p "$1"
@@ -40,8 +41,9 @@ type attach struct {
 	stdout sshrunner.Session
 	stderr sshrunner.Session
 
-	released atomic.Bool
-	died     chan error
+	released   atomic.Bool
+	died       chan error
+	closeStdin func(context.Context) error
 }
 
 func (a *attach) close() {
@@ -55,14 +57,21 @@ func (a *attach) close() {
 
 // watch reports a relay that ends on its own; its stderr is the only account of why it did.
 func (a *attach) watch(ctx context.Context, ID, stream string, sess sshrunner.Session) {
+	logger := log.WithFunc("engine.containerd.attach.watch").WithField("ID", ID)
 	output, _ := io.ReadAll(sess.Stderr())
 	code, waitErr := sess.Wait()
 	reason := strings.TrimSpace(string(output))
-	if a.released.Load() || (code == 0 && waitErr == nil && reason == "") {
+	if a.released.Load() {
+		return
+	}
+	if code == 0 && waitErr == nil && reason == "" {
+		if stream == stdinStream {
+			logger.Error(ctx, a.closeStdin(ctx))
+		}
 		return
 	}
 	err := errors.Newf("%s relay ended with code %d: %s", stream, code, reason)
-	log.WithFunc("engine.containerd.attach.watch").WithField("ID", ID).Error(ctx, errors.Join(err, waitErr))
+	logger.Error(ctx, errors.Join(err, waitErr))
 	select {
 	case a.died <- err:
 	default:
@@ -124,7 +133,11 @@ func (e *Engine) relayFifos(ctx context.Context, ID string) (_ cio.Creator, err 
 
 	// a relay lives as long as the workload, and the deploy request that starts it does not
 	held := context.WithoutCancel(ctx)
-	relay := &attach{died: make(chan error, relayStreams)}
+	// the shim holds the stdin fifo open read-write, so only CloseIO ends the workload's input
+	relay := &attach{
+		died:       make(chan error, relayStreams),
+		closeStdin: func(ctx context.Context) error { return e.closeTaskStdin(ctx, ID) },
+	}
 	defer func() {
 		if err != nil {
 			relay.close()
@@ -142,10 +155,18 @@ func (e *Engine) relayFifos(ctx context.Context, ID string) (_ cio.Creator, err 
 	e.mu.Lock()
 	e.attaches[ID] = relay
 	e.mu.Unlock()
-	go relay.watch(held, ID, "stdin", relay.stdin)
+	go relay.watch(held, ID, stdinStream, relay.stdin)
 	go relay.watch(held, ID, "stdout", relay.stdout)
 	go relay.watch(held, ID, "stderr", relay.stderr)
 	return func(string) (cio.IO, error) { return cio.Load(cio.NewFIFOSet(set, nil)) }, nil
+}
+
+func (e *Engine) closeTaskStdin(ctx context.Context, ID string) error {
+	task, err := e.task(ctx, ID)
+	if err != nil {
+		return err
+	}
+	return task.CloseIO(ctx, client.WithStdinCloser)
 }
 
 func (e *Engine) relayFailure(ID string) error {
@@ -163,7 +184,6 @@ func (e *Engine) relayFailure(ID string) error {
 	}
 }
 
-// releaseAttach ends the relays; the stdin one parks on its fifo until the session is closed.
 func (e *Engine) releaseAttach(ID string) {
 	e.mu.Lock()
 	relay, ok := e.attaches[ID]

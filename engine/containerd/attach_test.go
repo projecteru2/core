@@ -13,8 +13,10 @@ import (
 	"github.com/projecteru2/core/engine/sshrunner/sshrunnertest"
 )
 
+var relayHold = make(chan struct{})
+
 func TestRelayFifosParksASessionOnEveryNodeFifo(t *testing.T) {
-	runner := &sshrunnertest.Fake{Started: []*sshrunnertest.Session{{}, {}, {}}}
+	runner := &sshrunnertest.Fake{Started: []*sshrunnertest.Session{parked(), {}, {}}}
 	e := testEngine(t, runner)
 
 	creator, err := e.relayFifos(t.Context(), "app_web_abc123")
@@ -72,7 +74,7 @@ func TestRelayFifosClosesWhatItOpenedWhenASessionIsRefused(t *testing.T) {
 }
 
 func TestAttachHandsBackTheRelayedFifos(t *testing.T) {
-	stdin := &sshrunnertest.Session{}
+	stdin := parked()
 	e := testEngine(t, &sshrunnertest.Fake{Started: []*sshrunnertest.Session{
 		stdin, {Out: "hello\n"}, {Out: "oops\n"},
 	}})
@@ -116,7 +118,7 @@ func TestAttachWithoutAStartedWorkloadIsRefused(t *testing.T) {
 }
 
 func TestReleaseAttachEndsEveryRelay(t *testing.T) {
-	opened := []*sshrunnertest.Session{{}, {}, {}}
+	opened := []*sshrunnertest.Session{parked(), {}, {}}
 	e := testEngine(t, &sshrunnertest.Fake{Started: opened})
 
 	if _, err := e.relayFifos(t.Context(), "app_web_abc123"); err != nil {
@@ -135,8 +137,8 @@ func TestReleaseAttachEndsEveryRelay(t *testing.T) {
 }
 
 func TestRelayFifosReplacesTheRelaysOfAnEarlierStart(t *testing.T) {
-	first := []*sshrunnertest.Session{{}, {}, {}}
-	runner := &sshrunnertest.Fake{Started: slices.Concat(first, []*sshrunnertest.Session{{}, {}, {}})}
+	first := []*sshrunnertest.Session{parked(), {}, {}}
+	runner := &sshrunnertest.Fake{Started: slices.Concat(first, []*sshrunnertest.Session{parked(), {}, {}})}
 	e := testEngine(t, runner)
 
 	if _, err := e.relayFifos(t.Context(), "app_web_abc123"); err != nil {
@@ -154,7 +156,7 @@ func TestRelayFifosReplacesTheRelaysOfAnEarlierStart(t *testing.T) {
 }
 
 func TestTheRelaysOutliveTheDeployRequestThatStartedThem(t *testing.T) {
-	stdin := &sshrunnertest.Session{}
+	stdin := parked()
 	runner := &sshrunnertest.Fake{Started: []*sshrunnertest.Session{stdin, {}, {}}}
 	e := testEngine(t, runner)
 
@@ -188,9 +190,9 @@ func TestTheRelaysOutliveTheDeployRequestThatStartedThem(t *testing.T) {
 
 func TestARelayDeathIsSurfacedWithTheReasonTheNodeGave(t *testing.T) {
 	dying := &sshrunnertest.Session{Code: 1, Err: "sh: cannot create /var/lib/eru/containerd/w1/fifo/stdin: Permission denied\n"}
-	relay := &attach{died: make(chan error, relayStreams)}
+	relay, _ := watchedAttach()
 
-	relay.watch(t.Context(), "app_web_abc123", "stdin", dying)
+	relay.watch(t.Context(), "app_web_abc123", stdinStream, dying)
 
 	select {
 	case err := <-relay.died:
@@ -206,36 +208,66 @@ func TestARelayDeathIsSurfacedWithTheReasonTheNodeGave(t *testing.T) {
 }
 
 func TestARelayThatEndsCleanlyIsNotReported(t *testing.T) {
-	relay := &attach{died: make(chan error, relayStreams)}
+	relay, closed := watchedAttach()
 
 	relay.watch(t.Context(), "app_web_abc123", "stdout", &sshrunnertest.Session{})
 
 	if len(relay.died) != 0 {
 		t.Error("a relay ends with the task it serves, and that is not a failure")
 	}
+	if *closed {
+		t.Error("only the stdin relay ending is the end of the workload's input")
+	}
 }
 
 func TestARelayTheEngineReleasedIsNotReported(t *testing.T) {
-	relay := &attach{died: make(chan error, relayStreams)}
+	relay, closed := watchedAttach()
 	relay.close()
 
-	relay.watch(t.Context(), "app_web_abc123", "stdin", &sshrunnertest.Session{Code: 255, Err: "killed\n"})
+	relay.watch(t.Context(), "app_web_abc123", stdinStream, &sshrunnertest.Session{Code: 255, Err: "killed\n"})
 
 	if len(relay.died) != 0 {
 		t.Error("tearing an attach down is not a relay failure")
 	}
+	if *closed {
+		t.Error("a workload core is done with needs no stdin closer")
+	}
+}
+
+func TestTheStdinRelayEndingClosesTheTasksInput(t *testing.T) {
+	relay, closed := watchedAttach()
+
+	relay.watch(t.Context(), "app_web_abc123", stdinStream, &sshrunnertest.Session{})
+
+	if !*closed {
+		t.Error("the shim holds the fifo open itself, so only CloseIO is the workload's stdin EOF")
+	}
+	if len(relay.died) != 0 {
+		t.Error("core closing its write side is how a lambda ends, not a failure")
+	}
+}
+
+func TestAStdinRelayThatDiedDoesNotCloseTheTasksInput(t *testing.T) {
+	relay, closed := watchedAttach()
+
+	relay.watch(t.Context(), "app_web_abc123", stdinStream, &sshrunnertest.Session{Code: 1, Err: "cannot create fifo\n"})
+
+	if *closed {
+		t.Error("a relay that died never carried the input, so its end is not an EOF")
+	}
+	if len(relay.died) != 1 {
+		t.Error("a relay that died must still be surfaced")
+	}
 }
 
 func TestStartRefusesAWorkloadWhoseRelayAlreadyDied(t *testing.T) {
-	e := testEngine(t, &sshrunnertest.Fake{Started: []*sshrunnertest.Session{
-		{Code: 1, Err: "cannot create fifo\n"}, {}, {},
-	}})
+	e := testEngine(t, &sshrunnertest.Fake{Started: []*sshrunnertest.Session{parked(), {}, {}}})
 
 	if _, err := e.relayFifos(t.Context(), "app_web_abc123"); err != nil {
 		t.Fatalf("relay: %v", err)
 	}
 	relay := e.attaches["app_web_abc123"]
-	relay.watch(t.Context(), "app_web_abc123", "stdin", relay.stdin)
+	relay.watch(t.Context(), "app_web_abc123", stdinStream, &sshrunnertest.Session{Code: 1, Err: "cannot create fifo\n"})
 
 	if err := e.relayFailure("app_web_abc123"); err == nil {
 		t.Error("a workload whose stdin relay is gone would hang forever, so the start must fail")
@@ -251,4 +283,16 @@ func TestVirtualizationResizeIsANoOpOnAPipe(t *testing.T) {
 	if err := e.VirtualizationResize(t.Context(), "app_web_abc123", 24, 80); err != nil {
 		t.Errorf("got %v, want a workload with no terminal to accept the resize it has nothing to do with", err)
 	}
+}
+
+func parked() *sshrunnertest.Session {
+	return &sshrunnertest.Session{Hold: relayHold}
+}
+
+func watchedAttach() (*attach, *bool) {
+	closed := new(bool)
+	return &attach{
+		died:       make(chan error, relayStreams),
+		closeStdin: func(context.Context) error { *closed = true; return nil },
+	}, closed
 }

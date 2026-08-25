@@ -98,11 +98,16 @@ three paths and `Terminal=false`. The order is load-bearing: the shim opens the 
 fifos write-only and blocks until a reader is there. Those three sessions are what
 `VirtualizationAttach` hands back.
 
-The semantics are a pipe's. Closing core's write side ends the writing `cat`, which closes the
-fifo's write end, which is the workload's stdin EOF; task exit closes the shim's ends, which is
-the readers' EOF. There is no terminal anywhere and no `SIGWINCH`, so `VirtualizationResize` has
-nothing to send — a real tty would need a deploy flag eru does not have. `VirtualizationWait` is
-plain `task.Wait` for every workload, interactive or not, because core owns the task either way.
+The semantics are a pipe's. Closing core's write side ends the writing `cat`, and task exit closes
+the shim's ends, which is the readers' EOF. The workload's *own* stdin EOF does not follow from
+the relay exiting: the shim holds the stdin fifo open read-write, so its read never ends on its
+own. That is containerd's design, and the client is the one that has to say when input is done —
+`task.CloseIO(ctx, client.WithStdinCloser)`, exactly as `ctr` and docker do it. Core sends it when
+the stdin relay ends *cleanly*; a relay that died carried no input, so its end is a failure to
+report rather than an EOF to forward. There is no terminal anywhere and no `SIGWINCH`, so
+`VirtualizationResize` has nothing to send — a real tty would need a deploy flag eru does not
+have. `VirtualizationWait` is plain `task.Wait` for every workload, interactive or not, because
+core owns the task either way.
 
 The relays are the one thing this engine starts that outlives the request that started it, so
 they are opened on a `context.WithoutCancel` of the deploy's context. Every other SSH session core
