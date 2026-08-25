@@ -29,9 +29,10 @@ const (
 	// containerd flattens the query into argv pairs, so log-shim arrives as the agent's subcommand
 	logShimURI = "binary://" + hookBinary + "?log-shim"
 
-	mountMark  = "mount:"
-	deviceMark = "device:"
-	deviceBase = 16
+	mountMark    = "mount:"
+	deviceMark   = "device:"
+	deviceBase   = 16
+	deviceFields = 3
 
 	prepareScript = `set -e
 dir=$1; resolv=$2; hosts=$3; shift 3
@@ -41,7 +42,7 @@ if [ -n "$hosts" ]; then printf '%s' "$hosts" > "$dir/hosts"; fi
 for entry in "$@"; do
 case "$entry" in
 mount:*) mkdir -p "${entry#mount:}";;
-device:*) stat -L -c '%t %T' "${entry#device:}" 2>/dev/null || echo "0 0";;
+device:*) stat -L -c '%f %t %T' "${entry#device:}" 2>/dev/null || echo "0 0 0";;
 esac
 done
 `
@@ -80,7 +81,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		return nil, errors.Wrapf(coretypes.ErrInvalidWorkloadName, "containerd cannot name %q", ID)
 	}
 	dir := workloadDir(ID)
-	devices, err := e.prepareNode(ctx, opts, resource, dir)
+	throttled, devices, err := e.prepareNode(ctx, opts, resource, rArgs, dir)
 	if err != nil {
 		return nil, err
 	}
@@ -110,9 +111,9 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 			oci.WithEnv(opts.Env),
 			withProcess(opts, imageConfig.Entrypoint),
 			withCapabilities(rArgs),
-			withResources(resource, rArgs, devices),
+			withResources(resource, rArgs, throttled),
 			withPrivileged(opts.Privileged),
-			withDevices(rArgs.Devices),
+			withDevices(devices),
 			withMounts(opts, resource, dir),
 			withNetwork(opts),
 			withHooks(opts.Networks, e.namespace, nonDefaultSocket(e.socket)),
@@ -126,23 +127,38 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 }
 
 // prepareNode asks the node for what containerd's API cannot answer about a create.
-func (e *Engine) prepareNode(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions, resource *engine.VirtualizationResource, dir string) ([]blockDevice, error) {
+func (e *Engine) prepareNode(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions, resource *engine.VirtualizationResource, rArgs *RawArgs, dir string) ([]blockDevice, []nodeDevice, error) {
 	paths := []string{}
 	for _, mount := range volumeMounts(resource.Volumes, opts.Env) {
 		paths = append(paths, mountMark+mount.Source)
 	}
-	devices, marks := throttleDevices(resource.IOPSOptions)
-	paths = append(paths, marks...)
+	throttled, throttleMarks := throttleDevices(resource.IOPSOptions)
+	devices, deviceMarks := requestedDevices(rArgs.Devices)
+	paths = slices.Concat(paths, throttleMarks, deviceMarks)
 
 	resolv, hosts := resolverFiles(opts)
 	if len(paths) == 0 && resolv == "" && hosts == "" {
-		return nil, nil
+		return nil, nil, nil
 	}
 	res, err := e.run(ctx, sshrunner.Shell(prepareScript, slices.Concat([]string{dir, resolv, hosts}, paths)...)...)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return resolveDevices(devices, res.Stdout)
+	stats, err := parseDeviceStats(res.Stdout, len(throttled)+len(devices))
+	if err != nil {
+		return nil, nil, err
+	}
+	for i := range throttled {
+		throttled[i].Major, throttled[i].Minor = stats[i].Major, stats[i].Minor
+	}
+	for i := range devices {
+		stat := stats[len(throttled)+i]
+		if devices[i].Type = deviceType(stat.Mode); devices[i].Type == "" {
+			return nil, nil, errors.Wrapf(coretypes.ErrInvalidEngineArgs, "%s is no device node", devices[i].Path)
+		}
+		devices[i].Major, devices[i].Minor, devices[i].Mode = stat.Major, stat.Minor, stat.Perm()
+	}
+	return throttled, devices, nil
 }
 
 func (e *Engine) resolveThrottles(ctx context.Context, options map[string]string) ([]blockDevice, error) {
@@ -154,7 +170,14 @@ func (e *Engine) resolveThrottles(ctx context.Context, options map[string]string
 	if err != nil {
 		return nil, err
 	}
-	return resolveDevices(devices, res.Stdout)
+	stats, err := parseDeviceStats(res.Stdout, len(devices))
+	if err != nil {
+		return nil, err
+	}
+	for i := range devices {
+		devices[i].Major, devices[i].Minor = stats[i].Major, stats[i].Minor
+	}
+	return devices, nil
 }
 
 // discard drops the node state a failed create left behind.
@@ -208,27 +231,49 @@ func resolverFiles(opts *enginetypes.VirtualizationCreateOptions) (resolv, hosts
 	return resolv, hosts
 }
 
-// resolveDevices zips the node's `stat` output onto the devices it was asked about.
-func resolveDevices(devices []blockDevice, out string) ([]blockDevice, error) {
-	if len(devices) == 0 {
+// parseDeviceStats zips the node's `stat` output onto the devices it was asked about.
+func parseDeviceStats(out string, want int) ([]deviceStat, error) {
+	if want == 0 {
 		return nil, nil
 	}
-	lines := strings.Fields(strings.TrimSpace(out))
-	if len(lines) < 2*len(devices) {
-		return nil, errors.Newf("node reported %q for %d block devices", out, len(devices))
+	fields := strings.Fields(strings.TrimSpace(out))
+	if len(fields) < deviceFields*want {
+		return nil, errors.Newf("node reported %q for %d devices", out, want)
 	}
-	for i := range devices {
-		major, err := strconv.ParseInt(lines[2*i], deviceBase, 64)
-		if err != nil {
-			return nil, err
+	stats := make([]deviceStat, want)
+	for i := range stats {
+		numbers := [deviceFields]int64{}
+		for j := range numbers {
+			parsed, err := strconv.ParseInt(fields[deviceFields*i+j], deviceBase, 64)
+			if err != nil {
+				return nil, err
+			}
+			numbers[j] = parsed
 		}
-		minor, err := strconv.ParseInt(lines[2*i+1], deviceBase, 64)
-		if err != nil {
-			return nil, err
-		}
-		devices[i].Major, devices[i].Minor = major, minor
+		stats[i] = deviceStat{Mode: numbers[0], Major: numbers[1], Minor: numbers[2]}
 	}
-	return devices, nil
+	return stats, nil
+}
+
+func requestedDevices(devices []string) (nodes []nodeDevice, marks []string) {
+	nodes = make([]nodeDevice, 0, len(devices))
+	marks = make([]string, 0, len(devices))
+	for _, device := range devices {
+		parts := strings.Split(device, ":")
+		if parts[0] == "" {
+			continue
+		}
+		node := nodeDevice{Path: parts[0], Target: parts[0], Access: defaultDeviceAccess}
+		if len(parts) > 1 && parts[1] != "" {
+			node.Target = parts[1]
+		}
+		if len(parts) > 2 && parts[2] != "" {
+			node.Access = parts[2]
+		}
+		nodes = append(nodes, node)
+		marks = append(marks, deviceMark+node.Path)
+	}
+	return nodes, marks
 }
 
 func throttleDevices(options map[string]string) (devices []blockDevice, marks []string) {

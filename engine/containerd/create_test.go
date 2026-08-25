@@ -103,22 +103,48 @@ func TestGracePeriodPrefersTheConfiguredTimeout(t *testing.T) {
 	}
 }
 
-func TestResolveDevicesReadsHexDeviceNumbers(t *testing.T) {
-	devices, err := resolveDevices([]blockDevice{{Path: "/dev/sda"}, {Path: "/dev/nvme0n1"}}, "8 0\n103 1\n")
+func TestParseDeviceStatsReadsHexModeAndNumbers(t *testing.T) {
+	stats, err := parseDeviceStats("61b0 8 0\n21b6 103 1\n", 2)
 	if err != nil {
-		t.Fatalf("resolve: %v", err)
+		t.Fatalf("parse: %v", err)
 	}
-	if devices[0].Major != 8 || devices[0].Minor != 0 {
-		t.Errorf("got %d:%d, want 8:0", devices[0].Major, devices[0].Minor)
+	if stats[0].Major != 8 || stats[0].Minor != 0 || deviceType(stats[0].Mode) != "b" {
+		t.Errorf("got %+v, want block device 8:0", stats[0])
 	}
-	if devices[1].Major != 259 || devices[1].Minor != 1 {
-		t.Errorf("got %d:%d, want 259:1", devices[1].Major, devices[1].Minor)
+	if stats[1].Major != 259 || stats[1].Minor != 1 || deviceType(stats[1].Mode) != "c" {
+		t.Errorf("got %+v, want char device 259:1", stats[1])
+	}
+	if stats[0].Perm() != 0o660 {
+		t.Errorf("got %o, want 0660", stats[0].Perm())
 	}
 }
 
-func TestResolveDevicesRefusesAShortAnswer(t *testing.T) {
-	if _, err := resolveDevices([]blockDevice{{Path: "/dev/sda"}}, "8\n"); err == nil {
+func TestParseDeviceStatsRefusesAShortAnswer(t *testing.T) {
+	if _, err := parseDeviceStats("8 0\n", 1); err == nil {
 		t.Error("a truncated answer must not silently become device 0:0")
+	}
+}
+
+func TestDeviceTypeRejectsWhatIsNoDeviceNode(t *testing.T) {
+	if got := deviceType(0o100644); got != "" {
+		t.Errorf("got %q, want no type for a regular file", got)
+	}
+}
+
+func TestRequestedDevicesTakeTheirTargetAndAccess(t *testing.T) {
+	nodes, marks := requestedDevices([]string{"/dev/fuse", "/dev/sda:/dev/xvda:r", ""})
+
+	if len(nodes) != 2 || len(marks) != 2 {
+		t.Fatalf("got %d nodes and %d marks, want 2 of each", len(nodes), len(marks))
+	}
+	if nodes[0].Target != "/dev/fuse" || nodes[0].Access != defaultDeviceAccess {
+		t.Errorf("got %+v, want the path as its own target", nodes[0])
+	}
+	if nodes[1].Target != "/dev/xvda" || nodes[1].Access != "r" {
+		t.Errorf("got %+v, want the requested target and access", nodes[1])
+	}
+	if marks[1] != deviceMark+"/dev/sda" {
+		t.Errorf("got %q, want the host path stat'ed", marks[1])
 	}
 }
 

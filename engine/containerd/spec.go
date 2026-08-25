@@ -35,6 +35,13 @@ const (
 	bindType        = "bind"
 	bindOption      = "rbind"
 
+	defaultDeviceAccess = "rwm"
+	anyDeviceType       = "a"
+	modeTypeMask        = 0xF000
+	modeChar            = 0x2000
+	modeBlock           = 0x6000
+	modePermMask        = 0o777
+
 	// hookBinary runs CNI in the node's netns; core has none.
 	hookBinary  = "/usr/local/bin/eru-agent"
 	hookCommand = "oci-hook"
@@ -79,6 +86,26 @@ type blockDevice struct {
 	Major int64
 	Minor int64
 	Rates []string
+}
+
+type nodeDevice struct {
+	Path   string
+	Target string
+	Access string
+	Type   string
+	Major  int64
+	Minor  int64
+	Mode   os.FileMode
+}
+
+type deviceStat struct {
+	Mode  int64
+	Major int64
+	Minor int64
+}
+
+func (d deviceStat) Perm() os.FileMode {
+	return os.FileMode(d.Mode & modePermMask)
 }
 
 // withImageConfig applies what the image declares; oci.WithImageConfig would mount the rootfs on core.
@@ -217,24 +244,24 @@ func withCapabilities(rArgs *RawArgs) oci.SpecOpts {
 }
 
 // withDevices exposes host devices as <host>[:<container>[:<perms>]].
-func withDevices(devices []string) oci.SpecOpts {
+func withDevices(devices []nodeDevice) oci.SpecOpts {
 	return func(_ context.Context, _ oci.Client, _ *containers.Container, spec *specs.Spec) error {
 		for _, device := range devices {
-			parts := strings.Split(device, ":")
-			path := parts[0]
-			if path == "" {
-				continue
-			}
-			target := path
-			if len(parts) > 1 && parts[1] != "" {
-				target = parts[1]
-			}
-			access := "rwm"
-			if len(parts) > 2 && parts[2] != "" {
-				access = parts[2]
-			}
-			spec.Linux.Devices = append(spec.Linux.Devices, specs.LinuxDevice{Path: target, Type: "c"})
-			spec.Linux.Resources = allowDevice(spec.Linux.Resources, access)
+			mode := device.Mode
+			spec.Linux.Devices = append(spec.Linux.Devices, specs.LinuxDevice{
+				Path:     device.Target,
+				Type:     device.Type,
+				Major:    device.Major,
+				Minor:    device.Minor,
+				FileMode: &mode,
+			})
+			spec.Linux.Resources = allowDevice(spec.Linux.Resources, specs.LinuxDeviceCgroup{
+				Allow:  true,
+				Type:   device.Type,
+				Major:  &device.Major,
+				Minor:  &device.Minor,
+				Access: device.Access,
+			})
 		}
 		return nil
 	}
@@ -445,15 +472,26 @@ func ensureSysctl(spec *specs.Spec) map[string]string {
 }
 
 func allowAllDevices(limits *specs.LinuxResources) *specs.LinuxResources {
-	return allowDevice(limits, "rwm")
+	return allowDevice(limits, specs.LinuxDeviceCgroup{Allow: true, Type: anyDeviceType, Access: defaultDeviceAccess})
 }
 
-func allowDevice(limits *specs.LinuxResources, access string) *specs.LinuxResources {
+func allowDevice(limits *specs.LinuxResources, rule specs.LinuxDeviceCgroup) *specs.LinuxResources {
 	if limits == nil {
 		limits = &specs.LinuxResources{}
 	}
-	limits.Devices = append(limits.Devices, specs.LinuxDeviceCgroup{Allow: true, Access: access})
+	limits.Devices = append(limits.Devices, rule)
 	return limits
+}
+
+func deviceType(mode int64) string {
+	switch mode & modeTypeMask {
+	case modeBlock:
+		return "b"
+	case modeChar:
+		return "c"
+	default:
+		return ""
+	}
 }
 
 func expandEnv(value string, env []string) string {

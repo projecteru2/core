@@ -424,6 +424,48 @@ func TestResolverMountsPreferTheWorkloadsOwnFiles(t *testing.T) {
 	}
 }
 
+func TestWithDevicesEmitsRealNodesAndNarrowRules(t *testing.T) {
+	spec := newTestSpec()
+
+	err := withDevices([]nodeDevice{{
+		Path: "/dev/sda", Target: "/dev/xvda", Access: "r", Type: "b", Major: 8, Minor: 0, Mode: 0o660,
+	}})(t.Context(), nil, nil, spec)
+	if err != nil {
+		t.Fatalf("spec: %v", err)
+	}
+
+	if len(spec.Linux.Devices) != 1 {
+		t.Fatalf("got %+v, want one device", spec.Linux.Devices)
+	}
+	device := spec.Linux.Devices[0]
+	if device.Path != "/dev/xvda" || device.Type != "b" || device.Major != 8 || device.Minor != 0 {
+		t.Errorf("got %+v, want the resolved block node at its target", device)
+	}
+	if device.FileMode == nil || *device.FileMode != 0o660 {
+		t.Errorf("got %v, want the node's own mode", device.FileMode)
+	}
+
+	rules := spec.Linux.Resources.Devices
+	if len(rules) != 1 {
+		t.Fatalf("got %+v, want one cgroup rule", rules)
+	}
+	if rules[0].Type != "b" || rules[0].Major == nil || *rules[0].Major != 8 || rules[0].Access != "r" {
+		t.Errorf("got %+v, want a rule naming just that device", rules[0])
+	}
+}
+
+func TestWithPrivilegedAllowsEveryDeviceExplicitly(t *testing.T) {
+	spec := newTestSpec()
+
+	if err := withPrivileged(true)(t.Context(), nil, nil, spec); err != nil {
+		t.Fatalf("spec: %v", err)
+	}
+	rules := spec.Linux.Resources.Devices
+	if len(rules) != 1 || rules[0].Type != anyDeviceType || !rules[0].Allow {
+		t.Errorf("got %+v, want an explicit allow-all rule", rules)
+	}
+}
+
 func TestCapabilitySetAddsAndDrops(t *testing.T) {
 	got := capabilitySet([]string{"CAP_CHOWN", "CAP_KILL"}, []string{"sys_admin"}, []string{"CAP_KILL"})
 
