@@ -216,13 +216,6 @@ func TestHandleCreateLambda(t *testing.T) {
 	}
 
 	store := c.store.(*storemocks.Store)
-	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
-	c.wal.Recover(context.Background())
-	time.Sleep(500 * time.Millisecond)
-	store.AssertExpectations(t)
-
-	_, err = c.wal.Log(eventCreateLambda, "workloadid")
-	require.NoError(t, err)
 	store.On("GetWorkload", mock.Anything, mock.Anything).
 		Return(wrk, nil).
 		Once()
@@ -246,8 +239,29 @@ func TestHandleCreateLambda(t *testing.T) {
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 
 	c.wal.Recover(context.Background())
+	time.Sleep(500 * time.Millisecond)
 	c.wal.Recover(context.Background())
 	time.Sleep(500 * time.Millisecond)
 	store.AssertExpectations(t)
 	eng.AssertExpectations(t)
+}
+
+func TestHandleCreateLambdaKeepsEntryUntilRemoved(t *testing.T) {
+	c := NewTestCluster()
+	wal, err := enableWAL(c.config, c, c.store)
+	require.NoError(t, err)
+	c.wal = wal
+
+	_, err = c.wal.Log(eventCreateLambda, "workloadid")
+	require.NoError(t, err)
+
+	store := c.store.(*storemocks.Store)
+	store.On("GetWorkload", mock.Anything, "workloadid").Return(nil, types.ErrMockError).Twice()
+	store.On("NotFound", types.ErrMockError).Return(false).Twice()
+
+	c.wal.Recover(context.Background())
+	time.Sleep(500 * time.Millisecond)
+	c.wal.Recover(context.Background())
+	time.Sleep(500 * time.Millisecond)
+	store.AssertExpectations(t)
 }
