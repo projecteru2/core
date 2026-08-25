@@ -58,10 +58,6 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 	return ch, nil
 }
 
-func (c *Calcium) RemoveWorkloadSync(ctx context.Context, IDs []string) error {
-	return c.doRemoveWorkloadSync(ctx, IDs)
-}
-
 func (c *Calcium) doRemoveOneWorkload(ctx context.Context, node *types.Node, workload *types.Workload, force bool) error {
 	logger := log.WithFunc("calcium.doRemoveOneWorkload").WithField("id", workload.ID)
 

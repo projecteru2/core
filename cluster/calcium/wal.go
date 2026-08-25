@@ -88,7 +88,7 @@ func (h *CreateLambdaHandler) waitAndRemove(ctx context.Context, logger *log.Fie
 	if r.Code != 0 {
 		logger.Warnf(ctx, "lambda run failed: %s", r.Message)
 	}
-	return h.calcium.RemoveWorkloadSync(ctx, []string{workloadID})
+	return h.calcium.doRemoveWorkloadSync(ctx, []string{workloadID})
 }
 
 // CreateWorkloadHandler removes a workload left behind by an interrupted create.
@@ -119,7 +119,7 @@ func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw any) error {
 		return err
 	}
 	if storedID != "" {
-		return h.calcium.RemoveWorkloadSync(ctx, []string{storedID})
+		return h.calcium.doRemoveWorkloadSync(ctx, []string{storedID})
 	}
 
 	node, err := h.calcium.GetNode(ctx, wrk.Nodename)
