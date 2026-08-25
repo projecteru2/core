@@ -29,8 +29,8 @@ func TestInteractiveStartRunsCtrStartOverTheSession(t *testing.T) {
 	if len(runner.Lines()) != 1 || runner.Lines()[0] != want {
 		t.Fatalf("got %q, want %q", runner.Lines(), want)
 	}
-	if opts := runner.Options(); len(opts) != 1 || !opts[0].Stdin || !opts[0].TTY {
-		t.Errorf("got %+v, want stdin and a pty: ctr makes the fifos and relays them", opts)
+	if opts := runner.Options(); len(opts) != 1 || !opts[0].Stdin || opts[0].TTY {
+		t.Errorf("got %+v, want stdin on a plain pipe: only a pipe carries the end of the input", opts)
 	}
 	if _, ok := e.attaches["app_web_abc123"]; !ok {
 		t.Error("the start session is the attach, and must be registered as one")

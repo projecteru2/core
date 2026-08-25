@@ -47,6 +47,25 @@ func TestContainerLabelsCarryTheRestartPolicy(t *testing.T) {
 	}
 }
 
+func TestContainerLabelsMarkTheWorkloadASessionMustHold(t *testing.T) {
+	opts := &enginetypes.VirtualizationCreateOptions{Name: "app_web_abc123", Stdin: true}
+	labels, err := containerLabels(opts, &ocispec.ImageConfig{})
+	if err != nil {
+		t.Fatalf("labels: %v", err)
+	}
+	if _, ok := labels[stdinLabel]; !ok {
+		t.Error("without the label a start gives the workload a log uri and no stdin at all")
+	}
+
+	plain, err := containerLabels(&enginetypes.VirtualizationCreateOptions{Name: "app_web_abc123"}, &ocispec.ImageConfig{})
+	if err != nil {
+		t.Fatalf("labels: %v", err)
+	}
+	if _, ok := plain[stdinLabel]; ok {
+		t.Error("a workload nobody writes to must not hang on a session")
+	}
+}
+
 func TestContainerLabelsLeaveAnUnmanagedWorkloadAlone(t *testing.T) {
 	for _, policy := range []string{"", "no"} {
 		labels, err := containerLabels(&enginetypes.VirtualizationCreateOptions{Name: "app_web_abc123", Restart: policy}, &ocispec.ImageConfig{})

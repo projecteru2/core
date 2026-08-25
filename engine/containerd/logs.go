@@ -83,11 +83,11 @@ func (e *Engine) VirtualizationAttach(ctx context.Context, ID string, _, stdin b
 	return io.NopCloser(running.sess.Stdout()), io.NopCloser(running.sess.Stderr()), running.sess.Stdin(), nil
 }
 
-// startInteractive runs the task under `ctr tasks start`, which reads process.terminal off the
-// spec, makes the fifos on the node and relays them to the session's own stdio.
+// startInteractive runs the task under `ctr tasks start`, which makes the fifos on the node
+// and relays them to the session's own stdio.
 func (e *Engine) startInteractive(ctx context.Context, found taskContainer) error {
 	argv := []string{ctrBinary, "--address", e.socket, "--namespace", e.namespace, "tasks", "start", found.ID()}
-	running, err := e.runner.Start(ctx, sshrunner.Quote(argv), &sshrunner.StartOptions{Stdin: true, TTY: true})
+	running, err := e.runner.Start(ctx, sshrunner.Quote(argv), &sshrunner.StartOptions{Stdin: true})
 	if err != nil {
 		return err
 	}

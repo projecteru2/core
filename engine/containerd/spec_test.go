@@ -315,6 +315,17 @@ func TestRunAsUserTakesTheImagesUserUnlessTheDeployNamedSomeone(t *testing.T) {
 	}
 }
 
+func TestWithProcessGivesAStdinWorkloadNoTerminal(t *testing.T) {
+	spec := newTestSpec()
+
+	if err := withProcess(&enginetypes.VirtualizationCreateOptions{Stdin: true}, nil)(t.Context(), nil, nil, spec); err != nil {
+		t.Fatalf("spec: %v", err)
+	}
+	if spec.Process.Terminal {
+		t.Error("a console hangs the workload up with SIGHUP when the piped stdin ends")
+	}
+}
+
 func TestWithProcessRejectsANamedUser(t *testing.T) {
 	err := withProcess(&enginetypes.VirtualizationCreateOptions{User: "app"}, nil)(t.Context(), nil, nil, newTestSpec())
 

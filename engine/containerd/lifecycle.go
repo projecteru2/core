@@ -39,14 +39,9 @@ func (e *Engine) VirtualizationStart(ctx context.Context, ID string) error {
 	if err != nil {
 		return err
 	}
-	spec, err := containerSpec(info)
-	if err != nil {
-		return err
-	}
-
 	// a task has fifos or a log uri, never both: an interactive workload needs the fifos, so
 	// ctr makes them on the node and the session it runs under carries them
-	if spec.Process != nil && spec.Process.Terminal {
+	if _, stdin := info.Labels[stdinLabel]; stdin {
 		if err = e.startInteractive(ctx, found); err != nil {
 			return err
 		}

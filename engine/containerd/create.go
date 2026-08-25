@@ -32,6 +32,8 @@ const (
 	hostNameMax   = 64
 	snapshotMount = "rootfs"
 
+	stdinLabel = "eru.stdin"
+
 	userLookupScript = `set -e
 ctr=$1; address=$2; namespace=$3; key=$4; dir=$5
 mkdir -p "$dir"
@@ -245,6 +247,9 @@ func containerLabels(opts *enginetypes.VirtualizationCreateOptions, config *ocis
 	}
 	if config.StopSignal != "" {
 		labels[client.StopSignalLabel] = config.StopSignal
+	}
+	if opts.Stdin {
+		labels[stdinLabel] = "1"
 	}
 
 	policy, _, _ := strings.Cut(opts.Restart, ":")

@@ -142,7 +142,6 @@ func withProcess(opts *enginetypes.VirtualizationCreateOptions, entrypoint []str
 		if opts.WorkingDir != "" {
 			spec.Process.Cwd = opts.WorkingDir
 		}
-		spec.Process.Terminal = opts.Stdin
 		return applyUser(spec, deployUser(opts))
 	}
 }
