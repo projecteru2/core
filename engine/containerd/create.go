@@ -107,6 +107,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		client.WithContainerLabels(labels),
 		client.WithNewSpec(
 			oci.WithDefaultSpecForPlatform(platforms.Format(e.platform)),
+			oci.WithHostname(ID),
 			withImageConfig(imageConfig),
 			oci.WithEnv(opts.Env),
 			withProcess(opts),
