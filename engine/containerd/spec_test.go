@@ -359,6 +359,32 @@ func TestWithHooksHandTheNetnsToTheAgent(t *testing.T) {
 	}
 }
 
+func TestNoNetworkIsHostNetworking(t *testing.T) {
+	spec := newTestSpec()
+	spec.Linux.Namespaces = []specs.LinuxNamespace{{Type: specs.NetworkNamespace}}
+
+	opts := &enginetypes.VirtualizationCreateOptions{}
+	if err := withNetwork(opts)(t.Context(), nil, nil, spec); err != nil {
+		t.Fatalf("spec: %v", err)
+	}
+	if err := withHooks(opts.Networks, "eru", "")(t.Context(), nil, nil, spec); err != nil {
+		t.Fatalf("hooks: %v", err)
+	}
+
+	hasNetns := slices.ContainsFunc(spec.Linux.Namespaces, func(ns specs.LinuxNamespace) bool {
+		return ns.Type == specs.NetworkNamespace
+	})
+	if hasNetns {
+		t.Error("a private netns nothing configures would have no route out, and inspect reports host")
+	}
+	if spec.Hooks != nil {
+		t.Error("no network means no CNI hook")
+	}
+	if networks := workloadNetworks(map[string]string{}, "10.0.0.1"); networks[hostNetwork] != "10.0.0.1" {
+		t.Errorf("got %+v, want inspect to report the node's address", networks)
+	}
+}
+
 func TestWithHooksSkipHostNetworking(t *testing.T) {
 	spec := newTestSpec()
 

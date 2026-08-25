@@ -150,7 +150,7 @@ func withNetwork(opts *enginetypes.VirtualizationCreateOptions) oci.SpecOpts {
 			spec.Linux = &specs.Linux{}
 		}
 		sysctl := opts.Sysctl
-		if _, host := opts.Networks[hostNetwork]; host {
+		if hostNetworking(opts.Networks) {
 			sysctl = withoutNetSysctls(sysctl)
 			if err := oci.WithHostNamespace(specs.NetworkNamespace)(ctx, client, container, spec); err != nil {
 				return err
@@ -170,7 +170,7 @@ func withHooks(networks map[string]string, namespace, socket string) oci.SpecOpt
 			spec.Annotations = map[string]string{}
 		}
 		spec.Annotations[namespaceAnnotation] = namespace
-		if _, host := networks[hostNetwork]; host || len(networks) == 0 {
+		if hostNetworking(networks) {
 			return nil
 		}
 		hook := specs.Hook{Path: hookBinary, Args: hookArgs(networks, socket)}
@@ -420,6 +420,11 @@ func rlimits(ulimits []*units.Ulimit) []specs.POSIXRlimit {
 		})
 	}
 	return limits
+}
+
+func hostNetworking(networks map[string]string) bool {
+	_, host := networks[hostNetwork]
+	return host || len(networks) == 0
 }
 
 func withoutNetSysctls(sysctl map[string]string) map[string]string {
