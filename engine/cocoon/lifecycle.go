@@ -8,8 +8,10 @@ import (
 
 	"github.com/cockroachdb/errors"
 
+	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/engine/sshrunner"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/log"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -174,7 +176,16 @@ func (e *Engine) VirtualizationWait(ctx context.Context, ID, _ string) (*enginet
 	}
 }
 
-func (e *Engine) VirtualizationUpdateResource(context.Context, string, resourcetypes.Resources) error {
+func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, engineParams resourcetypes.Resources) error {
+	resource := &engine.VirtualizationResource{}
+	if err := resource.Decode(engineParams); err != nil {
+		log.WithFunc("engine.cocoon.VirtualizationUpdateResource").WithField("ID", ID).
+			Errorf(ctx, err, "failed to parse engine args %+v", engineParams)
+		return err
+	}
+	if resource.Remap {
+		return nil
+	}
 	return errors.Wrap(coretypes.ErrEngineNotImplemented, "cpu and memory hot-plug wait on cocoon (projecteru2/core#661)")
 }
 

@@ -237,10 +237,26 @@ func TestVirtualizationWaitFailsWhenTheStreamEndsEarly(t *testing.T) {
 }
 
 func TestVirtualizationUpdateResourceWaitsOnCocoon(t *testing.T) {
-	e := testEngine(t, &sshrunnertest.Fake{})
+	runner := &sshrunnertest.Fake{}
+	e := testEngine(t, runner)
 
 	err := e.VirtualizationUpdateResource(t.Context(), "w1", resourcetypes.Resources{"cpumem": {"cpu": 2.0}})
 	if !errors.Is(err, coretypes.ErrEngineNotImplemented) {
 		t.Errorf("got %v, want ErrEngineNotImplemented", err)
+	}
+	if len(runner.Lines()) != 0 {
+		t.Errorf("got %q, want no command for a realloc cocoon cannot do", runner.Lines())
+	}
+}
+
+func TestVirtualizationUpdateResourceTreatsARemapAsANoOp(t *testing.T) {
+	runner := &sshrunnertest.Fake{}
+	e := testEngine(t, runner)
+
+	if err := e.VirtualizationUpdateResource(t.Context(), "w1", resourcetypes.Resources{"cpumem": {"cpu": 2.0, "remap": true}}); err != nil {
+		t.Fatalf("a remap must not fail a vm: %v", err)
+	}
+	if len(runner.Lines()) != 0 {
+		t.Errorf("got %q, want no round trip for a remap", runner.Lines())
 	}
 }
