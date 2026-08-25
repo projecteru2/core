@@ -106,10 +106,10 @@ func withImageConfig(config *ocispec.ImageConfig) oci.SpecOpts {
 }
 
 // withProcess applies the workload's own command, user and working directory over the image's.
-func withProcess(opts *enginetypes.VirtualizationCreateOptions) oci.SpecOpts {
+func withProcess(opts *enginetypes.VirtualizationCreateOptions, entrypoint []string) oci.SpecOpts {
 	return func(_ context.Context, _ oci.Client, _ *containers.Container, spec *specs.Spec) error {
 		if len(opts.Cmd) > 0 {
-			spec.Process.Args = opts.Cmd
+			spec.Process.Args = slices.Concat(entrypoint, opts.Cmd)
 		}
 		if opts.WorkingDir != "" {
 			spec.Process.Cwd = opts.WorkingDir

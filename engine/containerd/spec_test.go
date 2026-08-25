@@ -196,7 +196,7 @@ func TestWithProcessTakesTheWorkloadOverTheImage(t *testing.T) {
 		Cmd:        []string{"/bin/app", "-v"},
 		WorkingDir: "/srv",
 		User:       "1000:1001",
-	})(t.Context(), nil, nil, spec)
+	}, nil)(t.Context(), nil, nil, spec)
 	if err != nil {
 		t.Fatalf("spec: %v", err)
 	}
@@ -212,10 +212,54 @@ func TestWithProcessTakesTheWorkloadOverTheImage(t *testing.T) {
 	}
 }
 
+func TestWithProcessKeepsTheImageEntrypoint(t *testing.T) {
+	tests := []struct {
+		name       string
+		entrypoint []string
+		cmd        []string
+		want       []string
+	}{
+		{
+			"a deploy command runs under the image's entrypoint",
+			[]string{"/docker-entrypoint.sh"},
+			[]string{"nginx", "-g", "daemon off;"},
+			[]string{"/docker-entrypoint.sh", "nginx", "-g", "daemon off;"},
+		},
+		{
+			"without an entrypoint the deploy command stands alone",
+			nil,
+			[]string{"/bin/app", "-v"},
+			[]string{"/bin/app", "-v"},
+		},
+		{
+			"without a deploy command the image's own args stand",
+			[]string{"/docker-entrypoint.sh"},
+			nil,
+			[]string{"/docker-entrypoint.sh", "nginx"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			spec := newTestSpec()
+			config := &ocispec.ImageConfig{Entrypoint: tt.entrypoint, Cmd: []string{"nginx"}}
+			if err := withImageConfig(config)(t.Context(), nil, nil, spec); err != nil {
+				t.Fatalf("image config: %v", err)
+			}
+			opts := &enginetypes.VirtualizationCreateOptions{Cmd: tt.cmd}
+			if err := withProcess(opts, config.Entrypoint)(t.Context(), nil, nil, spec); err != nil {
+				t.Fatalf("spec: %v", err)
+			}
+			if !slices.Equal(spec.Process.Args, tt.want) {
+				t.Errorf("got %q, want %q", spec.Process.Args, tt.want)
+			}
+		})
+	}
+}
+
 func TestWithProcessTakesRootByName(t *testing.T) {
 	spec := newTestSpec()
 
-	if err := withProcess(&enginetypes.VirtualizationCreateOptions{User: rootUser})(t.Context(), nil, nil, spec); err != nil {
+	if err := withProcess(&enginetypes.VirtualizationCreateOptions{User: rootUser}, nil)(t.Context(), nil, nil, spec); err != nil {
 		t.Fatalf("spec: %v", err)
 	}
 	if spec.Process.User.UID != 0 || spec.Process.User.GID != 0 {
@@ -224,7 +268,7 @@ func TestWithProcessTakesRootByName(t *testing.T) {
 }
 
 func TestWithProcessRejectsANamedUser(t *testing.T) {
-	err := withProcess(&enginetypes.VirtualizationCreateOptions{User: "app"})(t.Context(), nil, nil, newTestSpec())
+	err := withProcess(&enginetypes.VirtualizationCreateOptions{User: "app"}, nil)(t.Context(), nil, nil, newTestSpec())
 
 	if !errors.Is(err, coretypes.ErrInvalidEngineArgs) {
 		t.Errorf("got %v, want ErrInvalidEngineArgs", err)
@@ -234,7 +278,7 @@ func TestWithProcessRejectsANamedUser(t *testing.T) {
 func TestWithProcessRunsPrivilegedAsRoot(t *testing.T) {
 	spec := newTestSpec()
 
-	if err := withProcess(&enginetypes.VirtualizationCreateOptions{User: "app", Privileged: true})(t.Context(), nil, nil, spec); err != nil {
+	if err := withProcess(&enginetypes.VirtualizationCreateOptions{User: "app", Privileged: true}, nil)(t.Context(), nil, nil, spec); err != nil {
 		t.Fatalf("spec: %v", err)
 	}
 	if spec.Process.User.UID != 0 {

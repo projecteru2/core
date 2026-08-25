@@ -104,15 +104,17 @@ image names one), which temp-mounts the rootfs *on the client* to read `/etc/gro
 `/etc/passwd`. Over a forwarded socket that mount is a node path opened on core's side, and the
 create fails with `no such file or directory` under the snapshotter's directory.
 
-The image's env comes first and the deploy's env is merged over it; the image's entrypoint and
-command become the process args only when the deploy names no command — a deploy command
-replaces both, it is not appended to the entrypoint. `StopSignal` is stored as containerd's
-`io.containerd.image.config.stop-signal` label and is the signal `VirtualizationStop` sends.
+The image's env comes first and the deploy's env is merged over it. Process args follow docker:
+the image's `ENTRYPOINT` always leads, a deploy command replaces the image's `CMD` after it, and
+with no deploy command the image's `ENTRYPOINT`+`CMD` stand. `StopSignal` is stored as
+containerd's `io.containerd.image.config.stop-signal` label and is the signal
+`VirtualizationStop` sends.
 
-`user` must be numeric (`uid` or `uid:gid`, an unnamed group being root): resolving a name needs
-the image's `/etc/passwd`, which only the node can read. A named user on the deploy is refused
-with `ErrInvalidEngineArgs` rather than silently running as root; a named user in the *image*
-config is logged as a warning and the spec's default stands.
+`user` must be numeric (`uid` or `uid:gid`, an unnamed group being root) or `root`, whose ids the
+passwd contract fixes: resolving any other name needs the image's `/etc/passwd`, which only the
+node can read. Such a user on the deploy is refused with `ErrInvalidEngineArgs` rather than
+silently running as root; in the *image* config it is logged as a warning and the spec's default
+stands. The workload's own name is its hostname.
 
 ### Networking
 

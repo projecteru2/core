@@ -110,7 +110,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 			oci.WithHostname(ID),
 			withImageConfig(imageConfig),
 			oci.WithEnv(opts.Env),
-			withProcess(opts),
+			withProcess(opts, imageConfig.Entrypoint),
 			withCapabilities(rArgs),
 			withResources(resource, rArgs, devices),
 			withPrivileged(opts.Privileged),
