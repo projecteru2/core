@@ -37,8 +37,7 @@ func TestRemapResource(t *testing.T) {
 		Resources: resourcetypes.Resources{},
 	}
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
-	_, err := c.doRemapResource(context.Background(), node)
-	assert.Nil(t, err)
+	assert.Nil(t, c.doRemapResource(context.Background(), log.WithField("test", "zc"), node))
 
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
 	lock := &lockmocks.DistributedLock{}

@@ -10,31 +10,13 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-type remapMsg struct {
-	ID  string
-	err error
-}
-
 // RemapResourceAndLog remaps node resources after a binding change and logs the outcome.
 func (c *Calcium) RemapResourceAndLog(ctx context.Context, logger *log.Fields, node *types.Node) {
 	ctx, cancel := context.WithTimeout(utils.NewInheritCtx(ctx), c.config.GlobalTimeout)
 	defer cancel()
 
 	err := c.withNodeOperationLocked(ctx, node.Name, func(ctx context.Context, node *types.Node) error {
-		ch, err := c.doRemapResource(ctx, node)
-		if err != nil {
-			return err
-		}
-		for msg := range ch {
-			logger.Infof(ctx, "remap workload ID %+v", msg.ID)
-			switch {
-			case errors.Is(msg.err, types.ErrWorkloadNotExists):
-				logger.Warnf(ctx, "skip remap of workload %s: %+v", msg.ID, msg.err)
-			case msg.err != nil:
-				logger.Error(ctx, msg.err)
-			}
-		}
-		return nil
+		return c.doRemapResource(ctx, logger, node)
 	})
 	if err != nil {
 		logger.Error(ctx, err, "remap node failed")
@@ -42,27 +24,25 @@ func (c *Calcium) RemapResourceAndLog(ctx context.Context, logger *log.Fields, n
 }
 
 // the caller must hold the node lock
-func (c *Calcium) doRemapResource(ctx context.Context, node *types.Node) (ch chan *remapMsg, err error) {
+func (c *Calcium) doRemapResource(ctx context.Context, logger *log.Fields, node *types.Node) error {
 	workloads, err := c.store.ListNodeWorkloads(ctx, node.Name, nil)
 	if err != nil {
-		return ch, err
+		return err
 	}
 
 	engineParamsMap, err := c.rmgr.Remap(ctx, node.Name, workloads)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	ch = make(chan *remapMsg, len(engineParamsMap))
-	_ = c.pool.Invoke(func() {
-		defer close(ch)
-		for workloadID, engineParams := range engineParamsMap {
-			ch <- &remapMsg{
-				ID:  workloadID,
-				err: node.Engine.VirtualizationUpdateResource(ctx, workloadID, engineParams),
-			}
+	for workloadID, engineParams := range engineParamsMap {
+		logger.Infof(ctx, "remap workload ID %+v", workloadID)
+		switch updateErr := node.Engine.VirtualizationUpdateResource(ctx, workloadID, engineParams); {
+		case errors.Is(updateErr, types.ErrWorkloadNotExists):
+			logger.Warnf(ctx, "skip remap of workload %s: %+v", workloadID, updateErr)
+		case updateErr != nil:
+			logger.Error(ctx, updateErr)
 		}
-	})
-
-	return ch, nil
+	}
+	return nil
 }
