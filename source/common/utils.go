@@ -41,6 +41,10 @@ func extractZipEntry(f *zip.File, root string) error {
 		return os.MkdirAll(target, f.Mode())
 	}
 
+	if err := os.MkdirAll(filepath.Dir(target), 0o750); err != nil {
+		return err
+	}
+
 	zipped, err := f.Open()
 	if err != nil {
 		return err
@@ -49,7 +53,7 @@ func extractZipEntry(f *zip.File, root string) error {
 		_ = zipped.Close()
 	}()
 
-	writer, err := os.OpenFile(filepath.Clean(target), os.O_WRONLY|os.O_CREATE, f.Mode())
+	writer, err := os.OpenFile(filepath.Clean(target), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
 	if err != nil {
 		return err
 	}
