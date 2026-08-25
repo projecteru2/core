@@ -49,6 +49,7 @@ func TestVirtualizationCreateRecordsTheUnitAndTheMetaFile(t *testing.T) {
 		"--unit=" + unitName(created.ID),
 		"--slice=eru-prod.slice",
 		"TimeoutStopSec=10",
+		`rm -rf "$dir"`,
 		`"podname":"prod"`,
 		`"root_directory":"` + workloadDir(testRoot, created.ID) + `/merged"`,
 	} {

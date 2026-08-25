@@ -33,6 +33,7 @@ done
 `
 
 	pullScript = "set -e\n" + unpackFunc + `ref=$1; dir=$2
+rm -rf "$dir"
 mkdir -p "$dir"
 oras pull "$ref" -o "$dir"
 unpack "$dir"

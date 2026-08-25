@@ -54,7 +54,7 @@ func TestImagePullUnpacksTheBundleLayer(t *testing.T) {
 	if _, err := e.ImagePull(t.Context(), "hub.io/ns/app:v1", false); err != nil {
 		t.Fatalf("pull: %v", err)
 	}
-	for _, want := range []string{"oras pull", `unpack "$dir"`, `tar -C "$1" -xf "$archive"`} {
+	for _, want := range []string{`rm -rf "$dir"`, "oras pull", `unpack "$dir"`, `tar -C "$1" -xf "$archive"`} {
 		if !strings.Contains(runner.lines[0], want) {
 			t.Errorf("pull command does not carry %q", want)
 		}

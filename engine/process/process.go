@@ -30,7 +30,8 @@ const (
 	kiB                = 1024
 	infoFields         = 4
 
-	infoScript = `printf '%s\n' "$(cat /etc/machine-id 2>/dev/null)" "$(nproc 2>/dev/null)" ` +
+	infoScript = `mkdir -p "$1" 2>/dev/null || true
+printf '%s\n' "$(cat /etc/machine-id 2>/dev/null)" "$(nproc 2>/dev/null)" ` +
 		`"$(awk '/^MemTotal:/{print $2}' /proc/meminfo 2>/dev/null)" "$(df -Pk "$1" 2>/dev/null | awk 'NR==2{print $2}')"`
 )
 

@@ -22,6 +22,7 @@ const (
 	rootUser  = "root"
 
 	createScript = "set -e\n" + unpackFunc + `dir=$1; ref=$2; cache=$3; launcher=$4; record=$5; overlay=$6; metadata=$7; binds=$8
+trap 'rm -rf "$dir"' EXIT
 mkdir -p "$dir/lower"
 if [ -d "$cache" ]; then
 cp -a "$cache/." "$dir/lower/"
@@ -39,6 +40,7 @@ printf '%s\n' "$metadata" > "$dir/meta.json"
 mkdir -p "$(dirname "$record")"
 cp -f "$dir/meta.json" "$record.tmp"
 mv "$record.tmp" "$record"
+trap - EXIT
 `
 )
 
