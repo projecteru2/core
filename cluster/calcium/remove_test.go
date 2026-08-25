@@ -16,6 +16,8 @@ import (
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/wal"
+	walmocks "github.com/projecteru2/core/wal/mocks"
 )
 
 func TestRemoveWorkload(t *testing.T) {
@@ -83,4 +85,44 @@ func TestRemoveWorkload(t *testing.T) {
 		assert.True(t, r.Success)
 	}
 	store.AssertExpectations(t)
+}
+
+func TestRemoveWorkloadJournalsRepairEntries(t *testing.T) {
+	c := NewTestCluster()
+	ctx := context.Background()
+
+	logged := []string{}
+	committed := 0
+	mwal := &walmocks.WAL{}
+	mwal.On("Log", mock.Anything, mock.Anything).Return(func(eventyp string, _ any) (wal.Commit, error) {
+		logged = append(logged, eventyp)
+		return func() error { committed++; return nil }, nil
+	})
+	c.wal = mwal
+
+	lock := &lockmocks.DistributedLock{}
+	lock.On("Lock", mock.Anything).Return(ctx, nil)
+	lock.On("Unlock", mock.Anything).Return(nil)
+	engine := &enginemocks.API{}
+	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	workload := &types.Workload{ID: "xx", Name: "test", Nodename: "test", Engine: engine}
+
+	store := c.store.(*storemocks.Store)
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
+	store.On("GetNode", mock.Anything, mock.Anything).Return(&types.Node{NodeMeta: types.NodeMeta{Name: "test"}}, nil)
+	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		resourcetypes.Resources{}, resourcetypes.Resources{}, nil,
+	)
+
+	ch, err := c.RemoveWorkload(ctx, []string{"xx"}, true)
+	assert.NoError(t, err)
+	for r := range ch {
+		assert.True(t, r.Success)
+	}
+	assert.Equal(t, []string{eventWorkloadResourceAllocated, eventWorkloadCreated}, logged)
+	assert.Equal(t, 2, committed)
 }
