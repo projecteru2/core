@@ -178,11 +178,8 @@ func parseThrottleRate(s string) uint64 {
 }
 
 func normalizeImage(image string) string {
-	if strings.Contains(image, ":") {
-		t := strings.Split(image, ":")
-		return t[0]
-	}
-	return image
+	name, _, _ := strings.Cut(image, ":")
+	return name
 }
 
 // See https://github.com/docker/cli/blob/16cccc30f95c8163f0749eba5a2e80b807041342/cli/command/registry.go#L67
@@ -213,14 +210,6 @@ func encodeAuthToBase64(authConfig coretypes.AuthConfig) (string, error) {
 		return "", err
 	}
 	return base64.URLEncoding.EncodeToString(buf), nil
-}
-
-func createImageTag(config coretypes.DockerConfig, appname, tag string) string {
-	prefix := strings.Trim(config.Namespace, "/")
-	if prefix == "" {
-		return fmt.Sprintf("%s/%s:%s", config.Hub, appname, tag)
-	}
-	return fmt.Sprintf("%s/%s/%s:%s", config.Hub, prefix, appname, tag)
 }
 
 func makeCommonPart(build *enginetypes.Build) (string, error) {

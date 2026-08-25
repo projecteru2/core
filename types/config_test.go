@@ -16,7 +16,7 @@ func TestIdentifierCoversTheStoreConfigOnly(t *testing.T) {
 
 	config.Bind = "5002"
 	config.Auth = AuthConfig{Username: "eru", Password: "secret"}
-	config.Docker.AuthConfigs = map[string]AuthConfig{"hub": {Password: "secret"}}
+	config.Registry.Auths = map[string]AuthConfig{"hub": {Password: "secret"}}
 	unrelated, err := config.Identifier()
 	assert.NoError(t, err)
 	assert.Equal(t, base, unrelated)

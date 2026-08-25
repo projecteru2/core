@@ -13,7 +13,7 @@ import (
 	"github.com/projecteru2/core/engine/docker"
 	"github.com/projecteru2/core/engine/fake"
 	"github.com/projecteru2/core/engine/mocks/fakeengine"
-	"github.com/projecteru2/core/engine/systemd"
+	"github.com/projecteru2/core/engine/process"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/engine/virt"
 	"github.com/projecteru2/core/log"
@@ -28,9 +28,10 @@ var (
 		docker.TCPPrefixKey:  docker.MakeClient,
 		docker.SockPrefixKey: docker.MakeClient,
 		virt.GRPCPrefixKey:   virt.MakeClient,
-		systemd.TCPPrefix:    systemd.MakeClient,
+		process.Prefix:       process.MakeClient,
 		fakeengine.PrefixKey: fakeengine.MakeClient,
 	}
+
 	engineCache *EngineCache
 )
 
@@ -66,6 +67,9 @@ func (e *EngineCache) Set(key string, client engine.API) {
 }
 
 func (e *EngineCache) Delete(key string) {
+	if api, ok := e.cache.Load(key); ok {
+		closeEngine(api.(engine.API))
+	}
 	e.cache.Delete(key)
 }
 
@@ -104,6 +108,7 @@ func (e *EngineCache) checkAlive(ctx context.Context) {
 				}
 				if err := validateEngine(ctx, client, e.config.ConnectionTimeout); err != nil {
 					logger.Errorf(ctx, err, "engine %+v is unavailable, will be replaced and removed", cacheKey)
+					closeEngine(client)
 					e.Set(cacheKey, &fake.EngineWithErr{DefaultErr: err, EP: params})
 					return
 				}
@@ -198,6 +203,14 @@ func GetEngine(ctx context.Context, config types.Config, nodename, endpoint, ca,
 	}()
 
 	return newEngine(ctx, config, params)
+}
+
+// closeEngine releases the connection an engine owns; a fake engine holds none.
+func closeEngine(api engine.API) {
+	if _, ok := api.(*fake.EngineWithErr); ok {
+		return
+	}
+	_ = api.CloseConn()
 }
 
 func validateEngine(ctx context.Context, engine engine.API, timeout time.Duration) (err error) {

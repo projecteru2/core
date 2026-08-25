@@ -33,7 +33,10 @@ docker:
     network_mode: "bridge"
     hub: "hub.docker.com"
     namespace: "projecteru2"
-    build_pod: "eru-test"
+build:
+    node_filter:
+        labels:
+            eru.build: "1"
 scheduler:
     sharebase: 50
 `
@@ -80,6 +83,7 @@ func TestLoadConfigLetsTheFileOverrideDefaults(t *testing.T) {
 		{"int", config.Scheduler.ShareBase, 50},
 		{"nested string", config.Etcd.LockPrefix, "core/_lock"},
 		{"nested struct field", config.Docker.NetworkMode, "bridge"},
+		{"map inside a twice-nested struct", config.Build.NodeFilter.Labels, map[string]string{"eru.build": "1"}},
 		{"slice", config.Etcd.Machines, []string{"http://127.0.0.1:2379"}},
 		{"untouched default alongside overrides", config.Virt.APIVersion, "v1"},
 	}

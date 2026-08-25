@@ -23,7 +23,7 @@ cli / agent / your service
    │           engine/factory (cached, per node) │
    └─────────────┼───────────────────────────────┘
                  ▼
-   tcp:// unix:// | virt-grpc:// | systemd:// | mock://
+   tcp:// unix:// | virt-grpc:// | process:// | mock://
 ```
 
 ## Guides
@@ -33,7 +33,7 @@ cli / agent / your service
 - [Configuration](configuration.md) — every key core reads, with types and defaults
 - [Architecture](architecture.md) — the packages, what each owns, and how a deploy request flows
 - [gRPC API](api.md) — every rpc grouped by domain, with the key request fields
-- [Engines](engines.md) — docker, virt, systemd and fake; endpoint schemes, the engine cache, TLS
+- [Engines](engines.md) — docker, virt, process and fake; endpoint schemes, the engine cache, TLS
 - [Resource plugins](resource-plugins.md) — the plugin contract, cpumem and binary plugins
 - [Deploy strategies](deploy-strategies.md) — AUTO, FILL, EACH, GLOBAL, DRAINED and when to use each
 - [Storage](storage.md) — etcd key layout, the redis backend, locks, embedded etcd

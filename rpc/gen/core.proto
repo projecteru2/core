@@ -228,6 +228,7 @@ message NodeFilter {
   repeated string excludes = 1002;
   map<string, string> labels = 1003;
   bool all = 1004;
+  string podname = 1005;
 }
 
 message Workload {
@@ -349,6 +350,7 @@ message BuildImageOptions {
   BuildMethod build_method = 1007;
   string exist_id = 1008;
   string platform = 1009;
+  NodeFilter node_filter = 1010;
 }
 
 message HookOptions {

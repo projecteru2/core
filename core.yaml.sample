@@ -31,6 +31,11 @@ git:                                                                    # option
     token: "***REMOVED***"
     clone_timeout: 300s
 
+ssh:                                                                    # optional, required by process:// nodes
+    private_key: "***REMOVED***"                                        # file path
+    user: "root"                                                        # default root, overridden by user@ in the endpoint
+    known_hosts: "/etc/eru/known_hosts"                                 # empty accepts any host key
+
 etcd:
     machines:                                                           # required
         - "http://127.0.0.1:2379"
@@ -58,16 +63,26 @@ docker:
  
     hub: "hub.docker.com"
     namespace: "projecteru2"
-    build_pod: "eru-test"
-    auth:
-        username: root
-        password: root
+
+registry:                                                               # optional, shared by every engine
+    auths:
+        "hub.docker.com":
+            username: root
+            password: root
+    plain_http:                                                         # registry hosts served without TLS
+        - "registry.local:5000"
+
+build:                                                                  # optional, empty means every node may build
+    node_filter:
+        labels:
+            eru.build: "1"
+
+process:
+    root: "/var/lib/eru/process"                                        # default /var/lib/eru/process
+    stop_timeout: 10s                                                   # default 10s, grace period before SIGKILL
 
 virt:
     version: "v1"
-
-systemd:
-    runtime: "io.containerd.eru.v2"
 
 scheduler:
     maxshare: -1                                                        # required default -1

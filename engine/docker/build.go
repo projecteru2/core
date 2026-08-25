@@ -44,11 +44,11 @@ func (e *Engine) BuildRefs(_ context.Context, opts *enginetypes.BuildRefOptions)
 	tags := opts.Tags
 	refs := []string{}
 	for _, tag := range tags {
-		ref := createImageTag(e.config.Docker, name, tag)
+		ref := e.config.Docker.ImageTag(name, tag)
 		refs = append(refs, ref)
 	}
 	if len(refs) == 0 {
-		refs = append(refs, createImageTag(e.config.Docker, name, utils.DefaultVersion))
+		refs = append(refs, e.config.Docker.ImageTag(name, utils.DefaultVersion))
 	}
 	return refs
 }

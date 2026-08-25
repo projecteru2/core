@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -32,11 +33,14 @@ type Config struct {
 	Auth           AuthConfig           `yaml:"auth"` // grpc auth
 	GRPCConfig     GRPCConfig           `yaml:"grpc"`
 	Git            GitConfig            `yaml:"git"`
+	SSH            SSHConfig            `yaml:"ssh"`
 	Etcd           EtcdConfig           `yaml:"etcd"`
 	Redis          RedisConfig          `yaml:"redis"`
 	Docker         DockerConfig         `yaml:"docker"`
+	Registry       RegistryConfig       `yaml:"registry"`
+	Build          BuildConfig          `yaml:"build"`
+	Process        ProcessConfig        `yaml:"process"`
 	Virt           VirtConfig           `yaml:"virt"`
-	Systemd        SystemdConfig        `yaml:"systemd"`
 	Scheduler      SchedulerConfig      `yaml:"scheduler"`
 	ResourcePlugin ResourcePluginConfig `yaml:"resource_plugin"`
 	Log            ServerLogConfig      `yaml:"log"`
@@ -77,6 +81,13 @@ type GitConfig struct {
 	CloneTimeout time.Duration `yaml:"clone_timeout" default:"300s"`
 }
 
+// SSHConfig is core's key pair for the nodes it drives over SSH.
+type SSHConfig struct {
+	PrivateKey string `yaml:"private_key"` // file path
+	User       string `yaml:"user" default:"root"`
+	KnownHosts string `yaml:"known_hosts"` // file path; empty accepts any host key
+}
+
 type EtcdConfig struct {
 	Machines   []string   `yaml:"machines" required:"true"`
 	Prefix     string     `yaml:"prefix" required:"true" default:"/eru"` // key prefix for core data
@@ -98,18 +109,38 @@ type DockerConfig struct {
 	UseLocalDNS bool      `yaml:"use_local_dns"` // use node IP as dns
 	Log         LogConfig `yaml:"log"`           // docker log driver
 
-	Hub         string                `yaml:"hub"`
-	Namespace   string                `yaml:"namespace"` // image path becomes $Hub/$Namespace/$appname
-	BuildPod    string                `yaml:"build_pod"` // podname used to build
-	AuthConfigs map[string]AuthConfig `yaml:"auths"`     // docker registry credentials
+	Hub       string `yaml:"hub"`
+	Namespace string `yaml:"namespace"` // image path becomes $Hub/$Namespace/$appname
+}
+
+// ImageTag renders the registry reference an app's built image is pushed under.
+func (c DockerConfig) ImageTag(appname, tag string) string {
+	prefix := strings.Trim(c.Namespace, "/")
+	if prefix == "" {
+		return fmt.Sprintf("%s/%s:%s", c.Hub, appname, tag)
+	}
+	return fmt.Sprintf("%s/%s/%s:%s", c.Hub, prefix, appname, tag)
+}
+
+// RegistryConfig holds the credentials every engine hands to its image client.
+type RegistryConfig struct {
+	Auths     map[string]AuthConfig `yaml:"auths"`      // keyed by registry host
+	PlainHTTP []string              `yaml:"plain_http"` // registry hosts served without TLS
+}
+
+// BuildConfig selects the nodes allowed to run in-cluster image builds.
+type BuildConfig struct {
+	NodeFilter NodeFilter `yaml:"node_filter"`
+}
+
+// ProcessConfig is the node-side layout the process engine writes into.
+type ProcessConfig struct {
+	Root        string        `yaml:"root" default:"/var/lib/eru/process"`
+	StopTimeout time.Duration `yaml:"stop_timeout" default:"10s"` // grace period before systemd kills the unit
 }
 
 type VirtConfig struct {
 	APIVersion string `yaml:"version" default:"v1"` // Yavirtd API version
-}
-
-type SystemdConfig struct {
-	Runtime string `yaml:"runtime" default:"io.containerd.eru.v2"`
 }
 
 type SchedulerConfig struct {

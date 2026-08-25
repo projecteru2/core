@@ -61,7 +61,18 @@ func TestSetNodeTranform(t *testing.T) {
 	b := &pb.SetNodeOptions{
 		Nodename: "a",
 	}
-	assert.Equal(t, "a", toCoreSetNodeOptions(b).Nodename)
+	opts, err := toCoreSetNodeOptions(b)
+	assert.NoError(t, err)
+	assert.Equal(t, "a", opts.Nodename)
+}
+
+func TestSetNodeTranformRejectsAMalformedResource(t *testing.T) {
+	b := &pb.SetNodeOptions{
+		Nodename:  "a",
+		Resources: map[string][]byte{"cpumem": []byte("not json")},
+	}
+	_, err := toCoreSetNodeOptions(b)
+	assert.Error(t, err)
 }
 
 func TestRunAndWaitSync(t *testing.T) {

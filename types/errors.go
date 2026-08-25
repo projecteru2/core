@@ -16,6 +16,7 @@ var (
 	ErrNodeNotEmpty         = errors.New("node not empty, still has workloads associated")
 	ErrNodeNotExists        = errors.New("node not exists")
 	ErrInvaildNodeStatusTTL = errors.New("invalid TTL for node status, should be > 0")
+	ErrInvaildNodeFilter    = errors.New("node filter widens the configured selection")
 
 	ErrLockKeyInvaild  = errors.New("lock key is invalid")
 	ErrLockSessionDone = errors.New("lock session done")
@@ -56,7 +57,6 @@ var (
 	ErrInvaildGRPCPassword    = errors.New("invalid grpc password")
 	ErrInvaildGRPCUsername    = errors.New("invalid grpc username")
 
-	ErrNoBuildPod                  = errors.New("no build pod set in config")
 	ErrNoBuildsInSpec              = errors.New("no builds in spec")
 	ErrNoBuildSpec                 = errors.New("no build spec")
 	ErrNoEntryInSpec               = errors.New("no entry in spec")

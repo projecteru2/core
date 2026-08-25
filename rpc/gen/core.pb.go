@@ -1835,6 +1835,7 @@ type NodeFilter struct {
 	Excludes      []string               `protobuf:"bytes,1002,rep,name=excludes,proto3" json:"excludes,omitempty"`
 	Labels        map[string]string      `protobuf:"bytes,1003,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	All           bool                   `protobuf:"varint,1004,opt,name=all,proto3" json:"all,omitempty"`
+	Podname       string                 `protobuf:"bytes,1005,opt,name=podname,proto3" json:"podname,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1895,6 +1896,13 @@ func (x *NodeFilter) GetAll() bool {
 		return x.All
 	}
 	return false
+}
+
+func (x *NodeFilter) GetPodname() string {
+	if x != nil {
+		return x.Podname
+	}
+	return ""
 }
 
 type Workload struct {
@@ -2853,6 +2861,7 @@ type BuildImageOptions struct {
 	BuildMethod   BuildImageOptions_BuildMethod `protobuf:"varint,1007,opt,name=build_method,json=buildMethod,proto3,enum=pb.BuildImageOptions_BuildMethod" json:"build_method,omitempty"`
 	ExistId       string                        `protobuf:"bytes,1008,opt,name=exist_id,json=existId,proto3" json:"exist_id,omitempty"`
 	Platform      string                        `protobuf:"bytes,1009,opt,name=platform,proto3" json:"platform,omitempty"`
+	NodeFilter    *NodeFilter                   `protobuf:"bytes,1010,opt,name=node_filter,json=nodeFilter,proto3" json:"node_filter,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2948,6 +2957,13 @@ func (x *BuildImageOptions) GetPlatform() string {
 		return x.Platform
 	}
 	return ""
+}
+
+func (x *BuildImageOptions) GetNodeFilter() *NodeFilter {
+	if x != nil {
+		return x.NodeFilter
+	}
+	return nil
 }
 
 type HookOptions struct {
@@ -5780,13 +5796,14 @@ const file_rpc_gen_core_proto_rawDesc = "" +
 	"\bnodename\x18\xe9\a \x01(\tR\bnodename\x12\x19\n" +
 	"\apodname\x18\xea\a \x01(\tR\apodname\x12\x15\n" +
 	"\x05alive\x18\xeb\a \x01(\bR\x05alive\x12\x15\n" +
-	"\x05error\x18\xec\a \x01(\tR\x05error\"\xc9\x01\n" +
+	"\x05error\x18\xec\a \x01(\tR\x05error\"\xe4\x01\n" +
 	"\n" +
 	"NodeFilter\x12\x1b\n" +
 	"\bincludes\x18\xe9\a \x03(\tR\bincludes\x12\x1b\n" +
 	"\bexcludes\x18\xea\a \x03(\tR\bexcludes\x123\n" +
 	"\x06labels\x18\xeb\a \x03(\v2\x1a.pb.NodeFilter.LabelsEntryR\x06labels\x12\x11\n" +
-	"\x03all\x18\xec\a \x01(\bR\x03all\x1a9\n" +
+	"\x03all\x18\xec\a \x01(\bR\x03all\x12\x19\n" +
+	"\apodname\x18\xed\a \x01(\tR\apodname\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x81\x04\n" +
@@ -5901,7 +5918,7 @@ const file_rpc_gen_core_proto_rawDesc = "" +
 	"\x06builds\x18\xea\a \x03(\v2\x16.pb.Builds.BuildsEntryR\x06builds\x1aD\n" +
 	"\vBuildsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x1f\n" +
-	"\x05value\x18\x02 \x01(\v2\t.pb.BuildR\x05value:\x028\x01\"\xc9\x02\n" +
+	"\x05value\x18\x02 \x01(\v2\t.pb.BuildR\x05value:\x028\x01\"\xfb\x02\n" +
 	"\x11BuildImageOptions\x12\x13\n" +
 	"\x04name\x18\xe9\a \x01(\tR\x04name\x12\x13\n" +
 	"\x04user\x18\xea\a \x01(\tR\x04user\x12\x11\n" +
@@ -5912,7 +5929,9 @@ const file_rpc_gen_core_proto_rawDesc = "" +
 	"\x03tar\x18\xee\a \x01(\fR\x03tar\x12E\n" +
 	"\fbuild_method\x18\xef\a \x01(\x0e2!.pb.BuildImageOptions.BuildMethodR\vbuildMethod\x12\x1a\n" +
 	"\bexist_id\x18\xf0\a \x01(\tR\aexistId\x12\x1b\n" +
-	"\bplatform\x18\xf1\a \x01(\tR\bplatform\"*\n" +
+	"\bplatform\x18\xf1\a \x01(\tR\bplatform\x120\n" +
+	"\vnode_filter\x18\xf2\a \x01(\v2\x0e.pb.NodeFilterR\n" +
+	"nodeFilter\"*\n" +
 	"\vBuildMethod\x12\a\n" +
 	"\x03SCM\x10\x00\x12\a\n" +
 	"\x03RAW\x10\x01\x12\t\n" +
@@ -6435,141 +6454,142 @@ var file_rpc_gen_core_proto_depIdxs = []int32{
 	104, // 29: pb.Builds.builds:type_name -> pb.Builds.BuildsEntry
 	44,  // 30: pb.BuildImageOptions.builds:type_name -> pb.Builds
 	2,   // 31: pb.BuildImageOptions.build_method:type_name -> pb.BuildImageOptions.BuildMethod
-	105, // 32: pb.LogOptions.config:type_name -> pb.LogOptions.ConfigEntry
-	48,  // 33: pb.EntrypointOptions.log:type_name -> pb.LogOptions
-	47,  // 34: pb.EntrypointOptions.healthcheck:type_name -> pb.HealthCheckOptions
-	46,  // 35: pb.EntrypointOptions.hook:type_name -> pb.HookOptions
-	106, // 36: pb.EntrypointOptions.sysctls:type_name -> pb.EntrypointOptions.SysctlsEntry
-	107, // 37: pb.Volume.volume:type_name -> pb.Volume.VolumeEntry
-	49,  // 38: pb.DeployOptions.entrypoint:type_name -> pb.EntrypointOptions
-	108, // 39: pb.DeployOptions.networks:type_name -> pb.DeployOptions.NetworksEntry
-	109, // 40: pb.DeployOptions.labels:type_name -> pb.DeployOptions.LabelsEntry
-	110, // 41: pb.DeployOptions.nodelabels:type_name -> pb.DeployOptions.NodelabelsEntry
-	3,   // 42: pb.DeployOptions.deploy_strategy:type_name -> pb.DeployOptions.Strategy
-	111, // 43: pb.DeployOptions.data:type_name -> pb.DeployOptions.DataEntry
-	30,  // 44: pb.DeployOptions.node_filter:type_name -> pb.NodeFilter
-	112, // 45: pb.DeployOptions.modes:type_name -> pb.DeployOptions.ModesEntry
-	113, // 46: pb.DeployOptions.owners:type_name -> pb.DeployOptions.OwnersEntry
-	114, // 47: pb.DeployOptions.resources:type_name -> pb.DeployOptions.ResourcesEntry
-	51,  // 48: pb.ReplaceOptions.deployOpt:type_name -> pb.DeployOptions
-	115, // 49: pb.ReplaceOptions.filter_labels:type_name -> pb.ReplaceOptions.FilterLabelsEntry
-	116, // 50: pb.ReplaceOptions.copy:type_name -> pb.ReplaceOptions.CopyEntry
-	117, // 51: pb.CopyOptions.targets:type_name -> pb.CopyOptions.TargetsEntry
-	118, // 52: pb.SendOptions.data:type_name -> pb.SendOptions.DataEntry
-	119, // 53: pb.SendOptions.modes:type_name -> pb.SendOptions.ModesEntry
-	120, // 54: pb.SendOptions.owners:type_name -> pb.SendOptions.OwnersEntry
-	59,  // 55: pb.FileOptions.mode:type_name -> pb.FileMode
-	58,  // 56: pb.FileOptions.owner:type_name -> pb.FileOwner
-	62,  // 57: pb.BuildImageMessage.error_detail:type_name -> pb.ErrorDetail
-	121, // 58: pb.CreateWorkloadMessage.publish:type_name -> pb.CreateWorkloadMessage.PublishEntry
-	64,  // 59: pb.ReplaceWorkloadMessage.create:type_name -> pb.CreateWorkloadMessage
-	70,  // 60: pb.ReplaceWorkloadMessage.remove:type_name -> pb.RemoveWorkloadMessage
-	68,  // 61: pb.ListImageMessage.images:type_name -> pb.ImageItem
-	1,   // 62: pb.AttachWorkloadMessage.std_stream_type:type_name -> pb.StdStreamType
-	51,  // 63: pb.RunAndWaitOptions.deploy_options:type_name -> pb.DeployOptions
-	1,   // 64: pb.LogStreamMessage.std_stream_type:type_name -> pb.StdStreamType
-	122, // 65: pb.CapacityMessage.node_capacities:type_name -> pb.CapacityMessage.NodeCapacitiesEntry
-	43,  // 66: pb.Builds.BuildsEntry.value:type_name -> pb.Build
-	59,  // 67: pb.DeployOptions.ModesEntry.value:type_name -> pb.FileMode
-	58,  // 68: pb.DeployOptions.OwnersEntry.value:type_name -> pb.FileOwner
-	56,  // 69: pb.CopyOptions.TargetsEntry.value:type_name -> pb.CopyPaths
-	59,  // 70: pb.SendOptions.ModesEntry.value:type_name -> pb.FileMode
-	58,  // 71: pb.SendOptions.OwnersEntry.value:type_name -> pb.FileOwner
-	4,   // 72: pb.CoreRPC.Info:input_type -> pb.Empty
-	4,   // 73: pb.CoreRPC.WatchServiceStatus:input_type -> pb.Empty
-	12,  // 74: pb.CoreRPC.ListNetworks:input_type -> pb.ListNetworkOptions
-	13,  // 75: pb.CoreRPC.ConnectNetwork:input_type -> pb.ConnectNetworkOptions
-	14,  // 76: pb.CoreRPC.DisconnectNetwork:input_type -> pb.DisconnectNetworkOptions
-	18,  // 77: pb.CoreRPC.AddPod:input_type -> pb.AddPodOptions
-	19,  // 78: pb.CoreRPC.RemovePod:input_type -> pb.RemovePodOptions
-	20,  // 79: pb.CoreRPC.GetPod:input_type -> pb.GetPodOptions
-	4,   // 80: pb.CoreRPC.ListPods:input_type -> pb.Empty
-	20,  // 81: pb.CoreRPC.GetPodResource:input_type -> pb.GetPodOptions
-	24,  // 82: pb.CoreRPC.GetNodeResource:input_type -> pb.GetNodeResourceOptions
-	21,  // 83: pb.CoreRPC.AddNode:input_type -> pb.AddNodeOptions
-	22,  // 84: pb.CoreRPC.RemoveNode:input_type -> pb.RemoveNodeOptions
-	25,  // 85: pb.CoreRPC.ListPodNodes:input_type -> pb.ListNodesOptions
-	23,  // 86: pb.CoreRPC.GetNode:input_type -> pb.GetNodeOptions
-	23,  // 87: pb.CoreRPC.GetNodeEngineInfo:input_type -> pb.GetNodeOptions
-	26,  // 88: pb.CoreRPC.SetNode:input_type -> pb.SetNodeOptions
-	28,  // 89: pb.CoreRPC.GetNodeStatus:input_type -> pb.GetNodeStatusOptions
-	27,  // 90: pb.CoreRPC.SetNodeStatus:input_type -> pb.SetNodeStatusOptions
-	4,   // 91: pb.CoreRPC.NodeStatusStream:input_type -> pb.Empty
-	39,  // 92: pb.CoreRPC.GetWorkloadsStatus:input_type -> pb.WorkloadIDs
-	34,  // 93: pb.CoreRPC.SetWorkloadsStatus:input_type -> pb.SetWorkloadsStatusOptions
-	35,  // 94: pb.CoreRPC.WorkloadStatusStream:input_type -> pb.WorkloadStatusStreamOptions
-	51,  // 95: pb.CoreRPC.CalculateCapacity:input_type -> pb.DeployOptions
-	38,  // 96: pb.CoreRPC.GetWorkload:input_type -> pb.WorkloadID
-	39,  // 97: pb.CoreRPC.GetWorkloads:input_type -> pb.WorkloadIDs
-	8,   // 98: pb.CoreRPC.ListWorkloads:input_type -> pb.ListWorkloadsOptions
-	23,  // 99: pb.CoreRPC.ListNodeWorkloads:input_type -> pb.GetNodeOptions
-	57,  // 100: pb.CoreRPC.Copy:input_type -> pb.CopyOptions
-	60,  // 101: pb.CoreRPC.Send:input_type -> pb.SendOptions
-	61,  // 102: pb.CoreRPC.SendLargeFile:input_type -> pb.FileOptions
-	45,  // 103: pb.CoreRPC.BuildImage:input_type -> pb.BuildImageOptions
-	53,  // 104: pb.CoreRPC.CacheImage:input_type -> pb.CacheImageOptions
-	54,  // 105: pb.CoreRPC.RemoveImage:input_type -> pb.RemoveImageOptions
-	55,  // 106: pb.CoreRPC.ListImage:input_type -> pb.ListImageOptions
-	51,  // 107: pb.CoreRPC.CreateWorkload:input_type -> pb.DeployOptions
-	52,  // 108: pb.CoreRPC.ReplaceWorkload:input_type -> pb.ReplaceOptions
-	40,  // 109: pb.CoreRPC.RemoveWorkload:input_type -> pb.RemoveWorkloadOptions
-	41,  // 110: pb.CoreRPC.DissociateWorkload:input_type -> pb.DissociateWorkloadOptions
-	77,  // 111: pb.CoreRPC.ControlWorkload:input_type -> pb.ControlWorkloadOptions
-	83,  // 112: pb.CoreRPC.ExecuteWorkload:input_type -> pb.ExecuteWorkloadOptions
-	42,  // 113: pb.CoreRPC.ReallocResource:input_type -> pb.ReallocOptions
-	81,  // 114: pb.CoreRPC.LogStream:input_type -> pb.LogStreamOptions
-	76,  // 115: pb.CoreRPC.RunAndWait:input_type -> pb.RunAndWaitOptions
-	79,  // 116: pb.CoreRPC.RawEngine:input_type -> pb.RawEngineOptions
-	5,   // 117: pb.CoreRPC.Info:output_type -> pb.CoreInfo
-	6,   // 118: pb.CoreRPC.WatchServiceStatus:output_type -> pb.ServiceStatus
-	16,  // 119: pb.CoreRPC.ListNetworks:output_type -> pb.Networks
-	15,  // 120: pb.CoreRPC.ConnectNetwork:output_type -> pb.Network
-	4,   // 121: pb.CoreRPC.DisconnectNetwork:output_type -> pb.Empty
-	9,   // 122: pb.CoreRPC.AddPod:output_type -> pb.Pod
-	4,   // 123: pb.CoreRPC.RemovePod:output_type -> pb.Empty
-	9,   // 124: pb.CoreRPC.GetPod:output_type -> pb.Pod
-	10,  // 125: pb.CoreRPC.ListPods:output_type -> pb.Pods
-	11,  // 126: pb.CoreRPC.GetPodResource:output_type -> pb.NodeResource
-	11,  // 127: pb.CoreRPC.GetNodeResource:output_type -> pb.NodeResource
-	17,  // 128: pb.CoreRPC.AddNode:output_type -> pb.Node
-	4,   // 129: pb.CoreRPC.RemoveNode:output_type -> pb.Empty
-	17,  // 130: pb.CoreRPC.ListPodNodes:output_type -> pb.Node
-	17,  // 131: pb.CoreRPC.GetNode:output_type -> pb.Node
-	7,   // 132: pb.CoreRPC.GetNodeEngineInfo:output_type -> pb.Engine
-	17,  // 133: pb.CoreRPC.SetNode:output_type -> pb.Node
-	29,  // 134: pb.CoreRPC.GetNodeStatus:output_type -> pb.NodeStatusStreamMessage
-	4,   // 135: pb.CoreRPC.SetNodeStatus:output_type -> pb.Empty
-	29,  // 136: pb.CoreRPC.NodeStatusStream:output_type -> pb.NodeStatusStreamMessage
-	33,  // 137: pb.CoreRPC.GetWorkloadsStatus:output_type -> pb.WorkloadsStatus
-	33,  // 138: pb.CoreRPC.SetWorkloadsStatus:output_type -> pb.WorkloadsStatus
-	36,  // 139: pb.CoreRPC.WorkloadStatusStream:output_type -> pb.WorkloadStatusStreamMessage
-	84,  // 140: pb.CoreRPC.CalculateCapacity:output_type -> pb.CapacityMessage
-	31,  // 141: pb.CoreRPC.GetWorkload:output_type -> pb.Workload
-	37,  // 142: pb.CoreRPC.GetWorkloads:output_type -> pb.Workloads
-	31,  // 143: pb.CoreRPC.ListWorkloads:output_type -> pb.Workload
-	37,  // 144: pb.CoreRPC.ListNodeWorkloads:output_type -> pb.Workloads
-	73,  // 145: pb.CoreRPC.Copy:output_type -> pb.CopyMessage
-	74,  // 146: pb.CoreRPC.Send:output_type -> pb.SendMessage
-	74,  // 147: pb.CoreRPC.SendLargeFile:output_type -> pb.SendMessage
-	63,  // 148: pb.CoreRPC.BuildImage:output_type -> pb.BuildImageMessage
-	66,  // 149: pb.CoreRPC.CacheImage:output_type -> pb.CacheImageMessage
-	67,  // 150: pb.CoreRPC.RemoveImage:output_type -> pb.RemoveImageMessage
-	69,  // 151: pb.CoreRPC.ListImage:output_type -> pb.ListImageMessage
-	64,  // 152: pb.CoreRPC.CreateWorkload:output_type -> pb.CreateWorkloadMessage
-	65,  // 153: pb.CoreRPC.ReplaceWorkload:output_type -> pb.ReplaceWorkloadMessage
-	70,  // 154: pb.CoreRPC.RemoveWorkload:output_type -> pb.RemoveWorkloadMessage
-	71,  // 155: pb.CoreRPC.DissociateWorkload:output_type -> pb.DissociateWorkloadMessage
-	78,  // 156: pb.CoreRPC.ControlWorkload:output_type -> pb.ControlWorkloadMessage
-	75,  // 157: pb.CoreRPC.ExecuteWorkload:output_type -> pb.AttachWorkloadMessage
-	72,  // 158: pb.CoreRPC.ReallocResource:output_type -> pb.ReallocResourceMessage
-	82,  // 159: pb.CoreRPC.LogStream:output_type -> pb.LogStreamMessage
-	75,  // 160: pb.CoreRPC.RunAndWait:output_type -> pb.AttachWorkloadMessage
-	80,  // 161: pb.CoreRPC.RawEngine:output_type -> pb.RawEngineMessage
-	117, // [117:162] is the sub-list for method output_type
-	72,  // [72:117] is the sub-list for method input_type
-	72,  // [72:72] is the sub-list for extension type_name
-	72,  // [72:72] is the sub-list for extension extendee
-	0,   // [0:72] is the sub-list for field type_name
+	30,  // 32: pb.BuildImageOptions.node_filter:type_name -> pb.NodeFilter
+	105, // 33: pb.LogOptions.config:type_name -> pb.LogOptions.ConfigEntry
+	48,  // 34: pb.EntrypointOptions.log:type_name -> pb.LogOptions
+	47,  // 35: pb.EntrypointOptions.healthcheck:type_name -> pb.HealthCheckOptions
+	46,  // 36: pb.EntrypointOptions.hook:type_name -> pb.HookOptions
+	106, // 37: pb.EntrypointOptions.sysctls:type_name -> pb.EntrypointOptions.SysctlsEntry
+	107, // 38: pb.Volume.volume:type_name -> pb.Volume.VolumeEntry
+	49,  // 39: pb.DeployOptions.entrypoint:type_name -> pb.EntrypointOptions
+	108, // 40: pb.DeployOptions.networks:type_name -> pb.DeployOptions.NetworksEntry
+	109, // 41: pb.DeployOptions.labels:type_name -> pb.DeployOptions.LabelsEntry
+	110, // 42: pb.DeployOptions.nodelabels:type_name -> pb.DeployOptions.NodelabelsEntry
+	3,   // 43: pb.DeployOptions.deploy_strategy:type_name -> pb.DeployOptions.Strategy
+	111, // 44: pb.DeployOptions.data:type_name -> pb.DeployOptions.DataEntry
+	30,  // 45: pb.DeployOptions.node_filter:type_name -> pb.NodeFilter
+	112, // 46: pb.DeployOptions.modes:type_name -> pb.DeployOptions.ModesEntry
+	113, // 47: pb.DeployOptions.owners:type_name -> pb.DeployOptions.OwnersEntry
+	114, // 48: pb.DeployOptions.resources:type_name -> pb.DeployOptions.ResourcesEntry
+	51,  // 49: pb.ReplaceOptions.deployOpt:type_name -> pb.DeployOptions
+	115, // 50: pb.ReplaceOptions.filter_labels:type_name -> pb.ReplaceOptions.FilterLabelsEntry
+	116, // 51: pb.ReplaceOptions.copy:type_name -> pb.ReplaceOptions.CopyEntry
+	117, // 52: pb.CopyOptions.targets:type_name -> pb.CopyOptions.TargetsEntry
+	118, // 53: pb.SendOptions.data:type_name -> pb.SendOptions.DataEntry
+	119, // 54: pb.SendOptions.modes:type_name -> pb.SendOptions.ModesEntry
+	120, // 55: pb.SendOptions.owners:type_name -> pb.SendOptions.OwnersEntry
+	59,  // 56: pb.FileOptions.mode:type_name -> pb.FileMode
+	58,  // 57: pb.FileOptions.owner:type_name -> pb.FileOwner
+	62,  // 58: pb.BuildImageMessage.error_detail:type_name -> pb.ErrorDetail
+	121, // 59: pb.CreateWorkloadMessage.publish:type_name -> pb.CreateWorkloadMessage.PublishEntry
+	64,  // 60: pb.ReplaceWorkloadMessage.create:type_name -> pb.CreateWorkloadMessage
+	70,  // 61: pb.ReplaceWorkloadMessage.remove:type_name -> pb.RemoveWorkloadMessage
+	68,  // 62: pb.ListImageMessage.images:type_name -> pb.ImageItem
+	1,   // 63: pb.AttachWorkloadMessage.std_stream_type:type_name -> pb.StdStreamType
+	51,  // 64: pb.RunAndWaitOptions.deploy_options:type_name -> pb.DeployOptions
+	1,   // 65: pb.LogStreamMessage.std_stream_type:type_name -> pb.StdStreamType
+	122, // 66: pb.CapacityMessage.node_capacities:type_name -> pb.CapacityMessage.NodeCapacitiesEntry
+	43,  // 67: pb.Builds.BuildsEntry.value:type_name -> pb.Build
+	59,  // 68: pb.DeployOptions.ModesEntry.value:type_name -> pb.FileMode
+	58,  // 69: pb.DeployOptions.OwnersEntry.value:type_name -> pb.FileOwner
+	56,  // 70: pb.CopyOptions.TargetsEntry.value:type_name -> pb.CopyPaths
+	59,  // 71: pb.SendOptions.ModesEntry.value:type_name -> pb.FileMode
+	58,  // 72: pb.SendOptions.OwnersEntry.value:type_name -> pb.FileOwner
+	4,   // 73: pb.CoreRPC.Info:input_type -> pb.Empty
+	4,   // 74: pb.CoreRPC.WatchServiceStatus:input_type -> pb.Empty
+	12,  // 75: pb.CoreRPC.ListNetworks:input_type -> pb.ListNetworkOptions
+	13,  // 76: pb.CoreRPC.ConnectNetwork:input_type -> pb.ConnectNetworkOptions
+	14,  // 77: pb.CoreRPC.DisconnectNetwork:input_type -> pb.DisconnectNetworkOptions
+	18,  // 78: pb.CoreRPC.AddPod:input_type -> pb.AddPodOptions
+	19,  // 79: pb.CoreRPC.RemovePod:input_type -> pb.RemovePodOptions
+	20,  // 80: pb.CoreRPC.GetPod:input_type -> pb.GetPodOptions
+	4,   // 81: pb.CoreRPC.ListPods:input_type -> pb.Empty
+	20,  // 82: pb.CoreRPC.GetPodResource:input_type -> pb.GetPodOptions
+	24,  // 83: pb.CoreRPC.GetNodeResource:input_type -> pb.GetNodeResourceOptions
+	21,  // 84: pb.CoreRPC.AddNode:input_type -> pb.AddNodeOptions
+	22,  // 85: pb.CoreRPC.RemoveNode:input_type -> pb.RemoveNodeOptions
+	25,  // 86: pb.CoreRPC.ListPodNodes:input_type -> pb.ListNodesOptions
+	23,  // 87: pb.CoreRPC.GetNode:input_type -> pb.GetNodeOptions
+	23,  // 88: pb.CoreRPC.GetNodeEngineInfo:input_type -> pb.GetNodeOptions
+	26,  // 89: pb.CoreRPC.SetNode:input_type -> pb.SetNodeOptions
+	28,  // 90: pb.CoreRPC.GetNodeStatus:input_type -> pb.GetNodeStatusOptions
+	27,  // 91: pb.CoreRPC.SetNodeStatus:input_type -> pb.SetNodeStatusOptions
+	4,   // 92: pb.CoreRPC.NodeStatusStream:input_type -> pb.Empty
+	39,  // 93: pb.CoreRPC.GetWorkloadsStatus:input_type -> pb.WorkloadIDs
+	34,  // 94: pb.CoreRPC.SetWorkloadsStatus:input_type -> pb.SetWorkloadsStatusOptions
+	35,  // 95: pb.CoreRPC.WorkloadStatusStream:input_type -> pb.WorkloadStatusStreamOptions
+	51,  // 96: pb.CoreRPC.CalculateCapacity:input_type -> pb.DeployOptions
+	38,  // 97: pb.CoreRPC.GetWorkload:input_type -> pb.WorkloadID
+	39,  // 98: pb.CoreRPC.GetWorkloads:input_type -> pb.WorkloadIDs
+	8,   // 99: pb.CoreRPC.ListWorkloads:input_type -> pb.ListWorkloadsOptions
+	23,  // 100: pb.CoreRPC.ListNodeWorkloads:input_type -> pb.GetNodeOptions
+	57,  // 101: pb.CoreRPC.Copy:input_type -> pb.CopyOptions
+	60,  // 102: pb.CoreRPC.Send:input_type -> pb.SendOptions
+	61,  // 103: pb.CoreRPC.SendLargeFile:input_type -> pb.FileOptions
+	45,  // 104: pb.CoreRPC.BuildImage:input_type -> pb.BuildImageOptions
+	53,  // 105: pb.CoreRPC.CacheImage:input_type -> pb.CacheImageOptions
+	54,  // 106: pb.CoreRPC.RemoveImage:input_type -> pb.RemoveImageOptions
+	55,  // 107: pb.CoreRPC.ListImage:input_type -> pb.ListImageOptions
+	51,  // 108: pb.CoreRPC.CreateWorkload:input_type -> pb.DeployOptions
+	52,  // 109: pb.CoreRPC.ReplaceWorkload:input_type -> pb.ReplaceOptions
+	40,  // 110: pb.CoreRPC.RemoveWorkload:input_type -> pb.RemoveWorkloadOptions
+	41,  // 111: pb.CoreRPC.DissociateWorkload:input_type -> pb.DissociateWorkloadOptions
+	77,  // 112: pb.CoreRPC.ControlWorkload:input_type -> pb.ControlWorkloadOptions
+	83,  // 113: pb.CoreRPC.ExecuteWorkload:input_type -> pb.ExecuteWorkloadOptions
+	42,  // 114: pb.CoreRPC.ReallocResource:input_type -> pb.ReallocOptions
+	81,  // 115: pb.CoreRPC.LogStream:input_type -> pb.LogStreamOptions
+	76,  // 116: pb.CoreRPC.RunAndWait:input_type -> pb.RunAndWaitOptions
+	79,  // 117: pb.CoreRPC.RawEngine:input_type -> pb.RawEngineOptions
+	5,   // 118: pb.CoreRPC.Info:output_type -> pb.CoreInfo
+	6,   // 119: pb.CoreRPC.WatchServiceStatus:output_type -> pb.ServiceStatus
+	16,  // 120: pb.CoreRPC.ListNetworks:output_type -> pb.Networks
+	15,  // 121: pb.CoreRPC.ConnectNetwork:output_type -> pb.Network
+	4,   // 122: pb.CoreRPC.DisconnectNetwork:output_type -> pb.Empty
+	9,   // 123: pb.CoreRPC.AddPod:output_type -> pb.Pod
+	4,   // 124: pb.CoreRPC.RemovePod:output_type -> pb.Empty
+	9,   // 125: pb.CoreRPC.GetPod:output_type -> pb.Pod
+	10,  // 126: pb.CoreRPC.ListPods:output_type -> pb.Pods
+	11,  // 127: pb.CoreRPC.GetPodResource:output_type -> pb.NodeResource
+	11,  // 128: pb.CoreRPC.GetNodeResource:output_type -> pb.NodeResource
+	17,  // 129: pb.CoreRPC.AddNode:output_type -> pb.Node
+	4,   // 130: pb.CoreRPC.RemoveNode:output_type -> pb.Empty
+	17,  // 131: pb.CoreRPC.ListPodNodes:output_type -> pb.Node
+	17,  // 132: pb.CoreRPC.GetNode:output_type -> pb.Node
+	7,   // 133: pb.CoreRPC.GetNodeEngineInfo:output_type -> pb.Engine
+	17,  // 134: pb.CoreRPC.SetNode:output_type -> pb.Node
+	29,  // 135: pb.CoreRPC.GetNodeStatus:output_type -> pb.NodeStatusStreamMessage
+	4,   // 136: pb.CoreRPC.SetNodeStatus:output_type -> pb.Empty
+	29,  // 137: pb.CoreRPC.NodeStatusStream:output_type -> pb.NodeStatusStreamMessage
+	33,  // 138: pb.CoreRPC.GetWorkloadsStatus:output_type -> pb.WorkloadsStatus
+	33,  // 139: pb.CoreRPC.SetWorkloadsStatus:output_type -> pb.WorkloadsStatus
+	36,  // 140: pb.CoreRPC.WorkloadStatusStream:output_type -> pb.WorkloadStatusStreamMessage
+	84,  // 141: pb.CoreRPC.CalculateCapacity:output_type -> pb.CapacityMessage
+	31,  // 142: pb.CoreRPC.GetWorkload:output_type -> pb.Workload
+	37,  // 143: pb.CoreRPC.GetWorkloads:output_type -> pb.Workloads
+	31,  // 144: pb.CoreRPC.ListWorkloads:output_type -> pb.Workload
+	37,  // 145: pb.CoreRPC.ListNodeWorkloads:output_type -> pb.Workloads
+	73,  // 146: pb.CoreRPC.Copy:output_type -> pb.CopyMessage
+	74,  // 147: pb.CoreRPC.Send:output_type -> pb.SendMessage
+	74,  // 148: pb.CoreRPC.SendLargeFile:output_type -> pb.SendMessage
+	63,  // 149: pb.CoreRPC.BuildImage:output_type -> pb.BuildImageMessage
+	66,  // 150: pb.CoreRPC.CacheImage:output_type -> pb.CacheImageMessage
+	67,  // 151: pb.CoreRPC.RemoveImage:output_type -> pb.RemoveImageMessage
+	69,  // 152: pb.CoreRPC.ListImage:output_type -> pb.ListImageMessage
+	64,  // 153: pb.CoreRPC.CreateWorkload:output_type -> pb.CreateWorkloadMessage
+	65,  // 154: pb.CoreRPC.ReplaceWorkload:output_type -> pb.ReplaceWorkloadMessage
+	70,  // 155: pb.CoreRPC.RemoveWorkload:output_type -> pb.RemoveWorkloadMessage
+	71,  // 156: pb.CoreRPC.DissociateWorkload:output_type -> pb.DissociateWorkloadMessage
+	78,  // 157: pb.CoreRPC.ControlWorkload:output_type -> pb.ControlWorkloadMessage
+	75,  // 158: pb.CoreRPC.ExecuteWorkload:output_type -> pb.AttachWorkloadMessage
+	72,  // 159: pb.CoreRPC.ReallocResource:output_type -> pb.ReallocResourceMessage
+	82,  // 160: pb.CoreRPC.LogStream:output_type -> pb.LogStreamMessage
+	75,  // 161: pb.CoreRPC.RunAndWait:output_type -> pb.AttachWorkloadMessage
+	80,  // 162: pb.CoreRPC.RawEngine:output_type -> pb.RawEngineMessage
+	118, // [118:163] is the sub-list for method output_type
+	73,  // [73:118] is the sub-list for method input_type
+	73,  // [73:73] is the sub-list for extension type_name
+	73,  // [73:73] is the sub-list for extension extendee
+	0,   // [0:73] is the sub-list for field type_name
 }
 
 func init() { file_rpc_gen_core_proto_init() }

@@ -62,7 +62,7 @@ func (e *Engine) ImagesPrune(ctx context.Context) error {
 }
 
 func (e *Engine) ImagePull(ctx context.Context, ref string, all bool) (io.ReadCloser, error) {
-	auth, err := makeEncodedAuthConfigFromRemote(e.config.Docker.AuthConfigs, ref)
+	auth, err := makeEncodedAuthConfigFromRemote(e.config.Registry.Auths, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func (e *Engine) ImagePull(ctx context.Context, ref string, all bool) (io.ReadCl
 }
 
 func (e *Engine) ImagePush(ctx context.Context, ref string) (io.ReadCloser, error) {
-	auth, err := makeEncodedAuthConfigFromRemote(e.config.Docker.AuthConfigs, ref)
+	auth, err := makeEncodedAuthConfigFromRemote(e.config.Registry.Auths, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -80,8 +80,8 @@ func (e *Engine) ImagePush(ctx context.Context, ref string) (io.ReadCloser, erro
 }
 
 func (e *Engine) ImageBuild(ctx context.Context, input io.Reader, refs []string, platform string) (io.ReadCloser, error) {
-	authConfigs := make(map[string]registrytypes.AuthConfig, len(e.config.Docker.AuthConfigs))
-	for domain, conf := range e.config.Docker.AuthConfigs {
+	authConfigs := make(map[string]registrytypes.AuthConfig, len(e.config.Registry.Auths))
+	for domain, conf := range e.config.Registry.Auths {
 		b64auth, err := encodeAuthToBase64(conf)
 		if err != nil {
 			return nil, err
@@ -143,7 +143,7 @@ func (e *Engine) ImageLocalDigests(ctx context.Context, image string) ([]string,
 }
 
 func (e *Engine) ImageRemoteDigest(ctx context.Context, image string) (string, error) {
-	auth, err := makeEncodedAuthConfigFromRemote(e.config.Docker.AuthConfigs, image)
+	auth, err := makeEncodedAuthConfigFromRemote(e.config.Registry.Auths, image)
 	if err != nil {
 		return "", err
 	}
