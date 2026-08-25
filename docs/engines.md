@@ -284,7 +284,10 @@ default conflist. Two networks are refused with `ErrInvalidEngineArgs`. cocoon's
 address, so an address in the request — which is what `replace --network-inherit` sends back, the
 old guest's `{conflist: ip}` — keeps only its conflist name and is logged at debug: a VM cannot be
 given a fixed IP. The address lands in the meta file and in `VirtualizationInspect` under the
-network's name, `default` when none was named.
+network's name, `default` only when cocoon itself names no conflist.
+
+A Linux cloud image gets its login from cloud-init, so a deploy that sets no `user` leaves the
+guest on cocoon's default guest password. Set the entrypoint's `user` for anything reachable.
 
 Because a `user` is refused rather than ignored, an entrypoint hook on a workload deployed with
 `user` fails on a VM node: core passes the workload's user to every hook exec. Deploy VM workloads
@@ -318,6 +321,12 @@ Exec and copy go through the agent as on Linux; console-API programs that bypass
 documented limitation. Resources cannot change on a running Windows guest: a realloc is a
 recreate.
 
+A split-qcow2 artifact never satisfies the digest check: cocoon stores the imported disk as a
+cloudimg entry whose id is a content sum, while `ImageRemoteDigest` reports the oras manifest
+digest, so the two never match and every deploy runs `ImagePull` again. That is not a re-download —
+the import script exits at once when `image inspect <ref>` already answers — but it does mean a
+Windows deploy always pays one extra round trip.
+
 ### The meta file
 
 The same record the process engine writes, at `<cocoon.root>/<id>.json` and
@@ -348,13 +357,20 @@ for events), the cocoonstack `dev` builds of Cloud Hypervisor, Firecracker and
 rust-hypervisor-firmware (the Windows fixes live there), the CNI plugin binaries in `/opt/cni/bin`
 with conf in `/etc/cni/net.d`, cocoon-agent inside the guest images, `sshd` with core's key in
 `authorized_keys`, and a login that may run `cocoon.binary` and owns `cocoon.root` and
-`/run/eru/workloads` (create them and `chown` them to that login before the first deploy). `cocoon.run_dir`
-is created by the node info probe itself, which reads `/etc/machine-id`, `nproc`, `MemTotal` and
-`df -Pk <cocoon.run_dir>`; a probe that cannot read any of them fails the `AddNode`, so a node is
-never registered with zero CPU, memory and storage. `oras`
-is optional: without it the remote digest check is skipped and every deploy runs `image pull`;
-with it (and the node's own registry credentials) the check runs and split-qcow2 artifacts can be
-pulled.
+`/run/eru/workloads` (create them and `chown` them to that login before the first deploy).
+
+`cocoon.root`, `cocoon.run_dir` and `cocoon.cgroup_parent` in core's config must match the node's
+own cocoon config. Core never reads cocoon's config — it derives the meta record's `cgroup` path
+and the guest's console path from its own values — so a mismatch leaves eru-agent watching a scope
+and a socket that do not exist, and the workload never reports healthy.
+
+`cocoon.run_dir` is created by the node info probe itself, which reads `/etc/machine-id`, `nproc`,
+`MemTotal` and `df -Pk <cocoon.run_dir>`; a probe that cannot read any of them fails the `AddNode`,
+so a node is never registered with zero CPU, memory and storage.
+
+`oras` is optional: without it the remote digest check is skipped and every deploy runs
+`image pull`; with it (and the node's own registry credentials) the check runs and split-qcow2
+artifacts can be pulled.
 
 ## process
 
