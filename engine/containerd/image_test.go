@@ -3,6 +3,8 @@ package containerd
 import (
 	"testing"
 
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
+
 	coretypes "github.com/projecteru2/core/types"
 )
 
@@ -38,5 +40,24 @@ func TestRegistryAuthKeepsAPrivateRegistryExact(t *testing.T) {
 	}
 	if auth, ok := registryAuth(auths, "hub.io:5000"); !ok || auth.Username != "eru" {
 		t.Errorf("got %+v %v, want an exact match", auth, ok)
+	}
+}
+
+func TestGCRefsRootEveryBlobTheManifestOwns(t *testing.T) {
+	manifest := ocispec.Manifest{
+		Config: ocispec.Descriptor{Digest: "sha256:cfg"},
+		Layers: []ocispec.Descriptor{{Digest: "sha256:l0"}, {Digest: "sha256:l1"}},
+	}
+
+	refs := gcRefs(manifest)
+
+	if refs["containerd.io/gc.ref.content.config"] != "sha256:cfg" {
+		t.Errorf("got %q, want the config rooted", refs["containerd.io/gc.ref.content.config"])
+	}
+	for i, want := range []string{"sha256:l0", "sha256:l1"} {
+		key := "containerd.io/gc.ref.content.l." + string(rune('0'+i))
+		if refs[key] != want {
+			t.Errorf("got %q for %s, want %q", refs[key], key, want)
+		}
 	}
 }

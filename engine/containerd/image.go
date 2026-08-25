@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/containerd/containerd/v2/core/images"
 	"github.com/containerd/containerd/v2/core/remotes"
 	"github.com/containerd/containerd/v2/core/remotes/docker"
+	"github.com/containerd/containerd/v2/pkg/labels"
 	"github.com/containerd/containerd/v2/pkg/rootfs"
 	cerrdefs "github.com/containerd/errdefs"
 	"github.com/containerd/platforms"
@@ -156,6 +158,16 @@ func (e *Engine) ImageBuildFromExist(ctx context.Context, ID string, refs []stri
 		return "", taskErr
 	}
 
+	ctx, release, err := e.client.WithLease(ctx)
+	if err != nil {
+		return "", err
+	}
+	defer func() {
+		if releaseErr := release(ctx); releaseErr != nil {
+			log.WithFunc("engine.containerd.ImageBuildFromExist").Error(ctx, releaseErr, "release the commit lease")
+		}
+	}()
+
 	target, err := e.commit(ctx, info)
 	if err != nil {
 		return "", err
@@ -189,10 +201,14 @@ func (e *Engine) commit(ctx context.Context, info containers.Container) (ocispec
 	if err != nil {
 		return empty, err
 	}
-	config.RootFS.DiffIDs = append(config.RootFS.DiffIDs, layer.Digest)
+	diffID, err := uncompressedDigest(ctx, store, layer)
+	if err != nil {
+		return empty, err
+	}
+	config.RootFS.DiffIDs = append(config.RootFS.DiffIDs, diffID)
 	created := time.Now().UTC()
 	config.History = append(config.History, ocispec.History{Created: &created, CreatedBy: commitAuthor})
-	configDesc, err := writeBlob(ctx, store, ocispec.MediaTypeImageConfig, config)
+	configDesc, err := writeBlob(ctx, store, ocispec.MediaTypeImageConfig, config, nil)
 	if err != nil {
 		return empty, err
 	}
@@ -200,7 +216,7 @@ func (e *Engine) commit(ctx context.Context, info containers.Container) (ocispec
 	manifest.Config = configDesc
 	manifest.Layers = append(manifest.Layers, layer)
 	manifest.MediaType = ocispec.MediaTypeImageManifest
-	return writeBlob(ctx, store, ocispec.MediaTypeImageManifest, manifest)
+	return writeBlob(ctx, store, ocispec.MediaTypeImageManifest, manifest, gcRefs(manifest))
 }
 
 // imageConfig reads what the image declares straight from its config blob.
@@ -236,6 +252,26 @@ func (e *Engine) resolver() remotes.Resolver {
 	})
 }
 
+func uncompressedDigest(ctx context.Context, store content.Store, layer ocispec.Descriptor) (digest.Digest, error) {
+	info, err := store.Info(ctx, layer.Digest)
+	if err != nil {
+		return "", err
+	}
+	uncompressed, ok := info.Labels[labels.LabelUncompressed]
+	if !ok {
+		return layer.Digest, nil
+	}
+	return digest.Parse(uncompressed)
+}
+
+func gcRefs(manifest ocispec.Manifest) map[string]string {
+	refs := map[string]string{"containerd.io/gc.ref.content.config": manifest.Config.Digest.String()}
+	for i, layer := range manifest.Layers {
+		refs["containerd.io/gc.ref.content.l."+strconv.Itoa(i)] = layer.Digest.String()
+	}
+	return refs
+}
+
 func registryAuth(auths map[string]coretypes.AuthConfig, host string) (coretypes.AuthConfig, bool) {
 	if auth, ok := auths[host]; ok {
 		return auth, true
@@ -259,7 +295,7 @@ func readBlob(ctx context.Context, store content.Provider, desc ocispec.Descript
 	return json.Unmarshal(blob, target)
 }
 
-func writeBlob(ctx context.Context, store content.Ingester, mediaType string, payload any) (ocispec.Descriptor, error) {
+func writeBlob(ctx context.Context, store content.Ingester, mediaType string, payload any, refs map[string]string) (ocispec.Descriptor, error) {
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return ocispec.Descriptor{}, err
@@ -269,7 +305,11 @@ func writeBlob(ctx context.Context, store content.Ingester, mediaType string, pa
 		Digest:    digest.FromBytes(body),
 		Size:      int64(len(body)),
 	}
-	if err = content.WriteBlob(ctx, store, desc.Digest.String(), bytes.NewReader(body), desc); err != nil {
+	opts := []content.Opt{}
+	if len(refs) > 0 {
+		opts = append(opts, content.WithLabels(refs))
+	}
+	if err = content.WriteBlob(ctx, store, desc.Digest.String(), bytes.NewReader(body), desc, opts...); err != nil {
 		return ocispec.Descriptor{}, err
 	}
 	return desc, nil

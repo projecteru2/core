@@ -54,7 +54,7 @@ matches an image's manifests against, since core's own platform is not the node'
 | `VirtualizationUpdateResource` | `container.Update` of the stored spec **and** `task.Update` of the live cgroup, so a restart replays the new limits |
 | `VirtualizationCopyTo` / `CopyFrom` | a tar stream through `ctr tasks exec` |
 | `ImagePull` / `ImageList` / `ImageRemove` / `ImagesPrune` | `client.Pull` with unpack, the image store, and a prune of every image no container is built on |
-| `ImageBuildFromExist` | pause the task, diff the workload's snapshot against its image, write the new config and manifest into the content store and tag them |
+| `ImageBuildFromExist` | pause the task, diff the workload's snapshot against its image, then under one lease write the new config and manifest into the content store and tag them |
 | `ImageBuild` | BuildKit, see below |
 | `NetworkList` | the CNI conf dir (`/etc/cni/net.d`) |
 | `NetworkConnect` / `Disconnect` | `ErrEngineNotImplemented`: under CNI a network is attached when the netns is created |
