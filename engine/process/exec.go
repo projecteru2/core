@@ -8,6 +8,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 
+	"github.com/projecteru2/core/engine/sshrunner"
 	enginetypes "github.com/projecteru2/core/engine/types"
 )
 
@@ -19,7 +20,7 @@ func (e *Engine) Execute(ctx context.Context, ID string, config *enginetypes.Exe
 		return "", nil, nil, nil, err
 	}
 	argv := scopeArgv(record, config)
-	running, err := e.runner.Start(ctx, quote(argv), &startOptions{Stdin: config.AttachStdin, TTY: config.Tty})
+	running, err := e.runner.Start(ctx, sshrunner.Quote(argv), &sshrunner.StartOptions{Stdin: config.AttachStdin, TTY: config.Tty})
 	if err != nil {
 		return "", nil, nil, nil, err
 	}

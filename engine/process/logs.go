@@ -10,6 +10,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 
+	"github.com/projecteru2/core/engine/sshrunner"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	coretypes "github.com/projecteru2/core/types"
 )
@@ -27,7 +28,7 @@ wait "$reader" 2>/dev/null || true
 // sessionReader closes the ssh session backing a follow stream.
 type sessionReader struct {
 	io.Reader
-	sess session
+	sess sshrunner.Session
 }
 
 func (r *sessionReader) Close() error {
@@ -48,7 +49,7 @@ func (e *Engine) VirtualizationLogs(ctx context.Context, opts *enginetypes.Virtu
 		return io.NopCloser(strings.NewReader(res.Stdout)), nil, nil
 	}
 
-	running, err := e.runner.Start(ctx, quote(shell(followScript, slices.Concat([]string{unit, "-f"}, flags)...)), &startOptions{})
+	running, err := e.runner.Start(ctx, sshrunner.Quote(sshrunner.Shell(followScript, slices.Concat([]string{unit, "-f"}, flags)...)), &sshrunner.StartOptions{})
 	if err != nil {
 		return nil, nil, err
 	}

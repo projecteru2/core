@@ -8,6 +8,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 
+	"github.com/projecteru2/core/engine/sshrunner"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	coretypes "github.com/projecteru2/core/types"
 )
@@ -56,7 +57,7 @@ func TestJournalFlagsRejectAnUnreadableTimestamp(t *testing.T) {
 }
 
 func TestVirtualizationLogsBuffersWhenNotFollowing(t *testing.T) {
-	runner := &fakeRunner{respond: func(string) *result { return &result{Stdout: "hello\n"} }}
+	runner := &fakeRunner{respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: "hello\n"} }}
 	e := testEngine(t, runner)
 
 	stdout, stderr, err := e.VirtualizationLogs(t.Context(), &enginetypes.VirtualizationLogStreamOptions{ID: "w1"})
@@ -66,7 +67,7 @@ func TestVirtualizationLogsBuffersWhenNotFollowing(t *testing.T) {
 	if stderr != nil {
 		t.Error("journald merges the streams, so stderr must stay nil")
 	}
-	want := quote([]string{"journalctl", "-u", "eru-w1.service", "-o", "cat"})
+	want := sshrunner.Quote([]string{"journalctl", "-u", "eru-w1.service", "-o", "cat"})
 	if len(runner.lines) != 1 || runner.lines[0] != want {
 		t.Errorf("got %q, want %q", runner.lines, want)
 	}
@@ -88,7 +89,7 @@ func TestVirtualizationLogsFollowStopsWithTheUnit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("logs: %v", err)
 	}
-	want := quote(shell(followScript, "eru-w1.service", "-f", "-o", "cat"))
+	want := sshrunner.Quote(sshrunner.Shell(followScript, "eru-w1.service", "-f", "-o", "cat"))
 	if len(runner.lines) != 1 || runner.lines[0] != want {
 		t.Fatalf("got %q, want %q", runner.lines, want)
 	}

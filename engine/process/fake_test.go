@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/projecteru2/core/engine/sshrunner"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	coretypes "github.com/projecteru2/core/types"
 )
@@ -18,24 +19,24 @@ const (
 
 type fakeRunner struct {
 	lines   []string
-	respond func(line string) *result
+	respond func(line string) *sshrunner.Result
 	started *fakeSession
 }
 
-func (r *fakeRunner) Run(_ context.Context, line string, _ io.Reader) (*result, error) {
+func (r *fakeRunner) Run(_ context.Context, line string, _ io.Reader) (*sshrunner.Result, error) {
 	r.lines = append(r.lines, line)
 	if r.respond != nil {
 		return r.respond(line), nil
 	}
-	return &result{}, nil
+	return &sshrunner.Result{}, nil
 }
 
-func (r *fakeRunner) Start(_ context.Context, line string, _ *startOptions) (session, error) {
+func (r *fakeRunner) Start(_ context.Context, line string, _ *sshrunner.StartOptions) (sshrunner.Session, error) {
 	r.lines = append(r.lines, line)
 	return r.started, nil
 }
 
-func (r *fakeRunner) Files(context.Context) (files, error) {
+func (r *fakeRunner) Files(context.Context) (sshrunner.Files, error) {
 	return nil, coretypes.ErrEngineNotImplemented
 }
 
@@ -82,6 +83,6 @@ func testEngine(t *testing.T, runner *fakeRunner) *Engine {
 		root:        testRoot,
 		host:        "10.0.0.1",
 		stopTimeout: defaultStopTimeout,
-		execs:       map[string]session{},
+		execs:       map[string]sshrunner.Session{},
 	}
 }

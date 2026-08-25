@@ -8,6 +8,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 
+	"github.com/projecteru2/core/engine/sshrunner"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	coretypes "github.com/projecteru2/core/types"
@@ -121,11 +122,11 @@ func TestVirtualizationLifecycleCommandSequence(t *testing.T) {
 	}
 
 	want := []string{
-		quote([]string{"sh", "-c", startScript, "sh", testRoot + "/w1", "eru-w1.service", "/run/eru/workloads/w1.json"}),
-		quote([]string{"sh", "-c", stopScript, "sh", "eru-w1.service", testRoot + "/w1", "1"}),
-		quote([]string{"systemctl", "freeze", "eru-w1.service"}),
-		quote([]string{"systemctl", "thaw", "eru-w1.service"}),
-		quote([]string{"sh", "-c", removeScript, "sh", "eru-w1.service", testRoot + "/w1", "/run/eru/workloads/w1.json", "1"}),
+		sshrunner.Quote([]string{"sh", "-c", startScript, "sh", testRoot + "/w1", "eru-w1.service", "/run/eru/workloads/w1.json"}),
+		sshrunner.Quote([]string{"sh", "-c", stopScript, "sh", "eru-w1.service", testRoot + "/w1", "1"}),
+		sshrunner.Quote([]string{"systemctl", "freeze", "eru-w1.service"}),
+		sshrunner.Quote([]string{"systemctl", "thaw", "eru-w1.service"}),
+		sshrunner.Quote([]string{"sh", "-c", removeScript, "sh", "eru-w1.service", testRoot + "/w1", "/run/eru/workloads/w1.json", "1"}),
 	}
 	if !slices.Equal(runner.lines, want) {
 		t.Errorf("got %q, want %q", runner.lines, want)
@@ -149,7 +150,7 @@ func TestVirtualizationStopOnlyKillsWhenForced(t *testing.T) {
 			if err := e.VirtualizationStop(t.Context(), "w1", tt.timeout); err != nil {
 				t.Fatalf("stop: %v", err)
 			}
-			want := quote([]string{"sh", "-c", stopScript, "sh", "eru-w1.service", testRoot + "/w1", tt.force})
+			want := sshrunner.Quote([]string{"sh", "-c", stopScript, "sh", "eru-w1.service", testRoot + "/w1", tt.force})
 			if len(runner.lines) != 1 || runner.lines[0] != want {
 				t.Errorf("got %q, want %q", runner.lines, want)
 			}
@@ -158,7 +159,7 @@ func TestVirtualizationStopOnlyKillsWhenForced(t *testing.T) {
 }
 
 func TestVirtualizationRemoveReportsAMissingWorkload(t *testing.T) {
-	runner := &fakeRunner{respond: func(string) *result { return &result{Code: notExistsCode} }}
+	runner := &fakeRunner{respond: func(string) *sshrunner.Result { return &sshrunner.Result{Code: notExistsCode} }}
 	e := testEngine(t, runner)
 
 	if err := e.VirtualizationRemove(t.Context(), "w1", true, false); !errors.Is(err, coretypes.ErrWorkloadNotExists) {
@@ -167,7 +168,7 @@ func TestVirtualizationRemoveReportsAMissingWorkload(t *testing.T) {
 }
 
 func TestVirtualizationInspectParsesSystemctlShow(t *testing.T) {
-	runner := &fakeRunner{respond: func(string) *result { return &result{Stdout: showOutput} }}
+	runner := &fakeRunner{respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: showOutput} }}
 	e := testEngine(t, runner)
 
 	info, err := e.VirtualizationInspect(t.Context(), "w1")
@@ -186,8 +187,8 @@ func TestVirtualizationInspectParsesSystemctlShow(t *testing.T) {
 }
 
 func TestVirtualizationInspectReportsAnExitedWorkloadAsStopped(t *testing.T) {
-	runner := &fakeRunner{respond: func(string) *result {
-		return &result{Stdout: "LoadState=not-found\nActiveState=inactive\nSubState=dead\nUser=\n"}
+	runner := &fakeRunner{respond: func(string) *sshrunner.Result {
+		return &sshrunner.Result{Stdout: "LoadState=not-found\nActiveState=inactive\nSubState=dead\nUser=\n"}
 	}}
 	e := testEngine(t, runner)
 
@@ -201,7 +202,7 @@ func TestVirtualizationInspectReportsAnExitedWorkloadAsStopped(t *testing.T) {
 }
 
 func TestVirtualizationInspectReportsAMissingWorkload(t *testing.T) {
-	runner := &fakeRunner{respond: func(string) *result { return &result{Code: notExistsCode} }}
+	runner := &fakeRunner{respond: func(string) *sshrunner.Result { return &sshrunner.Result{Code: notExistsCode} }}
 	e := testEngine(t, runner)
 
 	_, err := e.VirtualizationInspect(t.Context(), "w1")
@@ -211,7 +212,7 @@ func TestVirtualizationInspectReportsAMissingWorkload(t *testing.T) {
 }
 
 func TestVirtualizationWaitReturnsExecMainStatus(t *testing.T) {
-	runner := &fakeRunner{respond: func(string) *result { return &result{Stdout: "3\n"} }}
+	runner := &fakeRunner{respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: "3\n"} }}
 	e := testEngine(t, runner)
 
 	waited, err := e.VirtualizationWait(t.Context(), "w1", "")
@@ -224,7 +225,7 @@ func TestVirtualizationWaitReturnsExecMainStatus(t *testing.T) {
 }
 
 func TestVirtualizationWaitFailsOnAnUnreadableStatus(t *testing.T) {
-	runner := &fakeRunner{respond: func(string) *result { return &result{Stdout: "\n"} }}
+	runner := &fakeRunner{respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: "\n"} }}
 	e := testEngine(t, runner)
 
 	waited, err := e.VirtualizationWait(t.Context(), "w1", "")
@@ -237,7 +238,7 @@ func TestVirtualizationWaitFailsOnAnUnreadableStatus(t *testing.T) {
 }
 
 func TestVirtualizationRemoveRefusesARunningWorkload(t *testing.T) {
-	runner := &fakeRunner{respond: func(string) *result { return &result{Code: runningCode} }}
+	runner := &fakeRunner{respond: func(string) *sshrunner.Result { return &sshrunner.Result{Code: runningCode} }}
 	e := testEngine(t, runner)
 
 	if err := e.VirtualizationRemove(t.Context(), "w1", true, false); !errors.Is(err, coretypes.ErrInvaildWorkloadOps) {
@@ -253,7 +254,7 @@ func TestVirtualizationUpdateResourceSetsLiveProperties(t *testing.T) {
 	if err := e.VirtualizationUpdateResource(t.Context(), "w1", params); err != nil {
 		t.Fatalf("update: %v", err)
 	}
-	want := quote([]string{
+	want := sshrunner.Quote([]string{
 		"systemctl", "set-property", "--runtime", "eru-w1.service",
 		"CPUQuota=200%", "AllowedCPUs=", "AllowedMemoryNodes=", "CPUWeight=100",
 		"MemoryMax=1073741824", "MemoryLow=536870912", "MemorySwapMax=0",
@@ -271,7 +272,7 @@ func TestVirtualizationUpdateResourceClearsTheOldShape(t *testing.T) {
 	if err := e.VirtualizationUpdateResource(t.Context(), "w1", resourcetypes.Resources{}); err != nil {
 		t.Fatalf("update: %v", err)
 	}
-	want := quote([]string{
+	want := sshrunner.Quote([]string{
 		"systemctl", "set-property", "--runtime", "eru-w1.service",
 		"CPUQuota=", "AllowedCPUs=", "AllowedMemoryNodes=", "CPUWeight=100",
 		"MemoryMax=infinity", "MemoryLow=0", "MemorySwapMax=0",

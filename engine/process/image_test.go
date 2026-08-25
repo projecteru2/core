@@ -7,15 +7,16 @@ import (
 
 	"github.com/cockroachdb/errors"
 
+	"github.com/projecteru2/core/engine/sshrunner"
 	coretypes "github.com/projecteru2/core/types"
 )
 
 func TestImageBuildFromExistCapturesTheBundle(t *testing.T) {
-	runner := &fakeRunner{respond: func(line string) *result {
+	runner := &fakeRunner{respond: func(line string) *sshrunner.Result {
 		if strings.Contains(line, "meta.json") {
-			return &result{Stdout: "1\n" + overlayMeta}
+			return &sshrunner.Result{Stdout: "1\n" + overlayMeta}
 		}
-		return &result{Stdout: `{"digest":"sha256:abc"}`}
+		return &sshrunner.Result{Stdout: `{"digest":"sha256:abc"}`}
 	}}
 	e := testEngine(t, runner)
 
@@ -39,7 +40,7 @@ func TestImageBuildFromExistCapturesTheBundle(t *testing.T) {
 }
 
 func TestImageBuildFromExistRefusesARawWorkload(t *testing.T) {
-	runner := &fakeRunner{respond: func(string) *result { return &result{Stdout: "0\n" + rawMeta} }}
+	runner := &fakeRunner{respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: "0\n" + rawMeta} }}
 	e := testEngine(t, runner)
 
 	_, err := e.ImageBuildFromExist(t.Context(), "w1", []string{"hub.io/ns/app:v2"}, "")

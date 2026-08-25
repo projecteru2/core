@@ -1,4 +1,4 @@
-package process
+package sshrunner
 
 import (
 	"bytes"
@@ -27,6 +27,8 @@ const (
 	maxSessions = 8
 )
 
+var _ Runner = (*sshRunner)(nil)
+
 // sshRunner keeps one connection per node and redials when the transport drops.
 type sshRunner struct {
 	addr     string
@@ -37,11 +39,16 @@ type sshRunner struct {
 	client *ssh.Client
 }
 
+// New builds a runner that dials addr on demand and keeps the connection.
+func New(addr string, config *ssh.ClientConfig) Runner {
+	return newSSHRunner(addr, config)
+}
+
 func newSSHRunner(addr string, config *ssh.ClientConfig) *sshRunner {
 	return &sshRunner{addr: addr, config: config, sessions: semaphore.NewWeighted(maxSessions)}
 }
 
-func (r *sshRunner) Run(ctx context.Context, line string, stdin io.Reader) (*result, error) {
+func (r *sshRunner) Run(ctx context.Context, line string, stdin io.Reader) (*Result, error) {
 	if err := r.sessions.Acquire(ctx, 1); err != nil {
 		return nil, err
 	}
@@ -63,10 +70,10 @@ func (r *sshRunner) Run(ctx context.Context, line string, stdin io.Reader) (*res
 	if err != nil {
 		return nil, err
 	}
-	return &result{Stdout: stdout.String(), Stderr: stderr.String(), Code: code}, nil
+	return &Result{Stdout: stdout.String(), Stderr: stderr.String(), Code: code}, nil
 }
 
-func (r *sshRunner) Start(ctx context.Context, line string, opts *startOptions) (_ session, err error) {
+func (r *sshRunner) Start(ctx context.Context, line string, opts *StartOptions) (_ Session, err error) {
 	if err = r.sessions.Acquire(ctx, 1); err != nil {
 		return nil, err
 	}
@@ -109,7 +116,7 @@ func (r *sshRunner) Start(ctx context.Context, line string, opts *startOptions) 
 	return running, nil
 }
 
-func (r *sshRunner) Files(ctx context.Context) (files, error) {
+func (r *sshRunner) Files(ctx context.Context) (Files, error) {
 	if err := r.sessions.Acquire(ctx, 1); err != nil {
 		return nil, err
 	}
@@ -236,12 +243,12 @@ func (f *sftpFiles) MkdirAll(path string) error {
 	return f.client.MkdirAll(path)
 }
 
-func (f *sftpFiles) Stat(path string) (*fileInfo, error) {
+func (f *sftpFiles) Stat(path string) (*FileInfo, error) {
 	stat, err := f.client.Stat(path)
 	if err != nil {
 		return nil, err
 	}
-	info := &fileInfo{Mode: stat.Mode()}
+	info := &FileInfo{Mode: stat.Mode()}
 	if attrs, ok := stat.Sys().(*sftp.FileStat); ok {
 		info.UID, info.GID = int(attrs.UID), int(attrs.GID)
 	}
@@ -261,7 +268,8 @@ func (f *sftpFiles) Close() error {
 	return f.client.Close()
 }
 
-func newClientConfig(cfg coretypes.SSHConfig, user string, timeout time.Duration) (*ssh.ClientConfig, error) {
+// NewClientConfig builds the ssh client config core uses for every node it drives over SSH.
+func NewClientConfig(cfg coretypes.SSHConfig, user string, timeout time.Duration) (*ssh.ClientConfig, error) {
 	key, err := os.ReadFile(cfg.PrivateKey) //nolint:gosec // the key path comes from the operator's own config
 	if err != nil {
 		return nil, err

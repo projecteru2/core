@@ -7,13 +7,14 @@ import (
 
 	"github.com/cockroachdb/errors"
 
+	"github.com/projecteru2/core/engine/sshrunner"
 	enginetypes "github.com/projecteru2/core/engine/types"
 )
 
 func TestExecuteRunsAScopeInTheWorkloadSlice(t *testing.T) {
 	runner := &fakeRunner{
 		started: &fakeSession{code: 7},
-		respond: func(string) *result { return &result{Stdout: "1\n" + overlayMeta} },
+		respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: "1\n" + overlayMeta} },
 	}
 	e := testEngine(t, runner)
 
@@ -27,7 +28,7 @@ func TestExecuteRunsAScopeInTheWorkloadSlice(t *testing.T) {
 		t.Fatalf("execute: %v", err)
 	}
 
-	want := quote([]string{
+	want := sshrunner.Quote([]string{
 		"systemd-run", "--scope", "--quiet", "--collect", "--slice=eru-prod.slice",
 		"--setenv=FOO=bar", "--",
 		"chroot", "--userspec=app", "/var/lib/eru/process/w1/merged", "ls", "-l",

@@ -11,6 +11,7 @@ import (
 	"github.com/cockroachdb/errors"
 
 	"github.com/projecteru2/core/engine"
+	"github.com/projecteru2/core/engine/sshrunner"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	resourcetypes "github.com/projecteru2/core/resource/types"
@@ -76,18 +77,18 @@ systemctl show "$unit" -p %s
 )
 
 func (e *Engine) VirtualizationStart(ctx context.Context, ID string) error {
-	_, err := e.run(ctx, shell(startScript, workloadDir(e.root, ID), unitName(ID), metaPath(ID))...)
+	_, err := e.run(ctx, sshrunner.Shell(startScript, workloadDir(e.root, ID), unitName(ID), metaPath(ID))...)
 	return err
 }
 
 func (e *Engine) VirtualizationStop(ctx context.Context, ID string, gracefulTimeout time.Duration) error {
 	force := strconv.Itoa(utils.Bool2Int(gracefulTimeout == 0))
-	_, err := e.run(ctx, shell(stopScript, unitName(ID), workloadDir(e.root, ID), force)...)
+	_, err := e.run(ctx, sshrunner.Shell(stopScript, unitName(ID), workloadDir(e.root, ID), force)...)
 	return err
 }
 
 func (e *Engine) VirtualizationRemove(ctx context.Context, ID string, _, force bool) error {
-	argv := shell(removeScript, unitName(ID), workloadDir(e.root, ID), metaPath(ID), strconv.Itoa(utils.Bool2Int(force)))
+	argv := sshrunner.Shell(removeScript, unitName(ID), workloadDir(e.root, ID), metaPath(ID), strconv.Itoa(utils.Bool2Int(force)))
 	res, err := e.call(ctx, argv...)
 	if err != nil {
 		return err
@@ -98,7 +99,7 @@ func (e *Engine) VirtualizationRemove(ctx context.Context, ID string, _, force b
 	case runningCode:
 		return errors.Wrapf(coretypes.ErrInvaildWorkloadOps, "workload %s is running, stop it first or force the removal", ID)
 	}
-	return exitError(argv, res)
+	return sshrunner.ExitError(argv, res)
 }
 
 func (e *Engine) VirtualizationSuspend(ctx context.Context, ID string) error {
@@ -112,7 +113,7 @@ func (e *Engine) VirtualizationResume(ctx context.Context, ID string) error {
 }
 
 func (e *Engine) VirtualizationInspect(ctx context.Context, ID string) (*enginetypes.VirtualizationInfo, error) {
-	argv := shell(inspectScript, workloadDir(e.root, ID), unitName(ID))
+	argv := sshrunner.Shell(inspectScript, workloadDir(e.root, ID), unitName(ID))
 	res, err := e.call(ctx, argv...)
 	if err != nil {
 		return nil, err
@@ -120,7 +121,7 @@ func (e *Engine) VirtualizationInspect(ctx context.Context, ID string) (*enginet
 	if res.Code == notExistsCode {
 		return nil, errors.Wrapf(coretypes.ErrWorkloadNotExists, "no workload directory for %s", ID)
 	}
-	if err = exitError(argv, res); err != nil {
+	if err = sshrunner.ExitError(argv, res); err != nil {
 		return nil, err
 	}
 	shown := parseShow(res.Stdout)
@@ -137,7 +138,7 @@ func (e *Engine) VirtualizationResize(context.Context, string, uint, uint) error
 }
 
 func (e *Engine) VirtualizationWait(ctx context.Context, ID, _ string) (*enginetypes.VirtualizationWaitResult, error) {
-	res, err := e.run(ctx, shell(waitScript, unitName(ID))...)
+	res, err := e.run(ctx, sshrunner.Shell(waitScript, unitName(ID))...)
 	if err != nil {
 		return &enginetypes.VirtualizationWaitResult{Message: err.Error(), Code: -1}, err
 	}
@@ -165,5 +166,5 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, en
 	if res.Code == notLoadedCode {
 		return nil
 	}
-	return exitError(argv, res)
+	return sshrunner.ExitError(argv, res)
 }
