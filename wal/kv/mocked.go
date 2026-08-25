@@ -31,15 +31,19 @@ func (m *MockedKV) Close() error {
 	return nil
 }
 
-func (m *MockedKV) NextSequence() (uint64, error) {
-	m.Lock()
-	defer m.Unlock()
-	nextSeq := m.nextSeq
-	m.nextSeq++
-	return nextSeq, nil
+func (m *MockedKV) Put(key, value []byte) error {
+	m.pool.Store(string(key), value)
+	return nil
 }
 
-func (m *MockedKV) Put(key, value []byte) error {
+func (m *MockedKV) PutNext(entry SequencedEntry) error {
+	m.Lock()
+	defer m.Unlock()
+	key, value, err := entry(m.nextSeq)
+	if err != nil {
+		return err
+	}
+	m.nextSeq++
 	m.pool.Store(string(key), value)
 	return nil
 }

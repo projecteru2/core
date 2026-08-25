@@ -10,11 +10,13 @@ type KV interface {
 	Open(path string, mode os.FileMode, timeout time.Duration) error
 	Close() error
 	Put([]byte, []byte) error
+	PutNext(SequencedEntry) error
 	Get([]byte) ([]byte, error)
 	Delete([]byte) error
 	Scan([]byte) (<-chan ScanEntry, func())
-	NextSequence() (ID uint64, err error)
 }
+
+type SequencedEntry func(seq uint64) (key, value []byte, err error)
 
 type ScanEntry interface {
 	Pair() (key, value []byte)

@@ -65,6 +65,20 @@ func (l *Lithium) Put(key, value []byte) (err error) {
 	})
 }
 
+func (l *Lithium) PutNext(entry SequencedEntry) error {
+	return l.update(func(bkt *bbolt.Bucket) error {
+		seq, err := bkt.NextSequence()
+		if err != nil {
+			return err
+		}
+		key, value, err := entry(seq)
+		if err != nil {
+			return err
+		}
+		return bkt.Put(key, value)
+	})
+}
+
 func (l *Lithium) Get(key []byte) (dst []byte, err error) {
 	err = l.update(func(bkt *bbolt.Bucket) error {
 		src := bkt.Get(key)
@@ -114,16 +128,6 @@ func (l *Lithium) Scan(prefix []byte) (<-chan ScanEntry, func()) {
 	}()
 
 	return ch, abort
-}
-
-func (l *Lithium) NextSequence() (uint64, error) {
-	var seq uint64
-	err := l.update(func(bkt *bbolt.Bucket) (ue error) {
-		seq, ue = bkt.NextSequence()
-		return ue
-	})
-
-	return seq, err
 }
 
 func (l *Lithium) open() (err error) {
