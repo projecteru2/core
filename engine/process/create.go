@@ -18,14 +18,14 @@ const (
 	podEnvKey = "ERU_POD"
 	rootUser  = "root"
 
-	createScript = `set -e
-dir=$1; ref=$2; cache=$3; launcher=$4; record=$5; overlay=$6; metadata=$7
+	createScript = "set -e\n" + unpackFunc + `dir=$1; ref=$2; cache=$3; launcher=$4; record=$5; overlay=$6; metadata=$7
 mkdir -p "$dir/lower"
 if [ -d "$cache" ]; then
 cp -a "$cache/." "$dir/lower/"
 rm -f "$dir/lower/` + digestFile + `"
 else
 oras pull "$ref" -o "$dir/lower"
+unpack "$dir/lower"
 fi
 if [ "$overlay" = 1 ]; then mkdir -p "$dir/upper" "$dir/work" "$dir/merged"; fi
 printf '%s\n' "$launcher" > "$dir/run.sh"

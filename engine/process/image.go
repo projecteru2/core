@@ -21,18 +21,41 @@ const (
 
 	listScript = `ls -1 "$1" 2>/dev/null || true`
 
-	pullScript = `set -e
-ref=$1; dir=$2
+	// a bundle layer is a tar of the rootfs, so oras leaves it packed; an artifact pushed as a
+	// directory arrives unpacked and is left alone.
+	unpackFunc = `unpack() {
+for archive in "$1"/*.tar; do
+[ -f "$archive" ] || continue
+tar -C "$1" -xf "$archive"
+rm -f "$archive"
+done
+}
+`
+
+	pullScript = "set -e\n" + unpackFunc + `ref=$1; dir=$2
 mkdir -p "$dir"
 oras pull "$ref" -o "$dir"
-oras manifest fetch --descriptor "$ref" > "$dir/.digest"
+unpack "$dir"
+oras manifest fetch --descriptor "$ref" > "$dir/` + digestFile + `"
 `
+
 	existScript = `set -e
 unit=$1; dir=$2; ref=$3; layer=$4
-systemctl freeze "$unit"
-tar -C "$dir/merged" -cf "$layer" . || { systemctl thaw "$unit"; exit 1; }
-systemctl thaw "$unit"
-oras push --artifact-type ` + bundleMedia + ` "$ref" "$layer:` + bundleMedia + `" >/dev/null
+mounted=0
+if ! mountpoint -q "$dir/merged"; then
+mount -t overlay overlay -o "lowerdir=$dir/lower,upperdir=$dir/upper,workdir=$dir/work" "$dir/merged"
+mounted=1
+fi
+cleanup() {
+systemctl thaw "$unit" >/dev/null 2>&1 || true
+if [ "$mounted" = 1 ]; then umount -l "$dir/merged" >/dev/null 2>&1 || true; fi
+return 0
+}
+trap cleanup EXIT
+systemctl freeze "$unit" >/dev/null 2>&1 || true
+tar -C "$dir/merged" -cf "$layer" .
+systemctl thaw "$unit" >/dev/null 2>&1 || true
+oras push --disable-path-validation --artifact-type ` + bundleMedia + ` "$ref" "$layer:` + bundleMedia + `" >/dev/null
 rm -f "$layer"
 oras manifest fetch --descriptor "$ref"
 `
