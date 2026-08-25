@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"maps"
 	"math"
+	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -19,6 +20,7 @@ const (
 	defaultCPUWeight = 100
 	maxCPUWeight     = 10000
 	quotaPercent     = 100
+	readOnlyMode     = "ro"
 )
 
 var throttleKeys = [...]string{"IOReadIOPSMax", "IOWriteIOPSMax", "IOReadBandwidthMax", "IOWriteBandwidthMax"}
@@ -58,6 +60,9 @@ func (u *unit) argv() []string {
 		argv = append(argv, "-p", "Environment="+systemdEnv(env))
 	}
 	for _, property := range properties(u.Resource, u.TasksMax) {
+		argv = append(argv, "-p", property)
+	}
+	for _, property := range bindPaths(u.Resource.Volumes, u.Opts.Env) {
 		argv = append(argv, "-p", property)
 	}
 	if policy := restartPolicy(u.Opts.Restart); policy != "" {
@@ -109,6 +114,31 @@ func cpuWeight(quota float64, remap bool) int {
 		return defaultCPUWeight
 	}
 	return min(max(1, int(math.Round(defaultCPUWeight*fraction))), maxCPUWeight)
+}
+
+// bindPaths maps the volume plugin's src:dst[:mode] bindings onto the unit's mount properties.
+// A bind needs no RootDirectory, so raw workloads carry them too.
+func bindPaths(volumes, env []string) []string {
+	lookup := make(map[string]string, len(env))
+	for _, entry := range env {
+		if key, value, ok := strings.Cut(entry, "="); ok {
+			lookup[key] = value
+		}
+	}
+
+	props := []string{}
+	for _, volume := range volumes {
+		parts := strings.Split(os.Expand(volume, func(key string) string { return lookup[key] }), ":")
+		if len(parts) < 2 || parts[0] == "" || parts[1] == "" {
+			continue
+		}
+		property := "BindPaths="
+		if len(parts) > 2 && parts[2] == readOnlyMode {
+			property = "BindReadOnlyPaths="
+		}
+		props = append(props, property+parts[0]+":"+parts[1])
+	}
+	return props
 }
 
 func throttles(options map[string]string) []string {

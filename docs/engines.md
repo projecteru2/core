@@ -93,7 +93,10 @@ One transient service per workload (`eru-<id>.service`), one slice per pod (`eru
 
 Resources land on cgroup v2 unit properties: `AllowedCPUs`, `AllowedMemoryNodes` and `CPUWeight`
 for bound CPUs, `CPUQuota` otherwise, then `MemoryMax`, `MemoryHigh`, `TasksMax` and the four
-`IO*Max` knobs per device.
+`IO*Max` knobs per device. Volume bindings become `BindPaths=` — `BindReadOnlyPaths=` for an `ro`
+mode — with the source expanded against the workload's environment; a bind needs no
+`RootDirectory=`, so raw workloads get them too. `VirtualizationUpdateResource` replays only the
+cgroup properties, since mounts are not live-settable.
 
 Two per-workload options ride in the deploy request's raw args:
 
