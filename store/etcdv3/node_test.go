@@ -106,20 +106,22 @@ RdCPRPt513WozkJZZAjUSP2U
 -----END PRIVATE KEY-----`
 	nodename3 := "nodename3"
 	endpoint3 := "tcp://path"
-	m.config.CertPath = "/tmp"
-	node3, err := m.doAddNode(ctx, nodename3, endpoint3, podname, ca, cert, certkey, labels, false)
+	m.Config.CertPath = "/tmp"
+	node3, err := m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename3, Endpoint: endpoint3, Podname: podname, Ca: ca, Cert: cert, Key: certkey, Labels: labels})
 	assert.NoError(t, err)
-	_, err = m.makeClient(ctx, node3)
+	_, err = m.MakeClient(ctx, node3)
 	assert.Error(t, err)
 	node3.Name = "nokey"
-	_, err = m.makeClient(ctx, node3)
+	_, err = m.MakeClient(ctx, node3)
 	assert.Error(t, err)
 }
 
 func TestRemoveNode(t *testing.T) {
 	m := NewMercury(t)
 	ctx := context.Background()
-	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", nil, false)
+	_, err := m.AddPod(ctx, "testpod", "")
+	assert.NoError(t, err)
+	node, err := m.AddNode(ctx, &types.AddNodeOptions{Nodename: "test", Endpoint: "mock://", Podname: "testpod"})
 	assert.NoError(t, err)
 	assert.Equal(t, node.Name, "test")
 	assert.NoError(t, m.RemoveNode(ctx, nil))
@@ -129,7 +131,9 @@ func TestRemoveNode(t *testing.T) {
 func TestGetNode(t *testing.T) {
 	m := NewMercury(t)
 	ctx := context.Background()
-	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", nil, false)
+	_, err := m.AddPod(ctx, "testpod", "")
+	assert.NoError(t, err)
+	node, err := m.AddNode(ctx, &types.AddNodeOptions{Nodename: "test", Endpoint: "mock://", Podname: "testpod"})
 	assert.NoError(t, err)
 	assert.Equal(t, node.Name, "test")
 	_, err = m.GetNode(ctx, "wtf")
@@ -142,7 +146,9 @@ func TestGetNode(t *testing.T) {
 func TestGetNodesByPod(t *testing.T) {
 	m := NewMercury(t)
 	ctx := context.Background()
-	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", nil, false)
+	_, err := m.AddPod(ctx, "testpod", "")
+	assert.NoError(t, err)
+	node, err := m.AddNode(ctx, &types.AddNodeOptions{Nodename: "test", Endpoint: "mock://", Podname: "testpod"})
 	assert.NoError(t, err)
 	assert.Equal(t, node.Name, "test")
 	ns, err := m.GetNodesByPod(ctx, &types.NodeFilter{Podname: "wtf", All: false}, false)
@@ -151,8 +157,6 @@ func TestGetNodesByPod(t *testing.T) {
 	ns, err = m.GetNodesByPod(ctx, &types.NodeFilter{Podname: "testpod", All: true}, false)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, ns)
-	_, err = m.AddPod(ctx, "testpod", "")
-	assert.NoError(t, err)
 	ns, err = m.GetNodesByPod(ctx, &types.NodeFilter{All: false}, false)
 	assert.NoError(t, err)
 	assert.Len(t, ns, 1)
@@ -164,7 +168,9 @@ func TestGetNodesByPod(t *testing.T) {
 func TestUpdateNode(t *testing.T) {
 	m := NewMercury(t)
 	ctx := context.Background()
-	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", nil, false)
+	_, err := m.AddPod(ctx, "testpod", "")
+	assert.NoError(t, err)
+	node, err := m.AddNode(ctx, &types.AddNodeOptions{Nodename: "test", Endpoint: "mock://", Podname: "testpod"})
 	assert.NoError(t, err)
 	assert.Equal(t, node.Name, "test")
 	fakeNode := &types.Node{
@@ -305,7 +311,7 @@ func TestGetNodesWhenPoolIsFull(t *testing.T) {
 
 	pool, err := utils.NewPool(1)
 	assert.NoError(t, err)
-	m.pool = pool
+	m.Pool = pool
 	blocked := make(chan struct{})
 	defer close(blocked)
 	assert.NoError(t, pool.Invoke(func() { <-blocked }))

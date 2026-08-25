@@ -17,7 +17,7 @@ func (s *RediaronTestSuite) TestAddNode() {
 	s.NoError(err)
 	_, err = s.rediaron.AddPod(ctx, "numapod", "test")
 	s.NoError(err)
-	s.rediaron.config.Scheduler.ShareBase = 100
+	s.rediaron.Config.Scheduler.ShareBase = 100
 	labels := map[string]string{"test": "1"}
 
 	ca := `-----BEGIN CERTIFICATE-----
@@ -84,19 +84,21 @@ RdCPRPt513WozkJZZAjUSP2U
 -----END PRIVATE KEY-----`
 	nodename3 := "nodename3"
 	endpoint3 := "tcp://path"
-	s.rediaron.config.CertPath = "/tmp"
-	node3, err := s.rediaron.doAddNode(ctx, nodename3, endpoint3, podname, ca, cert, certkey, labels, false)
+	s.rediaron.Config.CertPath = "/tmp"
+	node3, err := s.rediaron.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename3, Endpoint: endpoint3, Podname: podname, Ca: ca, Cert: cert, Key: certkey, Labels: labels})
 	s.NoError(err)
-	_, err = s.rediaron.makeClient(ctx, node3)
+	_, err = s.rediaron.MakeClient(ctx, node3)
 	s.Error(err)
 	node3.Name = "nokey"
-	_, err = s.rediaron.makeClient(ctx, node3)
+	_, err = s.rediaron.MakeClient(ctx, node3)
 	s.Error(err)
 }
 
 func (s *RediaronTestSuite) TestRemoveNode() {
 	ctx := context.Background()
-	node, err := s.rediaron.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", nil, false)
+	_, err := s.rediaron.AddPod(ctx, "testpod", "")
+	s.NoError(err)
+	node, err := s.rediaron.AddNode(ctx, &types.AddNodeOptions{Nodename: "test", Endpoint: "mock://", Podname: "testpod"})
 	s.NoError(err)
 	s.Equal(node.Name, "test")
 	s.NoError(s.rediaron.RemoveNode(ctx, nil))
@@ -105,7 +107,9 @@ func (s *RediaronTestSuite) TestRemoveNode() {
 
 func (s *RediaronTestSuite) TestGetNode() {
 	ctx := context.Background()
-	node, err := s.rediaron.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", nil, false)
+	_, err := s.rediaron.AddPod(ctx, "testpod", "")
+	s.NoError(err)
+	node, err := s.rediaron.AddNode(ctx, &types.AddNodeOptions{Nodename: "test", Endpoint: "mock://", Podname: "testpod"})
 	s.NoError(err)
 	s.Equal(node.Name, "test")
 	_, err = s.rediaron.GetNode(ctx, "wtf")
@@ -117,7 +121,9 @@ func (s *RediaronTestSuite) TestGetNode() {
 
 func (s *RediaronTestSuite) TestGetNodesByPod() {
 	ctx := context.Background()
-	node, err := s.rediaron.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", map[string]string{"x": "y"}, false)
+	_, err := s.rediaron.AddPod(ctx, "testpod", "")
+	s.NoError(err)
+	node, err := s.rediaron.AddNode(ctx, &types.AddNodeOptions{Nodename: "test", Endpoint: "mock://", Podname: "testpod", Labels: map[string]string{"x": "y"}})
 	s.NoError(err)
 	s.Equal(node.Name, "test")
 	ns, err := s.rediaron.GetNodesByPod(ctx, &types.NodeFilter{Podname: "wtf", All: false}, false)
@@ -126,8 +132,6 @@ func (s *RediaronTestSuite) TestGetNodesByPod() {
 	ns, err = s.rediaron.GetNodesByPod(ctx, &types.NodeFilter{Podname: "testpod", All: true}, false)
 	s.NoError(err)
 	s.NotEmpty(ns)
-	_, err = s.rediaron.AddPod(ctx, "testpod", "")
-	s.NoError(err)
 	ns, err = s.rediaron.GetNodesByPod(ctx, &types.NodeFilter{All: false}, false)
 	s.NoError(err)
 	s.Len(ns, 1)
@@ -138,7 +142,9 @@ func (s *RediaronTestSuite) TestGetNodesByPod() {
 
 func (s *RediaronTestSuite) TestUpdateNode() {
 	ctx := context.Background()
-	node, err := s.rediaron.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", map[string]string{"x": "y"}, false)
+	_, err := s.rediaron.AddPod(ctx, "testpod", "")
+	s.NoError(err)
+	node, err := s.rediaron.AddNode(ctx, &types.AddNodeOptions{Nodename: "test", Endpoint: "mock://", Podname: "testpod", Labels: map[string]string{"x": "y"}})
 	s.NoError(err)
 	s.Equal(node.Name, "test")
 	fakeNode := &types.Node{
@@ -157,7 +163,9 @@ func (s *RediaronTestSuite) TestUpdateNode() {
 
 func (s *RediaronTestSuite) TestUpdateNodeResource() {
 	ctx := context.Background()
-	node, err := s.rediaron.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", map[string]string{"x": "y"}, false)
+	_, err := s.rediaron.AddPod(ctx, "testpod", "")
+	s.NoError(err)
+	node, err := s.rediaron.AddNode(ctx, &types.AddNodeOptions{Nodename: "test", Endpoint: "mock://", Podname: "testpod", Labels: map[string]string{"x": "y"}})
 	s.NoError(err)
 	s.Equal(node.Name, "test")
 }
@@ -247,15 +255,17 @@ func (s *RediaronTestSuite) TestNodeStatusStream() {
 
 func (s *RediaronTestSuite) TestGetNodesWhenPoolIsFull() {
 	ctx := context.Background()
-	node, err := s.rediaron.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", nil, false)
+	_, err := s.rediaron.AddPod(ctx, "testpod", "")
+	s.NoError(err)
+	node, err := s.rediaron.AddNode(ctx, &types.AddNodeOptions{Nodename: "test", Endpoint: "mock://", Podname: "testpod"})
 	s.NoError(err)
 	s.Equal(node.Name, "test")
 
 	pool, err := utils.NewPool(1)
 	s.NoError(err)
-	old := s.rediaron.pool
-	defer func() { s.rediaron.pool = old }()
-	s.rediaron.pool = pool
+	old := s.rediaron.Pool
+	defer func() { s.rediaron.Pool = old }()
+	s.rediaron.Pool = pool
 	blocked := make(chan struct{})
 	defer close(blocked)
 	s.NoError(pool.Invoke(func() { <-blocked }))
