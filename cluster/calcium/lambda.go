@@ -60,17 +60,14 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 			return eruErrMsg(message.WorkloadID, "Create wal failed: %s, %v", message.WorkloadID, err)
 		}
 		defer func() {
-			if commitErr := commit(); commitErr != nil {
-				logger.Errorf(ctx, commitErr, "commit wal %s failed: %s", eventCreateLambda, message.WorkloadID)
-			}
-		}()
-
-		defer func() {
 			removeCtx := utils.NewInheritCtx(ctx)
 			if removeErr := c.doRemoveWorkloadSync(removeCtx, []string{message.WorkloadID}); removeErr != nil {
 				logger.Error(removeCtx, removeErr, "remove lambda workload failed")
-			} else {
-				logger.Infof(removeCtx, "workload %s finished and removed", utils.ShortID(message.WorkloadID))
+				return
+			}
+			logger.Infof(removeCtx, "workload %s finished and removed", utils.ShortID(message.WorkloadID))
+			if commitErr := commit(); commitErr != nil {
+				logger.Errorf(removeCtx, commitErr, "commit wal %s failed: %s", eventCreateLambda, message.WorkloadID)
 			}
 		}()
 

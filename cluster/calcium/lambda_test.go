@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -19,6 +20,7 @@ import (
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/wal"
 	walmocks "github.com/projecteru2/core/wal/mocks"
 )
 
@@ -225,6 +227,82 @@ func TestLambdaWithStdinOpensNoFollowStream(t *testing.T) {
 	assert.True(strings.HasPrefix(string(ms[0].Data), "Attach to workload"))
 	assert.Equal(ms[0].StdStreamType, types.EruError)
 	engine.AssertNotCalled(t, "VirtualizationLogs", mock.Anything, mock.Anything)
+}
+
+func TestLambdaKeepsTheJournalEntryWhenTheRemoveFails(t *testing.T) {
+	assert := assert.New(t)
+	c, nodes := newLambdaCluster(t)
+	engine := nodes[0].Engine.(*enginemocks.API)
+
+	store := c.store.(*storemocks.Store)
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(&types.Workload{ID: "workloadfortonictest", Engine: engine}, nil)
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
+	engine.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(nil, nil, types.ErrMockError)
+
+	committed := &atomic.Int64{}
+	c.wal = lambdaWAL(committed)
+
+	ids, ch, err := c.RunAndWait(context.Background(), lambdaOptions(), make(chan []byte))
+	assert.NoError(err)
+	assert.Len(drainAttachMessages(ch), len(ids))
+	assert.Zero(committed.Load())
+}
+
+func TestLambdaCommitsTheJournalEntryAfterTheRemove(t *testing.T) {
+	assert := assert.New(t)
+	c, nodes := newLambdaCluster(t)
+	engine := nodes[0].Engine.(*enginemocks.API)
+
+	workload := &types.Workload{ID: "workloadfortonictest", Nodename: "n1", Engine: engine}
+	store := c.store.(*storemocks.Store)
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
+	engine.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(nil, nil, types.ErrMockError)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		resourcetypes.Resources{}, resourcetypes.Resources{}, nil,
+	)
+
+	committed := &atomic.Int64{}
+	c.wal = lambdaWAL(committed)
+
+	ids, ch, err := c.RunAndWait(context.Background(), lambdaOptions(), make(chan []byte))
+	assert.NoError(err)
+	assert.Len(drainAttachMessages(ch), len(ids))
+	assert.Equal(int64(len(ids)), committed.Load())
+}
+
+func drainAttachMessages(ch <-chan *types.AttachWorkloadMessage) []*types.AttachWorkloadMessage {
+	ms := []*types.AttachWorkloadMessage{}
+	for m := range ch {
+		ms = append(ms, m)
+	}
+	return ms
+}
+
+func lambdaOptions() *types.DeployOptions {
+	return &types.DeployOptions{
+		Name:           "zc:name",
+		Count:          2,
+		DeployStrategy: strategy.Auto,
+		Podname:        "p1",
+		Resources:      resourcetypes.Resources{},
+		Image:          "zc:test",
+		Entrypoint: &types.Entrypoint{
+			Name: "good-entrypoint",
+		},
+		NodeFilter: &types.NodeFilter{},
+	}
+}
+
+func lambdaWAL(committed *atomic.Int64) *walmocks.WAL {
+	mwal := &walmocks.WAL{}
+	mwal.On("Log", eventCreateLambda, mock.Anything).Return(wal.Commit(func() error {
+		committed.Add(1)
+		return nil
+	}), nil)
+	mwal.On("Log", mock.Anything, mock.Anything).Return(wal.Commit(func() error { return nil }), nil)
+	return mwal
 }
 
 func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {
