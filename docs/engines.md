@@ -261,7 +261,7 @@ the cocoon daemon's events on it. The eru name stays in the meta file and in cor
 | `VirtualizationWait` | `vm status --event --format json` until the guest leaves `running`; a VM has no exit code, so the result is 0 |
 | `VirtualizationLogs` | `journalctl SYSLOG_IDENTIFIER=eru ERU_ID=<id>` with `-n`, `--since` and `--until` — eru-agent copies the guest console into journald; a followed stream ends when the guest stops, and both `journalctl` and the status watcher are killed by pid rather than through a pipeline, since the watcher only notices a closed pipe at its next event |
 | `VirtualizationAttach` | without stdin, the journald follow; with stdin, `ErrEngineNotImplemented` — the console needs a pty (core#660) |
-| `Execute` / `ExecExitCode` | `vm exec [-i] [-e K=V …] <id> -- <cmd>` through cocoon-agent in pipe mode, stdio on the SSH session, the exit code the guest command's. `ExecResize` is `ErrEngineNotImplemented` (core#660). A `user` is refused with `ErrEngineNotImplemented` rather than silently run as whoever cocoon-agent is (core#660); a `working_dir` on a Linux guest is applied by wrapping the command in `sh -c 'cd "$1" && shift && exec "$@"'`, which costs one `vm inspect` to rule out a Windows guest, where it is refused |
+| `Execute` / `ExecExitCode` | `vm exec [-i] [-e K=V …] <id> -- <cmd>` through cocoon-agent in pipe mode, stdio on the SSH session, the exit code the guest command's. `ExecResize` is `ErrEngineNotImplemented` (core#660). A `user` and a `working_dir` are applied inside a Linux guest by wrapping the command — `runuser -u U -- env --chdir=D <cmd>` for a bare user name, `setpriv --reuid=U --regid=G --clear-groups -- env --chdir=D <cmd>` when the id is numeric or a group is named — so the directory is entered as the target user; on a Windows guest both are `ErrEngineNotImplemented` |
 | `VirtualizationCopyTo` / `CopyFrom` | a one-entry tar through `vm exec … tar -x -P -f -` / `tar -c -P -f -`: the absolute entry name makes tar create the parents, and `tar.exe` ships with Windows 10+. A copy into a guest that is not running is `ErrEngineNotImplemented` — the state is checked first, one round trip per file |
 | `VirtualizationUpdateResource` | a remap (the cpumem binding refresh core runs after every deploy) is a no-op without a round trip; a realloc is `ErrEngineNotImplemented`, CPU and memory hot-plug wait on cocoon (core#661) |
 | `ImagePull` | `image pull <ref>` for OCI VM images and cloud-image URLs, registry auth left to cocoon's own config; a split-qcow2 artifact (the Windows images) is `oras pull`ed and `image import`ed under the same ref, once |
@@ -289,9 +289,15 @@ network's name, `default` only when cocoon itself names no conflist.
 A Linux cloud image gets its login from cloud-init, so a deploy that sets no `user` leaves the
 guest on cocoon's default guest password. Set the entrypoint's `user` for anything reachable.
 
-Because a `user` is refused rather than ignored, an entrypoint hook on a workload deployed with
-`user` fails on a VM node: core passes the workload's user to every hook exec. Deploy VM workloads
-that need hooks without a `user`, or keep the hook's work inside the image.
+An exec that names a user or a working dir costs one extra `vm inspect`, to tell a Linux guest from
+a Windows one before the wrapper is rendered. Core hands every entrypoint hook the workload's user,
+so a VM workload deployed with `user` pays that round trip on each hook, and every hook runs under
+that user. `runuser`, `setpriv` (both util-linux) and `env` (coreutils ≥ 8.28) must be present in
+the guest. A bare user name goes to `runuser`, which takes the primary group and the supplementary
+groups from the guest's own passwd — the engine cannot, and `setpriv --regid` rejects a name that is
+not a group, which `nobody` is not on Debian. A numeric id, or any `user:group`, goes to `setpriv`
+with exactly that pair and no supplementary groups; an unnamed group repeats the uid. The env the
+hook carries survives both wrappers, which is why neither is a login shell.
 
 A VM has no way to take a file before it boots: the copy verbs go through cocoon-agent inside the
 guest, and core sends a deploy's `--file` set between the create and the start. Such a deploy fails
@@ -355,7 +361,8 @@ still boots, and only its console logs are missing.
 cocoon, with `cocoon daemon` as a systemd service (the engine does not need it, eru-agent uses it
 for events), the cocoonstack `dev` builds of Cloud Hypervisor, Firecracker and
 rust-hypervisor-firmware (the Windows fixes live there), the CNI plugin binaries in `/opt/cni/bin`
-with conf in `/etc/cni/net.d`, cocoon-agent inside the guest images, `sshd` with core's key in
+with conf in `/etc/cni/net.d`, cocoon-agent inside the guest images (with `runuser`, `setpriv` and
+`env` there too, for execs that name a user or a working dir), `sshd` with core's key in
 `authorized_keys`, and a login that may run `cocoon.binary` and owns `cocoon.root` and
 `/run/eru/workloads` (create them and `chown` them to that login before the first deploy).
 

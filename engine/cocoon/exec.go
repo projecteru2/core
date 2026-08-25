@@ -1,8 +1,12 @@
 package cocoon
 
 import (
+	"cmp"
 	"context"
 	"io"
+	"slices"
+	"strconv"
+	"strings"
 
 	"github.com/cockroachdb/errors"
 
@@ -11,27 +15,15 @@ import (
 	coretypes "github.com/projecteru2/core/types"
 )
 
-const workdirScript = `cd "$1" && shift && exec "$@"`
-
 var errExecNotFound = errors.New("exec not found")
 
 // Execute runs the command through cocoon-agent in pipe mode; a pty is projecteru2/core#660.
 func (e *Engine) Execute(ctx context.Context, ID string, config *enginetypes.ExecConfig) (execID string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
-	if config.User != "" {
-		return "", nil, nil, nil, errors.Wrapf(coretypes.ErrEngineNotImplemented,
-			"cocoon-agent picks the guest user itself, %s cannot be selected (projecteru2/core#660)", config.User)
+	argv, err := e.guestArgv(ctx, ID, config)
+	if err != nil {
+		return "", nil, nil, nil, err
 	}
-	if config.WorkingDir != "" {
-		_, vm, inspectErr := e.inspectVM(ctx, ID)
-		if inspectErr != nil {
-			return "", nil, nil, nil, inspectErr
-		}
-		if vm.Config.Windows {
-			return "", nil, nil, nil, errors.Wrap(coretypes.ErrEngineNotImplemented,
-				"a windows guest has no shell to change directory with (projecteru2/core#660)")
-		}
-	}
-	running, err := e.runner.Start(ctx, sshrunner.Quote(e.execArgv(ID, config)), &sshrunner.StartOptions{Stdin: config.AttachStdin})
+	running, err := e.runner.Start(ctx, sshrunner.Quote(argv), &sshrunner.StartOptions{Stdin: config.AttachStdin})
 	if err != nil {
 		return "", nil, nil, nil, err
 	}
@@ -64,7 +56,22 @@ func (e *Engine) ExecExitCode(_ context.Context, _, execID string) (int, error) 
 	return running.Wait()
 }
 
-func (e *Engine) execArgv(ID string, config *enginetypes.ExecConfig) []string {
+func (e *Engine) guestArgv(ctx context.Context, ID string, config *enginetypes.ExecConfig) ([]string, error) {
+	if config.User == "" && config.WorkingDir == "" {
+		return e.execArgv(ID, config, config.Cmd), nil
+	}
+	_, vm, err := e.inspectVM(ctx, ID)
+	if err != nil {
+		return nil, err
+	}
+	if vm.Config.Windows {
+		return nil, errors.Wrap(coretypes.ErrEngineNotImplemented,
+			"a windows guest has neither runuser nor setpriv to run an exec as another user or in another directory (projecteru2/core#660)")
+	}
+	return e.execArgv(ID, config, guestCommand(config)), nil
+}
+
+func (e *Engine) execArgv(ID string, config *enginetypes.ExecConfig, cmd []string) []string {
 	argv := e.vm("exec")
 	if config.AttachStdin {
 		argv = append(argv, "-i")
@@ -72,9 +79,24 @@ func (e *Engine) execArgv(ID string, config *enginetypes.ExecConfig) []string {
 	for _, env := range config.Env {
 		argv = append(argv, "-e", env)
 	}
-	argv = append(argv, ID, "--")
+	return slices.Concat(argv, []string{ID, "--"}, cmd)
+}
+
+func guestCommand(config *enginetypes.ExecConfig) []string {
+	var argv []string
+	if config.User != "" {
+		argv = userArgv(config.User)
+	}
 	if config.WorkingDir != "" {
-		argv = append(argv, "sh", "-c", workdirScript, "sh", config.WorkingDir)
+		argv = append(argv, "env", "--chdir="+config.WorkingDir)
 	}
 	return append(argv, config.Cmd...)
+}
+
+func userArgv(user string) []string {
+	name, group, _ := strings.Cut(user, ":")
+	if _, err := strconv.Atoi(name); err == nil || group != "" {
+		return []string{"setpriv", "--reuid=" + name, "--regid=" + cmp.Or(group, name), "--clear-groups", "--"}
+	}
+	return []string{"runuser", "-u", name, "--"}
 }
