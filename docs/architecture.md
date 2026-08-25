@@ -12,7 +12,7 @@ core.go            flags, config, logging, gRPC server, signal handling
     resource       Manager (cobalt) over resource plugins
     store          metadata, locks, watch streams: etcd or redis
     engine         per-node runtime clients, behind a cache
-    wal            local bbolt journal for crash recovery
+    wal            journal in the store for crash recovery
     source         SCM checkout for image builds (github / gitlab)
     discovery      pushes the live instance list to subscribers
   selfmon          leader-elected node status watcher

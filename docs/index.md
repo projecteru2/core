@@ -16,7 +16,7 @@ cli / agent / your service
    │             │      │                        │
    │             │      ├──► resource/cobalt ──► cpumem (built in)
    │             │      │                    └─► binary plugins
-   │             │      └──► wal (bbolt)         │  crash recovery
+   │             │      └──► wal (in the store)  │  crash recovery
    │             ▼                               │
    │           store ──► etcd | redis            │  metadata, locks, status
    │             │                               │

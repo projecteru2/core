@@ -25,8 +25,6 @@ Durations are Go duration strings (`30s`, `5m`).
 | `store` | string | `etcd` | Metadata backend: `etcd` or `redis` |
 | `sentry_dsn` | string | — | Sentry DSN. Empty disables Sentry |
 | `probe_target` | string | `8.8.8.8:80` | UDP dial target used to learn core's own outbound address when `bind` has no explicit IP |
-| `wal_file` | string | `core.wal` | Path of the local bbolt write-ahead log |
-| `wal_open_timeout` | duration | `8s` | How long to wait for the WAL file lock on start |
 
 ## Auth
 
