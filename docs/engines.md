@@ -253,7 +253,7 @@ the cocoon daemon's events on it. The eru name stays in the meta file and in cor
 | `engine.API` | cocoon |
 | --- | --- |
 | `VirtualizationCreate` | `vm create --output json --name <id> [--cpu N] [--memory B] [--storage B] [--data-disk …] [--network <name>] [--windows \| --user U] <image>` — no boot; then the meta record is written. A failure after the create removes the VM again |
-| `VirtualizationStart` | `vm inspect`, `vm start` and `vm inspect` again in one script; then this boot's console is read from Cloud Hypervisor's `vm.info` over a forward of the VM's `api.sock`, and both copies of the meta record are rewritten with it and with the VMM pid. A `vm.info` core cannot reach keeps the recorded socket path, warns once per boot and starts the guest anyway; a Windows guest on its first boot then gets its address programmed through `vm exec` |
+| `VirtualizationStart` | `vm inspect`, `vm start` and `vm inspect` again in one script; then this boot's console is read from Cloud Hypervisor's `vm.info` over a forward of the VM's `api.sock`, and both copies of the meta record are rewritten with it and with the VMM pid. A `vm.info` core cannot reach keeps the recorded socket path, warns once per boot and starts the guest anyway. A Windows guest on its first boot gets its address programmed through `vm exec` in the background, after the start has already returned |
 | `VirtualizationStop` | `vm stop`, `--force` for a forced stop, `--timeout` when a grace period is given |
 | `VirtualizationRemove` | `vm rm [--force]`, then the hibernate snapshot and both copies of the meta record; a running guest is refused unless forced |
 | `VirtualizationSuspend` / `Resume` | `vm hibernate --name eru-<id>` / `vm restore --restore-mode copy` followed by `snapshot rm` and `vm inspect`, then the record rewrite as at start |
@@ -297,7 +297,13 @@ The deploy request's raw args carry the OS marker:
 Windows has no cloud-init and only takes DHCP, while eru's CNI networks use host-local IPAM, so
 on the guest's first boot the engine programs the recorded address, mask and gateway with
 `netsh interface ip set address Ethernet static …` through `vm exec`, retrying every two seconds
-until cocoon-agent answers, for up to three minutes. `--user` is not passed for a Windows guest.
+until cocoon-agent answers, for up to three minutes. That loop does not run on the start path:
+`VirtualizationStart` returns once `vm start` and the record refresh are done, and the retries go
+on in the background under their own five-minute deadline, logging a warning if the guest never
+answers. A first boot slower than `global_timeout` — which the pull, the create and the start all
+share — would otherwise roll the deploy back and destroy the guest that was still booting; the
+entrypoint's health check is what decides the workload is up. `--user` is not passed for a Windows
+guest.
 Exec and copy go through the agent as on Linux; console-API programs that bypass stdout are the
 documented limitation. Resources cannot change on a running Windows guest: a realloc is a
 recreate.

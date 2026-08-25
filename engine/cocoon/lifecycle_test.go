@@ -4,6 +4,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -34,33 +35,35 @@ func TestVirtualizationStartBootsALinuxGuestAndRecordsItsConsole(t *testing.T) {
 	}
 }
 
-func TestVirtualizationStartProgramsAWindowsGuestOnItsFirstBoot(t *testing.T) {
-	dialed := ""
-	runner := &sshrunnertest.Fake{
-		Respond: func(line string) *sshrunner.Result {
-			if strings.Contains(line, "netsh") {
-				return &sshrunner.Result{}
-			}
-			return &sshrunner.Result{Stdout: windowsVM + "\n" + bootedWindowsVM}
-		},
-		Dialer: chAPI(t, "", &dialed),
-	}
-	e := testEngine(t, runner)
+func TestVirtualizationStartProgramsAWindowsGuestAfterItReturns(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		runner := &sshrunnertest.Fake{
+			Respond: func(line string) *sshrunner.Result {
+				if strings.Contains(line, "netsh") {
+					return &sshrunner.Result{}
+				}
+				return &sshrunner.Result{Stdout: windowsVM + "\n" + bootedWindowsVM}
+			},
+		}
+		e := testEngine(t, runner)
 
-	if err := e.VirtualizationStart(t.Context(), "w1"); err != nil {
-		t.Fatalf("start: %v", err)
-	}
-	lines := runner.Lines()
-	if len(lines) != 3 {
-		t.Fatalf("got %d commands, want the start, the console and the address", len(lines))
-	}
-	want := sshrunner.Quote(sshrunner.Shell(addressScript, testBinary, "w1", "10.22.0.5", "255.255.0.0", "10.22.0.1"))
-	if lines[2] != want {
-		t.Errorf("got %q, want %q", lines[2], want)
-	}
-	if !strings.Contains(addressScript, "netsh interface ip set address Ethernet static") {
-		t.Error("the address script must drive netsh")
-	}
+		if err := e.VirtualizationStart(t.Context(), "w1"); err != nil {
+			t.Fatalf("start: %v", err)
+		}
+		if lines := runner.Lines(); len(lines) != 2 {
+			t.Fatalf("got %q, want the start and the record before the deploy is let go", lines)
+		}
+
+		synctest.Wait()
+		lines := runner.Lines()
+		want := sshrunner.Quote(sshrunner.Shell(addressScript, testBinary, "w1", "10.22.0.5", "255.255.0.0", "10.22.0.1"))
+		if len(lines) != 3 || lines[2] != want {
+			t.Errorf("got %q, want %q once the start returned", lines, want)
+		}
+		if !strings.Contains(addressScript, "netsh interface ip set address Ethernet static") {
+			t.Error("the address script must drive netsh")
+		}
+	})
 }
 
 func TestVirtualizationStartLeavesABootedWindowsGuestAlone(t *testing.T) {

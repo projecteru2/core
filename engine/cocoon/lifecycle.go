@@ -23,6 +23,8 @@ const (
 	// guestIface is the adapter name the cocoonstack Windows images give their virtio NIC.
 	guestIface = "Ethernet"
 
+	addressTimeout = 5 * time.Minute
+
 	// startScript prints the record before and after the boot: first_booted is read before, the pid after.
 	startScript = `set -e
 bin=$1; vm=$2; durable=$3
@@ -91,12 +93,10 @@ func (e *Engine) VirtualizationStart(ctx context.Context, ID string) error {
 	if err = e.refreshRecord(ctx, ID, after); err != nil {
 		return err
 	}
-	addr := before.address()
-	if !before.Config.Windows || before.FirstBooted || addr == nil {
-		return nil
+	if addr := before.address(); before.Config.Windows && !before.FirstBooted && addr != nil {
+		go e.programAddress(ctx, ID, addr)
 	}
-	_, err = e.run(ctx, sshrunner.Shell(addressScript, e.cocoon.Binary, ID, addr.IP, addr.mask(), addr.Gateway)...)
-	return err
+	return nil
 }
 
 func (e *Engine) VirtualizationStop(ctx context.Context, ID string, gracefulTimeout time.Duration) error {
@@ -188,6 +188,16 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, en
 		return nil
 	}
 	return errors.Wrap(coretypes.ErrEngineNotImplemented, "cpu and memory hot-plug wait on cocoon (projecteru2/core#661)")
+}
+
+// programAddress leaves the start path: the netsh loop waits minutes on a first boot, and calcium
+// shares one global timeout between the pull, the create and the start.
+func (e *Engine) programAddress(ctx context.Context, ID string, addr *guestAddress) {
+	ctx, cancel := context.WithTimeout(utils.NewInheritCtx(ctx), addressTimeout)
+	defer cancel()
+	if _, err := e.run(ctx, sshrunner.Shell(addressScript, e.cocoon.Binary, ID, addr.IP, addr.mask(), addr.Gateway)...); err != nil {
+		log.WithFunc("engine.cocoon.programAddress").Warnf(ctx, "vm %s did not take the address %s: %v", ID, addr.IP, err)
+	}
 }
 
 // runRecorded runs a script that exits 64 when the workload has no record on the node.
