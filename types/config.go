@@ -131,10 +131,11 @@ type BuildConfig struct {
 	NodeFilter NodeFilter `yaml:"node_filter"`
 }
 
-// ContainerdConfig is the node-side socket the containerd engine reaches over SSH.
+// ContainerdConfig is the node-side layout the containerd engine reaches over SSH.
 type ContainerdConfig struct {
 	Socket    string `yaml:"socket" default:"/run/containerd/containerd.sock"`
 	Namespace string `yaml:"namespace" default:"eru"`
+	BuildKit  string `yaml:"buildkit" default:"/run/buildkit/buildkitd.sock"` // a tcp:// address is dialed directly
 }
 
 // ProcessConfig is the node-side layout the process engine writes into.

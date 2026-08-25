@@ -27,7 +27,7 @@ import (
 const (
 	// logShimURI runs the agent's log-shim, which writes the task's output to journald.
 	// containerd flattens the query into argv pairs, so the mode arrives as a subcommand.
-	logShimURI = "binary://" + hookBinary + "?log-shim=1"
+	logShimURI = "binary://" + hookBinary + "?log-shim"
 
 	mountMark  = "mount:"
 	deviceMark = "device:"
@@ -110,7 +110,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 			withDevices(rArgs.Devices),
 			withMounts(opts, resource, dir),
 			withNetwork(opts),
-			withHooks(opts.Networks, e.namespace),
+			withHooks(opts.Networks, e.namespace, nonDefaultSocket(e.socket)),
 		),
 	}, runtimeOpts(rArgs))...)
 	if err != nil {
@@ -217,4 +217,12 @@ func resolveDevices(devices []blockDevice, out string) ([]blockDevice, error) {
 
 func workloadDir(ID string) string {
 	return filepath.Join(workloadRoot, ID)
+}
+
+// nonDefaultSocket keeps the hook's argv to what the agent already defaults to.
+func nonDefaultSocket(socket string) string {
+	if socket == defaultSocket {
+		return ""
+	}
+	return socket
 }

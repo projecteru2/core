@@ -134,7 +134,7 @@ func withNetwork(opts *enginetypes.VirtualizationCreateOptions) oci.SpecOpts {
 
 // withHooks hands the netns to eru-agent, which is where CNI can run. Both hooks carry the
 // same argv; the hook tells an attach from a detach by the runtime state on its stdin.
-func withHooks(networks map[string]string, namespace string) oci.SpecOpts {
+func withHooks(networks map[string]string, namespace, socket string) oci.SpecOpts {
 	return func(_ context.Context, _ oci.Client, _ *containers.Container, spec *specs.Spec) error {
 		if spec.Annotations == nil {
 			spec.Annotations = map[string]string{}
@@ -143,7 +143,7 @@ func withHooks(networks map[string]string, namespace string) oci.SpecOpts {
 		if _, host := networks[hostNetwork]; host || len(networks) == 0 {
 			return nil
 		}
-		hook := specs.Hook{Path: hookBinary, Args: hookArgs(networks)}
+		hook := specs.Hook{Path: hookBinary, Args: hookArgs(networks, socket)}
 		spec.Hooks = &specs.Hooks{CreateRuntime: []specs.Hook{hook}, Poststop: []specs.Hook{hook}}
 		return nil
 	}
@@ -307,10 +307,13 @@ func resolverMounts(opts *enginetypes.VirtualizationCreateOptions, dir string) [
 	}
 }
 
-func hookArgs(networks map[string]string) []string {
+func hookArgs(networks map[string]string, socket string) []string {
 	args := []string{filepath.Base(hookBinary), hookCommand}
 	for _, name := range slices.Sorted(maps.Keys(networks)) {
 		args = append(args, "--network", name)
+	}
+	if socket != "" {
+		args = append(args, "--socket", socket)
 	}
 	return args
 }

@@ -144,7 +144,7 @@ func TestWithHooksHandTheNetnsToTheAgent(t *testing.T) {
 	spec := newTestSpec()
 
 	networks := map[string]string{"eru-cni": "10.0.0.5", "mgmt": ""}
-	if err := withHooks(networks, "eru")(t.Context(), nil, nil, spec); err != nil {
+	if err := withHooks(networks, "eru", "")(t.Context(), nil, nil, spec); err != nil {
 		t.Fatalf("spec: %v", err)
 	}
 
@@ -161,12 +161,15 @@ func TestWithHooksHandTheNetnsToTheAgent(t *testing.T) {
 	if spec.Annotations[namespaceAnnotation] != "eru" {
 		t.Errorf("got %q, want the hook's containerd namespace", spec.Annotations[namespaceAnnotation])
 	}
+	if got := hookArgs(networks, "/run/eru/containerd.sock"); got[len(got)-2] != "--socket" {
+		t.Errorf("got %q, want a non-default socket named for the hook", got)
+	}
 }
 
 func TestWithHooksSkipHostNetworking(t *testing.T) {
 	spec := newTestSpec()
 
-	if err := withHooks(map[string]string{hostNetwork: ""}, "eru")(t.Context(), nil, nil, spec); err != nil {
+	if err := withHooks(map[string]string{hostNetwork: ""}, "eru", "")(t.Context(), nil, nil, spec); err != nil {
 		t.Fatalf("spec: %v", err)
 	}
 	if spec.Hooks != nil {
