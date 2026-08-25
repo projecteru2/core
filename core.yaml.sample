@@ -63,9 +63,14 @@ docker:
  
     hub: "hub.docker.com"
     namespace: "projecteru2"
-    auth:
-        username: root
-        password: root
+
+registry:                                                               # optional, shared by every engine
+    auths:
+        "hub.docker.com":
+            username: root
+            password: root
+    plain_http:                                                         # registry hosts served without TLS
+        - "registry.local:5000"
 
 build:                                                                  # optional, empty means every node may build
     node_filter:

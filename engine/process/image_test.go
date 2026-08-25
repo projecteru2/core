@@ -1,6 +1,7 @@
 package process
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -44,6 +45,32 @@ func TestImageBuildFromExistRefusesARawWorkload(t *testing.T) {
 	_, err := e.ImageBuildFromExist(t.Context(), "w1", []string{"hub.io/ns/app:v2"}, "")
 	if !errors.Is(err, coretypes.ErrEngineNotImplemented) {
 		t.Errorf("got %v, want ErrEngineNotImplemented", err)
+	}
+}
+
+func TestRegistryFlags(t *testing.T) {
+	e := testEngine(t, &fakeRunner{})
+	e.config.Registry = coretypes.RegistryConfig{
+		Auths:     map[string]coretypes.AuthConfig{"hub.io": {Username: "u", Password: "p"}},
+		PlainHTTP: []string{"local:5000"},
+	}
+
+	tests := []struct {
+		name string
+		ref  string
+		want []string
+	}{
+		{"a registry with credentials", "hub.io/ns/app:v1", []string{"--username", "u", "--password", "p"}},
+		{"a plain-http registry", "local:5000/ns/app:v1", []string{"--plain-http"}},
+		{"an unknown registry", "quay.io/ns/app:v1", []string{}},
+		{"a bare name normalizes to docker.io", "app:v1", []string{}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := e.registryFlags(tt.ref); !slices.Equal(got, tt.want) {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
 	}
 }
 

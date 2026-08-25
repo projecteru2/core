@@ -113,10 +113,19 @@ node.
 | `docker.log.config` | map of string | — | Extra options passed to that log driver |
 | `docker.hub` | string | — | Registry host used when building image references |
 | `docker.namespace` | string | — | Path segment between host and app name: `hub/namespace/appname:tag` |
-| `docker.auths` | map | — | Registry credentials, keyed by registry host: `{username, password}` |
 
 Core always forces `mode=non-blocking`, `max-buffer-size=4m` and a per-workload `tag` into the
 log driver options before merging `docker.log.config`.
+
+## Registry
+
+Shared by every engine: the docker engine sends these as its registry auth header, the process
+engine as `oras` flags.
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `registry.auths` | map | — | Credentials keyed by registry host: `{username, password}` |
+| `registry.plain_http` | list of string | — | Registry hosts served without TLS |
 
 ## Build
 
@@ -182,6 +191,6 @@ See [Resource plugins](resource-plugins.md) for the contract these files must sa
 `core.yaml.sample` predates two renames. Both are silently ignored if you copy them verbatim:
 
 - top-level `log_level` — use the `log:` section above (`log.level`)
-- `docker.auth` (single credential) — use `docker.auths`, a map keyed by registry host
+- `docker.auth` and `docker.auths` — use `registry.auths`, which every engine reads
 - `docker.build_pod` — use `build.node_filter`
 - the `systemd:` section — the engine it configured is gone; see `process` above

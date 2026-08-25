@@ -32,7 +32,7 @@ version, which disables API-version negotiation.
 - Log driver: core forces `mode=non-blocking`, `max-buffer-size=4m` and a per-workload `tag`, then
   merges `docker.log.config`; the driver itself is the entrypoint's `log.type`, or
   `docker.log.type`.
-- Registry credentials for pull, push and build come from `docker.auths`, matched by registry host.
+- Registry credentials for pull, push and build come from `registry.auths`, matched by registry host.
 - Image builds happen here — `BuildRefs` composes `hub/namespace/appname:tag` from
   `docker.hub` and `docker.namespace`. Which nodes may build is decided by `build.node_filter`,
   not by the engine.

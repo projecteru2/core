@@ -6,9 +6,11 @@ import (
 	"io"
 	"net/url"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/cockroachdb/errors"
+	"github.com/distribution/reference"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	coretypes "github.com/projecteru2/core/types"
@@ -32,16 +34,16 @@ done
 }
 `
 
-	pullScript = "set -e\n" + unpackFunc + `ref=$1; dir=$2
+	pullScript = "set -e\n" + unpackFunc + `ref=$1; dir=$2; shift 2
 rm -rf "$dir"
 mkdir -p "$dir"
-oras pull "$ref" -o "$dir"
+oras pull "$ref" -o "$dir" "$@"
 unpack "$dir"
-oras manifest fetch --descriptor "$ref" > "$dir/` + digestFile + `"
+oras manifest fetch --descriptor "$ref" "$@" > "$dir/` + digestFile + `"
 `
 
 	existScript = `set -e
-unit=$1; dir=$2; ref=$3; layer=$4
+unit=$1; dir=$2; ref=$3; layer=$4; shift 4
 mounted=0
 if ! mountpoint -q "$dir/merged"; then
 mount -t overlay overlay -o "lowerdir=$dir/lower,upperdir=$dir/upper,workdir=$dir/work" "$dir/merged"
@@ -56,9 +58,9 @@ trap cleanup EXIT
 systemctl freeze "$unit" >/dev/null 2>&1 || true
 tar -C "$dir/merged" -cf "$layer" .
 systemctl thaw "$unit" >/dev/null 2>&1 || true
-oras push --disable-path-validation --artifact-type ` + bundleMedia + ` "$ref" "$layer:` + bundleMedia + `" >/dev/null
+oras push --disable-path-validation --artifact-type ` + bundleMedia + ` "$ref" "$layer:` + bundleMedia + `" "$@" >/dev/null
 rm -f "$layer"
-oras manifest fetch --descriptor "$ref"
+oras manifest fetch --descriptor "$ref" "$@"
 `
 )
 
@@ -92,7 +94,7 @@ func (e *Engine) ImagesPrune(ctx context.Context) error {
 }
 
 func (e *Engine) ImagePull(ctx context.Context, ref string, _ bool) (io.ReadCloser, error) {
-	res, err := e.run(ctx, shell(pullScript, ref, imageDir(e.root, ref))...)
+	res, err := e.run(ctx, shell(pullScript, slices.Concat([]string{ref, imageDir(e.root, ref)}, e.registryFlags(ref))...)...)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +130,7 @@ func (e *Engine) ImageLocalDigests(ctx context.Context, image string) ([]string,
 }
 
 func (e *Engine) ImageRemoteDigest(ctx context.Context, image string) (string, error) {
-	res, err := e.run(ctx, "oras", "manifest", "fetch", "--descriptor", image)
+	res, err := e.run(ctx, slices.Concat([]string{"oras", "manifest", "fetch", "--descriptor", image}, e.registryFlags(image))...)
 	if err != nil {
 		return "", err
 	}
@@ -149,17 +151,39 @@ func (e *Engine) ImageBuildFromExist(ctx context.Context, ID string, refs []stri
 	}
 
 	dir := workloadDir(e.root, ID)
-	res, err := e.run(ctx, shell(existScript, unitName(ID), dir, refs[0], filepath.Join(dir, existArchive))...)
+	existArgs := slices.Concat([]string{unitName(ID), dir, refs[0], filepath.Join(dir, existArchive)}, e.registryFlags(refs[0]))
+	res, err := e.run(ctx, shell(existScript, existArgs...)...)
 	if err != nil {
 		return "", err
 	}
 	for _, ref := range refs[1:] {
 		_, tag := splitRef(ref)
-		if _, err = e.run(ctx, "oras", "tag", refs[0], tag); err != nil {
+		if _, err = e.run(ctx, slices.Concat([]string{"oras", "tag", refs[0], tag}, e.registryFlags(ref))...); err != nil {
 			return "", err
 		}
 	}
 	return parseDescriptor(res.Stdout)
+}
+
+// registryFlags authenticates oras against the ref's registry.
+func (e *Engine) registryFlags(ref string) []string {
+	host := registryHost(ref)
+	flags := []string{}
+	if auth, ok := e.config.Registry.Auths[host]; ok {
+		flags = append(flags, "--username", auth.Username, "--password", auth.Password)
+	}
+	if slices.Contains(e.config.Registry.PlainHTTP, host) {
+		flags = append(flags, "--plain-http")
+	}
+	return flags
+}
+
+func registryHost(ref string) string {
+	named, err := reference.ParseNormalizedNamed(ref)
+	if err != nil {
+		return ""
+	}
+	return reference.Domain(named)
 }
 
 func parseDescriptor(out string) (string, error) {

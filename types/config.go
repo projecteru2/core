@@ -37,6 +37,7 @@ type Config struct {
 	Etcd           EtcdConfig           `yaml:"etcd"`
 	Redis          RedisConfig          `yaml:"redis"`
 	Docker         DockerConfig         `yaml:"docker"`
+	Registry       RegistryConfig       `yaml:"registry"`
 	Build          BuildConfig          `yaml:"build"`
 	Process        ProcessConfig        `yaml:"process"`
 	Virt           VirtConfig           `yaml:"virt"`
@@ -108,9 +109,8 @@ type DockerConfig struct {
 	UseLocalDNS bool      `yaml:"use_local_dns"` // use node IP as dns
 	Log         LogConfig `yaml:"log"`           // docker log driver
 
-	Hub         string                `yaml:"hub"`
-	Namespace   string                `yaml:"namespace"` // image path becomes $Hub/$Namespace/$appname
-	AuthConfigs map[string]AuthConfig `yaml:"auths"`     // docker registry credentials
+	Hub       string `yaml:"hub"`
+	Namespace string `yaml:"namespace"` // image path becomes $Hub/$Namespace/$appname
 }
 
 // ImageTag renders the registry reference an app's built image is pushed under.
@@ -120,6 +120,12 @@ func (c DockerConfig) ImageTag(appname, tag string) string {
 		return fmt.Sprintf("%s/%s:%s", c.Hub, appname, tag)
 	}
 	return fmt.Sprintf("%s/%s/%s:%s", c.Hub, prefix, appname, tag)
+}
+
+// RegistryConfig holds the credentials every engine hands to its image client.
+type RegistryConfig struct {
+	Auths     map[string]AuthConfig `yaml:"auths"`      // keyed by registry host
+	PlainHTTP []string              `yaml:"plain_http"` // registry hosts served without TLS
 }
 
 // BuildConfig selects the nodes allowed to run in-cluster image builds.

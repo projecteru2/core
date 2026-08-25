@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -21,14 +22,14 @@ const (
 	podEnvKey = "ERU_POD"
 	rootUser  = "root"
 
-	createScript = "set -e\n" + unpackFunc + `dir=$1; ref=$2; cache=$3; launcher=$4; record=$5; overlay=$6; metadata=$7; binds=$8
+	createScript = "set -e\n" + unpackFunc + `dir=$1; ref=$2; cache=$3; launcher=$4; record=$5; overlay=$6; metadata=$7; binds=$8; shift 8
 trap 'rm -rf "$dir"' EXIT
 mkdir -p "$dir/lower"
 if [ -d "$cache" ]; then
 cp -a "$cache/." "$dir/lower/"
 rm -f "$dir/lower/` + digestFile + `"
 else
-oras pull "$ref" -o "$dir/lower"
+oras pull "$ref" -o "$dir/lower" "$@"
 unpack "$dir/lower"
 fi
 if [ "$overlay" = 1 ]; then mkdir -p "$dir/upper" "$dir/work" "$dir/merged"; fi
@@ -96,9 +97,10 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		return nil, err
 	}
 	overlay := strconv.Itoa(utils.Bool2Int(!rArgs.Raw))
-	argv := shell(createScript,
+	argv := shell(createScript, slices.Concat([]string{
 		dir, opts.Image, imageDir(e.root, opts.Image), quote(u.argv()), metaPath(ID), overlay, string(record),
-		strings.Join(bindSources(resource.Volumes, opts.Env), "\n"))
+		strings.Join(bindSources(resource.Volumes, opts.Env), "\n"),
+	}, e.registryFlags(opts.Image))...)
 	if _, err = e.run(ctx, argv...); err != nil {
 		return nil, err
 	}
