@@ -66,7 +66,7 @@ exec "$bin" vm hibernate --name "$snap" "$vm"
 	resumeScript = `set -e
 bin=$1; vm=$2; snap=$3
 "$bin" vm restore --restore-mode copy "$vm" "$snap" >/dev/null
-"$bin" snapshot rm "$snap" >/dev/null
+"$bin" snapshot rm "$snap" >/dev/null 2>&1 || true
 "$bin" vm inspect "$vm"
 `
 

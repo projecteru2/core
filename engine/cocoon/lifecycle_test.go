@@ -178,6 +178,9 @@ func TestVirtualizationLifecycleCommandSequence(t *testing.T) {
 			t.Errorf("the lifecycle scripts do not carry %q", step)
 		}
 	}
+	if !strings.Contains(resumeScript, `"$bin" snapshot rm "$snap" >/dev/null 2>&1 || true`) {
+		t.Error("a snapshot the resume cannot delete must not abort it with the guest already running and the record stale")
+	}
 }
 
 func TestVirtualizationRemoveReportsAMissingWorkload(t *testing.T) {
