@@ -64,7 +64,7 @@ func (c *Calcium) processVirtualizationInStream(
 	inStream io.WriteCloser,
 	inCh <-chan []byte,
 	resizeFunc func(height, width uint) error,
-) <-chan struct{} { //nolint:unparam
+) {
 	logger := log.WithFunc("calcium.processVirtualizationInStream")
 	specialPrefixCallback := map[string]prefixHandler{
 		string(winchCommand): func(body []byte) {
@@ -83,7 +83,7 @@ func (c *Calcium) processVirtualizationInStream(
 			_ = inStream.Close()
 		},
 	}
-	return c.rawProcessVirtualizationInStream(ctx, inStream, inCh, specialPrefixCallback)
+	c.rawProcessVirtualizationInStream(ctx, inStream, inCh, specialPrefixCallback)
 }
 
 func (c *Calcium) rawProcessVirtualizationInStream(

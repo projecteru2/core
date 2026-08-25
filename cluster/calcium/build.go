@@ -17,7 +17,7 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (ch chan *types.BuildImageMessage, err error) {
+func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error) {
 	logger := log.WithFunc("calcium.BuildImage").WithField("opts", opts)
 	if c.source == nil {
 		return nil, types.ErrNoSCMSetting
@@ -48,9 +48,7 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (ch 
 		logger.Error(ctx, err)
 		return nil, err
 	}
-	ch, err = c.pushImageAndClean(ctx, resp, node, refs)
-	logger.Error(ctx, err)
-	return ch, err
+	return c.pushImageAndClean(ctx, resp, node, refs), nil
 }
 
 func (c *Calcium) selectBuildNode(ctx context.Context) (*types.Node, error) {
@@ -126,7 +124,7 @@ func (c *Calcium) buildFromExist(ctx context.Context, opts *types.BuildOptions) 
 	return refs, node, io.NopCloser(bytes.NewReader(buildMsg)), nil
 }
 
-func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, node *types.Node, tags []string) (chan *types.BuildImageMessage, error) { //nolint:unparam
+func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, node *types.Node, tags []string) chan *types.BuildImageMessage {
 	logger := log.WithFunc("calcium.pushImageAndClean").WithField("node", node).WithField("tags", tags)
 	logger.Infof(ctx, "pushing image at pod %s node %s", node.Podname, node.Name)
 	return c.withImageBuiltChannel(func(ch chan *types.BuildImageMessage) {
@@ -179,7 +177,7 @@ func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, nod
 		_ = c.pool.Invoke(func() {
 			cleanupNodeImages(ctx, node, tags, c.config.GlobalTimeout)
 		})
-	}), nil
+	})
 }
 
 func (c *Calcium) getWorkloadNode(ctx context.Context, ID string) (*types.Node, error) {
