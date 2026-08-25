@@ -75,7 +75,7 @@ func (c *Calcium) doRemoveOneWorkload(ctx context.Context, node *types.Node, wor
 		}
 	}()
 
-	workloadCommit, err := c.wal.Log(eventWorkloadCreated, &types.Workload{ID: workload.ID, Nodename: workload.Nodename})
+	workloadCommit, err := c.wal.Log(eventWorkloadCreated, &types.Workload{ID: workload.ID, Name: workload.Name, Nodename: workload.Nodename})
 	if err != nil {
 		return err
 	}

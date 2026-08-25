@@ -1,6 +1,7 @@
 package calcium
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"maps"
@@ -287,14 +288,19 @@ func (c *Calcium) doDeployOneWorkload(
 		CreateTime:   time.Now().Unix(),
 	}
 
-	var commit wal.Commit
+	commit, err := c.wal.Log(eventWorkloadCreated, &types.Workload{
+		Name:     workload.Name,
+		Nodename: workload.Nodename,
+	})
+	if err != nil {
+		return err
+	}
 	defer func() {
-		if commit != nil {
-			if err := commit(); err != nil {
-				logger.Errorf(ctx, err, "commit wal %s failed", eventWorkloadCreated)
-			}
+		if commitErr := commit(); commitErr != nil {
+			logger.Errorf(ctx, commitErr, "commit wal %s failed", eventWorkloadCreated)
 		}
 	}()
+
 	return utils.Txn(
 		ctx,
 		func(ctx context.Context) error {
@@ -305,13 +311,7 @@ func (c *Calcium) doDeployOneWorkload(
 			workload.ID = created.ID
 
 			maps.Copy(workload.Labels, created.Labels)
-
-			// a crash between VirtualizationCreate and this log leaks the workload
-			commit, err = c.wal.Log(eventWorkloadCreated, &types.Workload{
-				ID:       workload.ID,
-				Nodename: workload.Nodename,
-			})
-			return err
+			return nil
 		},
 
 		func(ctx context.Context) (err error) {
@@ -380,9 +380,9 @@ func (c *Calcium) doDeployOneWorkload(
 		},
 
 		func(ctx context.Context, _ bool) error {
-			logger.Warnf(ctx, "failed to deploy workload %s, rollback", workload.ID)
+			logger.Warnf(ctx, "failed to deploy workload %s, rollback", cmp.Or(workload.ID, workload.Name))
 			if workload.ID == "" {
-				return nil
+				return removeWorkloadByName(ctx, node, workload.Name)
 			}
 
 			if err := c.store.RemoveWorkload(ctx, workload); err != nil {

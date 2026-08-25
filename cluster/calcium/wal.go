@@ -3,6 +3,7 @@ package calcium
 import (
 	"context"
 	"encoding/json"
+	"slices"
 	"sync"
 	"time"
 
@@ -108,15 +109,20 @@ func (h *CreateWorkloadHandler) Typ() string {
 	return eventWorkloadCreated
 }
 
-func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw any) (err error) {
+func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw any) error {
 	wrk, _ := raw.(*types.Workload)
-	logger := log.WithFunc("calcium.CreateWorkloadHandler.Handle").WithField("ID", wrk.ID).WithField("node", wrk.Nodename)
+	logger := log.WithFunc("calcium.CreateWorkloadHandler.Handle").WithField("ID", wrk.ID).WithField("name", wrk.Name).WithField("node", wrk.Nodename)
 
 	ctx, cancel := getReplayContext(ctx)
 	defer cancel()
 
-	if _, err = h.calcium.GetWorkload(ctx, wrk.ID); err == nil {
-		return h.calcium.RemoveWorkloadSync(ctx, []string{wrk.ID})
+	storedID, err := h.storedWorkloadID(ctx, wrk)
+	if err != nil {
+		logger.Error(ctx, err)
+		return err
+	}
+	if storedID != "" {
+		return h.calcium.RemoveWorkloadSync(ctx, []string{storedID})
 	}
 
 	node, err := h.calcium.GetNode(ctx, wrk.Nodename)
@@ -128,12 +134,42 @@ func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw any) (err error)
 		logger.Error(ctx, err)
 		return err
 	}
-	if err = node.Engine.VirtualizationRemove(ctx, wrk.ID, true, true); err != nil && !errors.Is(err, types.ErrWorkloadNotExists) {
+
+	if err = h.removeFromEngine(ctx, node, wrk); err != nil {
 		logger.Error(ctx, err)
 		return err
 	}
 
 	logger.Info(ctx, "workload removed")
+	return nil
+}
+
+func (h *CreateWorkloadHandler) storedWorkloadID(ctx context.Context, wrk *types.Workload) (string, error) {
+	if wrk.ID != "" {
+		if _, err := h.calcium.GetWorkload(ctx, wrk.ID); err != nil {
+			return "", nil
+		}
+		return wrk.ID, nil
+	}
+
+	workloads, err := h.calcium.store.ListNodeWorkloads(ctx, wrk.Nodename, nil)
+	if err != nil {
+		return "", err
+	}
+	index := slices.IndexFunc(workloads, func(workload *types.Workload) bool { return workload.Name == wrk.Name })
+	if index < 0 {
+		return "", nil
+	}
+	return workloads[index].ID, nil
+}
+
+func (h *CreateWorkloadHandler) removeFromEngine(ctx context.Context, node *types.Node, wrk *types.Workload) error {
+	if wrk.ID == "" {
+		return removeWorkloadByName(ctx, node, wrk.Name)
+	}
+	if err := node.Engine.VirtualizationRemove(ctx, wrk.ID, true, true); err != nil && !errors.Is(err, types.ErrWorkloadNotExists) {
+		return err
+	}
 	return nil
 }
 
