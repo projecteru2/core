@@ -74,15 +74,6 @@ func systemdEnv(entry string) string {
 	return key + `="` + envEscaper.Replace(value) + `"`
 }
 
-// splitRef separates an image reference from its tag, ignoring a registry port.
-func splitRef(ref string) (name, tag string) {
-	colon := strings.LastIndex(ref, ":")
-	if colon < 0 || colon < strings.LastIndex(ref, "/") {
-		return ref, ""
-	}
-	return ref[:colon], ref[colon+1:]
-}
-
 func lastEnvValue(env []string, key string) string {
 	last := ""
 	for _, entry := range env {

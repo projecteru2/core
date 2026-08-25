@@ -70,7 +70,7 @@ func (e *Engine) ImageList(ctx context.Context, image string) ([]*enginetypes.Im
 	if err != nil {
 		return nil, err
 	}
-	name, _ := splitRef(image)
+	name, _ := enginetypes.SplitRef(image)
 	images := []*enginetypes.Image{}
 	for entry := range strings.FieldsSeq(res.Stdout) {
 		ref, unescapeErr := url.PathUnescape(entry)
@@ -158,7 +158,7 @@ func (e *Engine) ImageBuildFromExist(ctx context.Context, ID string, refs []stri
 		return "", err
 	}
 	for _, ref := range refs[1:] {
-		_, tag := splitRef(ref)
+		_, tag := enginetypes.SplitRef(ref)
 		if _, err = e.run(ctx, slices.Concat([]string{"oras", "tag", refs[0], tag}, e.registryFlags(ref))...); err != nil {
 			return "", err
 		}
@@ -198,6 +198,6 @@ func parseDescriptor(out string) (string, error) {
 }
 
 func imageDigest(image, digest string) string {
-	name, _ := splitRef(image)
+	name, _ := enginetypes.SplitRef(image)
 	return name + "@" + digest
 }

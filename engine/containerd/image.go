@@ -32,7 +32,7 @@ func (e *Engine) ImageList(ctx context.Context, image string) ([]*enginetypes.Im
 	if err != nil {
 		return nil, err
 	}
-	name := imageName(normalizeRef(image))
+	name, _ := enginetypes.SplitRef(normalizeRef(image))
 	r := []*enginetypes.Image{}
 	for _, item := range listed {
 		if !strings.HasPrefix(item.Name(), name) {
@@ -117,7 +117,7 @@ func (e *Engine) ImageLocalDigests(ctx context.Context, image string) ([]string,
 		}
 		return nil, err
 	}
-	name := imageName(image)
+	name, _ := enginetypes.SplitRef(image)
 	return []string{name + "@" + found.Target().Digest.String()}, nil
 }
 
@@ -127,7 +127,7 @@ func (e *Engine) ImageRemoteDigest(ctx context.Context, image string) (string, e
 	if err != nil {
 		return "", err
 	}
-	name := imageName(image)
+	name, _ := enginetypes.SplitRef(image)
 	return name + "@" + desc.Digest.String(), nil
 }
 

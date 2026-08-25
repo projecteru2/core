@@ -108,22 +108,3 @@ func TestNormalizeRefExpandsAShortName(t *testing.T) {
 		})
 	}
 }
-
-func TestImageNameIgnoresARegistryPort(t *testing.T) {
-	tests := []struct {
-		name string
-		ref  string
-		want string
-	}{
-		{"tagged", "hub.io/ns/app:v1", "hub.io/ns/app"},
-		{"tagged behind a port", "hub.io:5000/ns/app:v1", "hub.io:5000/ns/app"},
-		{"untagged behind a port", "hub.io:5000/ns/app", "hub.io:5000/ns/app"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := imageName(tt.ref); got != tt.want {
-				t.Errorf("got %q, want %q", got, tt.want)
-			}
-		})
-	}
-}
