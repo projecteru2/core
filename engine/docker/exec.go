@@ -4,8 +4,8 @@ import (
 	"context"
 	"io"
 
-	dockercontainer "github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/pkg/stdcopy"
+	"github.com/moby/moby/api/pkg/stdcopy"
+	dockerapi "github.com/moby/moby/client"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
@@ -29,16 +29,17 @@ func (e *Engine) Execute(ctx context.Context, ID string, config *enginetypes.Exe
 }
 
 func (e *Engine) ExecResize(ctx context.Context, execID string, height, width uint) error {
-	opts := dockercontainer.ResizeOptions{
+	opts := dockerapi.ExecResizeOptions{
 		Height: height,
 		Width:  width,
 	}
 
-	return e.client.ContainerExecResize(ctx, execID, opts)
+	_, err := e.client.ExecResize(ctx, execID, opts)
+	return err
 }
 
 func (e *Engine) ExecExitCode(ctx context.Context, _, execID string) (int, error) {
-	r, err := e.client.ContainerExecInspect(ctx, execID)
+	r, err := e.client.ExecInspect(ctx, execID, dockerapi.ExecInspectOptions{})
 	if err != nil {
 		return -1, err
 	}
@@ -46,7 +47,7 @@ func (e *Engine) ExecExitCode(ctx context.Context, _, execID string) (int, error
 }
 
 func (e *Engine) execCreate(ctx context.Context, target string, config *enginetypes.ExecConfig) (string, error) {
-	execConfig := dockercontainer.ExecOptions{
+	execConfig := dockerapi.ExecCreateOptions{
 		User:         config.User,
 		Privileged:   config.Privileged,
 		Cmd:          config.Cmd,
@@ -55,10 +56,10 @@ func (e *Engine) execCreate(ctx context.Context, target string, config *enginety
 		AttachStderr: config.AttachStderr,
 		AttachStdout: config.AttachStdout,
 		AttachStdin:  config.AttachStdin,
-		Tty:          config.Tty,
+		TTY:          config.Tty,
 	}
 
-	idResp, err := e.client.ContainerExecCreate(ctx, target, execConfig)
+	idResp, err := e.client.ExecCreate(ctx, target, execConfig)
 	if err != nil {
 		return "", err
 	}
@@ -66,10 +67,7 @@ func (e *Engine) execCreate(ctx context.Context, target string, config *enginety
 }
 
 func (e *Engine) execAttach(ctx context.Context, execID string, tty bool) (io.ReadCloser, io.WriteCloser, error) {
-	execStartCheck := dockercontainer.ExecStartOptions{
-		Tty: tty,
-	}
-	resp, err := e.client.ContainerExecAttach(ctx, execID, execStartCheck)
+	resp, err := e.client.ExecAttach(ctx, execID, dockerapi.ExecAttachOptions{TTY: tty})
 	if err != nil {
 		return nil, nil, err
 	}

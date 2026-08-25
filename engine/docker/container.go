@@ -14,11 +14,10 @@ import (
 	"strings"
 	"time"
 
-	dockercontainer "github.com/docker/docker/api/types/container"
-	dockernetwork "github.com/docker/docker/api/types/network"
-	dockerslice "github.com/docker/docker/api/types/strslice"
-	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
+	dockercontainer "github.com/moby/moby/api/types/container"
+	dockernetwork "github.com/moby/moby/api/types/network"
+	dockerapi "github.com/moby/moby/client"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/projecteru2/core/engine"
@@ -129,7 +128,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 
 	config := &dockercontainer.Config{
 		Env:             opts.Env,
-		Cmd:             dockerslice.StrSlice(opts.Cmd),
+		Cmd:             opts.Cmd,
 		User:            opts.User,
 		Image:           opts.Image,
 		Volumes:         volumes,
@@ -174,14 +173,18 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 			rArgs.StorageOpt["size"] = fmt.Sprintf("%+v", resourceOpts.Storage-volumeTotal)
 		}
 	}
-	capAdds := dockerslice.StrSlice(rArgs.CapAdd)
+	capAdds := rArgs.CapAdd
 	if opts.Privileged {
 		opts.User = root
 		capAdds = append(capAdds, "SYS_ADMIN")
 	}
+	dns, err := parseDNSAddrs(opts.DNS)
+	if err != nil {
+		return r, err
+	}
 	hostConfig := &dockercontainer.HostConfig{
 		Binds: binds,
-		DNS:   opts.DNS,
+		DNS:   dns,
 		LogConfig: dockercontainer.LogConfig{
 			Type:   opts.LogType,
 			Config: opts.LogConfig,
@@ -202,15 +205,15 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	}
 
 	if hostConfig.NetworkMode.IsBridge() {
-		portMapping := nat.PortMap{}
-		exposePorts := nat.PortSet{}
+		portMapping := dockernetwork.PortMap{}
+		exposePorts := dockernetwork.PortSet{}
 		for _, p := range opts.Publish {
-			port, portErr := nat.NewPort("tcp", p)
+			port, portErr := dockernetwork.ParsePort(p + "/tcp")
 			if portErr != nil {
 				return r, portErr
 			}
 			exposePorts[port] = struct{}{}
-			portMapping[port] = []nat.PortBinding{{HostPort: p}}
+			portMapping[port] = []dockernetwork.PortBinding{{HostPort: p}}
 		}
 		hostConfig.PortBindings = portMapping
 		config.ExposedPorts = exposePorts
@@ -237,7 +240,12 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		logger.Infof(ctx, "connect to %s with ip %s", networkID, ipForShow)
 	}
 
-	workloadCreated, err := e.client.ContainerCreate(ctx, config, hostConfig, networkConfig, nil, opts.Name)
+	workloadCreated, err := e.client.ContainerCreate(ctx, dockerapi.ContainerCreateOptions{
+		Config:           config,
+		HostConfig:       hostConfig,
+		NetworkingConfig: networkConfig,
+		Name:             opts.Name,
+	})
 	r.Name = opts.Name
 	r.ID = workloadCreated.ID
 	return r, err
@@ -252,7 +260,12 @@ func (e *Engine) VirtualizationCopyTo(ctx context.Context, ID, target string, co
 		defer func() {
 			_ = content.Close()
 		}()
-		return e.client.CopyToContainer(ctx, ID, filepath.Dir(target), content, dockercontainer.CopyToContainerOptions{AllowOverwriteDirWithFile: true, CopyUIDGID: false})
+		_, err = e.client.CopyToContainer(ctx, ID, dockerapi.CopyToContainerOptions{
+			DestinationPath:           filepath.Dir(target),
+			Content:                   content,
+			AllowOverwriteDirWithFile: true,
+		})
+		return err
 	})
 }
 
@@ -281,7 +294,11 @@ func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target strin
 		return err
 	})
 
-	if err := e.client.CopyToContainer(ctx, ID, filepath.Dir(target), pr, dockercontainer.CopyToContainerOptions{AllowOverwriteDirWithFile: true, CopyUIDGID: false}); err != nil {
+	if _, err := e.client.CopyToContainer(ctx, ID, dockerapi.CopyToContainerOptions{
+		DestinationPath:           filepath.Dir(target),
+		Content:                   pr,
+		AllowOverwriteDirWithFile: true,
+	}); err != nil {
 		logger.Errorf(ctx, err, "copy %s to container", target)
 		// unblock the writer, which may still be waiting for the daemon to read
 		_ = pr.CloseWithError(err)
@@ -292,7 +309,8 @@ func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target strin
 }
 
 func (e *Engine) VirtualizationStart(ctx context.Context, ID string) error {
-	return e.client.ContainerStart(ctx, ID, dockercontainer.StartOptions{})
+	_, err := e.client.ContainerStart(ctx, ID, dockerapi.ContainerStartOptions{})
+	return err
 }
 
 func (e *Engine) VirtualizationStop(ctx context.Context, ID string, gracefulTimeout time.Duration) error {
@@ -300,7 +318,8 @@ func (e *Engine) VirtualizationStop(ctx context.Context, ID string, gracefulTime
 	if t := int(gracefulTimeout.Seconds()); t > 0 {
 		timeout = &t
 	}
-	return e.client.ContainerStop(ctx, ID, dockercontainer.StopOptions{Timeout: timeout})
+	_, err := e.client.ContainerStop(ctx, ID, dockerapi.ContainerStopOptions{Timeout: timeout})
+	return err
 }
 
 func (e *Engine) VirtualizationSuspend(context.Context, string) error {
@@ -312,7 +331,7 @@ func (e *Engine) VirtualizationResume(context.Context, string) error {
 }
 
 func (e *Engine) VirtualizationRemove(ctx context.Context, ID string, removeVolumes, force bool) error {
-	if err := e.client.ContainerRemove(ctx, ID, dockercontainer.RemoveOptions{RemoveVolumes: removeVolumes, Force: force}); err != nil {
+	if _, err := e.client.ContainerRemove(ctx, ID, dockerapi.ContainerRemoveOptions{RemoveVolumes: removeVolumes, Force: force}); err != nil {
 		if strings.Contains(err.Error(), "no such") {
 			err = coretypes.ErrWorkloadNotExists
 		}
@@ -322,11 +341,12 @@ func (e *Engine) VirtualizationRemove(ctx context.Context, ID string, removeVolu
 }
 
 func (e *Engine) VirtualizationInspect(ctx context.Context, ID string) (*enginetypes.VirtualizationInfo, error) {
-	workloadJSON, err := e.client.ContainerInspect(ctx, ID)
+	inspected, err := e.client.ContainerInspect(ctx, ID, dockerapi.ContainerInspectOptions{})
 	r := &enginetypes.VirtualizationInfo{}
 	if err != nil {
 		return r, err
 	}
+	workloadJSON := inspected.Container
 	r.ID = workloadJSON.ID
 	r.User = workloadJSON.Config.User
 	r.Image = workloadJSON.Config.Image
@@ -335,7 +355,7 @@ func (e *Engine) VirtualizationInspect(ctx context.Context, ID string) (*enginet
 	r.Running = workloadJSON.State.Running
 	r.Networks = map[string]string{}
 	for networkName, networkSetting := range workloadJSON.NetworkSettings.Networks {
-		ip := networkSetting.IPAddress
+		ip := zeroToEmpty(networkSetting.IPAddress)
 		if dockercontainer.NetworkMode(networkName).IsHost() {
 			ip = GetIP(ctx, e.client.DaemonHost())
 		}
@@ -345,7 +365,7 @@ func (e *Engine) VirtualizationInspect(ctx context.Context, ID string) (*enginet
 }
 
 func (e *Engine) VirtualizationLogs(ctx context.Context, opts *enginetypes.VirtualizationLogStreamOptions) (stdout, stderr io.ReadCloser, err error) {
-	logsOpts := dockercontainer.LogsOptions{
+	logsOpts := dockerapi.ContainerLogsOptions{
 		ShowStdout: opts.Stdout,
 		ShowStderr: opts.Stderr,
 		Tail:       opts.Tail,
@@ -365,7 +385,7 @@ func (e *Engine) VirtualizationLogs(ctx context.Context, opts *enginetypes.Virtu
 }
 
 func (e *Engine) VirtualizationAttach(ctx context.Context, ID string, stream, stdin bool) (stdout, stderr io.ReadCloser, _ io.WriteCloser, err error) {
-	opts := dockercontainer.AttachOptions{
+	opts := dockerapi.ContainerAttachOptions{
 		Stream: stream,
 		Stdin:  stdin,
 		Logs:   true,
@@ -384,25 +404,26 @@ func (e *Engine) VirtualizationAttach(ctx context.Context, ID string, stream, st
 }
 
 func (e *Engine) VirtualizationResize(ctx context.Context, workloadID string, height, width uint) (err error) {
-	opts := dockercontainer.ResizeOptions{
+	opts := dockerapi.ContainerResizeOptions{
 		Height: height,
 		Width:  width,
 	}
 
-	return e.client.ContainerResize(ctx, workloadID, opts)
+	_, err = e.client.ContainerResize(ctx, workloadID, opts)
+	return err
 }
 
 func (e *Engine) VirtualizationWait(ctx context.Context, ID, _ string) (*enginetypes.VirtualizationWaitResult, error) {
-	waitBody, errorCh := e.client.ContainerWait(ctx, ID, dockercontainer.WaitConditionNotRunning)
+	waited := e.client.ContainerWait(ctx, ID, dockerapi.ContainerWaitOptions{Condition: dockercontainer.WaitConditionNotRunning})
 	r := &enginetypes.VirtualizationWaitResult{}
 	select {
-	case b := <-waitBody:
+	case b := <-waited.Result:
 		if b.Error != nil {
 			r.Message = b.Error.Message
 		}
 		r.Code = b.StatusCode
 		return r, nil
-	case err := <-errorCh:
+	case err := <-waited.Error:
 		r.Message = err.Error()
 		r.Code = -1
 		return r, err
@@ -451,20 +472,19 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, en
 	}
 
 	newResource := makeResourceSetting(quota, memory, cpuMap, numaNode, resourceOpts.IOPSOptions, resourceOpts.Remap)
-	updateConfig := dockercontainer.UpdateConfig{Resources: newResource}
-	_, err := e.client.ContainerUpdate(ctx, ID, updateConfig)
+	_, err := e.client.ContainerUpdate(ctx, ID, dockerapi.ContainerUpdateOptions{Resources: &newResource})
 	return err
 }
 
 func (e *Engine) VirtualizationCopyFrom(ctx context.Context, ID, path string) (content []byte, uid, gid int, mode int64, err error) {
-	resp, _, err := e.client.CopyFromContainer(ctx, ID, path)
+	resp, err := e.client.CopyFromContainer(ctx, ID, dockerapi.CopyFromContainerOptions{SourcePath: path})
 	if err != nil {
 		return content, uid, gid, mode, err
 	}
 	defer func() {
-		_ = resp.Close()
+		_ = resp.Content.Close()
 	}()
-	tarReader := tar.NewReader(resp)
+	tarReader := tar.NewReader(resp.Content)
 	header, err := tarReader.Next()
 	if err != nil {
 		return content, uid, gid, mode, err
