@@ -37,8 +37,8 @@ func TestVirtualizationCreateRendersTheVMAndRecordsIt(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}
-	if len(created.ID) != 2*idBytes {
-		t.Fatalf("got id %q, want a %d-hex id", created.ID, 2*idBytes)
+	if len(created.ID) != testIDLen {
+		t.Fatalf("got id %q, want a %d-hex id", created.ID, testIDLen)
 	}
 	lines := runner.Lines()
 	if len(lines) != 2 {

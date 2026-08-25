@@ -60,7 +60,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	if err != nil {
 		return nil, err
 	}
-	ID := newID()
+	ID := utils.RandomID()
 	argv, err := createArgv(e.cocoon.Binary, ID, opts, resource, rArgs.OS == osWindows, network)
 	if err != nil {
 		return nil, err

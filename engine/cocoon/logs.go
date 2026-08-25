@@ -31,16 +31,6 @@ kill "$reader" "$watcher" 2>/dev/null || true
 wait "$reader" "$watcher" 2>/dev/null || true
 `
 
-// sessionReader closes the ssh session backing a follow stream.
-type sessionReader struct {
-	io.Reader
-	sess sshrunner.Session
-}
-
-func (r *sessionReader) Close() error {
-	return r.sess.Close()
-}
-
 // VirtualizationLogs reads what eru-agent copied from the guest console into journald.
 func (e *Engine) VirtualizationLogs(ctx context.Context, opts *enginetypes.VirtualizationLogStreamOptions) (stdout, stderr io.ReadCloser, err error) {
 	flags, err := journal.Flags(opts)
@@ -61,7 +51,7 @@ func (e *Engine) VirtualizationLogs(ctx context.Context, opts *enginetypes.Virtu
 	if err != nil {
 		return nil, nil, err
 	}
-	return &sessionReader{Reader: running.Stdout(), sess: running}, nil, nil
+	return sshrunner.Reader(running), nil, nil
 }
 
 // VirtualizationAttach without stdin is the journald follow; the console needs a pty (projecteru2/core#660).

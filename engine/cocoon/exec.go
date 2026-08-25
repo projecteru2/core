@@ -13,6 +13,7 @@ import (
 	"github.com/projecteru2/core/engine/sshrunner"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	coretypes "github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 var errExecNotFound = errors.New("exec not found")
@@ -28,7 +29,7 @@ func (e *Engine) Execute(ctx context.Context, ID string, config *enginetypes.Exe
 		return "", nil, nil, nil, err
 	}
 
-	execID = newID()
+	execID = utils.RandomID()
 	e.mu.Lock()
 	e.execs[execID] = running
 	e.mu.Unlock()

@@ -1,27 +1,20 @@
 package cocoon
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"path/filepath"
 	"strings"
+
+	enginetypes "github.com/projecteru2/core/engine/types"
 )
 
 const (
-	idBytes        = 16
 	cgroupRoot     = "/sys/fs/cgroup"
 	scopePrefix    = "vm-"
 	scopeSuffix    = ".scope"
 	snapshotPrefix = "eru-"
 	metaSuffix     = ".json"
 )
-
-func newID() string {
-	buf := make([]byte, idBytes)
-	_, _ = rand.Read(buf)
-	return hex.EncodeToString(buf)
-}
 
 func metaPath(ID string) string {
 	return filepath.Join(metaDir, ID+metaSuffix)
@@ -54,21 +47,12 @@ func isURL(ref string) bool {
 	return strings.HasPrefix(ref, "http://") || strings.HasPrefix(ref, "https://")
 }
 
-// splitRef separates an image reference from its tag, ignoring a registry port.
-func splitRef(ref string) (name, tag string) {
-	colon := strings.LastIndex(ref, ":")
-	if colon < 0 || colon < strings.LastIndex(ref, "/") {
-		return ref, ""
-	}
-	return ref[:colon], ref[colon+1:]
-}
-
 // imageDigest renders the digest form core compares; a cloud image url stands for itself.
 func imageDigest(image, digest string) string {
 	if isURL(image) {
 		return image
 	}
-	name, _ := splitRef(image)
+	name, _ := enginetypes.SplitRef(image)
 	return name + "@" + digest
 }
 

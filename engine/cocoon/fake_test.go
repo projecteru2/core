@@ -21,6 +21,7 @@ const (
 	testVMID   = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 	testImage  = "ghcr.io/cocoonstack/cocoon/ubuntu:24.04"
 	testUser   = "eru"
+	testIDLen  = 32
 
 	storedRecord = `{"id":"w1","kind":"vm","name":"app_web_xyz","user":"` + testUser + `","nodename":"node1"}`
 

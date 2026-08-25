@@ -59,10 +59,3 @@ func TestGuestAddressMask(t *testing.T) {
 		t.Errorf("got %q, want %q", got, "255.255.240.0")
 	}
 }
-
-func TestSplitRefIgnoresARegistryPort(t *testing.T) {
-	name, tag := splitRef("hub.io:5000/ns/app:v1")
-	if name != "hub.io:5000/ns/app" || tag != "v1" {
-		t.Errorf("got %q %q, want %q %q", name, tag, "hub.io:5000/ns/app", "v1")
-	}
-}
