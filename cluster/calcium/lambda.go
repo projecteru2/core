@@ -81,16 +81,6 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		}
 
 		var stdout, stderr io.ReadCloser
-		if stdout, stderr, err = workload.Engine.VirtualizationLogs(ctx, &enginetypes.VirtualizationLogStreamOptions{
-			ID:     message.WorkloadID,
-			Follow: true,
-			Stdout: true,
-			Stderr: true,
-		}); err != nil {
-			logger.Errorf(ctx, err, "cannot fetch log of workload %s", message.WorkloadID)
-			return eruErrMsg(message.WorkloadID, "Fetch log for workload %s failed %v", message.WorkloadID, err)
-		}
-
 		splitFunc, split := bufio.ScanLines, byte('\n')
 
 		if opts.OpenStdin {
@@ -106,6 +96,14 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 			})
 
 			splitFunc, split = bufio.ScanBytes, byte(0)
+		} else if stdout, stderr, err = workload.Engine.VirtualizationLogs(ctx, &enginetypes.VirtualizationLogStreamOptions{
+			ID:     message.WorkloadID,
+			Follow: true,
+			Stdout: true,
+			Stderr: true,
+		}); err != nil {
+			logger.Errorf(ctx, err, "cannot fetch log of workload %s", message.WorkloadID)
+			return eruErrMsg(message.WorkloadID, "Fetch log for workload %s failed %v", message.WorkloadID, err)
 		}
 
 		for m := range c.processStdStream(ctx, stdout, stderr, splitFunc, split) {

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -14,6 +15,8 @@ import (
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 )
+
+const reapTimeout = 30 * time.Second
 
 func TestExecuteWorkload(t *testing.T) {
 	c := NewTestCluster()
@@ -76,6 +79,28 @@ func TestExecuteWorkload(t *testing.T) {
 		data = append(data, ac.Data...)
 	}
 	assert.Contains(t, inS.String(), "a")
+}
+
+func TestExecuteWorkloadReleasesTheExecWhenTheCallerIsGone(t *testing.T) {
+	c := NewTestCluster()
+	store := c.store.(*storemocks.Store)
+	engine := &enginemocks.API{}
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(&types.Workload{ID: "abc", Engine: engine}, nil)
+	engine.On("Execute", mock.Anything, mock.Anything, mock.Anything).
+		Return("exec1", io.NopCloser(bytes.NewBufferString("output\n")), nil, nil, nil)
+	reaped := make(chan struct{})
+	engine.On("ExecExitCode", mock.Anything, "abc", "exec1").
+		Run(func(mock.Arguments) { close(reaped) }).Return(0, nil)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	c.ExecuteWorkload(ctx, &types.ExecuteWorkloadOptions{WorkloadID: "abc"}, nil)
+
+	select {
+	case <-reaped:
+	case <-time.After(reapTimeout):
+		t.Fatal("the exec session was never released after the caller stopped reading")
+	}
 }
 
 type inStream struct {
