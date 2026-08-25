@@ -10,6 +10,7 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -446,6 +447,37 @@ func TestDoDeployWorkloadsOnNodeErrorPerWorkload(t *testing.T) {
 	for m := range ch {
 		assert.Error(t, m.Error)
 	}
+}
+
+func TestDoDeployOneWorkloadJournalsTheNameBeforeTheEngineCreate(t *testing.T) {
+	c := NewTestCluster()
+	ctx := context.Background()
+
+	var logged *types.Workload
+	engineCalled, loggedAfterEngine := false, false
+	mwal := &walmocks.WAL{}
+	mwal.On("Log", mock.Anything, mock.Anything).Return(func(_ string, raw any) (wal.Commit, error) {
+		logged, _ = raw.(*types.Workload)
+		loggedAfterEngine = engineCalled
+		return func() error { return nil }, nil
+	})
+	c.wal = mwal
+
+	engine := &enginemocks.API{}
+	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).
+		Run(func(mock.Arguments) { engineCalled = true }).
+		Return(nil, types.ErrMockError)
+	node := &types.Node{NodeMeta: types.NodeMeta{Name: "n1"}, Engine: engine}
+
+	opts := &types.DeployOptions{Name: "app", Podname: "pod", Entrypoint: &types.Entrypoint{Name: "entry"}}
+	createOpts := &enginetypes.VirtualizationCreateOptions{Name: "app_entry_abcdef"}
+
+	assert.Error(t, c.doDeployOneWorkload(ctx, node, opts, &types.CreateWorkloadMessage{}, createOpts, false))
+	require.NotNil(t, logged, "the create was not journalled")
+	assert.False(t, loggedAfterEngine)
+	assert.Equal(t, createOpts.Name, logged.Name)
+	assert.Equal(t, node.Name, logged.Nodename)
+	assert.Empty(t, logged.ID)
 }
 
 func TestDoMakeWorkloadOptionsEnvIsolation(t *testing.T) {

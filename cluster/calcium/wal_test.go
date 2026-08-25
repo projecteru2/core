@@ -192,6 +192,87 @@ func TestHandleCreateWorkloadHandled(t *testing.T) {
 	c.wal.Recover(context.Background())
 }
 
+func TestHandleCreateWorkloadByNameFromTheStore(t *testing.T) {
+	c := NewTestCluster()
+	wal, err := enableWAL(c.config, c, c.store)
+	require.NoError(t, err)
+	c.wal = wal
+
+	name := "app_entry_abcdef"
+	_, err = c.wal.Log(eventWorkloadCreated, &types.Workload{Name: name, Nodename: "nodename"})
+	require.NoError(t, err)
+
+	store := c.store.(*storemocks.Store)
+	store.On("ListNodeWorkloads", mock.Anything, "nodename", mock.Anything).Return(
+		[]*types.Workload{{ID: "other", Name: "app_entry_ffffff"}, {ID: "wrkid", Name: name}}, nil,
+	).Once()
+	store.On("GetWorkloads", mock.Anything, []string{"wrkid"}).Return(nil, nil).Once()
+
+	c.wal.Recover(context.Background())
+	store.AssertExpectations(t)
+
+	c.wal.Recover(context.Background())
+}
+
+func TestHandleCreateWorkloadByNameFromTheEngine(t *testing.T) {
+	c := NewTestCluster()
+	wal, err := enableWAL(c.config, c, c.store)
+	require.NoError(t, err)
+	c.wal = wal
+
+	name := "app_entry_abcdef"
+	_, err = c.wal.Log(eventWorkloadCreated, &types.Workload{Name: name, Nodename: "nodename"})
+	require.NoError(t, err)
+
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		resourcetypes.Resources{}, resourcetypes.Resources{}, []string{}, nil,
+	)
+
+	engine := &enginemocks.API{}
+	node := &types.Node{NodeMeta: types.NodeMeta{Name: "nodename"}, Engine: engine}
+	store := c.store.(*storemocks.Store)
+	store.On("ListNodeWorkloads", mock.Anything, "nodename", mock.Anything).Return(nil, nil).Once()
+	store.On("GetNode", mock.Anything, "nodename").Return(node, nil).Once()
+	engine.On("VirtualizationInspect", mock.Anything, name).Return(&enginetypes.VirtualizationInfo{ID: "wrkid"}, nil).Once()
+	engine.On("VirtualizationRemove", mock.Anything, "wrkid", true, true).Return(nil).Once()
+
+	c.wal.Recover(context.Background())
+	store.AssertExpectations(t)
+	engine.AssertExpectations(t)
+
+	c.wal.Recover(context.Background())
+}
+
+func TestHandleCreateWorkloadByNameUnknownToBoth(t *testing.T) {
+	c := NewTestCluster()
+	wal, err := enableWAL(c.config, c, c.store)
+	require.NoError(t, err)
+	c.wal = wal
+
+	name := "app_entry_abcdef"
+	_, err = c.wal.Log(eventWorkloadCreated, &types.Workload{Name: name, Nodename: "nodename"})
+	require.NoError(t, err)
+
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		resourcetypes.Resources{}, resourcetypes.Resources{}, []string{}, nil,
+	)
+
+	engine := &enginemocks.API{}
+	node := &types.Node{NodeMeta: types.NodeMeta{Name: "nodename"}, Engine: engine}
+	store := c.store.(*storemocks.Store)
+	store.On("ListNodeWorkloads", mock.Anything, "nodename", mock.Anything).Return(nil, nil).Once()
+	store.On("GetNode", mock.Anything, "nodename").Return(node, nil).Once()
+	engine.On("VirtualizationInspect", mock.Anything, name).Return(nil, types.ErrWorkloadNotExists).Once()
+
+	c.wal.Recover(context.Background())
+	store.AssertExpectations(t)
+	engine.AssertExpectations(t)
+
+	c.wal.Recover(context.Background())
+}
+
 func TestHandleReplaceWorkload(t *testing.T) {
 	c := NewTestCluster()
 	wal, err := enableWAL(c.config, c, c.store)
