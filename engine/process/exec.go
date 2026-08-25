@@ -1,8 +1,10 @@
 package process
 
 import (
+	"cmp"
 	"context"
 	"io"
+	"strings"
 
 	"github.com/cockroachdb/errors"
 
@@ -59,17 +61,24 @@ func (e *Engine) ExecExitCode(_ context.Context, _, execID string) (int, error) 
 // scopeArgv runs the command in the workload's own slice and root, without namespaces.
 func scopeArgv(record *meta, config *enginetypes.ExecConfig) []string {
 	argv := []string{"systemd-run", "--scope", "--quiet", "--collect", "--slice=" + sliceName(record.Podname)}
-	if config.User != "" {
-		argv = append(argv, "--uid="+config.User)
-	}
-	if record.RootDirectory != "" {
-		argv = append(argv, "-p", "RootDirectory="+record.RootDirectory)
-	}
-	if config.WorkingDir != "" {
-		argv = append(argv, "--working-directory="+config.WorkingDir)
-	}
 	for _, env := range config.Env {
 		argv = append(argv, "--setenv="+env)
 	}
-	return append(append(argv, "--"), config.Cmd...)
+	argv = append(argv, "--")
+
+	switch {
+	case record.RootDirectory != "":
+		argv = append(argv, "chroot")
+		if config.User != "" {
+			argv = append(argv, "--userspec="+config.User)
+		}
+		argv = append(argv, record.RootDirectory)
+	case config.User != "":
+		user, group, _ := strings.Cut(config.User, ":")
+		argv = append(argv, "setpriv", "--reuid="+user, "--regid="+cmp.Or(group, user), "--init-groups", "--")
+	}
+	if config.WorkingDir != "" {
+		argv = append(argv, "env", "--chdir="+config.WorkingDir)
+	}
+	return append(argv, config.Cmd...)
 }

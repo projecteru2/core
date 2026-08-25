@@ -31,8 +31,8 @@ func TestExecuteRunsAScopeInTheWorkloadSlice(t *testing.T) {
 
 	want := quote([]string{
 		"systemd-run", "--scope", "--quiet", "--collect", "--slice=eru-prod.slice",
-		"--uid=app", "-p", "RootDirectory=/var/lib/eru/process/w1/merged",
-		"--setenv=FOO=bar", "--", "ls", "-l",
+		"--setenv=FOO=bar", "--",
+		"chroot", "--userspec=app", "/var/lib/eru/process/w1/merged", "ls", "-l",
 	})
 	if len(runner.lines) != 2 || runner.lines[1] != want {
 		t.Fatalf("got %q, want the meta read then %q", runner.lines, want)
@@ -58,11 +58,54 @@ func TestExecExitCodeRejectsAnUnknownExec(t *testing.T) {
 	}
 }
 
-func TestScopeArgvOmitsTheRootForARawWorkload(t *testing.T) {
-	record := &meta{Podname: "prod"}
+func TestScopeArgv(t *testing.T) {
+	scope := []string{"systemd-run", "--scope", "--quiet", "--collect", "--slice=eru-prod.slice", "--"}
+	overlay := &meta{Podname: "prod", RootDirectory: testRoot + "/w1/merged"}
+	raw := &meta{Podname: "prod"}
 
-	want := []string{"systemd-run", "--scope", "--quiet", "--collect", "--slice=eru-prod.slice", "--", "sh"}
-	if got := scopeArgv(record, &enginetypes.ExecConfig{Cmd: []string{"sh"}}); !slices.Equal(got, want) {
-		t.Errorf("got %q, want %q", got, want)
+	tests := []struct {
+		name   string
+		record *meta
+		config *enginetypes.ExecConfig
+		want   []string
+	}{
+		{
+			"an overlay workload without a user is entered by chroot alone",
+			overlay,
+			&enginetypes.ExecConfig{Cmd: []string{"sh"}},
+			[]string{"chroot", testRoot + "/w1/merged", "sh"},
+		},
+		{
+			"a working directory is entered inside the chroot",
+			overlay,
+			&enginetypes.ExecConfig{WorkingDir: "/srv", Cmd: []string{"sh"}},
+			[]string{"chroot", testRoot + "/w1/merged", "env", "--chdir=/srv", "sh"},
+		},
+		{
+			"a raw workload drops privileges with setpriv",
+			raw,
+			&enginetypes.ExecConfig{User: "app:staff", Cmd: []string{"sh"}},
+			[]string{"setpriv", "--reuid=app", "--regid=staff", "--init-groups", "--", "sh"},
+		},
+		{
+			"a bare user name reuses itself as the group",
+			raw,
+			&enginetypes.ExecConfig{User: "app", Cmd: []string{"sh"}},
+			[]string{"setpriv", "--reuid=app", "--regid=app", "--init-groups", "--", "sh"},
+		},
+		{
+			"a raw workload without a user runs as the ssh user",
+			raw,
+			&enginetypes.ExecConfig{Cmd: []string{"sh"}},
+			[]string{"sh"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			want := slices.Concat(scope, tt.want)
+			if got := scopeArgv(tt.record, tt.config); !slices.Equal(got, want) {
+				t.Errorf("got %q, want %q", got, want)
+			}
+		})
 	}
 }
