@@ -38,7 +38,7 @@ func TestAddNode(t *testing.T) {
 	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: podname, Labels: labels})
 	assert.Error(t, err)
 	key := fmt.Sprintf(common.NodeInfoKey, nodename)
-	_, err = m.GetOne(ctx, key)
+	_, err = m.kv.GetOne(ctx, key)
 	assert.NoError(t, err)
 	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename2, Endpoint: endpoint, Podname: podname, Labels: labels})
 	assert.NoError(t, err)
@@ -211,10 +211,10 @@ func TestSetNodeStatus(t *testing.T) {
 	assert.NoError(m.SetNodeStatus(context.Background(), node, 1))
 	key := filepath.Join(common.NodeStatusPrefix, node.Name)
 
-	_, err = m.GetOne(context.Background(), key)
+	_, err = m.kv.GetOne(context.Background(), key)
 	assert.NoError(err)
 	time.Sleep(2000 * time.Millisecond)
-	_, err = m.GetOne(context.Background(), key)
+	_, err = m.kv.GetOne(context.Background(), key)
 	assert.Error(err)
 }
 

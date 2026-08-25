@@ -1,8 +1,6 @@
 package etcdv3
 
 import (
-	"github.com/panjf2000/ants/v2"
-
 	"github.com/projecteru2/core/store/common"
 	"github.com/projecteru2/core/store/etcdv3/embedded"
 	"github.com/projecteru2/core/store/etcdv3/meta"
@@ -13,10 +11,8 @@ import (
 // Mercury is the etcd backed store.
 type Mercury struct {
 	*common.Store
-	meta.KV
 
-	config types.Config
-	pool   *ants.PoolWithFunc
+	kv meta.KV
 }
 
 // New creates a Mercury on the given etcd cluster.
@@ -29,10 +25,5 @@ func New(config types.Config, embeddedETCD *embedded.Cluster) (*Mercury, error) 
 	if err != nil {
 		return nil, err
 	}
-	return &Mercury{
-		Store:  common.New(&etcdKV{kv: kv}, config, pool),
-		KV:     kv,
-		config: config,
-		pool:   pool,
-	}, nil
+	return &Mercury{Store: common.New(&etcdKV{kv: kv}, config, pool), kv: kv}, nil
 }

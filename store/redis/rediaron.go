@@ -39,10 +39,8 @@ var (
 // Rediaron is a store implemented by redis
 type Rediaron struct {
 	*common.Store
-	cli    *redis.Client
-	config types.Config
-	pool   *ants.PoolWithFunc
-	db     int
+
+	cli *redis.Client
 }
 
 // New creates a Rediaron, using only the redis address and db from config.
@@ -59,12 +57,7 @@ func New(config types.Config) (*Rediaron, error) {
 }
 
 func newRediaron(cli *redis.Client, config types.Config, pool *ants.PoolWithFunc) *Rediaron {
-	r := &Rediaron{
-		cli:    cli,
-		config: config,
-		pool:   pool,
-		db:     config.Redis.DB,
-	}
+	r := &Rediaron{cli: cli}
 	r.Store = common.New(&redisKV{r: r}, config, pool)
 	return r
 }
@@ -79,11 +72,11 @@ type KNotifyMessage struct {
 func (r *Rediaron) KNotify(ctx context.Context, pattern string) chan *KNotifyMessage {
 	ch := make(chan *KNotifyMessage)
 	logger := log.WithFunc("store.redis.KNotify")
-	if err := r.pool.Invoke(func() {
+	if err := r.Pool.Invoke(func() {
 		defer close(ch)
 
-		prefix := fmt.Sprintf(keyNotifyPrefix, r.db, "")
-		channel := fmt.Sprintf(keyNotifyPrefix, r.db, pattern)
+		prefix := fmt.Sprintf(keyNotifyPrefix, r.Config.Redis.DB, "")
+		channel := fmt.Sprintf(keyNotifyPrefix, r.Config.Redis.DB, pattern)
 		pubsub := r.cli.PSubscribe(ctx, channel)
 		subC := pubsub.Channel()
 

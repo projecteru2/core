@@ -6,7 +6,7 @@ package mocks
 
 import (
 	mock "github.com/stretchr/testify/mock"
-	"go.etcd.io/etcd/client/v3"
+	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
 // NewTxn creates a new instance of Txn. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.

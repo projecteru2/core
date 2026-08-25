@@ -8,10 +8,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/projecteru2/core/lock"
 	mock "github.com/stretchr/testify/mock"
 	"go.etcd.io/etcd/api/v3/mvccpb"
-	"go.etcd.io/etcd/client/v3"
+	clientv3 "go.etcd.io/etcd/client/v3"
+
+	"github.com/projecteru2/core/lock"
 )
 
 // NewKV creates a new instance of KV. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.

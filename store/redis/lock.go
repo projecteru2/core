@@ -9,6 +9,6 @@ import (
 )
 
 func (r *Rediaron) CreateLock(key string, ttl time.Duration) (lock.DistributedLock, error) {
-	lockKey := fmt.Sprintf("%s/%s", r.config.Redis.LockPrefix, key)
+	lockKey := fmt.Sprintf("%s/%s", r.Config.Redis.LockPrefix, key)
 	return redislock.New(r.cli, lockKey, ttl, ttl)
 }
