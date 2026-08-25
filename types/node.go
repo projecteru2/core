@@ -92,7 +92,11 @@ func (f NodeFilter) Narrow(other *NodeFilter) (*NodeFilter, error) {
 		}
 		f.Podname = other.Podname
 	}
-	f.Includes = narrowNames(f.Includes, other.Includes)
+	includes, err := narrowNames(f.Includes, other.Includes)
+	if err != nil {
+		return nil, err
+	}
+	f.Includes = includes
 	f.Excludes = slices.Concat(f.Excludes, other.Excludes)
 
 	if len(other.Labels) > 0 {
@@ -112,14 +116,18 @@ func (f NodeFilter) Narrow(other *NodeFilter) (*NodeFilter, error) {
 }
 
 // narrowNames keeps the requested names the configured list allows; an empty configured list allows every name.
-func narrowNames(configured, requested []string) []string {
+func narrowNames(configured, requested []string) ([]string, error) {
 	if len(requested) == 0 {
-		return configured
+		return configured, nil
 	}
 	if len(configured) == 0 {
-		return requested
+		return requested, nil
 	}
-	return slices.DeleteFunc(slices.Clone(requested), func(name string) bool {
+	narrowed := slices.DeleteFunc(slices.Clone(requested), func(name string) bool {
 		return !slices.Contains(configured, name)
 	})
+	if len(narrowed) == 0 {
+		return nil, errors.Wrapf(ErrInvaildNodeFilter, "nodes %v are outside %v", requested, configured)
+	}
+	return narrowed, nil
 }

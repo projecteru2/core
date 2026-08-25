@@ -21,6 +21,25 @@ const (
 	repo = "https://test/repo.git"
 )
 
+func TestSelectBuildNodeRejectsAFilterItCannotNarrow(t *testing.T) {
+	c := NewTestCluster()
+	c.config.Build.NodeFilter = types.NodeFilter{Podname: "buildpod", Includes: []string{"n1", "n2"}}
+
+	tests := []struct {
+		name      string
+		requested *types.NodeFilter
+	}{
+		{"another pod", &types.NodeFilter{Podname: "elsewhere"}},
+		{"nodes outside the configured set", &types.NodeFilter{Includes: []string{"n9"}}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := c.selectBuildNode(t.Context(), &types.BuildOptions{NodeFilter: tt.requested})
+			assert.ErrorIs(t, err, types.ErrInvaildNodeFilter)
+		})
+	}
+}
+
 func TestBuild(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()

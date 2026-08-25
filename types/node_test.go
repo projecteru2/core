@@ -80,7 +80,7 @@ func TestNodeFilterNarrow(t *testing.T) {
 }
 
 func TestNodeFilterNarrowRejectsWidening(t *testing.T) {
-	configured := NodeFilter{Podname: "buildpod", Labels: map[string]string{"eru.build": "1"}}
+	configured := NodeFilter{Podname: "buildpod", Includes: []string{"n1"}, Labels: map[string]string{"eru.build": "1"}}
 
 	tests := []struct {
 		name      string
@@ -88,6 +88,7 @@ func TestNodeFilterNarrowRejectsWidening(t *testing.T) {
 	}{
 		{"another pod", &NodeFilter{Podname: "elsewhere"}},
 		{"another value for a configured label", &NodeFilter{Labels: map[string]string{"eru.build": "0"}}},
+		{"nodes the configured list never allowed", &NodeFilter{Includes: []string{"n9"}}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
