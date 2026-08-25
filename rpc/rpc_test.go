@@ -187,6 +187,31 @@ func TestRemoveWorkloadReportsItsOwnStatusCode(t *testing.T) {
 	assert.Equal(t, RemoveWorkload, grpcstatus.Code(err))
 }
 
+func TestSendLargeFileReportsItsOwnStatusCode(t *testing.T) {
+	v := newVibranium()
+
+	stream := &grpcmocks.BidiStreamingServer[pb.FileOptions, pb.SendMessage]{}
+	stream.On("Context").Return(context.Background())
+	stream.On("Recv").Return(nil, types.ErrMockError)
+
+	cluster := v.cluster.(*clustermock.Cluster)
+	cluster.On("SendLargeFile", mock.Anything, mock.Anything).Return(
+		func(_ context.Context, opts chan *types.SendLargeFileOptions) chan *types.SendMessage {
+			ch := make(chan *types.SendMessage)
+			go func() {
+				defer close(ch)
+				for range opts { //revive:disable-line:empty-block
+				}
+			}()
+			return ch
+		},
+	)
+
+	err := v.SendLargeFile(stream)
+	assert.Error(t, err)
+	assert.Equal(t, SendLargeFile, grpcstatus.Code(err))
+}
+
 func newVibranium() *Vibranium {
 	v := &Vibranium{
 		cluster: &clustermock.Cluster{},

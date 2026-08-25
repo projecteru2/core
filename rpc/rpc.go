@@ -548,23 +548,27 @@ func (v *Vibranium) Send(opts *pb.SendOptions, stream pb.CoreRPC_SendServer) err
 func (v *Vibranium) SendLargeFile(stream pb.CoreRPC_SendLargeFileServer) error {
 	task := v.newTask(stream.Context(), "SendLargeFile", true)
 	defer task.done()
+	logger := log.WithFunc("vibranium.SendLargeFile")
 
 	inputChan := make(chan *types.SendLargeFileOptions)
 	resp := v.cluster.SendLargeFile(task.context, inputChan)
+	var recvErr error
 	utils.SentryGo(func() {
 		defer close(inputChan)
 		for {
 			req, err := stream.Recv()
 			if errors.Is(err, io.EOF) {
-				break
+				return
 			}
 			if err != nil {
-				log.WithFunc("vibranium.SendLargeFile").Error(task.context, err, "recv from stream")
+				logger.Error(task.context, err, "recv from stream")
+				recvErr = err
 				return
 			}
 			data, err := toSendLargeFileOptions(req)
 			if err != nil {
-				log.WithFunc("vibranium.SendLargeFile").Error(task.context, err, "transform file options")
+				logger.Error(task.context, err, "transform file options")
+				recvErr = err
 				return
 			}
 			inputChan <- data
@@ -582,6 +586,9 @@ func (v *Vibranium) SendLargeFile(stream pb.CoreRPC_SendLargeFileServer) error {
 		if err := stream.Send(msg); err != nil {
 			v.logUnsentMessages(task.context, "SendLargeFile", err, m)
 		}
+	}
+	if recvErr != nil {
+		return grpcstatus.Error(SendLargeFile, recvErr.Error())
 	}
 	return nil
 }
