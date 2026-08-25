@@ -138,9 +138,10 @@ type BuildConfig struct {
 
 // ContainerdConfig is the node-side layout the containerd engine reaches over SSH.
 type ContainerdConfig struct {
-	Socket    string `yaml:"socket" default:"/run/containerd/containerd.sock"`
-	Namespace string `yaml:"namespace" default:"eru"`
-	BuildKit  string `yaml:"buildkit" default:"/run/buildkit/buildkitd.sock"` // a tcp:// address is dialed directly
+	Socket      string        `yaml:"socket" default:"/run/containerd/containerd.sock"`
+	Namespace   string        `yaml:"namespace" default:"eru"`
+	BuildKit    string        `yaml:"buildkit" default:"/run/buildkit/buildkitd.sock"` // a tcp:// address is dialed directly
+	StopTimeout time.Duration `yaml:"stop_timeout" default:"10s"`                      // grace period before the task is killed
 }
 
 // ProcessConfig is the node-side layout the process engine writes into.

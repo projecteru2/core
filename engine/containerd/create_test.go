@@ -3,11 +3,13 @@ package containerd
 import (
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/containerd/containerd/v2/client"
 	"github.com/containerd/containerd/v2/core/runtime/restart"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 
+	"github.com/projecteru2/core/engine/sshrunner/sshrunnertest"
 	enginetypes "github.com/projecteru2/core/engine/types"
 )
 
@@ -62,6 +64,42 @@ func TestStopSignalFallsBackToSigterm(t *testing.T) {
 	}
 	if got := stopSignal(map[string]string{client.StopSignalLabel: "SIGNOPE"}); got != syscall.SIGTERM {
 		t.Errorf("got %v, want SIGTERM for an unparsable label", got)
+	}
+}
+
+func TestStopContractMapsCoresThreeCases(t *testing.T) {
+	e := testEngine(t, &sshrunnertest.Fake{})
+	image := syscall.SIGQUIT
+
+	tests := []struct {
+		name   string
+		asked  time.Duration
+		grace  time.Duration
+		signal syscall.Signal
+	}{
+		{"a plain stop takes the engine's default", -1, defaultStopTimeout, image},
+		{"a forced stop kills at once", 0, 0, syscall.SIGKILL},
+		{"an explicit grace period is honoured", 5 * time.Second, 5 * time.Second, image},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			grace := e.gracePeriod(tt.asked)
+			if grace != tt.grace {
+				t.Errorf("got %v, want %v", grace, tt.grace)
+			}
+			if got := killSignal(image, grace); got != tt.signal {
+				t.Errorf("got %v, want %v", got, tt.signal)
+			}
+		})
+	}
+}
+
+func TestGracePeriodPrefersTheConfiguredTimeout(t *testing.T) {
+	e := testEngine(t, &sshrunnertest.Fake{})
+	e.config.Containerd.StopTimeout = 30 * time.Second
+
+	if got := e.gracePeriod(-1); got != 30*time.Second {
+		t.Errorf("got %v, want the configured 30s", got)
 	}
 }
 

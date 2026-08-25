@@ -6,6 +6,7 @@ import (
 	"net"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/containerd/containerd/v2/client"
@@ -26,10 +27,11 @@ const (
 	Prefix = "containerd://"
 	Type   = "containerd"
 
-	defaultSocket    = "/run/containerd/containerd.sock"
-	defaultNamespace = "eru"
-	daemonRoot       = "/var/lib/containerd"
-	workloadRoot     = "/var/lib/eru/containerd"
+	defaultSocket      = "/run/containerd/containerd.sock"
+	defaultNamespace   = "eru"
+	defaultStopTimeout = 10 * time.Second
+	daemonRoot         = "/var/lib/containerd"
+	workloadRoot       = "/var/lib/eru/containerd"
 
 	// networkLabelPrefix is where the CNI hook records an attached network's address.
 	networkLabelPrefix = "eru.network."

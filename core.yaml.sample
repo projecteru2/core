@@ -69,6 +69,7 @@ containerd:
     socket: "/run/containerd/containerd.sock"                           # default, forwarded over ssh
     namespace: "eru"                                                    # default
     buildkit: "/run/buildkit/buildkitd.sock"                            # default, a tcp:// address is dialed directly
+    stop_timeout: 10s                                                   # default 10s, grace period before SIGKILL
 
 process:
     root: "/var/lib/eru/process"                                        # default /var/lib/eru/process

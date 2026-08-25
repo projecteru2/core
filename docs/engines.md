@@ -42,7 +42,7 @@ matches an image's manifests against, since core's own platform is not the node'
 | --- | --- |
 | `VirtualizationCreate` | `NewContainer` with a new snapshot and the rendered OCI spec; the container id **is** the workload name, so eru-agent reads appname, entrypoint and ident straight off it |
 | `VirtualizationStart` | `NewTask` with the log-shim `LogURI`, `task.Start`, then `containerd.io/restart.status=running` |
-| `VirtualizationStop` | `containerd.io/restart.status=stopped` first so the restart plugin does not race, then `SIGTERM`, `SIGKILL` after the grace period, then `task.Delete` |
+| `VirtualizationStop` | `containerd.io/restart.status=stopped` first so the restart plugin does not race, then the image's stop signal and `SIGKILL` after the grace period, then `task.Delete`. A plain stop takes `containerd.stop_timeout`, a forced one kills at once |
 | `VirtualizationRemove` | refuses a running workload unless forced, kills the task and deletes the container with its snapshot |
 | `VirtualizationSuspend` / `Resume` | `task.Pause` / `task.Resume` |
 | `VirtualizationInspect` | the container record for labels and spec, one task-service `Get` for the running state |

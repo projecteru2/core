@@ -135,6 +135,7 @@ request. With nothing configured, every node is a candidate.
 | `containerd.socket` | string | `/run/containerd/containerd.sock` | Node-side path of containerd's API socket, forwarded to core over SSH |
 | `containerd.namespace` | string | `eru` | containerd namespace every eru container lives in |
 | `containerd.buildkit` | string | `/run/buildkit/buildkitd.sock` | buildkitd address on a build node: a socket path is forwarded over the same SSH connection, a `tcp://` address is dialed directly |
+| `containerd.stop_timeout` | duration | `10s` | Grace period between the stop signal and `SIGKILL`; a forced stop ignores it |
 
 ## Process
 

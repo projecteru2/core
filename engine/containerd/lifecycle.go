@@ -1,6 +1,7 @@
 package containerd
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"net/url"
@@ -75,7 +76,7 @@ func (e *Engine) VirtualizationStop(ctx context.Context, ID string, gracefulTime
 		}
 		return err
 	}
-	if err = killTask(ctx, task, stopSignal(labels), gracefulTimeout); err != nil {
+	if err = killTask(ctx, task, stopSignal(labels), e.gracePeriod(gracefulTimeout)); err != nil {
 		return err
 	}
 	_, err = task.Delete(ctx)
@@ -260,6 +261,13 @@ func (e *Engine) setDesiredStatus(ctx context.Context, found client.Container, l
 }
 
 // containerSpec decodes the spec the container record already carries.
+func (e *Engine) gracePeriod(gracefulTimeout time.Duration) time.Duration {
+	if gracefulTimeout < 0 {
+		return cmp.Or(e.config.Containerd.StopTimeout, defaultStopTimeout)
+	}
+	return gracefulTimeout
+}
+
 func containerSpec(info containers.Container) (*oci.Spec, error) {
 	spec := &oci.Spec{}
 	if err := json.Unmarshal(info.Spec.GetValue(), spec); err != nil {
@@ -292,6 +300,13 @@ func withSpecResources(limits *specs.LinuxResources) client.UpdateContainerOpts 
 	}
 }
 
+func killSignal(stop syscall.Signal, graceful time.Duration) syscall.Signal {
+	if graceful == 0 {
+		return syscall.SIGKILL
+	}
+	return stop
+}
+
 // stopSignal is what the image asked to be stopped with; containerd stores it at create.
 func stopSignal(labels map[string]string) syscall.Signal {
 	name, ok := labels[client.StopSignalLabel]
@@ -310,13 +325,10 @@ func killTask(ctx context.Context, task client.Task, stop syscall.Signal, gracef
 	if err != nil {
 		return err
 	}
-	if graceful <= 0 {
-		stop = syscall.SIGKILL
-	}
-	if err = task.Kill(ctx, stop, client.WithKillAll); err != nil && !cerrdefs.IsNotFound(err) {
+	if err = task.Kill(ctx, killSignal(stop, graceful), client.WithKillAll); err != nil && !cerrdefs.IsNotFound(err) {
 		return err
 	}
-	if graceful <= 0 {
+	if graceful == 0 {
 		return waitExit(ctx, exited)
 	}
 	timer := time.NewTimer(graceful)
