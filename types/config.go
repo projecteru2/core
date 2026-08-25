@@ -80,6 +80,13 @@ type GitConfig struct {
 	CloneTimeout time.Duration `yaml:"clone_timeout" default:"300s"`
 }
 
+// SSHConfig is core's key pair for the nodes it drives over SSH.
+type SSHConfig struct {
+	PrivateKey string `yaml:"private_key"` // file path
+	User       string `yaml:"user" default:"root"`
+	KnownHosts string `yaml:"known_hosts"` // file path; empty accepts any host key
+}
+
 type EtcdConfig struct {
 	Machines   []string   `yaml:"machines" required:"true"`
 	Prefix     string     `yaml:"prefix" required:"true" default:"/eru"` // key prefix for core data
@@ -94,23 +101,6 @@ type RedisConfig struct {
 	Addr       string `yaml:"addr" default:"localhost:6379"`
 	LockPrefix string `yaml:"lock_prefix" default:"/lock"`
 	DB         int    `yaml:"db" default:"0"`
-}
-
-// SSHConfig is core's key pair for nodes it drives over SSH.
-type SSHConfig struct {
-	PrivateKey string `yaml:"private_key"` // file path
-	User       string `yaml:"user" default:"root"`
-	KnownHosts string `yaml:"known_hosts"` // file path; empty accepts any host key
-}
-
-// ProcessConfig is the node-side layout the process engine writes into.
-type ProcessConfig struct {
-	Root string `yaml:"root" default:"/var/lib/eru/process"`
-}
-
-// BuildConfig selects the nodes allowed to run in-cluster image builds.
-type BuildConfig struct {
-	NodeFilter NodeFilter `yaml:"node_filter"`
 }
 
 type DockerConfig struct {
@@ -130,6 +120,16 @@ func (c DockerConfig) ImageTag(appname, tag string) string {
 		return fmt.Sprintf("%s/%s:%s", c.Hub, appname, tag)
 	}
 	return fmt.Sprintf("%s/%s/%s:%s", c.Hub, prefix, appname, tag)
+}
+
+// BuildConfig selects the nodes allowed to run in-cluster image builds.
+type BuildConfig struct {
+	NodeFilter NodeFilter `yaml:"node_filter"`
+}
+
+// ProcessConfig is the node-side layout the process engine writes into.
+type ProcessConfig struct {
+	Root string `yaml:"root" default:"/var/lib/eru/process"`
 }
 
 type VirtConfig struct {
