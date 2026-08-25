@@ -38,7 +38,6 @@ func (c *Calcium) ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorklo
 			AttachStdout: true,
 			AttachStdin:  opts.OpenStdin,
 			Tty:          opts.OpenStdin,
-			Detach:       false,
 		}
 
 		execID, stdout, stderr, inStream, err := workload.Engine.Execute(ctx, opts.WorkloadID, execConfig)

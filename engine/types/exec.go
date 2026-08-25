@@ -8,8 +8,6 @@ type ExecConfig struct {
 	AttachStdin  bool
 	AttachStderr bool
 	AttachStdout bool
-	Detach       bool
-	DetachKeys   string // docker --detach-keys format
 	Env          []string
 	WorkingDir   string
 	Cmd          []string

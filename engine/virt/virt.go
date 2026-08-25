@@ -37,7 +37,6 @@ const (
 // Virt implements the core engine.API interface.
 type Virt struct {
 	client virtapi.Client
-	config coretypes.Config
 	ep     *enginetypes.Params
 }
 
@@ -73,7 +72,7 @@ func MakeClient(_ context.Context, config coretypes.Config, nodename, endpoint, 
 	if err != nil {
 		return nil, err
 	}
-	return &Virt{client: cli, config: config, ep: enginetypes.NewParams(nodename, endpoint, ca, cert, key)}, nil
+	return &Virt{client: cli, ep: enginetypes.NewParams(nodename, endpoint, ca, cert, key)}, nil
 }
 
 func (v *Virt) Info(ctx context.Context) (*enginetypes.Info, error) {
