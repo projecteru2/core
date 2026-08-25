@@ -58,9 +58,7 @@ func (m Manager) Alloc(ctx context.Context, nodename string, deployCount int, op
 			}
 			return nil
 		},
-		func(_ context.Context) error {
-			return nil
-		},
+		nil,
 		m.config.GlobalTimeout,
 	)
 }

@@ -83,7 +83,7 @@ func (n *NodeStatusWatcher) withActiveLock(parentCtx context.Context, f func(ctx
 		default:
 		}
 
-		if ne, un, err := n.register(ctx); err != nil {
+		if ne, un, err := n.store.StartEphemeral(ctx, ActiveKey, n.config.HAKeepaliveInterval); err != nil {
 			if errors.Is(err, context.Canceled) {
 				logger.Info(ctx, "context canceled")
 				return
@@ -120,10 +120,6 @@ func (n *NodeStatusWatcher) withActiveLock(parentCtx context.Context, f func(ctx
 	}()
 
 	f(ctx)
-}
-
-func (n *NodeStatusWatcher) register(ctx context.Context) (<-chan struct{}, func(), error) {
-	return n.store.StartEphemeral(ctx, ActiveKey, n.config.HAKeepaliveInterval)
 }
 
 func (n *NodeStatusWatcher) initNodeStatus(ctx context.Context) {

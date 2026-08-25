@@ -42,7 +42,10 @@ func Txn(ctx context.Context, cond, then contextFunc, rollback rollbackFunc, ttl
 		}
 	}()
 
-	if condErr = cond(txnCtx); condErr == nil && then != nil {
+	if cond != nil {
+		condErr = cond(txnCtx)
+	}
+	if condErr == nil && then != nil {
 		// with no rollback, then must not be interruptible
 		thenCtx := txnCtx
 		var thenCancel context.CancelFunc
@@ -59,7 +62,7 @@ func Txn(ctx context.Context, cond, then contextFunc, rollback rollbackFunc, ttl
 // PCR runs prepare, commit and rollback; prepare must be side-effect free.
 func PCR(ctx context.Context, prepare, commit, rollback contextFunc, ttl time.Duration) error {
 	return Txn(ctx, prepare, commit, func(ctx context.Context, failureByCond bool) error {
-		if !failureByCond {
+		if !failureByCond && rollback != nil {
 			return rollback(ctx)
 		}
 		return nil

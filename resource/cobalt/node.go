@@ -24,9 +24,7 @@ func (m Manager) AddNode(ctx context.Context, nodename string, opts resourcetype
 	rollbackPlugins := []plugins.Plugin{}
 
 	return res, utils.PCR(ctx,
-		func(_ context.Context) error {
-			return nil
-		},
+		nil,
 		func(ctx context.Context) error {
 			resps, err := call(ctx, m.plugins, func(plugin plugins.Plugin) (*plugintypes.AddNodeResponse, error) {
 				r := opts[plugin.Name()]

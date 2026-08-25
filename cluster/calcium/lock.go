@@ -3,6 +3,7 @@ package calcium
 import (
 	"context"
 	"fmt"
+	"maps"
 	"slices"
 	"time"
 
@@ -47,10 +48,7 @@ func (c *Calcium) doUnlockAll(ctx context.Context, locks map[string]lock.Distrib
 	logger := log.WithFunc("calcium.doUnlockAll")
 	if len(order) != len(locks) {
 		logger.Warn(ctx, "order length does not match lock map")
-		order = []string{}
-		for key := range locks {
-			order = append(order, key)
-		}
+		order = slices.Collect(maps.Keys(locks))
 	}
 	for _, key := range order {
 		if err := c.doUnlock(ctx, locks[key], key); err != nil {
@@ -129,7 +127,7 @@ func (c *Calcium) withNodeOperationLocked(ctx context.Context, nodename string, 
 	})
 }
 
-func (c *Calcium) withNodesOperationLocked(ctx context.Context, nodeFilter *types.NodeFilter, f nodesHandler) error { //nolint:unused
+func (c *Calcium) withNodesOperationLocked(ctx context.Context, nodeFilter *types.NodeFilter, f nodesHandler) error {
 	genKey := func(node *types.Node) string {
 		return fmt.Sprintf(cluster.NodeOperationLock, node.Podname, node.Name)
 	}

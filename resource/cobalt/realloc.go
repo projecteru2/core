@@ -49,9 +49,7 @@ func (m Manager) Realloc(ctx context.Context, nodename string, nodeResource, opt
 			}
 			return nil
 		},
-		func(_ context.Context) error {
-			return nil
-		},
+		nil,
 		m.config.GlobalTimeout,
 	)
 }
