@@ -29,11 +29,12 @@ const (
 	// containerd flattens the query into argv pairs, so log-shim arrives as the agent's subcommand
 	logShimURI = "binary://" + hookBinary + "?log-shim"
 
-	hostNameMax  = 64
-	mountMark    = "mount:"
-	deviceMark   = "device:"
-	deviceBase   = 16
-	deviceFields = 3
+	hostNameMax   = 64
+	snapshotMount = "rootfs"
+	mountMark     = "mount:"
+	deviceMark    = "device:"
+	deviceBase    = 16
+	deviceFields  = 3
 
 	prepareScript = `set -e
 dir=$1; resolv=$2; hosts=$3; shift 3

@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"github.com/cockroachdb/errors"
+	"github.com/containerd/containerd/v2/client"
+	cerrdefs "github.com/containerd/errdefs"
 
 	"github.com/projecteru2/core/engine/sshrunner"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -19,6 +21,19 @@ import (
 const (
 	tarFatalCode = 2
 	noSuchFile   = "No such file"
+
+	snapshotScript = `set -e
+ctr=$1; address=$2; namespace=$3; key=$4; dir=$5; target=$6
+mkdir -p "$dir"
+cleanup() {
+umount "$dir" >/dev/null 2>&1 || true
+rmdir "$dir" >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
+eval "$("$ctr" --address "$address" --namespace "$namespace" snapshots mounts "$dir" "$key")"
+mkdir -p "$dir/$target"
+tar -x -C "$dir/$target"
+`
 )
 
 func (e *Engine) VirtualizationCopyTo(ctx context.Context, ID, target string, content []byte, uid, gid int, mode int64) error {
@@ -26,7 +41,7 @@ func (e *Engine) VirtualizationCopyTo(ctx context.Context, ID, target string, co
 }
 
 func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target string, size int64, content io.Reader, uid, gid int, mode int64) error {
-	argv, err := e.tarArgv(ctx, ID, "-x", "-C", filepath.Dir(target))
+	argv, err := e.writeArgv(ctx, ID, target)
 	if err != nil {
 		return err
 	}
@@ -74,6 +89,31 @@ func (e *Engine) tarArgv(ctx context.Context, ID string, args ...string) ([]stri
 	}
 	config := &enginetypes.ExecConfig{Cmd: append([]string{"tar"}, args...)}
 	return e.execArgv(found.ID(), utils.RandomID(), config), nil
+}
+
+func (e *Engine) writeArgv(ctx context.Context, ID, target string) ([]string, error) {
+	found, err := e.container(ctx, ID)
+	if err != nil {
+		return nil, err
+	}
+	if _, taskErr := found.Task(ctx, nil); taskErr == nil {
+		config := &enginetypes.ExecConfig{Cmd: []string{"tar", "-x", "-C", filepath.Dir(target)}}
+		return e.execArgv(found.ID(), utils.RandomID(), config), nil
+	} else if !cerrdefs.IsNotFound(taskErr) {
+		return nil, taskErr
+	}
+	info, err := found.Info(ctx, client.WithoutRefreshedMetadata)
+	if err != nil {
+		return nil, err
+	}
+	return e.snapshotArgv(found.ID(), info.SnapshotKey, target), nil
+}
+
+func (e *Engine) snapshotArgv(ID, snapshotKey, target string) []string {
+	return sshrunner.Shell(snapshotScript,
+		ctrBinary, e.socket, e.namespace, snapshotKey,
+		filepath.Join(workloadDir(ID), snapshotMount), filepath.Dir(target),
+	)
 }
 
 func missingPath(res *sshrunner.Result) bool {

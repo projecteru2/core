@@ -52,7 +52,7 @@ matches an image's manifests against, since core's own platform is not the node'
 | `VirtualizationResize` | the attach session's window change |
 | `Execute` / `ExecResize` / `ExecExitCode` | `ctr tasks exec` over the SSH session: stdio is the session's, the TTY is the session's pty, and the exit status is the session's |
 | `VirtualizationUpdateResource` | `container.Update` of the stored spec **and** `task.Update` of the live cgroup, so a restart replays the new limits |
-| `VirtualizationCopyTo` / `CopyFrom` | a tar stream through `ctr tasks exec` |
+| `VirtualizationCopyTo` / `CopyFrom` | a tar stream through `ctr tasks exec`; a workload whose task has not started yet is written into through its own snapshot, mounted on the node with `ctr snapshots mounts` |
 | `ImagePull` / `ImageList` / `ImageRemove` / `ImagesPrune` | `client.Pull` with unpack, the image store, and a prune of every image no container is built on |
 | `ImageBuildFromExist` | pause the task, diff the workload's snapshot against its image, then under one lease write the new config and manifest into the content store and tag them |
 | `ImageBuild` | BuildKit, see below |
@@ -81,6 +81,11 @@ session for a pty exactly when the workload was created with `open_stdin`. `Exec
 `VirtualizationResize` are both the SSH session's window change — `ctr` forwards its console
 geometry to the task on `SIGWINCH`, so setting the task's size behind it would only be
 overwritten again.
+
+A deploy's `--file` arrives before the workload starts, so `VirtualizationCopyTo` has no task to
+exec in. For a container with no task the engine mounts the container's own snapshot on the node
+— `ctr snapshots mounts` prints the mount command, which the same SSH session evaluates — untars
+into it and unmounts. The exec path stays for a running workload.
 
 `ctr tasks attach` deletes the task when the attach ends. Core therefore registers the task's
 exit watch *before* starting `ctr`, and `VirtualizationWait` takes the exit status from that
