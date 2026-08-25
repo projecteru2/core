@@ -175,9 +175,6 @@ func (n *NodeStatusWatcher) dealNodeStatusMessage(ctx context.Context, message *
 		return
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
 	opts := &types.SetNodeOptions{
 		Nodename:      message.Nodename,
 		WorkloadsDown: true,

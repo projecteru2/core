@@ -24,6 +24,8 @@ import (
 const (
 	cmpVersion = "version"
 	cmpValue   = "value"
+
+	txnLimit = 125
 )
 
 // ETCDClientV3 is the etcd client surface the store depends on.
@@ -391,7 +393,7 @@ func (e *ETCD) bindStatusWithTTL(ctx context.Context, entityKey, statusKey, stat
 // bindStatusWithoutTTL skips the entity check: an agent may report status before core records the entity.
 func (e *ETCD) bindStatusWithoutTTL(ctx context.Context, statusKey, statusValue string) error {
 	updateStatus := []clientv3.Op{clientv3.OpPut(statusKey, statusValue)}
-	logger := log.WithFunc("store.etcdv3.etcd.bindStatusWithoutTTL")
+	logger := log.WithFunc("store.etcdv3.meta.bindStatusWithoutTTL")
 
 	ttlChanged, err := e.isTTLChanged(ctx, statusKey, 0)
 	if err != nil {
@@ -429,7 +431,7 @@ func (e *ETCD) revokeLease(ctx context.Context, leaseID clientv3.LeaseID) {
 		return
 	}
 	if _, err := e.cliv3.Revoke(ctx, leaseID); err != nil {
-		log.WithFunc("store.etcdv3.etcd.revokeLease").Error(ctx, err, "revoke lease failed")
+		log.WithFunc("store.etcdv3.meta.revokeLease").Error(ctx, err, "revoke lease failed")
 	}
 }
 
@@ -437,8 +439,6 @@ func (e *ETCD) doBatchOp(ctx context.Context, transactions []ETCDTxn) (resp *cli
 	if len(transactions) == 0 {
 		return nil, types.ErrNoOps
 	}
-
-	const txnLimit = 125
 
 	txnes := []ETCDTxn{}
 	for _, txn := range transactions {

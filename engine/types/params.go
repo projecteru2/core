@@ -3,7 +3,6 @@ package types
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 )
 
 type Params struct {
@@ -25,7 +24,7 @@ func NewParams(nodename, endpoint, ca, cert, key string) *Params {
 }
 
 func (p *Params) CacheKey() string {
-	return fmt.Sprintf("%+v-%+v", p.Endpoint, sha256String(fmt.Sprintf(":%+v:%+v:%+v", p.CA, p.Cert, p.Key))[:8])
+	return p.Endpoint + "-" + sha256String(":" + p.CA + ":" + p.Cert + ":" + p.Key)[:8]
 }
 
 // utils.SHA256 would create an import cycle

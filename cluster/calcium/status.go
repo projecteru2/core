@@ -64,11 +64,7 @@ func (c *Calcium) SetWorkloadsStatus(ctx context.Context, statusMetas []*types.S
 			statusMeta.Entrypoint = entrypoint
 		}
 
-		ttl, ok := ttls[statusMeta.ID]
-		if !ok {
-			ttl = 0
-		}
-
+		ttl := ttls[statusMeta.ID]
 		if err := c.store.SetWorkloadStatus(ctx, statusMeta, ttl); err != nil {
 			logger.Error(ctx, err)
 			return nil, err
