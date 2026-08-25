@@ -10,12 +10,10 @@ import (
 	enginetypes "github.com/projecteru2/core/engine/types"
 )
 
-const overlayMeta = `{"id":"w1","kind":"process","podname":"prod","root_directory":"/var/lib/eru/process/w1/merged"}`
-
 func TestExecuteRunsAScopeInTheWorkloadSlice(t *testing.T) {
 	runner := &fakeRunner{
 		started: &fakeSession{code: 7},
-		respond: func(string) *result { return &result{Stdout: overlayMeta} },
+		respond: func(string) *result { return &result{Stdout: "1\n" + overlayMeta} },
 	}
 	e := testEngine(t, runner)
 
@@ -37,8 +35,8 @@ func TestExecuteRunsAScopeInTheWorkloadSlice(t *testing.T) {
 	if len(runner.lines) != 2 || runner.lines[1] != want {
 		t.Fatalf("got %q, want the meta read then %q", runner.lines, want)
 	}
-	if !strings.Contains(runner.lines[0], recordPath(testRoot, "w1")) {
-		t.Errorf("the first command must read %q", recordPath(testRoot, "w1"))
+	if !strings.Contains(runner.lines[0], workloadDir(testRoot, "w1")) {
+		t.Errorf("the first command must read the record under %q", workloadDir(testRoot, "w1"))
 	}
 
 	code, err := e.ExecExitCode(t.Context(), "w1", execID)

@@ -6,16 +6,24 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+
+	"github.com/cockroachdb/errors"
+
+	coretypes "github.com/projecteru2/core/types"
 )
 
-const upperDir = "upper"
+const (
+	lowerDir  = "lower"
+	upperDir  = "upper"
+	mergedDir = "merged"
+)
 
 func (e *Engine) VirtualizationCopyTo(ctx context.Context, ID, target string, content []byte, uid, gid int, mode int64) error {
 	return e.VirtualizationCopyChunkTo(ctx, ID, target, int64(len(content)), bytes.NewReader(content), uid, gid, mode)
 }
 
 func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target string, _ int64, content io.Reader, uid, gid int, mode int64) error {
-	path, err := e.hostPath(ctx, ID, target)
+	paths, err := e.hostPaths(ctx, ID, target)
 	if err != nil {
 		return err
 	}
@@ -27,6 +35,7 @@ func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target strin
 		_ = remote.Close()
 	}()
 
+	path := paths[0]
 	if err = remote.MkdirAll(filepath.Dir(path)); err != nil {
 		return err
 	}
@@ -48,7 +57,7 @@ func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target strin
 }
 
 func (e *Engine) VirtualizationCopyFrom(ctx context.Context, ID, path string) (content []byte, uid, gid int, mode int64, err error) {
-	host, err := e.hostPath(ctx, ID, path)
+	paths, err := e.hostPaths(ctx, ID, path)
 	if err != nil {
 		return nil, 0, 0, 0, err
 	}
@@ -60,29 +69,37 @@ func (e *Engine) VirtualizationCopyFrom(ctx context.Context, ID, path string) (c
 		_ = remote.Close()
 	}()
 
-	info, err := remote.Stat(host)
-	if err != nil {
-		return nil, 0, 0, 0, err
+	for _, host := range paths {
+		info, statErr := remote.Stat(host)
+		if statErr != nil {
+			continue
+		}
+		file, openErr := remote.Open(host)
+		if openErr != nil {
+			return nil, 0, 0, 0, openErr
+		}
+		defer func() {
+			_ = file.Close()
+		}()
+		content, err = io.ReadAll(file)
+		return content, info.UID, info.GID, int64(info.Mode), err
 	}
-	file, err := remote.Open(host)
-	if err != nil {
-		return nil, 0, 0, 0, err
-	}
-	defer func() {
-		_ = file.Close()
-	}()
-	content, err = io.ReadAll(file)
-	return content, info.UID, info.GID, int64(info.Mode), err
+	return nil, 0, 0, 0, errors.Wrapf(coretypes.ErrWorkloadNotExists, "%s not found in workload %s", path, ID)
 }
 
-// hostPath maps a path inside the workload onto the node's filesystem.
-func (e *Engine) hostPath(ctx context.Context, ID, target string) (string, error) {
-	record, err := e.workloadMeta(ctx, ID)
+// hostPaths maps a path inside the workload onto the node's filesystem, most specific first.
+// Writing under a mounted overlay is undefined, and reading only its upper dir misses the bundle.
+func (e *Engine) hostPaths(ctx context.Context, ID, target string) ([]string, error) {
+	record, mounted, err := e.workloadMeta(ctx, ID)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if record.RootDirectory == "" {
-		return filepath.Join(record.WorkingDir, target), nil
+		return []string{filepath.Join(record.WorkingDir, target)}, nil
 	}
-	return filepath.Join(workloadDir(e.root, ID), upperDir, target), nil
+	dir := workloadDir(e.root, ID)
+	if mounted {
+		return []string{filepath.Join(dir, mergedDir, target)}, nil
+	}
+	return []string{filepath.Join(dir, upperDir, target), filepath.Join(dir, lowerDir, target)}, nil
 }

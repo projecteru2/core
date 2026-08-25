@@ -116,7 +116,7 @@ func (e *Engine) ImageRemoteDigest(ctx context.Context, image string) (string, e
 }
 
 func (e *Engine) ImageBuildFromExist(ctx context.Context, ID string, refs []string, _ string) (string, error) {
-	record, err := e.workloadMeta(ctx, ID)
+	record, _, err := e.workloadMeta(ctx, ID)
 	if err != nil {
 		return "", err
 	}

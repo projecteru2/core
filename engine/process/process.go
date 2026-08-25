@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"context"
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"strings"
 	"sync"
@@ -32,6 +33,12 @@ const (
 	infoScript = `printf '%s\n' "$(cat /etc/machine-id 2>/dev/null)" "$(nproc 2>/dev/null)" ` +
 		`"$(awk '/^MemTotal:/{print $2}' /proc/meminfo 2>/dev/null)" "$(df -Pk "$1" 2>/dev/null | awk 'NR==2{print $2}')"`
 )
+
+var metaScript = fmt.Sprintf(`dir=$1
+test -f "$dir/meta.json" || exit %d
+if mountpoint -q "$dir/merged"; then echo 1; else echo 0; fi
+cat "$dir/meta.json"
+`, notExistsCode)
 
 var _ engine.API = (*Engine)(nil)
 
@@ -120,17 +127,19 @@ func (e *Engine) run(ctx context.Context, argv ...string) (*result, error) {
 	return res, exitError(argv, res)
 }
 
-func (e *Engine) workloadMeta(ctx context.Context, ID string) (*meta, error) {
-	res, err := e.call(ctx, "cat", recordPath(e.root, ID))
+// workloadMeta reads the durable record and the overlay's mount state in one round trip.
+func (e *Engine) workloadMeta(ctx context.Context, ID string) (*meta, bool, error) {
+	res, err := e.call(ctx, shell(metaScript, workloadDir(e.root, ID))...)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	if res.Code != 0 {
-		return nil, errors.Wrapf(coretypes.ErrWorkloadNotExists, "no meta file for %s", ID)
+		return nil, false, errors.Wrapf(coretypes.ErrWorkloadNotExists, "no meta file for %s", ID)
 	}
+	mounted, body, _ := strings.Cut(res.Stdout, "\n")
 	record := &meta{}
-	if err = json.Unmarshal([]byte(res.Stdout), record); err != nil {
-		return nil, err
+	if err = json.Unmarshal([]byte(body), record); err != nil {
+		return nil, false, err
 	}
-	return record, nil
+	return record, mounted == "1", nil
 }

@@ -10,7 +10,11 @@ import (
 	coretypes "github.com/projecteru2/core/types"
 )
 
-const testRoot = "/var/lib/eru/process"
+const (
+	testRoot    = "/var/lib/eru/process"
+	overlayMeta = `{"id":"w1","kind":"process","podname":"prod","root_directory":"/var/lib/eru/process/w1/merged"}`
+	rawMeta     = `{"id":"w1","kind":"process","podname":"prod","working_dir":"/srv/app"}`
+)
 
 // fakeRunner records every command line and replays canned results.
 type fakeRunner struct {

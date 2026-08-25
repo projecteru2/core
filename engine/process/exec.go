@@ -14,7 +14,7 @@ import (
 var errExecNotFound = errors.New("exec not found")
 
 func (e *Engine) Execute(ctx context.Context, ID string, config *enginetypes.ExecConfig) (execID string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
-	record, err := e.workloadMeta(ctx, ID)
+	record, _, err := e.workloadMeta(ctx, ID)
 	if err != nil {
 		return "", nil, nil, nil, err
 	}
