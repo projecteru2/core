@@ -16,15 +16,15 @@ import (
 
 func TestVirtualizationCopyToStreamsOneTarEntry(t *testing.T) {
 	session := &sshrunnertest.Session{}
-	runner := &sshrunnertest.Fake{Started: []*sshrunnertest.Session{session}}
+	runner := &sshrunnertest.Fake{Started: []*sshrunnertest.Session{session}, Respond: runningRecord}
 	e := testEngine(t, runner)
 
 	if err := e.VirtualizationCopyTo(t.Context(), "w1", "/etc/app/app.conf", []byte("key=value\n"), 1000, 1000, 0o640); err != nil {
 		t.Fatalf("copy to: %v", err)
 	}
 	want := sshrunner.Quote([]string{testBinary, "vm", "exec", "-i", "w1", "--", "tar", "-x", "-P", "-f", "-"})
-	if len(runner.Lines()) != 1 || runner.Lines()[0] != want {
-		t.Fatalf("got %q, want %q", runner.Lines(), want)
+	if len(runner.Lines()) != 2 || runner.Lines()[1] != want {
+		t.Fatalf("got %q, want the state check then %q", runner.Lines(), want)
 	}
 	archive := tar.NewReader(strings.NewReader(session.In()))
 	header, err := archive.Next()
@@ -44,12 +44,27 @@ func TestVirtualizationCopyToStreamsOneTarEntry(t *testing.T) {
 }
 
 func TestVirtualizationCopyToReportsTheGuestFailure(t *testing.T) {
-	runner := &sshrunnertest.Fake{Started: []*sshrunnertest.Session{{Code: 2, Err: "tar: cannot open"}}}
+	runner := &sshrunnertest.Fake{Started: []*sshrunnertest.Session{{Code: 2, Err: "tar: cannot open"}}, Respond: runningRecord}
 	e := testEngine(t, runner)
 
 	err := e.VirtualizationCopyTo(t.Context(), "w1", "/etc/app.conf", []byte("x"), 0, 0, 0o644)
 	if err == nil || !strings.Contains(err.Error(), "tar: cannot open") {
 		t.Errorf("got %v, want the guest's stderr", err)
+	}
+}
+
+func TestVirtualizationCopyToRefusesAGuestThatHasNotBooted(t *testing.T) {
+	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result {
+		return &sshrunner.Result{Stdout: storedRecord + "\n" + stoppedVM}
+	}}
+	e := testEngine(t, runner)
+
+	err := e.VirtualizationCopyTo(t.Context(), "w1", "/etc/app.conf", []byte("x"), 0, 0, 0o644)
+	if !errors.Is(err, coretypes.ErrEngineNotImplemented) {
+		t.Errorf("got %v, want ErrEngineNotImplemented", err)
+	}
+	if len(runner.Lines()) != 1 {
+		t.Errorf("got %q, want the state check and no exec", runner.Lines())
 	}
 }
 

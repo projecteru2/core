@@ -48,6 +48,10 @@ func testEngine(t *testing.T, runner *sshrunnertest.Fake) *Engine {
 	}
 }
 
+func runningRecord(string) *sshrunner.Result {
+	return &sshrunner.Result{Stdout: storedRecord + "\n" + runningVM}
+}
+
 func chAPI(t *testing.T, console string, dialed *string) func(network, addr string) (net.Conn, error) {
 	t.Helper()
 	return func(_, addr string) (net.Conn, error) {

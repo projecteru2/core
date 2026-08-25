@@ -20,6 +20,13 @@ func (e *Engine) VirtualizationCopyTo(ctx context.Context, ID, target string, co
 
 // VirtualizationCopyChunkTo streams one tar entry into `tar -x -P`; the absolute name makes tar create the parents.
 func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target string, size int64, content io.Reader, uid, gid int, mode int64) error {
+	info, err := e.VirtualizationInspect(ctx, ID)
+	if err != nil {
+		return err
+	}
+	if !info.Running {
+		return errors.Wrap(coretypes.ErrEngineNotImplemented, "a vm takes files through its guest agent, send them after the vm boots")
+	}
 	argv := e.vm("exec", "-i", ID, "--", "tar", "-x", "-P", "-f", "-")
 	running, err := e.runner.Start(ctx, sshrunner.Quote(argv), &sshrunner.StartOptions{Stdin: true})
 	if err != nil {

@@ -262,7 +262,7 @@ the cocoon daemon's events on it. The eru name stays in the meta file and in cor
 | `VirtualizationLogs` | `journalctl SYSLOG_IDENTIFIER=eru ERU_ID=<id>` with `-n`, `--since` and `--until` — eru-agent copies the guest console into journald; a followed stream ends when the guest stops |
 | `VirtualizationAttach` | without stdin, the journald follow; with stdin, `ErrEngineNotImplemented` — the console needs a pty (core#660) |
 | `Execute` / `ExecExitCode` | `vm exec [-i] [-e K=V …] <id> -- <cmd>` through cocoon-agent in pipe mode, stdio on the SSH session, the exit code the guest command's. `ExecResize` is `ErrEngineNotImplemented` (core#660); the exec's `user` and `working_dir` are not applied |
-| `VirtualizationCopyTo` / `CopyFrom` | a one-entry tar through `vm exec … tar -x -P -f -` / `tar -c -P -f -`: the absolute entry name makes tar create the parents, and `tar.exe` ships with Windows 10+ |
+| `VirtualizationCopyTo` / `CopyFrom` | a one-entry tar through `vm exec … tar -x -P -f -` / `tar -c -P -f -`: the absolute entry name makes tar create the parents, and `tar.exe` ships with Windows 10+. A copy into a guest that is not running is `ErrEngineNotImplemented` — the state is checked first, one round trip per file |
 | `VirtualizationUpdateResource` | a remap (the cpumem binding refresh core runs after every deploy) is a no-op without a round trip; a realloc is `ErrEngineNotImplemented`, CPU and memory hot-plug wait on cocoon (core#661) |
 | `ImagePull` | `image pull <ref>` for OCI VM images and cloud-image URLs, registry auth left to cocoon's own config; a split-qcow2 artifact (the Windows images) is `oras pull`ed and `image import`ed under the same ref, once |
 | `ImageList` / `ImageRemove` | `image list --format json` filtered by name prefix / `image rm` |
@@ -285,6 +285,12 @@ address, so an address in the request — which is what `replace --network-inher
 old guest's `{conflist: ip}` — keeps only its conflist name and is logged at debug: a VM cannot be
 given a fixed IP. The address lands in the meta file and in `VirtualizationInspect` under the
 network's name, `default` when none was named.
+
+A VM has no way to take a file before it boots: the copy verbs go through cocoon-agent inside the
+guest, and core sends a deploy's `--file` set between the create and the start. Such a deploy fails
+with `ErrEngineNotImplemented` and "send them after the vm boots" rather than a tar error from a
+guest that does not exist yet; the same holds for `replace --copy`. Files reach a VM through
+`eru-cli send` once it is running, or through the image.
 
 ### Windows guests
 
