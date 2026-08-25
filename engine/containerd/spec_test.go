@@ -154,7 +154,8 @@ func TestNumericUser(t *testing.T) {
 	}{
 		{"uid and gid", "1000:1001", 1000, 1001, true},
 		{"a lone uid takes the root group", "1000", 1000, 0, true},
-		{"root", "0", 0, 0, true},
+		{"root by id", "0", 0, 0, true},
+		{"root by name, the cli's default", "root", 0, 0, true},
 		{"a name", "app", 0, 0, false},
 		{"a named group", "1000:staff", 0, 0, false},
 		{"empty", "", 0, 0, false},
@@ -189,6 +190,17 @@ func TestWithProcessTakesTheWorkloadOverTheImage(t *testing.T) {
 	}
 	if spec.Process.User.UID != 1000 || spec.Process.User.GID != 1001 {
 		t.Errorf("got %d:%d, want 1000:1001", spec.Process.User.UID, spec.Process.User.GID)
+	}
+}
+
+func TestWithProcessTakesRootByName(t *testing.T) {
+	spec := newTestSpec()
+
+	if err := withProcess(&enginetypes.VirtualizationCreateOptions{User: rootUser})(t.Context(), nil, nil, spec); err != nil {
+		t.Fatalf("spec: %v", err)
+	}
+	if spec.Process.User.UID != 0 || spec.Process.User.GID != 0 {
+		t.Errorf("got %d:%d, want 0:0", spec.Process.User.UID, spec.Process.User.GID)
 	}
 }
 

@@ -30,6 +30,7 @@ const (
 	defaultCPUShare = 1024
 	hostNetwork     = "host"
 	readOnlyMode    = "ro"
+	rootUser        = "root"
 	bindType        = "bind"
 	bindOption      = "rbind"
 
@@ -361,8 +362,11 @@ func applyUser(spec *specs.Spec, user string) error {
 // numericUser parses uid[:gid]; an unnamed group is root, since the passwd entry that would
 // carry the user's own group lives in the image.
 func numericUser(user string) (uid, gid uint32, ok bool) {
-	if user == "" {
+	switch user {
+	case "":
 		return 0, 0, false
+	case rootUser:
+		return 0, 0, true
 	}
 	name, group, _ := strings.Cut(user, ":")
 	parsedUID, err := strconv.ParseUint(name, 10, 32)
