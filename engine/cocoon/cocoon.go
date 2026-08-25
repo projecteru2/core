@@ -45,7 +45,7 @@ type Engine struct {
 	mu    sync.Mutex
 	execs map[string]sshrunner.Session
 
-	probe   sync.Once
+	probe   sync.Mutex
 	hasOras bool
 }
 

@@ -165,10 +165,14 @@ func (e *Engine) partsArtifact(ctx context.Context, ref string) bool {
 	return json.Unmarshal([]byte(res.Stdout), m) == nil && m.parts()
 }
 
+// orasPresent remembers only that the node has oras; a probe an ssh failure lost is asked again.
 func (e *Engine) orasPresent(ctx context.Context) bool {
-	e.probe.Do(func() {
-		res, err := e.call(ctx, sshrunner.Shell(orasProbe)...)
-		e.hasOras = err == nil && res.Code == 0
-	})
+	e.probe.Lock()
+	defer e.probe.Unlock()
+	if e.hasOras {
+		return true
+	}
+	res, err := e.call(ctx, sshrunner.Shell(orasProbe)...)
+	e.hasOras = err == nil && res.Code == 0
 	return e.hasOras
 }

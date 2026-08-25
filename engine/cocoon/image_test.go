@@ -95,8 +95,22 @@ func TestImagePullSkipsOrasOnANodeWithoutIt(t *testing.T) {
 	if err != nil || digest != "" {
 		t.Errorf("got %q %v, want no digest and no error without oras", digest, err)
 	}
-	if len(runner.Lines()) != 2 {
-		t.Errorf("got %q, want the node probed once", runner.Lines())
+	if lines := runner.Lines(); len(lines) != 3 || lines[2] != want[0] {
+		t.Errorf("got %q, want a node that answered no probed again", lines)
+	}
+}
+
+func TestOrasProbeIsAskedOnlyOnceOnceItAnswered(t *testing.T) {
+	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: `{"digest":"sha256:abc"}`} }}
+	e := testEngine(t, runner)
+
+	for range 2 {
+		if _, err := e.ImageRemoteDigest(t.Context(), testImage); err != nil {
+			t.Fatalf("digest: %v", err)
+		}
+	}
+	if lines := runner.Lines(); len(lines) != 3 {
+		t.Errorf("got %q, want one probe and two manifest reads", lines)
 	}
 }
 
