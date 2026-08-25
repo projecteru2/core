@@ -143,11 +143,7 @@ func (e *Engine) VirtualizationResume(ctx context.Context, ID string) error {
 }
 
 func (e *Engine) VirtualizationInspect(ctx context.Context, ID string) (*enginetypes.VirtualizationInfo, error) {
-	res, err := e.runRecorded(ctx, sshrunner.Shell(inspectScript, e.cocoon.Binary, ID, durablePath(e.cocoon.Root, ID)), ID)
-	if err != nil {
-		return nil, err
-	}
-	record, vm, err := parseInspect(res.Stdout)
+	record, vm, err := e.inspectVM(ctx, ID)
 	if err != nil {
 		return nil, err
 	}
@@ -205,6 +201,14 @@ func (e *Engine) programAddress(ctx context.Context, ID string, addr *guestAddre
 	if _, err := e.run(ctx, sshrunner.Shell(addressScript, e.cocoon.Binary, ID, addr.IP, addr.mask(), addr.Gateway)...); err != nil {
 		log.WithFunc("engine.cocoon.programAddress").Warnf(ctx, "vm %s did not take the address %s: %v", ID, addr.IP, err)
 	}
+}
+
+func (e *Engine) inspectVM(ctx context.Context, ID string) (*meta, *vmRecord, error) {
+	res, err := e.runRecorded(ctx, sshrunner.Shell(inspectScript, e.cocoon.Binary, ID, durablePath(e.cocoon.Root, ID)), ID)
+	if err != nil {
+		return nil, nil, err
+	}
+	return parseInspect(res.Stdout)
 }
 
 // runRecorded runs a script that exits 64 when the workload has no record on the node.

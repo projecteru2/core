@@ -261,7 +261,7 @@ the cocoon daemon's events on it. The eru name stays in the meta file and in cor
 | `VirtualizationWait` | `vm status --event --format json` until the guest leaves `running`; a VM has no exit code, so the result is 0 |
 | `VirtualizationLogs` | `journalctl SYSLOG_IDENTIFIER=eru ERU_ID=<id>` with `-n`, `--since` and `--until` — eru-agent copies the guest console into journald; a followed stream ends when the guest stops, and both `journalctl` and the status watcher are killed by pid rather than through a pipeline, since the watcher only notices a closed pipe at its next event |
 | `VirtualizationAttach` | without stdin, the journald follow; with stdin, `ErrEngineNotImplemented` — the console needs a pty (core#660) |
-| `Execute` / `ExecExitCode` | `vm exec [-i] [-e K=V …] <id> -- <cmd>` through cocoon-agent in pipe mode, stdio on the SSH session, the exit code the guest command's. `ExecResize` is `ErrEngineNotImplemented` (core#660); the exec's `user` and `working_dir` are not applied |
+| `Execute` / `ExecExitCode` | `vm exec [-i] [-e K=V …] <id> -- <cmd>` through cocoon-agent in pipe mode, stdio on the SSH session, the exit code the guest command's. `ExecResize` is `ErrEngineNotImplemented` (core#660). A `user` is refused with `ErrEngineNotImplemented` rather than silently run as whoever cocoon-agent is (core#660); a `working_dir` on a Linux guest is applied by wrapping the command in `sh -c 'cd "$1" && shift && exec "$@"'`, which costs one `vm inspect` to rule out a Windows guest, where it is refused |
 | `VirtualizationCopyTo` / `CopyFrom` | a one-entry tar through `vm exec … tar -x -P -f -` / `tar -c -P -f -`: the absolute entry name makes tar create the parents, and `tar.exe` ships with Windows 10+. A copy into a guest that is not running is `ErrEngineNotImplemented` — the state is checked first, one round trip per file |
 | `VirtualizationUpdateResource` | a remap (the cpumem binding refresh core runs after every deploy) is a no-op without a round trip; a realloc is `ErrEngineNotImplemented`, CPU and memory hot-plug wait on cocoon (core#661) |
 | `ImagePull` | `image pull <ref>` for OCI VM images and cloud-image URLs, registry auth left to cocoon's own config; a split-qcow2 artifact (the Windows images) is `oras pull`ed and `image import`ed under the same ref, once |
@@ -285,6 +285,10 @@ address, so an address in the request — which is what `replace --network-inher
 old guest's `{conflist: ip}` — keeps only its conflist name and is logged at debug: a VM cannot be
 given a fixed IP. The address lands in the meta file and in `VirtualizationInspect` under the
 network's name, `default` when none was named.
+
+Because a `user` is refused rather than ignored, an entrypoint hook on a workload deployed with
+`user` fails on a VM node: core passes the workload's user to every hook exec. Deploy VM workloads
+that need hooks without a `user`, or keep the hook's work inside the image.
 
 A VM has no way to take a file before it boots: the copy verbs go through cocoon-agent inside the
 guest, and core sends a deploy's `--file` set between the create and the start. Such a deploy fails
