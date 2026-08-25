@@ -157,7 +157,7 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, en
 			Errorf(ctx, err, "failed to parse engine args %+v", engineParams)
 		return err
 	}
-	argv := slices.Concat([]string{"systemctl", "set-property", "--runtime", unitName(ID)}, properties(resource, 0))
+	argv := slices.Concat([]string{"systemctl", "set-property", "--runtime", unitName(ID)}, updateProperties(resource))
 	res, err := e.call(ctx, argv...)
 	if err != nil {
 		return err

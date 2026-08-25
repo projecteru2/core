@@ -87,26 +87,73 @@ func (u *unit) description() string {
 // properties maps the cpumem and storage plugins' engine params onto cgroup v2 knobs.
 func properties(resource *engine.VirtualizationResource, tasksMax int) []string {
 	props := []string{}
-	switch {
-	case len(resource.CPU) > 0:
-		props = append(props, "AllowedCPUs="+strings.Join(slices.Sorted(maps.Keys(resource.CPU)), " "))
+	if cpus := allowedCPUs(resource); cpus != "" {
+		props = append(props, "AllowedCPUs="+cpus)
 		if resource.NUMANode != "" {
 			props = append(props, "AllowedMemoryNodes="+resource.NUMANode)
 		}
 		props = append(props, "CPUWeight="+strconv.Itoa(cpuWeight(resource.Quota, resource.Remap)))
-	case resource.Quota > 0:
-		props = append(props, fmt.Sprintf("CPUQuota=%d%%", int64(math.Round(resource.Quota*quotaPercent))))
+	}
+	if quota := cpuQuota(resource); quota != "" {
+		props = append(props, "CPUQuota="+quota)
 	}
 	if resource.Memory > 0 {
 		props = append(props,
-			"MemoryMax="+strconv.FormatInt(resource.Memory, 10),
-			"MemoryHigh="+strconv.FormatInt(max(resource.Memory/2, minMemory), 10),
+			"MemoryMax="+memoryMax(resource),
+			"MemoryLow="+memoryLow(resource),
+			"MemorySwapMax=0",
 		)
 	}
 	if tasksMax > 0 {
 		props = append(props, "TasksMax="+strconv.Itoa(tasksMax))
 	}
 	return append(props, throttles(resource.IOPSOptions)...)
+}
+
+// updateProperties spells every knob out, so a realloc that drops one shape clears what it set.
+func updateProperties(resource *engine.VirtualizationResource) []string {
+	props := []string{
+		"CPUQuota=" + cpuQuota(resource),
+		"AllowedCPUs=" + allowedCPUs(resource),
+		"AllowedMemoryNodes=" + resource.NUMANode,
+		"CPUWeight=" + strconv.Itoa(cpuWeight(resource.Quota, resource.Remap)),
+		"MemoryMax=" + memoryMax(resource),
+		"MemoryLow=" + memoryLow(resource),
+		"MemorySwapMax=0",
+	}
+	throttled := throttles(resource.IOPSOptions)
+	for _, key := range throttleKeys {
+		if !slices.ContainsFunc(throttled, func(p string) bool { return strings.HasPrefix(p, key+"=") }) {
+			props = append(props, key+"=")
+		}
+	}
+	return append(props, throttled...)
+}
+
+func cpuQuota(resource *engine.VirtualizationResource) string {
+	if resource.Quota <= 0 {
+		return ""
+	}
+	return fmt.Sprintf("%d%%", int64(math.Round(resource.Quota*quotaPercent)))
+}
+
+func allowedCPUs(resource *engine.VirtualizationResource) string {
+	return strings.Join(slices.Sorted(maps.Keys(resource.CPU)), " ")
+}
+
+func memoryMax(resource *engine.VirtualizationResource) string {
+	if resource.Memory <= 0 {
+		return "infinity"
+	}
+	return strconv.FormatInt(resource.Memory, 10)
+}
+
+// memoryLow mirrors docker's MemoryReservation: half the limit, never under the engine minimum.
+func memoryLow(resource *engine.VirtualizationResource) string {
+	if resource.Memory <= 0 {
+		return "0"
+	}
+	return strconv.FormatInt(max(resource.Memory/2, minMemory), 10)
 }
 
 // cpuWeight mirrors the docker engine's share split: a bound whole core keeps the default weight.

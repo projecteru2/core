@@ -241,7 +241,27 @@ func TestVirtualizationUpdateResourceSetsLiveProperties(t *testing.T) {
 	}
 	want := quote([]string{
 		"systemctl", "set-property", "--runtime", "eru-w1.service",
-		"CPUQuota=200%", "MemoryMax=1073741824", "MemoryHigh=536870912",
+		"CPUQuota=200%", "AllowedCPUs=", "AllowedMemoryNodes=", "CPUWeight=100",
+		"MemoryMax=1073741824", "MemoryLow=536870912", "MemorySwapMax=0",
+		"IOReadIOPSMax=", "IOWriteIOPSMax=", "IOReadBandwidthMax=", "IOWriteBandwidthMax=",
+	})
+	if len(runner.lines) != 1 || runner.lines[0] != want {
+		t.Errorf("got %q, want %q", runner.lines, want)
+	}
+}
+
+func TestVirtualizationUpdateResourceClearsTheOldShape(t *testing.T) {
+	runner := &fakeRunner{}
+	e := testEngine(t, runner)
+
+	if err := e.VirtualizationUpdateResource(t.Context(), "w1", resourcetypes.Resources{}); err != nil {
+		t.Fatalf("update: %v", err)
+	}
+	want := quote([]string{
+		"systemctl", "set-property", "--runtime", "eru-w1.service",
+		"CPUQuota=", "AllowedCPUs=", "AllowedMemoryNodes=", "CPUWeight=100",
+		"MemoryMax=infinity", "MemoryLow=0", "MemorySwapMax=0",
+		"IOReadIOPSMax=", "IOWriteIOPSMax=", "IOReadBandwidthMax=", "IOWriteBandwidthMax=",
 	})
 	if len(runner.lines) != 1 || runner.lines[0] != want {
 		t.Errorf("got %q, want %q", runner.lines, want)
