@@ -15,7 +15,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	zerolog "github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v3"
-	_ "go.uber.org/automaxprocs"
 	"google.golang.org/grpc"
 
 	"github.com/projecteru2/core/auth"
