@@ -239,14 +239,7 @@ func (s *Store) doGetNodes(
 		if err := json.Unmarshal([]byte(value), node); err != nil {
 			return nil, err
 		}
-		ep := enginetypes.Params{
-			Nodename: node.Name,
-			Endpoint: node.Endpoint,
-			CA:       node.Ca,
-			Cert:     node.Cert,
-			Key:      node.Key,
-		}
-		node.Engine = &fake.EngineWithErr{DefaultErr: types.ErrNilEngine, EP: &ep}
+		node.Engine = &fake.EngineWithErr{DefaultErr: types.ErrNilEngine, EP: enginetypes.NewParams(node.Name, node.Endpoint, node.Ca, node.Cert, node.Key)}
 		if utils.LabelsFilter(node.Labels, labels) {
 			allNodes = append(allNodes, node)
 		}

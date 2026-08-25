@@ -29,7 +29,6 @@ packages:
   github.com/projecteru2/core/store/etcdv3/meta:
     interfaces:
       ETCDClientV3:
-      KV:
   github.com/projecteru2/core/wal:
     interfaces:
       WAL:
