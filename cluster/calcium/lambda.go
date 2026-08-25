@@ -51,13 +51,13 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 
 		if message.Error != nil || message.WorkloadID == "" {
 			logger.Error(ctx, message.Error, "create workload failed")
-			return eruErrMsg("", "Create workload failed %+v", message.Error)
+			return eruErrMsg("", "Create workload failed %v", message.Error)
 		}
 
 		commit, err := c.wal.Log(eventCreateLambda, message.WorkloadID)
 		if err != nil {
 			logger.Error(ctx, err)
-			return eruErrMsg(message.WorkloadID, "Create wal failed: %s, %+v", message.WorkloadID, err)
+			return eruErrMsg(message.WorkloadID, "Create wal failed: %s, %v", message.WorkloadID, err)
 		}
 		defer func() {
 			if commitErr := commit(); commitErr != nil {
@@ -78,7 +78,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		workload, err := c.GetWorkload(ctx, message.WorkloadID)
 		if err != nil {
 			logger.Error(ctx, err, "get workload failed")
-			return eruErrMsg(message.WorkloadID, "Get workload %s failed %+v", message.WorkloadID, err)
+			return eruErrMsg(message.WorkloadID, "Get workload %s failed %v", message.WorkloadID, err)
 		}
 
 		var stdout, stderr io.ReadCloser
@@ -89,7 +89,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 			Stderr: true,
 		}); err != nil {
 			logger.Errorf(ctx, err, "cannot fetch log of workload %s", message.WorkloadID)
-			return eruErrMsg(message.WorkloadID, "Fetch log for workload %s failed %+v", message.WorkloadID, err)
+			return eruErrMsg(message.WorkloadID, "Fetch log for workload %s failed %v", message.WorkloadID, err)
 		}
 
 		splitFunc, split := bufio.ScanLines, byte('\n')
@@ -99,7 +99,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 			stdout, stderr, inStream, err = workload.Engine.VirtualizationAttach(ctx, message.WorkloadID, true, true)
 			if err != nil {
 				logger.Errorf(ctx, err, "cannot attach workload %s", message.WorkloadID)
-				return eruErrMsg(message.WorkloadID, "Attach to workload %s failed %+v", message.WorkloadID, err)
+				return eruErrMsg(message.WorkloadID, "Attach to workload %s failed %v", message.WorkloadID, err)
 			}
 
 			c.processVirtualizationInStream(ctx, inStream, inCh, func(height, width uint) error {
@@ -120,7 +120,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		r, err := workload.Engine.VirtualizationWait(ctx, message.WorkloadID, "")
 		if err != nil {
 			logger.Errorf(ctx, err, "%s wait failed", utils.ShortID(message.WorkloadID))
-			return eruErrMsg(message.WorkloadID, "Wait workload %s failed %+v", message.WorkloadID, err)
+			return eruErrMsg(message.WorkloadID, "Wait workload %s failed %v", message.WorkloadID, err)
 		}
 
 		if r.Code != 0 {

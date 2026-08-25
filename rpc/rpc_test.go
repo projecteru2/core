@@ -212,6 +212,14 @@ func TestSendLargeFileReportsItsOwnStatusCode(t *testing.T) {
 	assert.Equal(t, SendLargeFile, grpcstatus.Code(err))
 }
 
+func TestReallocResourceStatusHidesStackTrace(t *testing.T) {
+	v := newVibranium()
+
+	_, err := v.ReallocResource(context.Background(), &pb.ReallocOptions{})
+	assert.Error(t, err)
+	assert.NotContains(t, grpcstatus.Convert(err).Message(), ".go:")
+}
+
 func newVibranium() *Vibranium {
 	v := &Vibranium{
 		cluster: &clustermock.Cluster{},

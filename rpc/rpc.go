@@ -786,7 +786,7 @@ func (v *Vibranium) ReallocResource(ctx context.Context, opts *pb.ReallocOptions
 	}()
 
 	if opts.Id == "" {
-		return msg, grpcstatus.Errorf(ReallocResource, "%+v", types.ErrNoWorkloadIDs)
+		return msg, grpcstatus.Error(ReallocResource, types.ErrNoWorkloadIDs.Error())
 	}
 
 	if err := v.cluster.ReallocResource(

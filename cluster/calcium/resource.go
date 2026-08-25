@@ -65,7 +65,7 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, inspec
 		if inspect {
 			for _, workload := range nr.Workloads {
 				if _, err := workload.Inspect(ctx); err != nil { // inspect only probes existence; the result is discarded
-					nr.Diffs = append(nr.Diffs, fmt.Sprintf("workload %s inspect failed %+v \n", workload.ID, err))
+					nr.Diffs = append(nr.Diffs, fmt.Sprintf("workload %s inspect failed %v \n", workload.ID, err))
 				}
 			}
 		}
