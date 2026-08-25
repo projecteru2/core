@@ -3,6 +3,7 @@ package containerd
 import (
 	"context"
 	"io"
+	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -10,7 +11,6 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/containerd/containerd/v2/client"
 	"github.com/containerd/containerd/v2/pkg/cio"
-	cerrdefs "github.com/containerd/errdefs"
 
 	"github.com/projecteru2/core/engine/journal"
 	"github.com/projecteru2/core/engine/sshrunner"
@@ -21,20 +21,30 @@ const (
 	// logFlushGrace lets journald hand over the last lines a dying task wrote.
 	logFlushGrace = time.Second
 
-	taskPollInterval = 20 * time.Millisecond
-	taskPollMax      = 200 * time.Millisecond
+	fifoDirName = "fifo"
+
+	fifoMakeScript = `set -e
+mkdir -p "$1"
+shift
+rm -f "$@"
+mkfifo "$@"
+`
+	fifoWriteScript = `exec cat > "$1"`
 )
 
-// attach is the `ctr tasks start` session an interactive workload runs under: it owns the
-// task's fifos, so it is at once the workload's stdio, its console and its exit status.
+// attach is the three ssh sessions relaying an interactive workload's node-side fifos.
 type attach struct {
-	sess   sshrunner.Session
-	exited <-chan client.ExitStatus
+	stdin  sshrunner.Session
+	stdout sshrunner.Session
+	stderr sshrunner.Session
 }
 
-type taskContainer interface {
-	ID() string
-	Task(ctx context.Context, attach cio.Attach) (client.Task, error)
+func (a *attach) close() {
+	for _, sess := range []sshrunner.Session{a.stdin, a.stdout, a.stderr} {
+		if sess != nil {
+			_ = sess.Close()
+		}
+	}
 }
 
 func (e *Engine) VirtualizationLogs(ctx context.Context, opts *enginetypes.VirtualizationLogStreamOptions) (stdout, stderr io.ReadCloser, err error) {
@@ -67,7 +77,7 @@ func (e *Engine) VirtualizationLogs(ctx context.Context, opts *enginetypes.Virtu
 }
 
 // VirtualizationAttach without stdin is the journald follow; with stdin it hands back the
-// session the workload was started under, which is the only thing holding its fifos.
+// sessions parked on the workload's fifos.
 func (e *Engine) VirtualizationAttach(ctx context.Context, ID string, _, stdin bool) (io.ReadCloser, io.ReadCloser, io.WriteCloser, error) {
 	if !stdin {
 		stdout, stderr, err := e.VirtualizationLogs(ctx, &enginetypes.VirtualizationLogStreamOptions{ID: ID, Follow: true})
@@ -75,61 +85,61 @@ func (e *Engine) VirtualizationAttach(ctx context.Context, ID string, _, stdin b
 	}
 
 	e.mu.Lock()
-	running, ok := e.attaches[ID]
+	relay, ok := e.attaches[ID]
 	e.mu.Unlock()
 	if !ok {
 		return nil, nil, nil, errors.Wrap(errAttachNotFound, ID)
 	}
-	return io.NopCloser(running.sess.Stdout()), io.NopCloser(running.sess.Stderr()), running.sess.Stdin(), nil
+	return relay.stdout.Stdout(), relay.stderr.Stdout(), relay.stdin.Stdin(), nil
 }
 
-// startInteractive runs the task under `ctr tasks start`, which makes the fifos on the node
-// and relays them to the session's own stdio.
-func (e *Engine) startInteractive(ctx context.Context, found taskContainer) error {
-	argv := []string{ctrBinary, "--address", e.socket, "--namespace", e.namespace, "tasks", "start", found.ID()}
-	running, err := e.runner.Start(ctx, sshrunner.Quote(argv), &sshrunner.StartOptions{Stdin: true})
-	if err != nil {
-		return err
+// relayFifos parks a session on each node fifo before the task exists: the shim's own open of
+// the stdout and stderr fifos blocks until a reader is there.
+func (e *Engine) relayFifos(ctx context.Context, ID string) (_ cio.Creator, err error) {
+	e.releaseAttach(ID)
+	set := fifoSet(ID)
+	if _, err = e.run(ctx, sshrunner.Shell(fifoMakeScript, filepath.Dir(set.Stdin), set.Stdin, set.Stdout, set.Stderr)...); err != nil {
+		return nil, err
 	}
 
-	exited := make(chan client.ExitStatus, 1)
-	go waitSession(running, exited)
-	if err = awaitTask(ctx, found, exited); err != nil {
-		return err
+	relay := &attach{}
+	defer func() {
+		if err != nil {
+			relay.close()
+		}
+	}()
+	if relay.stdin, err = e.runner.Start(ctx, sshrunner.Quote(sshrunner.Shell(fifoWriteScript, set.Stdin)), &sshrunner.StartOptions{Stdin: true}); err != nil {
+		return nil, err
+	}
+	if relay.stdout, err = e.runner.Start(ctx, sshrunner.Quote([]string{"cat", set.Stdout}), &sshrunner.StartOptions{}); err != nil {
+		return nil, err
+	}
+	if relay.stderr, err = e.runner.Start(ctx, sshrunner.Quote([]string{"cat", set.Stderr}), &sshrunner.StartOptions{}); err != nil {
+		return nil, err
 	}
 	e.mu.Lock()
-	e.attaches[found.ID()] = &attach{sess: running, exited: exited}
+	e.attaches[ID] = relay
 	e.mu.Unlock()
-	return nil
+	return func(string) (cio.IO, error) { return cio.Load(cio.NewFIFOSet(set, nil)) }, nil
 }
 
-// waitSession turns ctr's own exit into the workload's: it exits with the task's status.
-func waitSession(running sshrunner.Session, exited chan<- client.ExitStatus) {
-	code, err := running.Wait()
-	_ = running.Close()
-	exited <- *client.NewExitStatus(uint32(max(code, 0)), time.Now(), err) //nolint:gosec // a shell exit status is never past 255
-	close(exited)
+// releaseAttach ends the relays; the stdin one parks on its fifo until the session is closed.
+func (e *Engine) releaseAttach(ID string) {
+	e.mu.Lock()
+	relay, ok := e.attaches[ID]
+	delete(e.attaches, ID)
+	e.mu.Unlock()
+	if ok {
+		relay.close()
+	}
 }
 
-func awaitTask(ctx context.Context, found taskContainer, exited <-chan client.ExitStatus) error {
-	for wait := taskPollInterval; ; wait = min(wait*2, taskPollMax) {
-		_, err := found.Task(ctx, nil)
-		if err == nil {
-			return nil
-		}
-		if !cerrdefs.IsNotFound(err) {
-			return err
-		}
-		select {
-		case status := <-exited:
-			if err = status.Error(); err != nil {
-				return err
-			}
-			return errors.Newf("%s exited %d before the task of %s appeared", ctrBinary, status.ExitCode(), found.ID())
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(wait):
-		}
+func fifoSet(ID string) cio.Config {
+	dir := filepath.Join(workloadDir(ID), fifoDirName)
+	return cio.Config{
+		Stdin:  filepath.Join(dir, "stdin"),
+		Stdout: filepath.Join(dir, "stdout"),
+		Stderr: filepath.Join(dir, "stderr"),
 	}
 }
 

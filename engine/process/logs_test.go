@@ -39,7 +39,7 @@ func TestVirtualizationLogsBuffersWhenNotFollowing(t *testing.T) {
 
 func TestVirtualizationLogsFollowStopsWithTheUnit(t *testing.T) {
 	running := &sshrunnertest.Session{Out: "line\n"}
-	runner := &sshrunnertest.Fake{Started: running}
+	runner := &sshrunnertest.Fake{Started: []*sshrunnertest.Session{running}}
 	e := testEngine(t, runner)
 
 	stdout, _, err := e.VirtualizationLogs(t.Context(), &enginetypes.VirtualizationLogStreamOptions{ID: "w1", Follow: true})

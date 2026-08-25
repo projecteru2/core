@@ -17,7 +17,10 @@ var _ sshrunner.Runner = (*Fake)(nil)
 // Fake records the command lines it is given and answers them from Respond.
 type Fake struct {
 	Respond func(line string) *sshrunner.Result
-	Started *Session
+	// Started hands one session to each started command in order.
+	Started []*Session
+	// StartErr refuses every command started past the ones Started scripts.
+	StartErr error
 
 	mu    sync.Mutex
 	lines []string
@@ -49,9 +52,15 @@ func (f *Fake) Run(_ context.Context, line string, _ io.Reader) (*sshrunner.Resu
 func (f *Fake) Start(_ context.Context, line string, opts *sshrunner.StartOptions) (sshrunner.Session, error) {
 	f.record(line)
 	f.mu.Lock()
+	defer f.mu.Unlock()
 	f.opts = append(f.opts, opts)
-	f.mu.Unlock()
-	return f.Started, nil
+	if len(f.opts) > len(f.Started) {
+		if f.StartErr != nil {
+			return nil, f.StartErr
+		}
+		return &Session{}, nil
+	}
+	return f.Started[len(f.opts)-1], nil
 }
 
 func (f *Fake) Files(context.Context) (sshrunner.Files, error) {

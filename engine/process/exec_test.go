@@ -12,7 +12,7 @@ import (
 
 func TestExecuteRunsAScopeInTheWorkloadSlice(t *testing.T) {
 	runner := &sshrunnertest.Fake{
-		Started: &sshrunnertest.Session{Code: 7},
+		Started: []*sshrunnertest.Session{{Code: 7}},
 		Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: "1\n" + overlayMeta} },
 	}
 	e := testEngine(t, runner)

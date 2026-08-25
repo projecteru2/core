@@ -32,24 +32,24 @@ connection carries `journalctl`, `ctr` and the CNI conf listing. `types.Node.{ca
 unused by this engine.
 
 Everything containerd's API cannot answer from core is asked of the node over that connection: a
-task's stdio lives in node-local FIFOs, so `Execute`, `VirtualizationAttach` and the copy verbs
-run `ctr` on the node — `tasks exec` for the first two uses, `tasks attach` for the third; the
-node's own CPU, memory and disk totals come from `/proc` and `df`; the block devices the IOPS
-knobs name are resolved with `stat`; and the node's architecture (`uname -m`) is what the client
-matches an image's manifests against, since core's own platform is not the node's.
+task's stdio lives in node-local FIFOs, so `Execute` and the copy verbs run `ctr tasks exec` on
+the node and `VirtualizationAttach` relays the FIFOs themselves with `cat`; the node's own CPU,
+memory and disk totals come from `/proc` and `df`; the block devices the IOPS knobs name are
+resolved with `stat`; and the node's architecture (`uname -m`) is what the client matches an
+image's manifests against, since core's own platform is not the node's.
 
 | `engine.API` | containerd |
 | --- | --- |
 | `VirtualizationCreate` | `NewContainer` with a new snapshot and the rendered OCI spec; the container id **is** the workload name, so eru-agent reads appname, entrypoint and ident straight off it, and it is also the workload's hostname — which caps it at 64 bytes, `HOST_NAME_MAX` |
-| `VirtualizationStart` | `NewTask` with the log-shim `LogURI`, `task.Start`, then `containerd.io/restart.status=running`; a workload created with `open_stdin` is started by `ctr tasks start` over a session core keeps open |
+| `VirtualizationStart` | `NewTask` with the log-shim `LogURI`, `task.Start`, then `containerd.io/restart.status=running`; a workload created with `open_stdin` takes node-side FIFOs instead of the log URI, with three SSH sessions already relaying them |
 | `VirtualizationStop` | `containerd.io/restart.status=stopped` first so the restart plugin does not race, then the image's stop signal and `SIGKILL` after the grace period, then `task.Delete`. A plain stop takes `containerd.stop_timeout`, a forced one kills at once |
 | `VirtualizationRemove` | refuses a running workload unless forced, kills the task and deletes the container with its snapshot |
 | `VirtualizationSuspend` / `Resume` | `task.Pause` / `task.Resume` |
 | `VirtualizationInspect` | the container record for labels and spec, one task-service `Get` for the running state |
 | `VirtualizationWait` | `task.Wait` |
 | `VirtualizationLogs` | `journalctl SYSLOG_IDENTIFIER=eru ERU_ID=<id>` over SSH, with `-n`, `--since` and `--until`; a followed stream ends when the task exits |
-| `VirtualizationAttach` | without stdin, the journald follow; with stdin, the streams of the session the workload was started under |
-| `VirtualizationResize` | that session's window change |
+| `VirtualizationAttach` | without stdin, the journald follow; with stdin, the three sessions relaying the workload's FIFOs |
+| `VirtualizationResize` | nothing: the stdio is a pipe, and a pipe has no geometry |
 | `Execute` / `ExecResize` / `ExecExitCode` | `ctr tasks exec` over the SSH session: stdio is the session's, the TTY is the session's pty, and the exit status is the session's |
 | `VirtualizationUpdateResource` | `container.Update` of the stored spec **and** `task.Update` of the live cgroup, so a restart replays the new limits |
 | `VirtualizationCopyTo` / `CopyFrom` | a tar stream through `ctr tasks exec`; a workload whose task has not started yet is written into through its own snapshot, mounted on the node with `ctr snapshots mounts` |
@@ -59,30 +59,14 @@ matches an image's manifests against, since core's own platform is not the node'
 | `NetworkList` | the CNI conf dir (`/etc/cni/net.d`) |
 | `NetworkConnect` / `Disconnect` | `ErrEngineNotImplemented`: under CNI a network is attached when the netns is created |
 
-### Exec and attach
+### Exec
 
-Both run `ctr` on the node, so `ctr` is a prerequisite alongside containerd itself, and both
-stream through the SSH session rather than through the containerd API:
+`Execute` runs `ctr` on the node, so `ctr` is a prerequisite alongside containerd itself, and it
+streams through the SSH session rather than through the containerd API:
 
 ```
-ctr --address <containerd.socket> --namespace <containerd.namespace> tasks exec  --exec-id <id> [--tty] [--user U] [--cwd D] <workload> [env K=V …] <cmd…>
-ctr --address <containerd.socket> --namespace <containerd.namespace> tasks start <workload>
+ctr --address <containerd.socket> --namespace <containerd.namespace> tasks exec --exec-id <id> [--tty] [--user U] [--cwd D] <workload> [env K=V …] <cmd…>
 ```
-
-### Interactive workloads
-
-A task has fifos **or** a log URI, never both. `cio.LogURI` creates it with no stdin fifo and
-`Terminal=false`, so a workload deployed with `open_stdin` cannot be given the log shim: runc
-refuses to start it (`cannot allocate tty … without setting console socket`), and `ctr tasks
-attach` cannot reach it either, because the task's recorded stdio paths are the `binary://` URI.
-
-Core therefore starts such a workload differently: `ctr tasks start <id>` over an SSH session
-that stays open for the workload's life. `ctr` reads `process.terminal` off the spec, creates the
-fifos on the node and relays them to its own stdio, so that session *is* the attach — its streams
-are what `VirtualizationAttach` hands back, its window change is what `VirtualizationResize`
-sends, and its exit status is the workload's, which is what `VirtualizationWait` reports once
-`ctr` has deleted the task. Such a workload has no log shim and nothing in journald: its output
-travels the stream, exactly as it did with docker. Everything else keeps `NewTask` + `LogURI`.
 
 `ctr tasks exec` in containerd 2.3.4 takes only `--cwd`, `--tty`, `--detach`, `--exec-id`,
 `--fifo-dir`, `--log-uri` and `--user` — there is no env flag — so the deploy's environment rides
@@ -90,17 +74,41 @@ as an `env K=V …` prefix inside the container. That makes `/usr/bin/env` an im
 `exec` with an environment, and `tar` one for `copy` into or out of a *running* workload; a
 workload with no task is copied into through its snapshot instead and needs neither. `ctr` builds
 the exec's process from the container's own spec, so `ExecConfig.Privileged` has nothing to add:
-an exec always runs with the capabilities the workload itself was created with. `ctr tasks attach` takes no flags at all: it reads `process.terminal` off
-the container's own spec and allocates a console only when the spec has one, so core asks the SSH
-session for a pty exactly when the workload was created with `open_stdin`. `ExecResize` and
-`VirtualizationResize` are both the SSH session's window change — `ctr` forwards its console
-geometry to the task on `SIGWINCH`, so setting the task's size behind it would only be
-overwritten again.
+an exec always runs with the capabilities the workload itself was created with. `ExecResize` is
+the SSH session's own window change — `ctr` forwards its console geometry to the exec on
+`SIGWINCH`, so setting the process's size behind it would only be overwritten again.
 
 A deploy's `--file` arrives before the workload starts, so `VirtualizationCopyTo` has no task to
 exec in. For a container with no task the engine mounts the container's own snapshot on the node
 — `ctr snapshots mounts` prints the mount command, which the same SSH session evaluates — untars
 into it and unmounts. The exec path stays for a running workload.
+
+### Interactive workloads
+
+A task has fifos **or** a log URI, never both, so a workload deployed with `open_stdin` cannot be
+given the log shim. `ctr tasks start`, which makes the fifos itself and relays them to its own
+stdio, cannot carry the pipe eru attaches with either: on containerd 2.3.4 a non-tty `ctr tasks
+start` neither delivers piped stdin to the task nor propagates the pipe's EOF, so the workload
+reads nothing and never sees the end of its input.
+
+Core therefore owns the fifos. `VirtualizationStart` mkfifos `stdin`, `stdout` and `stderr` under
+`/var/lib/eru/containerd/<id>/fifo/` in one SSH round trip, parks three more SSH sessions on them
+— `cat > …/stdin`, `cat …/stdout`, `cat …/stderr` — and only then creates the task with those
+three paths and `Terminal=false`. The order is load-bearing: the shim opens the stdout and stderr
+fifos write-only and blocks until a reader is there. Those three sessions are what
+`VirtualizationAttach` hands back.
+
+The semantics are a pipe's. Closing core's write side ends the writing `cat`, which closes the
+fifo's write end, which is the workload's stdin EOF; task exit closes the shim's ends, which is
+the readers' EOF. There is no terminal anywhere and no `SIGWINCH`, so `VirtualizationResize` has
+nothing to send — a real tty would need a deploy flag eru does not have. `VirtualizationWait` is
+plain `task.Wait` for every workload, interactive or not, because core owns the task either way.
+
+The relays are closed once that exit is consumed, or when the workload is removed, and the fifo
+directory goes with the workload directory. Until then they hold three of the eight SSH sessions a
+node allows ([core#670](https://github.com/projecteru2/core/issues/670)). Such a workload has no
+log shim and nothing in journald: its output travels the stream, exactly as it did with docker.
+Everything else keeps `NewTask` + `LogURI`.
 
 ### Resources
 

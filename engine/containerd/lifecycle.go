@@ -30,7 +30,7 @@ import (
 	coretypes "github.com/projecteru2/core/types"
 )
 
-func (e *Engine) VirtualizationStart(ctx context.Context, ID string) error {
+func (e *Engine) VirtualizationStart(ctx context.Context, ID string) (err error) {
 	found, err := e.container(ctx, ID)
 	if err != nil {
 		return err
@@ -39,20 +39,24 @@ func (e *Engine) VirtualizationStart(ctx context.Context, ID string) error {
 	if err != nil {
 		return err
 	}
-	// a task has fifos or a log uri, never both: an interactive workload needs the fifos, so
-	// ctr makes them on the node and the session it runs under carries them
-	if _, stdin := info.Labels[stdinLabel]; stdin {
-		if err = e.startInteractive(ctx, found); err != nil {
-			return err
-		}
-		return e.setDesiredStatus(ctx, found, info.Labels, client.Running)
-	}
-
 	uri, err := url.Parse(logShimURI)
 	if err != nil {
 		return err
 	}
-	task, err := found.NewTask(ctx, cio.LogURI(uri))
+	// a task has fifos or a log uri, never both: an interactive workload takes the node fifos
+	creator := cio.LogURI(uri)
+	if _, stdin := info.Labels[stdinLabel]; stdin {
+		if creator, err = e.relayFifos(ctx, ID); err != nil {
+			return err
+		}
+		defer func() {
+			if err != nil {
+				e.releaseAttach(ID)
+			}
+		}()
+	}
+
+	task, err := found.NewTask(ctx, creator)
 	if err != nil {
 		if !cerrdefs.IsAlreadyExists(err) {
 			return err
@@ -120,6 +124,7 @@ func (e *Engine) VirtualizationRemove(ctx context.Context, ID string, _, force b
 		return taskErr
 	}
 
+	e.releaseAttach(ID)
 	if err = found.Delete(ctx, client.WithSnapshotCleanup); err != nil {
 		if cerrdefs.IsNotFound(err) {
 			return coretypes.ErrWorkloadNotExists
@@ -176,25 +181,23 @@ func (e *Engine) VirtualizationInspect(ctx context.Context, ID string) (*enginet
 	return r, nil
 }
 
-// VirtualizationResize resizes the attach's own pty: ctr forwards its console geometry to the
-// task, so setting the task's size behind ctr's back would only be overwritten again.
-func (e *Engine) VirtualizationResize(_ context.Context, ID string, height, width uint) error {
-	e.mu.Lock()
-	running, ok := e.attaches[ID]
-	e.mu.Unlock()
-	if !ok {
-		return errors.Wrap(errAttachNotFound, ID)
-	}
-	return running.sess.Resize(height, width)
+// VirtualizationResize has nothing to resize: a workload's stdio is a pipe, never a terminal.
+func (e *Engine) VirtualizationResize(context.Context, string, uint, uint) error {
+	return nil
 }
 
 func (e *Engine) VirtualizationWait(ctx context.Context, ID, _ string) (*enginetypes.VirtualizationWaitResult, error) {
-	exited, err := e.exitWatch(ctx, ID)
+	task, err := e.task(ctx, ID)
+	if err != nil {
+		return &enginetypes.VirtualizationWaitResult{Message: err.Error(), Code: -1}, err
+	}
+	exited, err := task.Wait(ctx)
 	if err != nil {
 		return &enginetypes.VirtualizationWaitResult{Message: err.Error(), Code: -1}, err
 	}
 	select {
 	case status := <-exited:
+		e.releaseAttach(ID)
 		if err = status.Error(); err != nil {
 			return &enginetypes.VirtualizationWaitResult{Message: err.Error(), Code: -1}, err
 		}
@@ -236,23 +239,6 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, en
 		return err
 	}
 	return task.Update(ctx, client.WithResources(limits))
-}
-
-// exitWatch prefers the watch a start session registered: ctr owns an interactive workload's
-// task and deletes it when it ends, so by the time core waits the task may be gone.
-func (e *Engine) exitWatch(ctx context.Context, ID string) (<-chan client.ExitStatus, error) {
-	e.mu.Lock()
-	running, ok := e.attaches[ID]
-	delete(e.attaches, ID)
-	e.mu.Unlock()
-	if ok {
-		return running.exited, nil
-	}
-	task, err := e.task(ctx, ID)
-	if err != nil {
-		return nil, err
-	}
-	return task.Wait(ctx)
 }
 
 // task loads the workload's running task; a workload without one cannot answer.
