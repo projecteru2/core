@@ -15,8 +15,9 @@ yavirt virtual machines through a single `CoreRPC` API.
   and status streams; long-running calls (deploy, build, logs, exec) are server streams
 - **Stateless, multi-instance** — every instance keeps its state in etcd or redis and coordinates
   through distributed locks, so instances can be added and removed freely
-- **Multiple engines** — Docker (`tcp://`, `unix://`), yavirt VMs (`virt-grpc://`), systemd-managed
-  containerd (`systemd://`) and a mock engine, selected per node by endpoint scheme
+- **Multiple engines** — Docker (`tcp://`, `unix://`), yavirt VMs (`virt-grpc://`), bare processes
+  as systemd transient units over SSH (`process://`) and a mock engine, selected per node by
+  endpoint scheme
 - **Resource plugins** — `cpumem` is built in; external plugins are ordinary executables in
   `resource_plugin.dir`, invoked with a subcommand and JSON on stdin
   (see [resource-extend](https://github.com/projecteru2/resource-extend) for gpu and storage)

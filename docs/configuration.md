@@ -92,6 +92,17 @@ warning at startup and the build API returns an error.
 | `git.token` | string | — | API token, sent as the `Authorization` header when fetching artifacts |
 | `git.clone_timeout` | duration | `300s` | Clone deadline |
 
+## SSH
+
+Core's own key pair for the nodes it drives over SSH (`process://`). The key is per core, not per
+node.
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `ssh.private_key` | string | — | Path to the private key core authenticates with |
+| `ssh.user` | string | `root` | Login user, overridden by a `user@` prefix in the node endpoint |
+| `ssh.known_hosts` | string | — | Path to a `known_hosts` file. Empty accepts any host key |
+
 ## Docker
 
 | Key | Type | Default | Meaning |
@@ -102,23 +113,37 @@ warning at startup and the build API returns an error.
 | `docker.log.config` | map of string | — | Extra options passed to that log driver |
 | `docker.hub` | string | — | Registry host used when building image references |
 | `docker.namespace` | string | — | Path segment between host and app name: `hub/namespace/appname:tag` |
-| `docker.build_pod` | string | — | Pod whose nodes run image builds. Empty makes `BuildImage` fail |
 | `docker.auths` | map | — | Registry credentials, keyed by registry host: `{username, password}` |
 
 Core always forces `mode=non-blocking`, `max-buffer-size=4m` and a per-workload `tag` into the
 log driver options before merging `docker.log.config`.
+
+## Build
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `build.node_filter.podname` | string | — | Build only in this pod |
+| `build.node_filter.includes` | list of string | — | Build only on these nodes |
+| `build.node_filter.excludes` | list of string | — | Never build on these nodes |
+| `build.node_filter.labels` | map of string | — | Build only on nodes carrying these labels |
+| `build.node_filter.all` | bool | `false` | Also consider nodes that are down or bypassed |
+
+`BuildImage` picks the most idle node of that selection. A request may carry its own
+`node_filter`, which is intersected into the configured one: naming a pod or a label value the
+config rules out is rejected with `ErrInvaildNodeFilter`, and `all` is never taken from the
+request. With nothing configured, every node is a candidate.
+
+## Process
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `process.root` | string | `/var/lib/eru/process` | Node directory holding the per-workload overlays and the artifact cache |
 
 ## Virt (yavirt)
 
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
 | `virt.version` | string | `v1` | yavirtd API version |
-
-## Systemd
-
-| Key | Type | Default | Meaning |
-| --- | --- | --- | --- |
-| `systemd.runtime` | string | `io.containerd.eru.v2` | Runtime name forced into the create request for `systemd://` nodes |
 
 ## Scheduler
 
@@ -157,3 +182,5 @@ See [Resource plugins](resource-plugins.md) for the contract these files must sa
 
 - top-level `log_level` — use the `log:` section above (`log.level`)
 - `docker.auth` (single credential) — use `docker.auths`, a map keyed by registry host
+- `docker.build_pod` — use `build.node_filter`
+- the `systemd:` section — the engine it configured is gone; see `process` above

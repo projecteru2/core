@@ -16,7 +16,7 @@ The scheme prefix of `AddNode`'s `endpoint` selects the implementation:
 | `tcp://` | `engine/docker` | Docker daemon over TCP, optionally TLS |
 | `unix://` | `engine/docker` | Docker daemon over a local socket |
 | `virt-grpc://` | `engine/virt` | yavirt (archived), over the libyavirt gRPC client |
-| `systemd://` | `engine/systemd` | Docker client wrapped to force a containerd runtime |
+| `process://` | `engine/process` | Bare processes as systemd transient units, over SSH |
 | `mock://` | `engine/mocks/fakeengine` | Fully mocked engine, for tests and dry runs |
 
 An endpoint with any other prefix is rejected with `ErrInvaildNodeEndpoint`.
@@ -34,7 +34,8 @@ version, which disables API-version negotiation.
   `docker.log.type`.
 - Registry credentials for pull, push and build come from `docker.auths`, matched by registry host.
 - Image builds happen here — `BuildRefs` composes `hub/namespace/appname:tag` from
-  `docker.hub` and `docker.namespace`.
+  `docker.hub` and `docker.namespace`. Which nodes may build is decided by `build.node_filter`,
+  not by the engine.
 
 ### TLS
 
@@ -60,17 +61,57 @@ yavirt, so VM-specific operations reachable through core need no proto change.
 Node info from yavirt carries a `resources` map, which the resource plugins read when the node is
 added — this is how a VM node reports its real CPU, memory and storage.
 
-## systemd
+## process
 
-Embeds the docker engine and overrides a few methods:
+`process://[user@]host[:port]` nodes run bare processes. Core reaches them over SSH with the key
+pair in the `ssh` config block — the endpoint's user overrides `ssh.user` — and drives `systemd`,
+`journalctl`, `oras` and sftp. No eru daemon runs on the node. Every remote command is built as an
+argv and single-quoted before it is sent, so workload names, paths and environment values are
+never interpolated into a shell line.
 
-- `VirtualizationCreate` forces `runtime` to `systemd.runtime` (default `io.containerd.eru.v2`)
-  in the raw args before delegating.
-- Exec, attach, resize, logs, wait, resource update, network operations and image build all
-  return `ErrEngineNotImplemented`.
+One transient service per workload (`eru-<id>.service`), one slice per pod (`eru-<pod>.slice`):
 
-So a `systemd://` node can deploy and remove workloads, but not exec into them, stream their logs
-or take part in network or build operations.
+| `engine.API` | Node command |
+| --- | --- |
+| `VirtualizationCreate` | `oras pull` the artifact into `<process.root>/<id>/lower`, prepare `upper`, `work` and `merged`, write the meta file, and record the rendered `systemd-run` command in `<process.root>/<id>/run.sh`. Nothing runs yet |
+| `VirtualizationStart` | mount the overlay at `merged`, then run `run.sh` |
+| `VirtualizationStop` | `systemctl stop`, then unmount; a forced stop sends `SIGKILL` first |
+| `VirtualizationRemove` | `systemctl reset-failed`, unmount, delete the workload directory and the meta file |
+| `VirtualizationSuspend` / `Resume` | `systemctl freeze` / `thaw` |
+| `VirtualizationInspect` | `systemctl show` |
+| `VirtualizationWait` | poll `systemctl show -p ActiveState` until the unit is inactive, then return `ExecMainStatus` |
+| `VirtualizationLogs` | `journalctl -u eru-<id> -o cat`, with `-f`, `-n`, `--since` and `--until` |
+| `VirtualizationAttach` | logs-follow; stdin returns `ErrEngineNotImplemented` |
+| `Execute` | `systemd-run --scope` in the workload's slice and root, stdio streamed over the SSH session, exit code from the scope |
+| `VirtualizationUpdateResource` | `systemctl set-property` — live, no restart |
+| `VirtualizationCopyTo` / `CopyFrom` | sftp into the overlay `upper`, or into the working directory of a raw workload |
+| `ImagePull` / `ImageList` / `ImageRemove` | `oras pull` into the artifact cache / list the cache / `rm -rf` the entry |
+| `ImageBuildFromExist` | `systemctl freeze`, tar the overlay `upper`, `oras push` it under the new ref, `systemctl thaw` |
+| `NetworkConnect` / `Disconnect` / `List`, `ImageBuild` | `ErrEngineNotImplemented`: process pods use the host network and build elsewhere |
+
+`ImagePush` has nothing left to do — `ImageBuildFromExist` pushes the artifact as it builds it.
+
+Resources land on cgroup v2 unit properties: `AllowedCPUs`, `AllowedMemoryNodes` and `CPUWeight`
+for bound CPUs, `CPUQuota` otherwise, then `MemoryMax`, `MemoryHigh`, `TasksMax` and the four
+`IO*Max` knobs per device.
+
+Two per-workload options ride in the deploy request's raw args:
+
+| Key | Type | Meaning |
+| --- | --- | --- |
+| `raw` | bool | Run on the host filesystem: no `RootDirectory=`, and the working directory defaults to the unpacked bundle. Such a workload has no filesystem boundary, so `ImageBuildFromExist` refuses it |
+| `tasks_max` | int | `TasksMax=` for the unit |
+
+Node prerequisites: systemd ≥ 244 on cgroup v2, `sshd`, `oras`, and a writable `process.root`.
+
+### The meta file
+
+A bare process carries no labels, so core writes `/run/eru/workloads/<id>.json` in the same
+session that creates the workload and deletes it in the one that removes it. The record carries
+the workload's identity, labels, healthcheck, published ports, cgroup path and journal unit —
+this is what eru-agent reads to discover process workloads, and what the engine reads back to
+place an exec scope. The directory is on tmpfs, so the records vanish with the transient units on
+reboot.
 
 ## fake
 
