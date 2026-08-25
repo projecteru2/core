@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/docker/go-connections/tlsconfig"
+	"golang.org/x/sync/singleflight"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
@@ -28,6 +29,7 @@ var (
 	}
 
 	httpsClientCache sync.Map
+	httpsClientGroup singleflight.Group
 )
 
 func GetHTTPClient() *http.Client {
@@ -39,16 +41,34 @@ func GetUnixSockClient() *http.Client {
 }
 
 // GetHTTPSClient returns a per-cert cached HTTPS client, or the plain HTTP client when any of certPath/ca/cert/key is empty.
-func GetHTTPSClient(ctx context.Context, certPath, name, ca, cert, key string) (client *http.Client, err error) {
+func GetHTTPSClient(ctx context.Context, certPath, name, ca, cert, key string) (*http.Client, error) {
 	if certPath == "" || ca == "" || cert == "" || key == "" {
 		return GetHTTPClient(), nil
 	}
 
 	cacheKey := name + SHA256(fmt.Sprintf("%s-%s-%s-%s-%s", certPath, name, ca, cert, key))[:8]
-	if httpsClient, ok := httpsClientCache.Load(cacheKey); ok {
-		return httpsClient.(*http.Client), nil
+	if client, ok := httpsClientCache.Load(cacheKey); ok {
+		return client.(*http.Client), nil
 	}
 
+	built, err, _ := httpsClientGroup.Do(cacheKey, func() (any, error) {
+		if client, ok := httpsClientCache.Load(cacheKey); ok {
+			return client, nil
+		}
+		client, err := newHTTPSClient(ctx, certPath, name, ca, cert, key)
+		if err != nil {
+			return nil, err
+		}
+		httpsClientCache.Store(cacheKey, client)
+		return client, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return built.(*http.Client), nil
+}
+
+func newHTTPSClient(ctx context.Context, certPath, name, ca, cert, key string) (*http.Client, error) {
 	caFile, err := os.CreateTemp(certPath, fmt.Sprintf("ca-%s", name))
 	if err != nil {
 		return nil, err
@@ -67,25 +87,22 @@ func GetHTTPSClient(ctx context.Context, certPath, name, ca, cert, key string) (
 	if err = dumpFromString(ctx, caFile, certFile, keyFile, ca, cert, key); err != nil {
 		return nil, err
 	}
-	options := tlsconfig.Options{
+	tlsc, err := tlsconfig.Client(tlsconfig.Options{
 		CAFile:             caFile.Name(),
 		CertFile:           certFile.Name(),
 		KeyFile:            keyFile.Name(),
 		InsecureSkipVerify: true,
-	}
-	tlsc, err := tlsconfig.Client(options)
+	})
 	if err != nil {
 		return nil, err
 	}
 	transport := getDefaultTransport()
 	transport.TLSClientConfig = tlsc
 
-	client = &http.Client{
+	return &http.Client{
 		CheckRedirect: checkRedirect,
 		Transport:     transport,
-	}
-	httpsClientCache.Store(cacheKey, client)
-	return client, nil
+	}, nil
 }
 
 func getDefaultTransport() *http.Transport {
