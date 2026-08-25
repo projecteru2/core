@@ -10,7 +10,6 @@ import (
 	"github.com/projecteru2/core/resource/plugins"
 )
 
-// call fans f out over ps and returns the successes together with the combined errors.
 func call[T any](ctx context.Context, ps []plugins.Plugin, f func(plugins.Plugin) (T, error)) (map[plugins.Plugin]T, error) {
 	var wg sync.WaitGroup
 	results := make([]T, len(ps))

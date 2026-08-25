@@ -10,8 +10,8 @@ import (
 
 	"github.com/projecteru2/core/auth"
 	"github.com/projecteru2/core/client/interceptor"
-	_ "github.com/projecteru2/core/client/resolver/eru"    // register grpc resolver: eru://
-	_ "github.com/projecteru2/core/client/resolver/static" // register grpc resolver: static://
+	_ "github.com/projecteru2/core/client/resolver/eru"
+	_ "github.com/projecteru2/core/client/resolver/static"
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
 )

@@ -208,7 +208,6 @@ func WithTimeout(ctx context.Context, timeout time.Duration, f func(context.Cont
 	f(ctx)
 }
 
-// SHA256 .
 func SHA256(input string) string {
 	sum := sha256.Sum256([]byte(input))
 	return hex.EncodeToString(sum[:])

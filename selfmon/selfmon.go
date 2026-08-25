@@ -86,7 +86,6 @@ func (n *NodeStatusWatcher) withActiveLock(parentCtx context.Context, f func(ctx
 		}
 	}
 
-	// cancels f's ctx when the active lock expires
 	go func() {
 		defer cancel()
 

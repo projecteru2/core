@@ -157,7 +157,6 @@ func (e *EngineCache) checkNodeStatus(ctx context.Context) {
 // InitEngineCache builds the global engine cache and starts its checkers.
 func InitEngineCache(ctx context.Context, config types.Config, stor store.Store) {
 	engineCache = NewEngineCache(config, stor)
-	// warm the cache; the return values are irrelevant
 	if stor != nil {
 		_, _ = engineCache.stor.GetNodesByPod(ctx, &types.NodeFilter{
 			All: true,

@@ -98,7 +98,6 @@ func (c *Calcium) doStopWorkload(ctx context.Context, workload *types.Workload, 
 		}
 	}
 
-	// engine stop can block for the whole configured timeout; ctx is the only reliable bound
 	if err = workload.Stop(ctx, force); err != nil {
 		message = append(message, bytes.NewBufferString(err.Error()))
 	}

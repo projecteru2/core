@@ -91,9 +91,9 @@ func logWriter(cfg *types.ServerLogConfig) io.Writer {
 		// file log always uses json format
 		return &lumberjack.Logger{
 			Filename:   cfg.Filename,
-			MaxBackups: cfg.MaxBackups, // files
-			MaxSize:    cfg.MaxSize,    // megabytes
-			MaxAge:     cfg.MaxAge,     // days
+			MaxBackups: cfg.MaxBackups,
+			MaxSize:    cfg.MaxSize, // megabytes
+			MaxAge:     cfg.MaxAge,  // days
 		}
 	case !cfg.UseJSON:
 		return zerolog.ConsoleWriter{

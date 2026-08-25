@@ -13,8 +13,8 @@ type VirtualizationResource struct {
 	NUMANode      string                      `json:"numa_node"`
 	Volumes       []string                    `json:"volumes"`
 	VolumePlan    map[string]map[string]int64 `json:"volume_plan"`
-	VolumeChanged bool                        `json:"volume_changed"` // set when a realloc request brings new volumes
-	IOPSOptions   map[string]string           `json:"iops_options"`   // format: {device_name: "read-IOPS:write-IOPS:read-bps:write-bps"}
+	VolumeChanged bool                        `json:"volume_changed"`
+	IOPSOptions   map[string]string           `json:"iops_options"` // format: {device_name: "read-IOPS:write-IOPS:read-bps:write-bps"}
 	Remap         bool                        `json:"remap"`
 }
 

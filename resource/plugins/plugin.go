@@ -13,8 +13,7 @@ const (
 )
 
 type Plugin interface {
-	// CalculateDeploy tries to allocate resource, returns engine params for each workload, format: [{"cpus": 1.2}, {"cpus": 1.2}]
-	// also returns resource params for each workload, format: [{"cpus": 1.2}, {"cpus": 1.2}]
+	// CalculateDeploy allocates resource and returns per-workload engine and resource params, format: [{"cpus": 1.2}, {"cpus": 1.2}]
 	// pure calculation
 	CalculateDeploy(ctx context.Context, nodename string, deployCount int, resourceRequest plugintypes.WorkloadResourceRequest) (*plugintypes.CalculateDeployResponse, error)
 
@@ -38,10 +37,9 @@ type Plugin interface {
 	SetNodeResourceCapacity(ctx context.Context, nodename string, resource plugintypes.NodeResource, resourceRequest plugintypes.NodeResourceRequest, delta, incr bool) (*plugintypes.SetNodeResourceCapacityResponse, error)
 
 	// GetNodeResourceInfo returns total resource info and available resource info of the node, format: {"cpu": 2}
-	// also returns diffs, format: ["node.VolumeUsed != sum(workload.VolumeRequest"]
 	GetNodeResourceInfo(ctx context.Context, nodename string, workloadsResource []plugintypes.WorkloadResource) (*plugintypes.GetNodeResourceInfoResponse, error)
 
-	// SetNodeResourceInfo sets both total node resource info and allocated resource info, used for rollback of RemoveNode
+	// SetNodeResourceInfo sets both total node resource info and allocated resource info
 	// values are absolute, not deltas
 	SetNodeResourceInfo(ctx context.Context, nodename string, capacity, usage plugintypes.NodeResource) (*plugintypes.SetNodeResourceInfoResponse, error)
 
