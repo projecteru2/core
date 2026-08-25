@@ -9,6 +9,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
 
@@ -29,10 +30,7 @@ func TestEphemeralMustRevokeAfterKeepaliveFailed(t *testing.T) {
 
 	pool, _ := utils.NewPool(10000)
 
-	rediaron := &Rediaron{
-		cli:  cli,
-		pool: pool,
-	}
+	rediaron := newRediaron(cli, types.Config{}, pool)
 
 	ctx := context.Background()
 	path := "/ident"

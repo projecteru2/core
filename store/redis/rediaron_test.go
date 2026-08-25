@@ -6,14 +6,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/projecteru2/core/engine/factory"
-	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
-
 	"github.com/alicebob/miniredis/v2"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+
+	"github.com/projecteru2/core/engine/factory"
+	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 func TestRediaron(t *testing.T) {
@@ -42,11 +42,7 @@ func TestRediaron(t *testing.T) {
 	defer cli.Close()
 	suite.Run(t, &RediaronTestSuite{
 		rediserver: s,
-		rediaron: &Rediaron{
-			cli:    cli,
-			config: config,
-			pool:   pool,
-		},
+		rediaron:   newRediaron(cli, config, pool),
 	})
 }
 
@@ -63,9 +59,7 @@ func TestTerminateEmbeddedStorage(t *testing.T) {
 	})
 	defer cli.Close()
 
-	rediaron := &Rediaron{
-		cli: cli,
-	}
+	rediaron := newRediaron(cli, types.Config{}, nil)
 
 	_, err = rediaron.cli.Ping(context.Background()).Result()
 	assert.NoError(t, err)

@@ -13,6 +13,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/store/common"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -37,6 +38,7 @@ var (
 
 // Rediaron is a store implemented by redis
 type Rediaron struct {
+	*common.Store
 	cli    *redis.Client
 	config types.Config
 	pool   *ants.PoolWithFunc
@@ -53,12 +55,18 @@ func New(config types.Config) (*Rediaron, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Rediaron{
+	return newRediaron(cli, config, pool), nil
+}
+
+func newRediaron(cli *redis.Client, config types.Config, pool *ants.PoolWithFunc) *Rediaron {
+	r := &Rediaron{
 		cli:    cli,
 		config: config,
 		pool:   pool,
 		db:     config.Redis.DB,
-	}, nil
+	}
+	r.Store = common.New(&redisKV{r: r}, config, pool)
+	return r
 }
 
 // KNotifyMessage is received when using KNotify
