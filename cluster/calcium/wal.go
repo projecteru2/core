@@ -7,13 +7,11 @@ import (
 	"time"
 
 	"github.com/cockroachdb/errors"
-	"github.com/panjf2000/ants/v2"
 
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/wal"
 )
 
@@ -128,15 +126,10 @@ type WorkloadResourceAllocatedHandler struct {
 	walBase[[]*types.Node]
 
 	calcium cluster.Cluster
-	pool    *ants.PoolWithFunc
 }
 
-func newWorkloadResourceAllocatedHandler(config types.Config, calcium cluster.Cluster) *WorkloadResourceAllocatedHandler {
-	pool, _ := utils.NewPool(config.MaxConcurrency)
-	return &WorkloadResourceAllocatedHandler{
-		calcium: calcium,
-		pool:    pool,
-	}
+func newWorkloadResourceAllocatedHandler(calcium cluster.Cluster) *WorkloadResourceAllocatedHandler {
+	return &WorkloadResourceAllocatedHandler{calcium: calcium}
 }
 
 func (h *WorkloadResourceAllocatedHandler) Typ() string {
@@ -151,11 +144,9 @@ func (h *WorkloadResourceAllocatedHandler) Handle(ctx context.Context, raw any) 
 	defer cancel()
 
 	wg := &sync.WaitGroup{}
-	wg.Add(len(nodes))
 	defer wg.Wait()
 	for _, node := range nodes {
-		_ = h.pool.Invoke(func() {
-			defer wg.Done()
+		wg.Go(func() {
 			if _, e := h.calcium.NodeResource(ctx, node.Name, true); e != nil {
 				logger.Errorf(ctx, e, "failed to fix node resource: %s", node.Name)
 				return
@@ -221,7 +212,7 @@ func enableWAL(config types.Config, calcium cluster.Cluster, store store.Store) 
 
 	hydro.Register(newCreateLambdaHandler(calcium))
 	hydro.Register(newCreateWorkloadHandler(calcium))
-	hydro.Register(newWorkloadResourceAllocatedHandler(config, calcium))
+	hydro.Register(newWorkloadResourceAllocatedHandler(calcium))
 	hydro.Register(newProcessingCreatedHandler(store))
 	return hydro, nil
 }
