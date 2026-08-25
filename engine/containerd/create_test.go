@@ -1,9 +1,12 @@
 package containerd
 
 import (
+	"syscall"
 	"testing"
 
+	"github.com/containerd/containerd/v2/client"
 	"github.com/containerd/containerd/v2/core/runtime/restart"
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 )
@@ -13,11 +16,14 @@ func TestContainerLabelsCarryTheRestartPolicy(t *testing.T) {
 		Name:    "app_web_abc123",
 		Restart: "on-failure:3",
 		Labels:  map[string]string{"ERU": "1"},
-	})
+	}, &ocispec.ImageConfig{StopSignal: "SIGQUIT"})
 	if err != nil {
 		t.Fatalf("labels: %v", err)
 	}
 
+	if labels[client.StopSignalLabel] != "SIGQUIT" {
+		t.Errorf("got %q, want the image's stop signal", labels[client.StopSignalLabel])
+	}
 	if labels["ERU"] != "1" {
 		t.Error("core's own labels must survive")
 	}
@@ -31,7 +37,7 @@ func TestContainerLabelsCarryTheRestartPolicy(t *testing.T) {
 
 func TestContainerLabelsLeaveAnUnmanagedWorkloadAlone(t *testing.T) {
 	for _, policy := range []string{"", "no"} {
-		labels, err := containerLabels(&enginetypes.VirtualizationCreateOptions{Name: "app_web_abc123", Restart: policy})
+		labels, err := containerLabels(&enginetypes.VirtualizationCreateOptions{Name: "app_web_abc123", Restart: policy}, &ocispec.ImageConfig{})
 		if err != nil {
 			t.Fatalf("labels: %v", err)
 		}
@@ -42,8 +48,20 @@ func TestContainerLabelsLeaveAnUnmanagedWorkloadAlone(t *testing.T) {
 }
 
 func TestContainerLabelsRejectAnUnknownPolicy(t *testing.T) {
-	if _, err := containerLabels(&enginetypes.VirtualizationCreateOptions{Restart: "sometimes"}); err == nil {
+	if _, err := containerLabels(&enginetypes.VirtualizationCreateOptions{Restart: "sometimes"}, &ocispec.ImageConfig{}); err == nil {
 		t.Error("an unsupported restart policy must be refused")
+	}
+}
+
+func TestStopSignalFallsBackToSigterm(t *testing.T) {
+	if got := stopSignal(map[string]string{}); got != syscall.SIGTERM {
+		t.Errorf("got %v, want SIGTERM", got)
+	}
+	if got := stopSignal(map[string]string{client.StopSignalLabel: "SIGQUIT"}); got != syscall.SIGQUIT {
+		t.Errorf("got %v, want SIGQUIT", got)
+	}
+	if got := stopSignal(map[string]string{client.StopSignalLabel: "SIGNOPE"}); got != syscall.SIGTERM {
+		t.Errorf("got %v, want SIGTERM for an unparsable label", got)
 	}
 }
 

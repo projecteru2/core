@@ -15,7 +15,10 @@ import (
 // core can stream has to start on the node.
 const ctrBinary = "ctr"
 
-var errExecNotFound = errors.New("exec not found")
+var (
+	errExecNotFound   = errors.New("exec not found")
+	errAttachNotFound = errors.New("attach not found")
+)
 
 func (e *Engine) Execute(ctx context.Context, ID string, config *enginetypes.ExecConfig) (execID string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
 	found, err := e.container(ctx, ID)

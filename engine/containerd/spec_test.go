@@ -6,6 +6,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/docker/go-units"
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 
 	"github.com/projecteru2/core/engine"
@@ -82,6 +83,89 @@ func TestThrottlesAddressDevicesByNumber(t *testing.T) {
 	}
 	if len(limits.BlockIO.ThrottleReadBpsDevice) != 1 || limits.BlockIO.ThrottleReadBpsDevice[0].Rate != units.MiB {
 		t.Errorf("got %+v, want a 1MiB read bandwidth", limits.BlockIO.ThrottleReadBpsDevice)
+	}
+}
+
+func TestWithImageConfigTakesTheImagesEntrypointAndUser(t *testing.T) {
+	spec := newTestSpec()
+	spec.Process.Env = []string{"PATH=/usr/bin"}
+
+	config := &ocispec.ImageConfig{
+		Env:        []string{"PATH=/opt/bin", "MODE=prod"},
+		Entrypoint: []string{"/docker-entrypoint.sh"},
+		Cmd:        []string{"nginx", "-g", "daemon off;"},
+		WorkingDir: "/srv",
+		User:       "101:101",
+	}
+	if err := withImageConfig(config)(t.Context(), nil, nil, spec); err != nil {
+		t.Fatalf("spec: %v", err)
+	}
+
+	want := []string{"/docker-entrypoint.sh", "nginx", "-g", "daemon off;"}
+	if !slices.Equal(spec.Process.Args, want) {
+		t.Errorf("got %q, want %q", spec.Process.Args, want)
+	}
+	if !slices.Equal(spec.Process.Env, []string{"PATH=/opt/bin", "MODE=prod"}) {
+		t.Errorf("got %q, want the image env replacing the default PATH", spec.Process.Env)
+	}
+	if spec.Process.Cwd != "/srv" {
+		t.Errorf("got %q, want /srv", spec.Process.Cwd)
+	}
+	if spec.Process.User.UID != 101 || spec.Process.User.GID != 101 {
+		t.Errorf("got %d:%d, want 101:101", spec.Process.User.UID, spec.Process.User.GID)
+	}
+}
+
+func TestWithImageConfigLeavesTheSpecAloneWhenTheImageDeclaresNothing(t *testing.T) {
+	spec := newTestSpec()
+	spec.Process.Args = []string{"/sbin/init"}
+	spec.Process.Cwd = "/"
+
+	if err := withImageConfig(&ocispec.ImageConfig{})(t.Context(), nil, nil, spec); err != nil {
+		t.Fatalf("spec: %v", err)
+	}
+	if !slices.Equal(spec.Process.Args, []string{"/sbin/init"}) {
+		t.Errorf("got %q, want the default spec's args", spec.Process.Args)
+	}
+	if spec.Process.Cwd != "/" || spec.Process.User.UID != 0 {
+		t.Errorf("got %q %d, want the default spec untouched", spec.Process.Cwd, spec.Process.User.UID)
+	}
+}
+
+func TestWithImageConfigKeepsTheDefaultUserForANamedOne(t *testing.T) {
+	spec := newTestSpec()
+
+	// only the node can read the image's /etc/passwd, so a named user cannot be applied
+	if err := withImageConfig(&ocispec.ImageConfig{User: "nginx"})(t.Context(), nil, nil, spec); err != nil {
+		t.Fatalf("spec: %v", err)
+	}
+	if spec.Process.User.UID != 0 {
+		t.Errorf("got %d, want the spec default", spec.Process.User.UID)
+	}
+}
+
+func TestNumericUser(t *testing.T) {
+	tests := []struct {
+		name string
+		user string
+		uid  uint32
+		gid  uint32
+		ok   bool
+	}{
+		{"uid and gid", "1000:1001", 1000, 1001, true},
+		{"a lone uid takes the root group", "1000", 1000, 0, true},
+		{"root", "0", 0, 0, true},
+		{"a name", "app", 0, 0, false},
+		{"a named group", "1000:staff", 0, 0, false},
+		{"empty", "", 0, 0, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			uid, gid, ok := numericUser(tt.user)
+			if uid != tt.uid || gid != tt.gid || ok != tt.ok {
+				t.Errorf("got %d %d %v, want %d %d %v", uid, gid, ok, tt.uid, tt.gid, tt.ok)
+			}
+		})
 	}
 }
 

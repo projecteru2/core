@@ -62,8 +62,9 @@ type Engine struct {
 	host      string
 	platform  ocispec.Platform
 
-	mu    sync.Mutex
-	execs map[string]sshrunner.Session
+	mu       sync.Mutex
+	execs    map[string]sshrunner.Session
+	attaches map[string]*attach
 }
 
 // MakeClient builds a containerd engine for endpoint.

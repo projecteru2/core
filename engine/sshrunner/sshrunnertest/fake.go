@@ -21,6 +21,7 @@ type Fake struct {
 
 	mu    sync.Mutex
 	lines []string
+	opts  []*sshrunner.StartOptions
 }
 
 // Lines returns the command lines the engine has sent so far.
@@ -28,6 +29,13 @@ func (f *Fake) Lines() []string {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return append([]string(nil), f.lines...)
+}
+
+// Options returns the stream shape the engine asked each started command for.
+func (f *Fake) Options() []*sshrunner.StartOptions {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]*sshrunner.StartOptions(nil), f.opts...)
 }
 
 func (f *Fake) Run(_ context.Context, line string, _ io.Reader) (*sshrunner.Result, error) {
@@ -38,8 +46,11 @@ func (f *Fake) Run(_ context.Context, line string, _ io.Reader) (*sshrunner.Resu
 	return &sshrunner.Result{}, nil
 }
 
-func (f *Fake) Start(_ context.Context, line string, _ *sshrunner.StartOptions) (sshrunner.Session, error) {
+func (f *Fake) Start(_ context.Context, line string, opts *sshrunner.StartOptions) (sshrunner.Session, error) {
 	f.record(line)
+	f.mu.Lock()
+	f.opts = append(f.opts, opts)
+	f.mu.Unlock()
 	return f.Started, nil
 }
 
@@ -65,9 +76,13 @@ func (f *Fake) record(line string) {
 type Session struct {
 	Code int
 	Out  string
+	Err  string
 
 	mu     sync.Mutex
 	closed bool
+	in     strings.Builder
+	height uint
+	width  uint
 }
 
 // Closed reports whether the engine has released the session.
@@ -77,8 +92,22 @@ func (s *Session) Closed() bool {
 	return s.closed
 }
 
+// In returns what the engine has written to the session's stdin.
+func (s *Session) In() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.in.String()
+}
+
+// Resized returns the terminal geometry the engine last asked for.
+func (s *Session) Resized() (height, width uint) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.height, s.width
+}
+
 func (s *Session) Stdin() io.WriteCloser {
-	return nil
+	return &sessionStdin{sess: s}
 }
 
 func (s *Session) Stdout() io.ReadCloser {
@@ -86,10 +115,13 @@ func (s *Session) Stdout() io.ReadCloser {
 }
 
 func (s *Session) Stderr() io.ReadCloser {
-	return io.NopCloser(strings.NewReader(""))
+	return io.NopCloser(strings.NewReader(s.Err))
 }
 
-func (s *Session) Resize(uint, uint) error {
+func (s *Session) Resize(height, width uint) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.height, s.width = height, width
 	return nil
 }
 
@@ -101,5 +133,19 @@ func (s *Session) Close() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.closed = true
+	return nil
+}
+
+type sessionStdin struct {
+	sess *Session
+}
+
+func (w *sessionStdin) Write(p []byte) (int, error) {
+	w.sess.mu.Lock()
+	defer w.sess.mu.Unlock()
+	return w.sess.in.Write(p)
+}
+
+func (w *sessionStdin) Close() error {
 	return nil
 }

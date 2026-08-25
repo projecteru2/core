@@ -16,6 +16,7 @@ import (
 	"github.com/containerd/containerd/v2/pkg/oci"
 	"github.com/containerd/platforms"
 	"github.com/docker/go-units"
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/engine/sshrunner"
@@ -85,11 +86,15 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	if err != nil {
 		return nil, err
 	}
-	labels, err := containerLabels(opts)
+	image, err := e.client.GetImage(ctx, opts.Image)
 	if err != nil {
 		return nil, err
 	}
-	image, err := e.client.GetImage(ctx, opts.Image)
+	imageConfig, err := e.imageConfig(ctx, image)
+	if err != nil {
+		return nil, err
+	}
+	labels, err := containerLabels(opts, imageConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +106,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		client.WithContainerLabels(labels),
 		client.WithNewSpec(
 			oci.WithDefaultSpecForPlatform(platforms.Format(e.platform)),
-			oci.WithImageConfig(image),
+			withImageConfig(imageConfig),
 			oci.WithEnv(opts.Env),
 			withProcess(opts),
 			withCapabilities(rArgs),
@@ -151,10 +156,13 @@ func (e *Engine) discard(ctx context.Context, dir string) {
 	}
 }
 
-func containerLabels(opts *enginetypes.VirtualizationCreateOptions) (map[string]string, error) {
+func containerLabels(opts *enginetypes.VirtualizationCreateOptions, config *ocispec.ImageConfig) (map[string]string, error) {
 	labels := maps.Clone(opts.Labels)
 	if labels == nil {
 		labels = map[string]string{}
+	}
+	if config.StopSignal != "" {
+		labels[client.StopSignalLabel] = config.StopSignal
 	}
 
 	policy, _, _ := strings.Cut(opts.Restart, ":")

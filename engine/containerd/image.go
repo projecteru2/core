@@ -197,6 +197,19 @@ func (e *Engine) commit(ctx context.Context, info containers.Container) (ocispec
 	return writeBlob(ctx, store, ocispec.MediaTypeImageManifest, manifest)
 }
 
+// imageConfig reads what the image declares straight from its config blob.
+func (e *Engine) imageConfig(ctx context.Context, image client.Image) (*ocispec.ImageConfig, error) {
+	desc, err := image.Config(ctx)
+	if err != nil {
+		return nil, err
+	}
+	config := ocispec.Image{}
+	if err = readBlob(ctx, image.ContentStore(), desc, &config); err != nil {
+		return nil, err
+	}
+	return &config.Config, nil
+}
+
 // resolver authenticates every registry request against the configured credentials.
 func (e *Engine) resolver() remotes.Resolver {
 	auths := e.config.Registry.Auths

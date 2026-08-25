@@ -18,6 +18,7 @@ import (
 	"github.com/containerd/containerd/v2/pkg/oci"
 	cerrdefs "github.com/containerd/errdefs"
 	"github.com/containerd/typeurl/v2"
+	"github.com/moby/sys/signal"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 
 	"github.com/projecteru2/core/engine"
@@ -48,7 +49,11 @@ func (e *Engine) VirtualizationStart(ctx context.Context, ID string) error {
 	if err = task.Start(ctx); err != nil && !cerrdefs.IsFailedPrecondition(err) {
 		return err
 	}
-	return e.setDesiredStatus(ctx, found, client.Running)
+	labels, err := found.Labels(ctx)
+	if err != nil {
+		return err
+	}
+	return e.setDesiredStatus(ctx, found, labels, client.Running)
 }
 
 func (e *Engine) VirtualizationStop(ctx context.Context, ID string, gracefulTimeout time.Duration) error {
@@ -56,7 +61,11 @@ func (e *Engine) VirtualizationStop(ctx context.Context, ID string, gracefulTime
 	if err != nil {
 		return err
 	}
-	if err = e.setDesiredStatus(ctx, found, client.Stopped); err != nil {
+	labels, err := found.Labels(ctx)
+	if err != nil {
+		return err
+	}
+	if err = e.setDesiredStatus(ctx, found, labels, client.Stopped); err != nil {
 		return err
 	}
 	task, err := found.Task(ctx, nil)
@@ -66,7 +75,7 @@ func (e *Engine) VirtualizationStop(ctx context.Context, ID string, gracefulTime
 		}
 		return err
 	}
-	if err = killTask(ctx, task, gracefulTimeout); err != nil {
+	if err = killTask(ctx, task, stopSignal(labels), gracefulTimeout); err != nil {
 		return err
 	}
 	_, err = task.Delete(ctx)
@@ -83,7 +92,7 @@ func (e *Engine) VirtualizationRemove(ctx context.Context, ID string, _, force b
 		if statusErr == nil && status.Status == client.Running && !force {
 			return errors.Wrapf(coretypes.ErrInvaildWorkloadOps, "workload %s is running, stop it first or force the removal", ID)
 		}
-		if err = killTask(ctx, task, 0); err != nil {
+		if err = killTask(ctx, task, syscall.SIGKILL, 0); err != nil {
 			return err
 		}
 		if _, err = task.Delete(ctx); err != nil && !cerrdefs.IsNotFound(err) {
@@ -134,8 +143,7 @@ func (e *Engine) VirtualizationInspect(ctx context.Context, ID string) (*enginet
 		Labels:   info.Labels,
 		Networks: workloadNetworks(info.Labels, e.host),
 	}
-	spec := &oci.Spec{}
-	if err = json.Unmarshal(info.Spec.GetValue(), spec); err == nil && spec.Process != nil {
+	if spec, specErr := containerSpec(info); specErr == nil && spec.Process != nil {
 		r.User = userString(spec.Process.User)
 		r.Env = spec.Process.Env
 	}
@@ -150,20 +158,20 @@ func (e *Engine) VirtualizationInspect(ctx context.Context, ID string) (*enginet
 	return r, nil
 }
 
-func (e *Engine) VirtualizationResize(ctx context.Context, ID string, height, width uint) error {
-	task, err := e.task(ctx, ID)
-	if err != nil {
-		return err
+// VirtualizationResize resizes the attach's own pty: ctr forwards its console geometry to the
+// task, so setting the task's size behind ctr's back would only be overwritten again.
+func (e *Engine) VirtualizationResize(_ context.Context, ID string, height, width uint) error {
+	e.mu.Lock()
+	running, ok := e.attaches[ID]
+	e.mu.Unlock()
+	if !ok {
+		return errors.Wrap(errAttachNotFound, ID)
 	}
-	return task.Resize(ctx, uint32(width), uint32(height)) //nolint:gosec // terminal geometry never reaches the limit
+	return running.sess.Resize(height, width)
 }
 
 func (e *Engine) VirtualizationWait(ctx context.Context, ID, _ string) (*enginetypes.VirtualizationWaitResult, error) {
-	task, err := e.task(ctx, ID)
-	if err != nil {
-		return &enginetypes.VirtualizationWaitResult{Message: err.Error(), Code: -1}, err
-	}
-	exited, err := task.Wait(ctx)
+	exited, err := e.exitWatch(ctx, ID)
 	if err != nil {
 		return &enginetypes.VirtualizationWaitResult{Message: err.Error(), Code: -1}, err
 	}
@@ -208,6 +216,23 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, en
 	return task.Update(ctx, client.WithResources(limits))
 }
 
+// exitWatch prefers the watch an attach registered: `ctr tasks attach` deletes the task when it
+// ends, so by the time core waits, the task itself may already be gone.
+func (e *Engine) exitWatch(ctx context.Context, ID string) (<-chan client.ExitStatus, error) {
+	e.mu.Lock()
+	running, ok := e.attaches[ID]
+	delete(e.attaches, ID)
+	e.mu.Unlock()
+	if ok {
+		return running.exited, nil
+	}
+	task, err := e.task(ctx, ID)
+	if err != nil {
+		return nil, err
+	}
+	return task.Wait(ctx)
+}
+
 // task loads the workload's running task; a workload without one cannot answer.
 func (e *Engine) task(ctx context.Context, ID string) (client.Task, error) {
 	found, err := e.container(ctx, ID)
@@ -222,16 +247,21 @@ func (e *Engine) task(ctx context.Context, ID string) (client.Task, error) {
 }
 
 // setDesiredStatus tells the restart plugin what core wants; without a policy it does not watch.
-func (e *Engine) setDesiredStatus(ctx context.Context, found client.Container, status client.ProcessStatus) error {
-	labels, err := found.Labels(ctx)
-	if err != nil {
-		return err
-	}
+func (e *Engine) setDesiredStatus(ctx context.Context, found client.Container, labels map[string]string, status client.ProcessStatus) error {
 	if labels[restart.PolicyLabel] == "" || labels[restart.StatusLabel] == string(status) {
 		return nil
 	}
-	_, err = found.SetLabels(ctx, map[string]string{restart.StatusLabel: string(status)})
+	_, err := found.SetLabels(ctx, map[string]string{restart.StatusLabel: string(status)})
 	return err
+}
+
+// containerSpec decodes the spec the container record already carries.
+func containerSpec(info containers.Container) (*oci.Spec, error) {
+	spec := &oci.Spec{}
+	if err := json.Unmarshal(info.Spec.GetValue(), spec); err != nil {
+		return nil, err
+	}
+	return spec, nil
 }
 
 func withSpecResources(limits *specs.LinuxResources) client.UpdateContainerOpts {
@@ -253,16 +283,28 @@ func withSpecResources(limits *specs.LinuxResources) client.UpdateContainerOpts 
 	}
 }
 
-func killTask(ctx context.Context, task client.Task, graceful time.Duration) error {
+// stopSignal is what the image asked to be stopped with; containerd stores it at create.
+func stopSignal(labels map[string]string) syscall.Signal {
+	name, ok := labels[client.StopSignalLabel]
+	if !ok {
+		return syscall.SIGTERM
+	}
+	parsed, err := signal.ParseSignal(name)
+	if err != nil {
+		return syscall.SIGTERM
+	}
+	return parsed
+}
+
+func killTask(ctx context.Context, task client.Task, stop syscall.Signal, graceful time.Duration) error {
 	exited, err := task.Wait(ctx)
 	if err != nil {
 		return err
 	}
-	signal := syscall.SIGTERM
 	if graceful <= 0 {
-		signal = syscall.SIGKILL
+		stop = syscall.SIGKILL
 	}
-	if err = task.Kill(ctx, signal, client.WithKillAll); err != nil && !cerrdefs.IsNotFound(err) {
+	if err = task.Kill(ctx, stop, client.WithKillAll); err != nil && !cerrdefs.IsNotFound(err) {
 		return err
 	}
 	if graceful <= 0 {

@@ -32,7 +32,8 @@ connection carries `journalctl`, `ctr` and the CNI conf listing. `types.Node.{ca
 unused by this engine.
 
 Everything containerd's API cannot answer from core is asked of the node over that connection: a
-task's stdio lives in node-local FIFOs, so `Execute` and the copy verbs run `ctr tasks exec`; the
+task's stdio lives in node-local FIFOs, so `Execute`, `VirtualizationAttach` and the copy verbs
+run `ctr` on the node — `tasks exec` for the first two uses, `tasks attach` for the third; the
 node's own CPU, memory and disk totals come from `/proc` and `df`; the block devices the IOPS
 knobs name are resolved with `stat`; and the node's architecture (`uname -m`) is what the client
 matches an image's manifests against, since core's own platform is not the node's.
@@ -47,7 +48,8 @@ matches an image's manifests against, since core's own platform is not the node'
 | `VirtualizationInspect` | the container record for labels and spec, one task-service `Get` for the running state |
 | `VirtualizationWait` | `task.Wait` |
 | `VirtualizationLogs` | `journalctl SYSLOG_IDENTIFIER=eru ERU_ID=<id>` over SSH, with `-n`, `--since` and `--until`; a followed stream ends when the task exits |
-| `VirtualizationAttach` | logs-follow; stdin returns `ErrEngineNotImplemented` — a task's stdin is a node-local FIFO |
+| `VirtualizationAttach` | without stdin, the journald follow; with stdin, `ctr tasks attach` over the SSH session |
+| `VirtualizationResize` | the attach session's window change |
 | `Execute` / `ExecResize` / `ExecExitCode` | `ctr tasks exec` over the SSH session: stdio is the session's, the TTY is the session's pty, and the exit status is the session's |
 | `VirtualizationUpdateResource` | `container.Update` of the stored spec **and** `task.Update` of the live cgroup, so a restart replays the new limits |
 | `VirtualizationCopyTo` / `CopyFrom` | a tar stream through `ctr tasks exec` |
@@ -56,6 +58,28 @@ matches an image's manifests against, since core's own platform is not the node'
 | `ImageBuild` | BuildKit, see below |
 | `NetworkList` | the CNI conf dir (`/etc/cni/net.d`) |
 | `NetworkConnect` / `Disconnect` | `ErrEngineNotImplemented`: under CNI a network is attached when the netns is created |
+
+### Exec and attach
+
+Both run `ctr` on the node, so `ctr` is a prerequisite alongside containerd itself, and both
+stream through the SSH session rather than through the containerd API:
+
+```
+ctr --address <containerd.socket> --namespace <containerd.namespace> tasks exec   --exec-id <id> [--tty] [--user U] [--cwd D] <workload> [env K=V …] <cmd…>
+ctr --address <containerd.socket> --namespace <containerd.namespace> tasks attach <workload>
+```
+
+`ctr tasks exec` has no env flag, so the deploy's environment rides as an `env K=V …` prefix
+inside the container. `ctr tasks attach` takes no flags at all: it reads `process.terminal` off
+the container's own spec and allocates a console only when the spec has one, so core asks the SSH
+session for a pty exactly when the workload was created with `open_stdin`. `ExecResize` and
+`VirtualizationResize` are both the SSH session's window change — `ctr` forwards its console
+geometry to the task on `SIGWINCH`, so setting the task's size behind it would only be
+overwritten again.
+
+`ctr tasks attach` deletes the task when the attach ends. Core therefore registers the task's
+exit watch *before* starting `ctr`, and `VirtualizationWait` takes the exit status from that
+watch: by the time a lambda finishes draining the stream, the task record is already gone.
 
 ### Resources
 
@@ -71,9 +95,24 @@ node side: `/etc/resolv.conf` and `/etc/hosts` are bind-mounted from the node un
 asks for its own DNS or extra hosts, in which case core writes them under
 `/var/lib/eru/containerd/<id>/` and binds those instead.
 
-`user` must be numeric (`uid` or `uid:gid`): resolving a name needs the image's `/etc/passwd`,
-which only the node can read, so a named user is refused with `ErrInvalidEngineArgs` rather than
-silently running as the image's user.
+### The image config
+
+Core applies what the image declares — env, `Entrypoint`+`Cmd`, `WorkingDir`, `User` and
+`StopSignal` — by reading the image's config blob itself. containerd's own
+`oci.WithImageConfig` cannot be used: it ends in `WithAdditionalGIDs` (and `WithUser` when the
+image names one), which temp-mounts the rootfs *on the client* to read `/etc/group` and
+`/etc/passwd`. Over a forwarded socket that mount is a node path opened on core's side, and the
+create fails with `no such file or directory` under the snapshotter's directory.
+
+The image's env comes first and the deploy's env is merged over it; the image's entrypoint and
+command become the process args only when the deploy names no command — a deploy command
+replaces both, it is not appended to the entrypoint. `StopSignal` is stored as containerd's
+`io.containerd.image.config.stop-signal` label and is the signal `VirtualizationStop` sends.
+
+`user` must be numeric (`uid` or `uid:gid`, an unnamed group being root): resolving a name needs
+the image's `/etc/passwd`, which only the node can read. A named user on the deploy is refused
+with `ErrInvalidEngineArgs` rather than silently running as root; a named user in the *image*
+config is logged as a warning and the spec's default stands.
 
 ### Networking
 

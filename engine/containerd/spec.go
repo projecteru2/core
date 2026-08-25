@@ -14,11 +14,13 @@ import (
 	"github.com/containerd/containerd/v2/core/containers"
 	"github.com/containerd/containerd/v2/pkg/oci"
 	"github.com/docker/go-units"
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 
 	corecluster "github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/log"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -75,6 +77,31 @@ type blockDevice struct {
 	Major int64
 	Minor int64
 	Rates []string
+}
+
+// withImageConfig applies what the image declares. containerd's own oci.WithImageConfig cannot
+// be used: it resolves users by temp-mounting the rootfs on the client, and core is not the node.
+func withImageConfig(config *ocispec.ImageConfig) oci.SpecOpts {
+	return func(ctx context.Context, client oci.Client, container *containers.Container, spec *specs.Spec) error {
+		if err := oci.WithEnv(config.Env)(ctx, client, container, spec); err != nil {
+			return err
+		}
+		if args := slices.Concat(config.Entrypoint, config.Cmd); len(args) > 0 {
+			spec.Process.Args = args
+		}
+		if config.WorkingDir != "" {
+			spec.Process.Cwd = config.WorkingDir
+		}
+		uid, gid, numeric := numericUser(config.User)
+		switch {
+		case numeric:
+			spec.Process.User = specs.User{UID: uid, GID: gid}
+		case config.User != "":
+			log.WithFunc("engine.containerd.withImageConfig").
+				Warnf(ctx, "image user %q is not numeric and only the node can resolve it, the workload keeps the spec default", config.User)
+		}
+		return nil
+	}
 }
 
 // withProcess applies the workload's own command, user and working directory over the image's.
@@ -318,24 +345,37 @@ func hookArgs(networks map[string]string, socket string) []string {
 	return args
 }
 
-// applyUser takes uid[:gid]; containerd cannot resolve a name without the node's rootfs.
+// applyUser takes uid[:gid]; only the node can turn a name into an id.
 func applyUser(spec *specs.Spec, user string) error {
 	if user == "" {
 		return nil
 	}
-	name, group, _ := strings.Cut(user, ":")
-	uid, err := strconv.ParseUint(name, 10, 32)
-	if err != nil {
+	uid, gid, ok := numericUser(user)
+	if !ok {
 		return errors.Wrapf(coretypes.ErrInvalidEngineArgs, "user %q must be numeric on a containerd node", user)
 	}
-	gid := uid
+	spec.Process.User = specs.User{UID: uid, GID: gid}
+	return nil
+}
+
+// numericUser parses uid[:gid]; an unnamed group is root, since the passwd entry that would
+// carry the user's own group lives in the image.
+func numericUser(user string) (uid, gid uint32, ok bool) {
+	if user == "" {
+		return 0, 0, false
+	}
+	name, group, _ := strings.Cut(user, ":")
+	parsedUID, err := strconv.ParseUint(name, 10, 32)
+	if err != nil {
+		return 0, 0, false
+	}
+	parsedGID := uint64(0)
 	if group != "" {
-		if gid, err = strconv.ParseUint(group, 10, 32); err != nil {
-			return errors.Wrapf(coretypes.ErrInvalidEngineArgs, "group %q must be numeric on a containerd node", group)
+		if parsedGID, err = strconv.ParseUint(group, 10, 32); err != nil {
+			return 0, 0, false
 		}
 	}
-	spec.Process.User = specs.User{UID: uint32(uid), GID: uint32(gid)}
-	return nil
+	return uint32(parsedUID), uint32(parsedGID), true
 }
 
 func capabilitySet(current, add, drop []string) []string {
