@@ -365,3 +365,16 @@ func getWorkloadIfExists(ctx context.Context, calcium *Calcium, ID string) (*typ
 	}
 	return workload, err
 }
+
+// journal logs the event and hands back the commit to defer once the work it covers is done.
+func (c *Calcium) journal(ctx context.Context, logger *log.Fields, event string, item any) (func(), error) {
+	commit, err := c.wal.Log(event, item)
+	if err != nil {
+		return nil, err
+	}
+	return func() {
+		if commitErr := commit(); commitErr != nil {
+			logger.Errorf(ctx, commitErr, "commit wal failed: %s", event)
+		}
+	}, nil
+}

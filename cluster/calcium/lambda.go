@@ -50,7 +50,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 			return eruErrMsg("", "Create workload failed %v", message.Error)
 		}
 
-		commit, err := c.wal.Log(eventCreateLambda, message.WorkloadID)
+		commit, err := c.journal(ctx, logger, eventCreateLambda, message.WorkloadID)
 		if err != nil {
 			logger.Error(ctx, err)
 			return eruErrMsg(message.WorkloadID, "Create wal failed: %s, %v", message.WorkloadID, err)
@@ -62,9 +62,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 				return
 			}
 			logger.Infof(removeCtx, "workload %s finished and removed", utils.ShortID(message.WorkloadID))
-			if commitErr := commit(); commitErr != nil {
-				logger.Errorf(removeCtx, commitErr, "commit wal %s failed: %s", eventCreateLambda, message.WorkloadID)
-			}
+			commit()
 		}()
 
 		workload, err := c.GetWorkload(ctx, message.WorkloadID)
