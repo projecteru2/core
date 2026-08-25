@@ -8,7 +8,7 @@ import (
 	"context"
 
 	mock "github.com/stretchr/testify/mock"
-	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.etcd.io/etcd/client/v3"
 )
 
 // NewETCDClientV3 creates a new instance of ETCDClientV3. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
