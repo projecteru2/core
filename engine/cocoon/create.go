@@ -31,7 +31,8 @@ const (
 	recordScript = `set -e
 durable=$1; record=$2; body=$3
 mkdir -p "$(dirname "$durable")" "$(dirname "$record")"
-printf '%s\n' "$body" > "$durable"
+printf '%s\n' "$body" > "$durable.tmp"
+mv "$durable.tmp" "$durable"
 cp -f "$durable" "$record.tmp"
 mv "$record.tmp" "$record"
 `

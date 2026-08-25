@@ -113,12 +113,12 @@ func TestVirtualizationStopFlags(t *testing.T) {
 	tests := []struct {
 		name    string
 		timeout time.Duration
-		want    []string
+		flags   []string
 	}{
-		{"the engine default is cocoon's grace period", -1, []string{testBinary, "vm", "stop", "w1"}},
-		{"a zero timeout forces the stop", 0, []string{testBinary, "vm", "stop", "--force", "w1"}},
-		{"a timeout is passed in seconds", 30 * time.Second, []string{testBinary, "vm", "stop", "--timeout", "30", "w1"}},
-		{"a sub-second timeout rounds up to one", time.Millisecond, []string{testBinary, "vm", "stop", "--timeout", "1", "w1"}},
+		{"the engine default is cocoon's grace period", -1, nil},
+		{"a zero timeout forces the stop", 0, []string{"--force"}},
+		{"a timeout is passed in seconds", 30 * time.Second, []string{"--timeout", "30"}},
+		{"a sub-second timeout rounds up to one", time.Millisecond, []string{"--timeout", "1"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -128,10 +128,20 @@ func TestVirtualizationStopFlags(t *testing.T) {
 			if err := e.VirtualizationStop(t.Context(), "w1", tt.timeout); err != nil {
 				t.Fatalf("stop: %v", err)
 			}
-			if want := sshrunner.Quote(tt.want); len(runner.Lines()) != 1 || runner.Lines()[0] != want {
+			args := slices.Concat([]string{testBinary, "w1", testRoot + "/w1.json"}, tt.flags)
+			if want := sshrunner.Quote(sshrunner.Shell(stopScript, args...)); len(runner.Lines()) != 1 || runner.Lines()[0] != want {
 				t.Errorf("got %q, want %q", runner.Lines(), want)
 			}
 		})
+	}
+}
+
+func TestVirtualizationStopReportsAMissingWorkload(t *testing.T) {
+	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Code: notExistsCode} }}
+	e := testEngine(t, runner)
+
+	if err := e.VirtualizationStop(t.Context(), "w1", 0); !errors.Is(err, coretypes.ErrWorkloadNotExists) {
+		t.Errorf("got %v, want ErrWorkloadNotExists", err)
 	}
 }
 

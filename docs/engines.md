@@ -254,7 +254,7 @@ the cocoon daemon's events on it. The eru name stays in the meta file and in cor
 | --- | --- |
 | `VirtualizationCreate` | `vm create --output json --name <id> [--cpu N] [--memory B] [--storage B] [--data-disk …] [--network <name>] [--windows \| --user U] <image>` — no boot; then the meta record is written. A failure after the create removes the VM again |
 | `VirtualizationStart` | `vm inspect`, `vm start` and `vm inspect` again in one script; then this boot's console is read from Cloud Hypervisor's `vm.info` over a forward of the VM's `api.sock`, and both copies of the meta record are rewritten with it and with the VMM pid. A `vm.info` core cannot reach keeps the recorded socket path, warns once per boot and starts the guest anyway. A Windows guest on its first boot gets its address programmed through `vm exec` in the background, after the start has already returned |
-| `VirtualizationStop` | `vm stop`, `--force` for a forced stop, `--timeout` when a grace period is given |
+| `VirtualizationStop` | `vm stop`, `--force` for a forced stop, `--timeout` when a grace period is given; a workload with no record on the node is `ErrWorkloadNotExists`, as for the other verbs. cocoon's stop is idempotent, so stopping a created or already-stopped guest succeeds |
 | `VirtualizationRemove` | `vm rm [--force]`, then the hibernate snapshot and both copies of the meta record; a running guest is refused unless forced |
 | `VirtualizationSuspend` / `Resume` | `vm hibernate --name eru-<id>` / `vm restore --restore-mode copy` followed by `snapshot rm` and `vm inspect`, then the record rewrite as at start |
 | `VirtualizationInspect` | the stored record then `vm inspect`: running when the state is `running`, the image, the CNI address under the network's name, and the deploy's `user` — cocoon's own JSON has no eru user, and returning an empty one made core overwrite the stored value after every start |
@@ -317,7 +317,9 @@ recreate.
 ### The meta file
 
 The same record the process engine writes, at `<cocoon.root>/<id>.json` and
-`/run/eru/workloads/<id>.json`, refreshed on tmpfs at start and deleted at remove. For a VM it
+`/run/eru/workloads/<id>.json`, refreshed on tmpfs at start and deleted at remove. Both copies are
+written to a temporary name and renamed into place, so a node that loses power mid-write keeps the
+previous record instead of a truncated one. For a VM it
 carries `kind: vm`, `user`: the login the deploy asked for, which is also what `VirtualizationInspect`
 reads back, `cgroup: /sys/fs/cgroup/<cocoon.cgroup_parent>/vm-<cocoon vm id>.scope`,
 `netns_pid`: the VMM's pid (cocoon's `pid`; the tap lives in the VM's netns, so eru-agent reads it

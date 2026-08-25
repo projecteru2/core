@@ -3,6 +3,7 @@ package cocoon
 import (
 	"context"
 	"encoding/json"
+	"slices"
 	"strconv"
 	"time"
 
@@ -69,6 +70,11 @@ bin=$1; vm=$2; snap=$3
 "$bin" vm inspect "$vm"
 `
 
+	stopScript = `bin=$1; vm=$2; durable=$3; shift 3
+test -f "$durable" || exit 64
+exec "$bin" vm stop "$@" "$vm"
+`
+
 	// inspectScript prints the stored record first: cocoon's own JSON has no eru user.
 	inspectScript = `bin=$1; vm=$2; durable=$3
 test -f "$durable" || exit 64
@@ -102,14 +108,15 @@ func (e *Engine) VirtualizationStart(ctx context.Context, ID string) error {
 }
 
 func (e *Engine) VirtualizationStop(ctx context.Context, ID string, gracefulTimeout time.Duration) error {
-	argv := e.vm("stop")
+	flags := []string{}
 	switch {
 	case gracefulTimeout == 0:
-		argv = append(argv, "--force")
+		flags = append(flags, "--force")
 	case gracefulTimeout > 0:
-		argv = append(argv, "--timeout", strconv.FormatInt(max(int64(gracefulTimeout.Seconds()), 1), 10))
+		flags = append(flags, "--timeout", strconv.FormatInt(max(int64(gracefulTimeout.Seconds()), 1), 10))
 	}
-	_, err := e.run(ctx, append(argv, ID)...)
+	argv := sshrunner.Shell(stopScript, slices.Concat([]string{e.cocoon.Binary, ID, durablePath(e.cocoon.Root, ID)}, flags)...)
+	_, err := e.runRecorded(ctx, argv, ID)
 	return err
 }
 
