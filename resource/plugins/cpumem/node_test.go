@@ -11,7 +11,6 @@ import (
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/resource/plugins/cpumem/types"
-	cpumemtypes "github.com/projecteru2/core/resource/plugins/cpumem/types"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	coretypes "github.com/projecteru2/core/types"
 )
@@ -34,7 +33,7 @@ func TestAddNode(t *testing.T) {
 
 	r, err := cm.AddNode(ctx, nodeForAdd, req, info)
 	assert.Nil(t, err)
-	assert.Equal(t, r.Capacity["memory"], int64(4*units.GB*rate/10))
+	assert.Equal(t, r.Capacity["memory"], float64(4*units.GB*rate/10))
 }
 
 func TestRemoveNode(t *testing.T) {
@@ -383,7 +382,7 @@ func TestSetNodeResourceUsage(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Len(t, r.After["cpu_map"], 2)
 	assert.Equal(t, r.After["cpu"], 0.0)
-	assert.Equal(t, r.After["memory"], int64(0))
+	assert.Equal(t, r.After["memory"], 0.0)
 
 	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nodeResourceRequest, nil, true, true)
 	assert.Nil(t, err)
@@ -393,7 +392,7 @@ func TestSetNodeResourceUsage(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Len(t, r.After["cpu_map"], 2)
 	assert.Equal(t, r.After["cpu"], 0.0)
-	assert.Equal(t, r.After["memory"], int64(0))
+	assert.Equal(t, r.After["memory"], 0.0)
 
 	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nil, workloadsResource, true, true)
 	assert.Nil(t, err)
@@ -403,19 +402,19 @@ func TestSetNodeResourceUsage(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Len(t, r.After["cpu_map"], 2)
 	assert.Equal(t, r.After["cpu"], 0.0)
-	assert.Equal(t, r.After["memory"], int64(0))
+	assert.Equal(t, r.After["memory"], 0.0)
 
 	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nil, nil, true, false)
 	assert.Nil(t, err)
 	assert.Len(t, r.After["cpu_map"], 2)
 	assert.Equal(t, r.After["cpu"], 0.0)
-	assert.Equal(t, r.After["memory"], int64(0))
+	assert.Equal(t, r.After["memory"], 0.0)
 
 	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nodeResourceRequest, nil, false, false)
 	assert.Nil(t, err)
 	assert.Len(t, r.After["cpu_map"], 2)
 	assert.Equal(t, r.After["cpu"], 2.0)
-	assert.Equal(t, r.After["memory"], int64(2*units.GB))
+	assert.Equal(t, r.After["memory"], float64(2*units.GB))
 }
 
 func TestGetMostIdleNode(t *testing.T) {
@@ -465,7 +464,7 @@ func TestAddNodeSplitsMemoryPerNUMANode(t *testing.T) {
 	r, err := cm.AddNode(ctx, "numa-node", req, nil)
 	assert.Nil(t, err)
 
-	numaMemory, ok := r.Capacity["numa_memory"].(cpumemtypes.NUMAMemory)
+	numaMemory, ok := r.Capacity["numa_memory"].(map[string]any)
 	assert.True(t, ok)
-	assert.Equal(t, cpumemtypes.NUMAMemory{"0": 4 * units.GB, "1": 4 * units.GB}, numaMemory)
+	assert.Equal(t, map[string]any{"0": float64(4 * units.GB), "1": float64(4 * units.GB)}, numaMemory)
 }

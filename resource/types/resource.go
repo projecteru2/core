@@ -2,9 +2,8 @@ package types
 
 import (
 	"fmt"
+	"maps"
 	"strconv"
-
-	"github.com/go-viper/mapstructure/v2"
 )
 
 type RawParams map[string]any
@@ -64,7 +63,7 @@ func (r RawParams) RawParams(key string) RawParams {
 	if r.IsSet(key) {
 		if m, ok := r[key].(map[string]any); ok {
 			n = RawParams{}
-			_ = mapstructure.Decode(m, &n)
+			maps.Copy(n, m)
 		}
 	}
 	return n
@@ -77,7 +76,7 @@ func (r RawParams) SliceRawParams(key string) []RawParams {
 	}
 	n := make([]RawParams, len(res))
 	for i, v := range res {
-		_ = mapstructure.Decode(v, &n[i])
+		n[i] = maps.Clone(v)
 	}
 	return n
 }

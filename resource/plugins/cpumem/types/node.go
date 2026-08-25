@@ -6,8 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-viper/mapstructure/v2"
-
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	coretypes "github.com/projecteru2/core/types"
 	coreutils "github.com/projecteru2/core/utils"
@@ -15,15 +13,15 @@ import (
 
 // NodeResource is the cpu and memory of one node.
 type NodeResource struct {
-	CPU        float64    `json:"cpu" mapstructure:"cpu"`
-	CPUMap     CPUMap     `json:"cpu_map" mapstructure:"cpu_map"`
-	Memory     int64      `json:"memory" mapstructure:"memory"`
-	NUMAMemory NUMAMemory `json:"numa_memory" mapstructure:"numa_memory"`
-	NUMA       NUMA       `json:"numa" mapstructure:"numa"`
+	CPU        float64    `json:"cpu"`
+	CPUMap     CPUMap     `json:"cpu_map"`
+	Memory     int64      `json:"memory"`
+	NUMAMemory NUMAMemory `json:"numa_memory"`
+	NUMA       NUMA       `json:"numa"`
 }
 
 func (r *NodeResource) Parse(rawParams resourcetypes.RawParams) error {
-	return mapstructure.Decode(rawParams, r)
+	return resourcetypes.Decode(rawParams, r)
 }
 
 func (r *NodeResource) DeepCopy() *NodeResource {

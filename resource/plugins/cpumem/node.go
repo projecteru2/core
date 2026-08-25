@@ -10,7 +10,6 @@ import (
 	"strconv"
 
 	"github.com/cockroachdb/errors"
-	"github.com/go-viper/mapstructure/v2"
 	"github.com/sanity-io/litter"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -18,6 +17,7 @@ import (
 	"github.com/projecteru2/core/resource/plugins/cpumem/schedule"
 	cpumemtypes "github.com/projecteru2/core/resource/plugins/cpumem/types"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -97,7 +97,7 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintyp
 	}
 
 	resp := &plugintypes.AddNodeResponse{}
-	return resp, mapstructure.Decode(map[string]any{
+	return resp, resourcetypes.Decode(map[string]any{
 		fieldCapacity: nodeResourceInfo.Capacity,
 		fieldUsage:    nodeResourceInfo.Usage,
 	}, resp)
@@ -142,7 +142,7 @@ func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, 
 	}
 
 	resp := &plugintypes.GetNodesDeployCapacityResponse{}
-	return resp, mapstructure.Decode(map[string]any{
+	return resp, resourcetypes.Decode(map[string]any{
 		"nodes_deploy_capacity_map": nodesDeployCapacityMap,
 		"total":                     total,
 	}, resp)
@@ -175,7 +175,7 @@ func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, re
 	}
 
 	resp := &plugintypes.SetNodeResourceCapacityResponse{}
-	return resp, mapstructure.Decode(map[string]any{
+	return resp, resourcetypes.Decode(map[string]any{
 		"before": before,
 		"after":  nodeResourceInfo.Capacity,
 	}, resp)
@@ -188,7 +188,7 @@ func (p Plugin) GetNodeResourceInfo(ctx context.Context, nodename string, worklo
 	}
 
 	resp := &plugintypes.GetNodeResourceInfoResponse{}
-	return resp, mapstructure.Decode(map[string]any{
+	return resp, resourcetypes.Decode(map[string]any{
 		fieldCapacity: nodeResourceInfo.Capacity,
 		fieldUsage:    nodeResourceInfo.Usage,
 		"diffs":       diffs,
@@ -229,7 +229,7 @@ func (p Plugin) SetNodeResourceUsage(ctx context.Context, nodename string, resou
 	}
 
 	resp := &plugintypes.SetNodeResourceUsageResponse{}
-	return resp, mapstructure.Decode(map[string]any{
+	return resp, resourcetypes.Decode(map[string]any{
 		"before": before,
 		"after":  nodeResourceInfo.Usage,
 	}, resp)
@@ -255,7 +255,7 @@ func (p Plugin) GetMostIdleNode(ctx context.Context, nodenames []string) (*plugi
 	}
 
 	resp := &plugintypes.GetMostIdleNodeResponse{}
-	return resp, mapstructure.Decode(map[string]any{
+	return resp, resourcetypes.Decode(map[string]any{
 		fieldNodename: mostIdleNode,
 		fieldPriority: priority,
 	}, resp)
@@ -281,7 +281,7 @@ func (p Plugin) FixNodeResource(ctx context.Context, nodename string, workloadsR
 	}
 
 	resp := &plugintypes.GetNodeResourceInfoResponse{}
-	return resp, mapstructure.Decode(map[string]any{
+	return resp, resourcetypes.Decode(map[string]any{
 		fieldCapacity: nodeResourceInfo.Capacity,
 		fieldUsage:    nodeResourceInfo.Usage,
 		"diffs":       diffs,

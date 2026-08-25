@@ -6,48 +6,48 @@ import (
 )
 
 type AddNodeRequest struct {
-	Nodename string                   `json:"nodename" mapstructure:"nodename"`
-	Resource plugintypes.NodeResource `json:"resource" mapstructure:"resource"`
-	Info     *enginetypes.Info        `json:"info" mapstructure:"info"`
+	Nodename string                   `json:"nodename"`
+	Resource plugintypes.NodeResource `json:"resource"`
+	Info     *enginetypes.Info        `json:"info"`
 }
 
 type RemoveNodeRequest struct {
-	Nodename string `json:"nodename" mapstructure:"nodename"`
+	Nodename string `json:"nodename"`
 }
 
 type GetNodesDeployCapacityRequest struct {
-	Nodenames        []string                     `json:"nodenames" mapstructure:"nodenames"`
-	WorkloadResource plugintypes.WorkloadResource `json:"workload_resource" mapstructure:"workload_resource"`
+	Nodenames        []string                     `json:"nodenames"`
+	WorkloadResource plugintypes.WorkloadResource `json:"workload_resource"`
 }
 
 type SetNodeResourceCapacityRequest struct {
-	Nodename        string                   `json:"nodename" mapstructure:"nodename"`
-	Resource        plugintypes.NodeResource `json:"resource" mapstructure:"resource"`
-	ResourceRequest plugintypes.NodeResource `json:"resource_request" mapstructure:"resource_request"`
-	Delta           bool                     `json:"delta" mapstructure:"delta"`
-	Incr            bool                     `json:"incr" mapstructure:"incr"`
+	Nodename        string                   `json:"nodename"`
+	Resource        plugintypes.NodeResource `json:"resource"`
+	ResourceRequest plugintypes.NodeResource `json:"resource_request"`
+	Delta           bool                     `json:"delta"`
+	Incr            bool                     `json:"incr"`
 }
 
 type GetNodeResourceInfoRequest struct {
-	Nodename          string                         `json:"nodename" mapstructure:"nodename"`
-	WorkloadsResource []plugintypes.WorkloadResource `json:"workloads_resource" mapstructure:"workloads_resource"`
+	Nodename          string                         `json:"nodename"`
+	WorkloadsResource []plugintypes.WorkloadResource `json:"workloads_resource"`
 }
 
 type SetNodeResourceInfoRequest struct {
-	Nodename string                   `json:"nodename" mapstructure:"nodename"`
-	Capacity plugintypes.NodeResource `json:"capacity" mapstructure:"capacity"`
-	Usage    plugintypes.NodeResource `json:"usage" mapstructure:"usage"`
+	Nodename string                   `json:"nodename"`
+	Capacity plugintypes.NodeResource `json:"capacity"`
+	Usage    plugintypes.NodeResource `json:"usage"`
 }
 
 type SetNodeResourceUsageRequest struct {
-	Nodename          string                         `json:"nodename" mapstructure:"nodename"`
-	WorkloadsResource []plugintypes.WorkloadResource `json:"workloads_resource" mapstructure:"workloads_resource"`
-	Resource          plugintypes.NodeResource       `json:"resource" mapstructure:"resource"`
-	ResourceRequest   plugintypes.NodeResource       `json:"resource_request" mapstructure:"resource_request"`
-	Delta             bool                           `json:"delta" mapstructure:"delta"`
-	Incr              bool                           `json:"incr" mapstructure:"incr"`
+	Nodename          string                         `json:"nodename"`
+	WorkloadsResource []plugintypes.WorkloadResource `json:"workloads_resource"`
+	Resource          plugintypes.NodeResource       `json:"resource"`
+	ResourceRequest   plugintypes.NodeResource       `json:"resource_request"`
+	Delta             bool                           `json:"delta"`
+	Incr              bool                           `json:"incr"`
 }
 
 type GetMostIdleNodeRequest struct {
-	Nodenames []string `json:"nodenames" mapstructure:"nodenames"`
+	Nodenames []string `json:"nodenames"`
 }

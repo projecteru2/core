@@ -9,8 +9,8 @@ type NodeResourceRequest = resourcetypes.RawParams
 type NodeResource = resourcetypes.RawParams
 
 type AddNodeResponse struct {
-	Capacity NodeResource `json:"capacity" mapstructure:"capacity"`
-	Usage    NodeResource `json:"usage" mapstructure:"usage"`
+	Capacity NodeResource `json:"capacity"`
+	Usage    NodeResource `json:"usage"`
 }
 
 type RemoveNodeResponse struct{}
@@ -26,26 +26,26 @@ type NodeDeployCapacity struct {
 }
 
 type GetNodesDeployCapacityResponse struct {
-	NodeDeployCapacityMap map[string]*NodeDeployCapacity `json:"nodes_deploy_capacity_map" mapstructure:"nodes_deploy_capacity_map"`
-	Total                 int                            `json:"total" mapstructure:"total"`
+	NodeDeployCapacityMap map[string]*NodeDeployCapacity `json:"nodes_deploy_capacity_map"`
+	Total                 int                            `json:"total"`
 }
 
 type SetNodeResourceCapacityResponse struct {
-	Before NodeResource `json:"before" mapstructure:"before"`
-	After  NodeResource `json:"after" mapstructure:"after"`
+	Before NodeResource `json:"before"`
+	After  NodeResource `json:"after"`
 }
 
 type GetNodeResourceInfoResponse struct {
-	Capacity NodeResource `json:"capacity" mapstructure:"capacity"`
-	Usage    NodeResource `json:"usage" mapstructure:"usage"`
-	Diffs    []string     `json:"diffs" mapstructure:"diffs"`
+	Capacity NodeResource `json:"capacity"`
+	Usage    NodeResource `json:"usage"`
+	Diffs    []string     `json:"diffs"`
 }
 
 type SetNodeResourceInfoResponse struct{}
 
 type SetNodeResourceUsageResponse struct {
-	Before NodeResource `json:"before" mapstructure:"before"`
-	After  NodeResource `json:"after" mapstructure:"after"`
+	Before NodeResource `json:"before"`
+	After  NodeResource `json:"after"`
 }
 
 type GetMostIdleNodeResponse struct {

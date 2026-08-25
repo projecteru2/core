@@ -13,7 +13,6 @@ require (
 	github.com/docker/go-units v0.5.0
 	github.com/getsentry/sentry-go v0.48.0
 	github.com/go-git/go-git/v5 v5.19.2
-	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/jinzhu/configor v1.2.2
 	github.com/moby/go-archive v0.3.3
 	github.com/opencontainers/image-spec v1.1.1

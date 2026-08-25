@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-viper/mapstructure/v2"
-
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 )
 
 const (
@@ -27,7 +26,7 @@ const (
 
 func (p Plugin) GetMetricsDescription(context.Context) (*plugintypes.GetMetricsDescriptionResponse, error) {
 	resp := &plugintypes.GetMetricsDescriptionResponse{}
-	return resp, mapstructure.Decode([]map[string]any{
+	return resp, resourcetypes.Decode([]map[string]any{
 		{
 			fieldName:   "cpu_map",
 			fieldHelp:   "node available cpu.",
@@ -92,5 +91,5 @@ func (p Plugin) GetMetrics(ctx context.Context, podname, nodename string) (*plug
 	}
 
 	resp := &plugintypes.GetMetricsResponse{}
-	return resp, mapstructure.Decode(metrics, resp)
+	return resp, resourcetypes.Decode(metrics, resp)
 }
