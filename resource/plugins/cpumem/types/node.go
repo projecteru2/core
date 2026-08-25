@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/cockroachdb/errors"
+
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	coretypes "github.com/projecteru2/core/types"
 	coreutils "github.com/projecteru2/core/utils"
@@ -174,17 +176,8 @@ func (n *NodeResourceRequest) Parse(config coretypes.Config, rawParams resourcet
 			n.CPUMap[fmt.Sprintf("%+v", i)] = int(share)
 		}
 	} else if cpuList := rawParams.String("cpu"); cpuList != "" {
-		for cpus := range strings.SplitSeq(cpuList, ",") {
-			cpuConfigs := strings.Split(cpus, ":")
-			pieces, parseErr := strconv.ParseInt(cpuConfigs[1], 10, 32)
-			if parseErr != nil {
-				return parseErr
-			}
-			cpuID := cpuConfigs[0]
-			if _, idErr := strconv.Atoi(cpuID); idErr != nil {
-				return idErr
-			}
-			n.CPUMap[cpuID] = int(pieces)
+		if err = n.parseCPUList(cpuList); err != nil {
+			return err
 		}
 	}
 	if mem := rawParams.Int64("memory"); mem > 0 {
@@ -231,4 +224,22 @@ func (n *NodeResourceRequest) LoadFromOrigin(nodeResource *NodeResource, resourc
 	if !resourceRequest.IsSet("numa-memory") {
 		n.NUMAMemory = nodeResource.NUMAMemory
 	}
+}
+
+func (n *NodeResourceRequest) parseCPUList(cpuList string) error {
+	for cpus := range strings.SplitSeq(cpuList, ",") {
+		cpuID, share, ok := strings.Cut(cpus, ":")
+		if !ok {
+			return errors.Wrapf(ErrInvalidCPUMap, "cpu: %s", cpus)
+		}
+		if _, err := strconv.Atoi(cpuID); err != nil {
+			return err
+		}
+		pieces, err := strconv.ParseInt(share, 10, 32)
+		if err != nil {
+			return err
+		}
+		n.CPUMap[cpuID] = int(pieces)
+	}
+	return nil
 }
