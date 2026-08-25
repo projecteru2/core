@@ -411,6 +411,9 @@ func newStubNode(t *testing.T) *stubNode {
 			t.Fatalf("setup: %v", err)
 		}
 	}
+	if err := os.WriteFile(node.record, []byte("{}"), 0o644); err != nil {
+		t.Fatalf("setup record: %v", err)
+	}
 	for name, body := range map[string]string{
 		"systemctl":  systemctlStub,
 		"mountpoint": "#!/bin/sh\nexit 1\n",
