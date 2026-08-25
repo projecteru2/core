@@ -1,10 +1,36 @@
 package docker
 
 import (
+	"fmt"
 	"testing"
 
+	cerrdefs "github.com/containerd/errdefs"
+	dockerapi "github.com/moby/moby/client"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+
+	dockermocks "github.com/projecteru2/core/engine/docker/mocks"
+	coretypes "github.com/projecteru2/core/types"
 )
+
+func TestVirtualizationRemoveReportsAMissingContainer(t *testing.T) {
+	client := dockermocks.NewAPIClient(t)
+	client.On("ContainerRemove", mock.Anything, "wid", mock.Anything).
+		Return(dockerapi.ContainerRemoveResult{}, daemonNotFound("wid"))
+
+	e := &Engine{client: client}
+	assert.ErrorIs(t, e.VirtualizationRemove(t.Context(), "wid", true, true), coretypes.ErrWorkloadNotExists)
+}
+
+func TestVirtualizationInspectReportsAMissingContainer(t *testing.T) {
+	client := dockermocks.NewAPIClient(t)
+	client.On("ContainerInspect", mock.Anything, "wname", mock.Anything).
+		Return(dockerapi.ContainerInspectResult{}, daemonNotFound("wname"))
+
+	e := &Engine{client: client}
+	_, err := e.VirtualizationInspect(t.Context(), "wname")
+	assert.ErrorIs(t, err, coretypes.ErrWorkloadNotExists)
+}
 
 func TestRawArgs(t *testing.T) {
 	assert := assert.New(t)
@@ -33,4 +59,8 @@ func TestRawArgs(t *testing.T) {
 
 	_, err = loadRawArgs([]byte(`{"storage_opt": null, "cap_add": null, "cap_drop": null, "ulimits"}`))
 	assert.Error(err)
+}
+
+func daemonNotFound(name string) error {
+	return fmt.Errorf("Error response from daemon: No such container: %s: %w", name, cerrdefs.ErrNotFound)
 }

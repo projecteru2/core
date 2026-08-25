@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	cerrdefs "github.com/containerd/errdefs"
 	"github.com/docker/go-units"
 	dockercontainer "github.com/moby/moby/api/types/container"
 	dockernetwork "github.com/moby/moby/api/types/network"
@@ -332,7 +333,7 @@ func (e *Engine) VirtualizationResume(context.Context, string) error {
 
 func (e *Engine) VirtualizationRemove(ctx context.Context, ID string, removeVolumes, force bool) error {
 	if _, err := e.client.ContainerRemove(ctx, ID, dockerapi.ContainerRemoveOptions{RemoveVolumes: removeVolumes, Force: force}); err != nil {
-		if strings.Contains(err.Error(), "no such") {
+		if cerrdefs.IsNotFound(err) {
 			err = coretypes.ErrWorkloadNotExists
 		}
 		return err
@@ -344,6 +345,9 @@ func (e *Engine) VirtualizationInspect(ctx context.Context, ID string) (*enginet
 	inspected, err := e.client.ContainerInspect(ctx, ID, dockerapi.ContainerInspectOptions{})
 	r := &enginetypes.VirtualizationInfo{}
 	if err != nil {
+		if cerrdefs.IsNotFound(err) {
+			err = coretypes.ErrWorkloadNotExists
+		}
 		return r, err
 	}
 	workloadJSON := inspected.Container
