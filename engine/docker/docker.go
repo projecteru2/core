@@ -62,7 +62,7 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 		}
 	}
 
-	logger.Debugf(ctx, "create docker client for %s, %s", endpoint, config.Docker.APIVersion)
+	logger.Debugf(ctx, "create docker client for %s", endpoint)
 	e, err := makeDockerClient(ctx, config, client, endpoint)
 	if err != nil {
 		return nil, err
@@ -76,7 +76,6 @@ func makeDockerClient(_ context.Context, config coretypes.Config, client *http.C
 	own := *client
 	cli, err := dockerapi.New(
 		dockerapi.WithHost(endpoint),
-		dockerapi.WithAPIVersion(config.Docker.APIVersion),
 		dockerapi.WithHTTPClient(&own),
 	)
 	if err != nil {
