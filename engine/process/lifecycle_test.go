@@ -45,6 +45,7 @@ func TestVirtualizationCreateRecordsTheUnitAndTheMetaFile(t *testing.T) {
 		imageDir(testRoot, "hub.io/ns/app:v1"),
 		workloadDir(testRoot, created.ID),
 		metaPath(created.ID),
+		`"$dir/meta.json"`,
 		"--unit=" + unitName(created.ID),
 		"--slice=eru-prod.slice",
 		"TimeoutStopSec=10",
@@ -106,7 +107,7 @@ func TestVirtualizationLifecycleCommandSequence(t *testing.T) {
 	}
 
 	want := []string{
-		quote([]string{"sh", "-c", startScript, "sh", testRoot + "/w1"}),
+		quote([]string{"sh", "-c", startScript, "sh", testRoot + "/w1", "eru-w1.service", "/run/eru/workloads/w1.json"}),
 		quote([]string{"sh", "-c", stopScript, "sh", "eru-w1.service", testRoot + "/w1", "1"}),
 		quote([]string{"systemctl", "freeze", "eru-w1.service"}),
 		quote([]string{"systemctl", "thaw", "eru-w1.service"}),
@@ -170,8 +171,23 @@ func TestVirtualizationInspectParsesSystemctlShow(t *testing.T) {
 	}
 }
 
-func TestVirtualizationInspectReportsAMissingUnit(t *testing.T) {
-	runner := &fakeRunner{respond: func(string) *result { return &result{Stdout: "LoadState=not-found\nActiveState=inactive\n"} }}
+func TestVirtualizationInspectReportsAnExitedWorkloadAsStopped(t *testing.T) {
+	runner := &fakeRunner{respond: func(string) *result {
+		return &result{Stdout: "LoadState=not-found\nActiveState=inactive\nSubState=dead\nUser=\n"}
+	}}
+	e := testEngine(t, runner)
+
+	info, err := e.VirtualizationInspect(t.Context(), "w1")
+	if err != nil {
+		t.Fatalf("inspect: %v", err)
+	}
+	if info.Running {
+		t.Error("an unloaded unit whose directory still exists is a stopped workload")
+	}
+}
+
+func TestVirtualizationInspectReportsAMissingWorkload(t *testing.T) {
+	runner := &fakeRunner{respond: func(string) *result { return &result{Code: notExistsCode} }}
 	e := testEngine(t, runner)
 
 	_, err := e.VirtualizationInspect(t.Context(), "w1")
@@ -193,6 +209,28 @@ func TestVirtualizationWaitReturnsExecMainStatus(t *testing.T) {
 	}
 }
 
+func TestVirtualizationWaitFailsOnAnUnreadableStatus(t *testing.T) {
+	runner := &fakeRunner{respond: func(string) *result { return &result{Stdout: "\n"} }}
+	e := testEngine(t, runner)
+
+	waited, err := e.VirtualizationWait(t.Context(), "w1", "")
+	if err == nil {
+		t.Fatal("an unparsable ExecMainStatus must not be reported as a clean exit")
+	}
+	if waited.Code != -1 {
+		t.Errorf("got code %d, want -1", waited.Code)
+	}
+}
+
+func TestVirtualizationRemoveRefusesARunningWorkload(t *testing.T) {
+	runner := &fakeRunner{respond: func(string) *result { return &result{Code: runningCode} }}
+	e := testEngine(t, runner)
+
+	if err := e.VirtualizationRemove(t.Context(), "w1", true, false); !errors.Is(err, coretypes.ErrInvaildWorkloadOps) {
+		t.Errorf("got %v, want ErrInvaildWorkloadOps", err)
+	}
+}
+
 func TestVirtualizationUpdateResourceSetsLiveProperties(t *testing.T) {
 	runner := &fakeRunner{}
 	e := testEngine(t, runner)
@@ -202,7 +240,7 @@ func TestVirtualizationUpdateResourceSetsLiveProperties(t *testing.T) {
 		t.Fatalf("update: %v", err)
 	}
 	want := quote([]string{
-		"systemctl", "set-property", "eru-w1.service",
+		"systemctl", "set-property", "--runtime", "eru-w1.service",
 		"CPUQuota=200%", "MemoryMax=1073741824", "MemoryHigh=536870912",
 	})
 	if len(runner.lines) != 1 || runner.lines[0] != want {

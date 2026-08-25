@@ -29,8 +29,9 @@ oras pull "$ref" -o "$dir/lower"
 fi
 if [ "$overlay" = 1 ]; then mkdir -p "$dir/upper" "$dir/work" "$dir/merged"; fi
 printf '%s\n' "$launcher" > "$dir/run.sh"
+printf '%s\n' "$metadata" > "$dir/meta.json"
 mkdir -p "$(dirname "$record")"
-printf '%s\n' "$metadata" > "$record.tmp"
+cp -f "$dir/meta.json" "$record.tmp"
 mv "$record.tmp" "$record"
 `
 )

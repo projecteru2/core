@@ -21,6 +21,7 @@ const (
 	maxCPUWeight     = 10000
 	quotaPercent     = 100
 	readOnlyMode     = "ro"
+	syslogIdentifier = "eru"
 )
 
 var throttleKeys = [...]string{"IOReadIOPSMax", "IOWriteIOPSMax", "IOReadBandwidthMax", "IOWriteBandwidthMax"}
@@ -44,8 +45,9 @@ func (u *unit) argv() []string {
 		"systemd-run",
 		"--unit=" + unitName(u.ID),
 		"--slice=" + sliceName(u.Podname),
-		"--collect",
 		"-p", "Description=" + u.description(),
+		"-p", "RemainAfterExit=yes",
+		"-p", "SyslogIdentifier=" + syslogIdentifier,
 	}
 	if u.User != "" {
 		argv = append(argv, "-p", "User="+u.User)

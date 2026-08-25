@@ -37,8 +37,8 @@ func TestExecuteRunsAScopeInTheWorkloadSlice(t *testing.T) {
 	if len(runner.lines) != 2 || runner.lines[1] != want {
 		t.Fatalf("got %q, want the meta read then %q", runner.lines, want)
 	}
-	if !strings.Contains(runner.lines[0], metaPath("w1")) {
-		t.Errorf("the first command must read %q", metaPath("w1"))
+	if !strings.Contains(runner.lines[0], recordPath(testRoot, "w1")) {
+		t.Errorf("the first command must read %q", recordPath(testRoot, "w1"))
 	}
 
 	code, err := e.ExecExitCode(t.Context(), "w1", execID)

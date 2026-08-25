@@ -78,6 +78,11 @@ func metaPath(ID string) string {
 	return filepath.Join(metaDir, ID+".json")
 }
 
+// recordPath is the meta file's durable copy; the one under metaDir lives on tmpfs.
+func recordPath(root, ID string) string {
+	return filepath.Join(workloadDir(root, ID), "meta.json")
+}
+
 // cgroupPath expands a slice name into its cgroup directory; systemd nests slices on "-".
 func cgroupPath(slice, unit string) string {
 	parts := strings.Split(strings.TrimSuffix(slice, sliceSuffix), "-")

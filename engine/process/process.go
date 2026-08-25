@@ -121,7 +121,7 @@ func (e *Engine) run(ctx context.Context, argv ...string) (*result, error) {
 }
 
 func (e *Engine) workloadMeta(ctx context.Context, ID string) (*meta, error) {
-	res, err := e.call(ctx, "cat", metaPath(ID))
+	res, err := e.call(ctx, "cat", recordPath(e.root, ID))
 	if err != nil {
 		return nil, err
 	}
