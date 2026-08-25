@@ -39,11 +39,11 @@ func (b *BasicAuth) doAuth(ctx context.Context) error {
 	if !ok {
 		return types.ErrInvaildGRPCRequestMeta
 	}
-	passwords, ok := meta[b.username]
-	if !ok {
+	passwords := meta.Get(b.username)
+	if len(passwords) == 0 {
 		return types.ErrInvaildGRPCUsername
 	}
-	if len(passwords) < 1 || passwords[0] != b.password {
+	if passwords[0] != b.password {
 		return types.ErrInvaildGRPCPassword
 	}
 	return nil
