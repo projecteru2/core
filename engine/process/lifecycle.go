@@ -22,7 +22,10 @@ import (
 const (
 	notExistsCode = 64
 	runningCode   = 65
-	notLoadedCode = 5
+
+	// systemctl exits 1 on a transient unit that is already unloaded, so ask before acting on one.
+	loadedFunc = `loaded() { [ "$(systemctl show "$1" -p LoadState --value 2>/dev/null)" = loaded ]; }
+`
 
 	showProperties  = "LoadState,ActiveState,SubState,ExecMainPID,ExecMainStatus,MemoryCurrent,CPUUsageNSec,User"
 	subStateRunning = "running"
@@ -37,12 +40,9 @@ systemctl show "$unit" -p ExecMainStatus --value
 )
 
 var (
-	// unloaded swallows systemctl's exit 5, which means the transient unit is no longer loaded.
-	unloaded = fmt.Sprintf("unloaded() { \"$@\" || [ $? = %d ]; }\n", notLoadedCode)
-
-	startScript = "set -e\n" + unloaded + `dir=$1; unit=$2; record=$3
+	startScript = "set -e\n" + loadedFunc + `dir=$1; unit=$2; record=$3
 if [ "$(systemctl show "$unit" -p SubState --value)" = ` + subStateRunning + ` ]; then exit 0; fi
-unloaded systemctl stop "$unit"
+if loaded "$unit"; then systemctl stop "$unit"; fi
 if [ -d "$dir/work" ] && ! mountpoint -q "$dir/merged"; then
 mount -t overlay overlay -o "lowerdir=$dir/lower,upperdir=$dir/upper,workdir=$dir/work" "$dir/merged"
 fi
@@ -51,20 +51,24 @@ cp -f "$dir/meta.json" "$record"
 exec sh "$dir/run.sh"
 `
 
-	stopScript = "set -e\n" + unloaded + `unit=$1; dir=$2; force=$3
+	stopScript = "set -e\n" + loadedFunc + `unit=$1; dir=$2; force=$3
+if loaded "$unit"; then
 if [ "$force" = 1 ]; then systemctl kill -s SIGKILL "$unit" 2>/dev/null || true; fi
-unloaded systemctl stop "$unit"
+systemctl stop "$unit"
+fi
 if mountpoint -q "$dir/merged"; then umount -l "$dir/merged"; fi
 `
 
-	removeScript = "set -e\n" + unloaded + fmt.Sprintf(`unit=$1; dir=$2; record=$3; force=$4
+	removeScript = "set -e\n" + loadedFunc + fmt.Sprintf(`unit=$1; dir=$2; record=$3; force=$4
 test -d "$dir" || exit %d
+if loaded "$unit"; then
 if [ "$force" = 1 ]; then
-unloaded systemctl stop "$unit"
+systemctl stop "$unit"
 elif [ "$(systemctl show "$unit" -p SubState --value)" = %s ]; then
 exit %d
 fi
-unloaded systemctl reset-failed "$unit"
+systemctl reset-failed "$unit" 2>/dev/null || true
+fi
 if mountpoint -q "$dir/merged"; then umount -l "$dir/merged"; fi
 rm -rf "$dir" "$record"
 `, notExistsCode, subStateRunning, runningCode)
@@ -74,6 +78,11 @@ dir=$1; unit=$2
 test -d "$dir" || exit %d
 systemctl show "$unit" -p %s
 `, notExistsCode, showProperties)
+
+	updateScript = "set -e\n" + loadedFunc + `unit=$1; shift
+loaded "$unit" || exit 0
+exec systemctl set-property --runtime "$unit" "$@"
+`
 )
 
 func (e *Engine) VirtualizationStart(ctx context.Context, ID string) error {
@@ -158,13 +167,6 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, en
 			Errorf(ctx, err, "failed to parse engine args %+v", engineParams)
 		return err
 	}
-	argv := slices.Concat([]string{"systemctl", "set-property", "--runtime", unitName(ID)}, updateProperties(resource))
-	res, err := e.call(ctx, argv...)
-	if err != nil {
-		return err
-	}
-	if res.Code == notLoadedCode {
-		return nil
-	}
-	return sshrunner.ExitError(argv, res)
+	_, err := e.run(ctx, sshrunner.Shell(updateScript, slices.Concat([]string{unitName(ID)}, updateProperties(resource))...)...)
+	return err
 }
