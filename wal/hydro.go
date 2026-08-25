@@ -54,8 +54,12 @@ func (h *Hydro) Recover(ctx context.Context) {
 	h.recoverAddress(ctx, h.address)
 }
 
-// Takeover replays the journals of every instance that is no longer registered as live.
+// Takeover replays the journals of instances no longer registered as live; a nil live set means nothing is known yet.
 func (h *Hydro) Takeover(ctx context.Context, live []string) {
+	if live == nil {
+		return
+	}
+
 	logger := log.WithFunc("wal.hydro.Takeover")
 	keys, err := h.store.ListPrefix(ctx, journalPrefix)
 	if err != nil {

@@ -270,6 +270,25 @@ func TestTakeoverLeavesRegisteredInstancesAlone(t *testing.T) {
 	assert.Len(t, store.data, 2)
 }
 
+func TestTakeoverWaitsForTheLiveInstances(t *testing.T) {
+	var handled, encoded, decoded bool
+	eventype := "create"
+	handler := newTestEventHandler(eventype, &handled, &encoded, &decoded)
+
+	store := newMemStore()
+	hydro := newTestHydro(t, store)
+	hydro.Register(handler)
+
+	value, err := NewHydroEvent(eventype, []byte("{}")).Encode()
+	require.NoError(t, err)
+	dead := fmt.Sprintf(eventKey, "10.0.0.9:5001", 1)
+	store.data[dead] = string(value)
+
+	hydro.Takeover(context.Background(), nil)
+	assert.False(t, handled)
+	assert.Equal(t, []string{dead}, keysOf(store))
+}
+
 func TestTakeoverFailedAsNoLock(t *testing.T) {
 	var handled, encoded, decoded bool
 	eventype := "create"
@@ -284,7 +303,7 @@ func TestTakeoverFailedAsNoLock(t *testing.T) {
 	store.data[fmt.Sprintf(eventKey, "10.0.0.9:5001", 1)] = string(value)
 	store.lockErr = fmt.Errorf("lock error")
 
-	hydro.Takeover(context.Background(), nil)
+	hydro.Takeover(context.Background(), []string{hydro.address})
 	assert.False(t, handled)
 	assert.Len(t, store.data, 1)
 }
