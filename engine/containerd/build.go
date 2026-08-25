@@ -132,7 +132,7 @@ func (e *Engine) ImageBuildCachePrune(ctx context.Context, all bool) (uint64, er
 	if err = group.Wait(); err != nil {
 		return 0, err
 	}
-	return uint64(max(reclaimed, 0)), nil //nolint:gosec // a negative sum of blob sizes is not reachable
+	return uint64(reclaimed), nil //nolint:gosec // a negative sum of blob sizes is not reachable
 }
 
 // buildkit dials buildkitd through the node's SSH connection unless it is given a TCP address.

@@ -19,7 +19,6 @@ import (
 const (
 	minMemory        = 4 * 1024 * 1024
 	defaultCPUWeight = 100
-	maxCPUWeight     = 10000
 	quotaPercent     = 100
 	readOnlyMode     = "ro"
 	syslogIdentifier = "eru"
@@ -90,10 +89,7 @@ func (u *unit) command() []string {
 }
 
 func (u *unit) description() string {
-	appname, entrypoint, _, err := utils.ParseWorkloadName(u.Opts.Name)
-	if err != nil {
-		return u.Opts.Name
-	}
+	appname, entrypoint, _, _ := utils.ParseWorkloadName(u.Opts.Name)
 	return appname + "/" + entrypoint
 }
 
@@ -174,7 +170,7 @@ func cpuWeight(quota float64, remap bool) int {
 	if remap || fraction == 0 {
 		return defaultCPUWeight
 	}
-	return min(max(1, int(math.Round(defaultCPUWeight*fraction))), maxCPUWeight)
+	return max(1, int(math.Round(defaultCPUWeight*fraction)))
 }
 
 // a bind needs no RootDirectory, so raw workloads carry them too

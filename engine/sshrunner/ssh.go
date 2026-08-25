@@ -264,11 +264,8 @@ func (f *sftpFiles) Stat(path string) (*FileInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	info := &FileInfo{Mode: stat.Mode()}
-	if attrs, ok := stat.Sys().(*sftp.FileStat); ok {
-		info.UID, info.GID = int(attrs.UID), int(attrs.GID)
-	}
-	return info, nil
+	attrs := stat.Sys().(*sftp.FileStat)
+	return &FileInfo{Mode: stat.Mode(), UID: int(attrs.UID), GID: int(attrs.GID)}, nil
 }
 
 func (f *sftpFiles) Chown(path string, uid, gid int) error {

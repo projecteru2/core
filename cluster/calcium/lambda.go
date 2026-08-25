@@ -21,10 +21,6 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 	workloadIDs := []string{}
 
 	logger := log.WithFunc("calcium.RunAndWait").WithField("opts", opts)
-	if err := opts.Validate(); err != nil {
-		logger.Error(ctx, err)
-		return workloadIDs, nil, err
-	}
 	opts.Lambda = true
 	if opts.OpenStdin && (opts.Count != 1 || opts.DeployStrategy != strategy.Auto) {
 		logger.Errorf(ctx, types.ErrRunAndWaitCountOneWithStdin, "count %d method %s", opts.Count, opts.DeployStrategy)
