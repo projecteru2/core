@@ -124,9 +124,8 @@ fmt: gofumpt goimports ## Format code with gofumpt and goimports
 	$(GOFMT) -extra -l -w .
 	$(GOIMPORTS) -l -w --local 'github.com/projecteru2/core' .
 
-fmt-check: gofumpt goimports ## Check formatting (fails if files need formatting)
-	@test -z "$$($(GOFMT) -extra -l .)" || { echo "Files need formatting (gofumpt):"; $(GOFMT) -extra -l .; exit 1; }
-	@test -z "$$($(GOIMPORTS) -l .)" || { echo "Files need formatting (goimports):"; $(GOIMPORTS) -l .; exit 1; }
+fmt-check: golangci-lint ## Check formatting the way CI does (generated files excluded)
+	$(GOLANGCILINT) fmt --diff
 
 # --- Maintenance ---
 
