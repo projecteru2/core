@@ -24,16 +24,6 @@ type NodeStatusWatcher struct {
 	store   store.Store
 }
 
-func RunNodeStatusWatcher(ctx context.Context, config types.Config, cluster cluster.Cluster, store store.Store) {
-	watcher := &NodeStatusWatcher{
-		ID:      rand.Int64N(10000), //nolint:gosec // a log-only instance tag, not a security token
-		config:  config,
-		store:   store,
-		cluster: cluster,
-	}
-	watcher.run(ctx)
-}
-
 func (n *NodeStatusWatcher) run(ctx context.Context) {
 	for {
 		select {
@@ -198,4 +188,14 @@ func (n *NodeStatusWatcher) dealNodeStatusMessage(ctx context.Context, message *
 		return
 	}
 	logger.Infof(ctx, "set node %s workloads down", message.Nodename)
+}
+
+func RunNodeStatusWatcher(ctx context.Context, config types.Config, cluster cluster.Cluster, store store.Store) {
+	watcher := &NodeStatusWatcher{
+		ID:      rand.Int64N(10000), //nolint:gosec // a log-only instance tag, not a security token
+		config:  config,
+		store:   store,
+		cluster: cluster,
+	}
+	watcher.run(ctx)
 }
