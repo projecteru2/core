@@ -143,12 +143,14 @@ func (c *Calcium) doReplaceWorkload(
 					if err != nil {
 						return err
 					}
+					defer func() {
+						if commitErr := commit(); commitErr != nil {
+							logger.Errorf(ctx, commitErr, "commit wal failed: %s", eventWorkloadReplaced)
+						}
+					}()
 					if err = c.doRemoveWorkload(ctx, workload, true); err != nil {
 						logger.Error(ctx, err, "the new started but the old failed to stop")
 						return err
-					}
-					if commitErr := commit(); commitErr != nil {
-						logger.Errorf(ctx, commitErr, "commit wal failed: %s", eventWorkloadReplaced)
 					}
 					removeMessage.Success = true
 					return nil

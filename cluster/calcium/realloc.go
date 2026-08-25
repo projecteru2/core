@@ -38,10 +38,20 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if commitErr := nodeCommit(); commitErr != nil {
+			logger.Errorf(ctx, commitErr, "commit wal failed: %s", eventWorkloadResourceAllocated)
+		}
+	}()
 	workloadCommit, err := c.wal.Log(eventWorkloadReallocated, workload.ID)
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if commitErr := workloadCommit(); commitErr != nil {
+			logger.Errorf(ctx, commitErr, "commit wal failed: %s", eventWorkloadReallocated)
+		}
+	}()
 
 	err = utils.Txn(
 		ctx,
@@ -74,13 +84,6 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 	if err != nil {
 		return err
 	}
-	if commitErr := nodeCommit(); commitErr != nil {
-		logger.Errorf(ctx, commitErr, "commit wal failed: %s", eventWorkloadResourceAllocated)
-	}
-	if commitErr := workloadCommit(); commitErr != nil {
-		logger.Errorf(ctx, commitErr, "commit wal failed: %s", eventWorkloadReallocated)
-	}
-
 	_ = c.pool.Invoke(func() { c.RemapResourceAndLog(ctx, logger, node) })
 	return nil
 }
