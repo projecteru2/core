@@ -14,6 +14,7 @@ The scheme prefix of `AddNode`'s `endpoint` selects the implementation:
 | Prefix | Implementation | Notes |
 | --- | --- | --- |
 | `containerd://` | `engine/containerd` | containerd's own API, over an SSH forward of the node's socket |
+| `cocoon://` | `engine/cocoon` | VMs through the cocoon CLI, over SSH |
 | `process://` | `engine/process` | Bare processes as systemd transient units, over SSH |
 | `mock://` | `engine/mocks/fakeengine` | Fully mocked engine, for tests and dry runs |
 
@@ -231,6 +232,96 @@ containerd ≥ 2.0 with the restart plugin, `runc`, `ctr`, the CNI plugin binari
 `/opt/cni/bin` with conf in `/etc/cni/net.d`, the eru-agent binary at `/usr/local/bin/eru-agent`,
 `sshd` with core's key in `authorized_keys`, journald rate limits raised for the `eru` identifier,
 and `buildkitd` on the nodes `build.node_filter` selects.
+
+## cocoon
+
+`cocoon://[user@]host[:port]` nodes run VMs. Core reaches them the way it reaches a process node —
+over SSH with the key pair in the `ssh` config block, the endpoint's user overriding `ssh.user` —
+and drives the node's [cocoon](https://github.com/cocoonstack/cocoon) CLI, `journalctl` and
+`oras`. cocoon has no remote API and its daemon is optional: the engine talks to the CLI only.
+`cocoon.binary` names the command core runs (a sudo wrapper works, so core's login need not be
+root), `cocoon.root` holds the durable copy of each workload record, and `cocoon.run_dir` and
+`cocoon.cgroup_parent` mirror cocoon's own `run_dir` and `cgroup_parent`, which is where the engine
+finds a guest's console and cgroup scope. Every verb is one SSH session and one round trip; create is
+two, and is dominated by cocoon's own work; start and resume add a socket forward for `vm.info` and
+a second round trip for the meta rewrite.
+
+The VM's cocoon name is the workload id — a 32-hex id core generates, exactly as for a process
+workload — so every later verb runs `cocoon vm <verb> <id>` without a lookup, and eru-agent keys
+the cocoon daemon's events on it. The eru name stays in the meta file and in core's store.
+
+| `engine.API` | cocoon |
+| --- | --- |
+| `VirtualizationCreate` | `vm create --output json --name <id> [--cpu N] [--memory B] [--storage B] [--data-disk …] [--network <name>] [--windows \| --user U] <image>` — no boot; then the meta record is written. A failure after the create removes the VM again |
+| `VirtualizationStart` | `vm inspect` and `vm start` in one script; then this boot's console is read from Cloud Hypervisor's `vm.info` over a forward of the VM's `api.sock` and both copies of the meta record are rewritten with it; a Windows guest on its first boot then gets its address programmed through `vm exec` |
+| `VirtualizationStop` | `vm stop`, `--force` for a forced stop, `--timeout` when a grace period is given |
+| `VirtualizationRemove` | `vm rm [--force]`, then the hibernate snapshot and both copies of the meta record; a running guest is refused unless forced |
+| `VirtualizationSuspend` / `Resume` | `vm hibernate --name eru-<id>` / `vm restore --restore-mode copy` followed by `snapshot rm`, then the console rewrite as at start |
+| `VirtualizationInspect` | `vm inspect`: running when the state is `running`, the image, and the CNI address under the network's name |
+| `VirtualizationWait` | `vm status --event --format json` until the guest leaves `running`; a VM has no exit code, so the result is 0 |
+| `VirtualizationLogs` | `journalctl SYSLOG_IDENTIFIER=eru ERU_ID=<id>` with `-n`, `--since` and `--until` — eru-agent copies the guest console into journald; a followed stream ends when the guest stops |
+| `VirtualizationAttach` | without stdin, the journald follow; with stdin, `ErrEngineNotImplemented` — the console needs a pty (core#660) |
+| `Execute` / `ExecExitCode` | `vm exec [-i] [-e K=V …] <id> -- <cmd>` through cocoon-agent in pipe mode, stdio on the SSH session, the exit code the guest command's. `ExecResize` is `ErrEngineNotImplemented` (core#660); the exec's `user` and `working_dir` are not applied |
+| `VirtualizationCopyTo` / `CopyFrom` | a one-entry tar through `vm exec … tar -x -P -f -` / `tar -c -P -f -`: the absolute entry name makes tar create the parents, and `tar.exe` ships with Windows 10+ |
+| `VirtualizationUpdateResource` | `ErrEngineNotImplemented`: CPU and memory hot-plug wait on cocoon (core#661) |
+| `ImagePull` | `image pull <ref>` for OCI VM images and cloud-image URLs, registry auth left to cocoon's own config; a split-qcow2 artifact (the Windows images) is `oras pull`ed and `image import`ed under the same ref, once |
+| `ImageList` / `ImageRemove` | `image list --format json` filtered by name prefix / `image rm` |
+| `ImageLocalDigests` / `ImageRemoteDigest` | `image inspect` / `oras manifest fetch --descriptor`; a cloud-image URL is its own digest, so it is pulled once |
+| `ImageBuildFromExist` | `snapshot save --name <ref>`: a restore-state snapshot that stays on the node. `ImagePush` is `ErrEngineNotImplemented`, cocoon has no registry push |
+| `NetworkList` | the CNI conf dir (`/etc/cni/net.d`); `NetworkConnect` / `Disconnect` are `ErrEngineNotImplemented` |
+| `ImageBuild`, `ImagesPrune`, `RawEngine` | `ErrEngineNotImplemented` |
+
+### Resources and networks
+
+`--cpu` is the cpumem quota rounded up, `--memory` its memory limit and `--storage` the storage
+plugin's quota, in bytes; a knob eru leaves at zero is left to cocoon's default. Each volume the
+storage plugin allocates (`src:dst:mode:size`) becomes a data disk of that size, mounted at `dst`
+by cloud-init on a Linux guest and left unformatted on a Windows one; a volume without a size is
+refused, since a VM has no bind mounts.
+
+A deploy names at most one network, the CNI conflist cocoon should use; none means cocoon's
+default conflist. cocoon's IPAM assigns the address, so a fixed IP in the request is refused with
+`ErrInvalidEngineArgs`. The address lands in the meta file and in `VirtualizationInspect` under the
+network's name, `default` when none was named.
+
+### Windows guests
+
+The deploy request's raw args carry the OS marker:
+
+| Key | Type | Meaning |
+| --- | --- | --- |
+| `os` | string | `windows` boots the guest with `--windows` (UEFI, `kvm_hyperv=on`, no cidata) |
+
+Windows has no cloud-init and only takes DHCP, while eru's CNI networks use host-local IPAM, so
+on the guest's first boot the engine programs the recorded address, mask and gateway with
+`netsh interface ip set address Ethernet static …` through `vm exec`, retrying every two seconds
+until cocoon-agent answers, for up to three minutes. `--user` is not passed for a Windows guest.
+Exec and copy go through the agent as on Linux; console-API programs that bypass stdout are the
+documented limitation. Resources cannot change on a running Windows guest: a realloc is a
+recreate.
+
+### The meta file
+
+The same record the process engine writes, at `<cocoon.root>/<id>.json` and
+`/run/eru/workloads/<id>.json`, refreshed on tmpfs at start and deleted at remove. For a VM it
+carries `kind: vm`, `cgroup: /sys/fs/cgroup/<cocoon.cgroup_parent>/vm-<cocoon vm id>.scope`,
+`iface`: the first tap cocoon created, and `log: {"console_socket": …}` — the guest console of the
+current boot, which eru-agent reads and forwards into journald (`cocoon vm logs` shows only the
+VMM's own log). A direct-boot OCI image gets a Cloud Hypervisor pty, `/dev/pts/N`, new on every
+boot; a UEFI cloud image gets the serial socket
+`<cocoon.run_dir>/<cloudhypervisor|firecracker>/<cocoon vm id>/console.sock`, which is also what
+create records before the first boot. The field keeps its name for a pty; start and resume rewrite
+it, and eru-agent re-reads the file when it reconnects.
+
+### Node prerequisites
+
+cocoon, with `cocoon daemon` as a systemd service (the engine does not need it, eru-agent uses it
+for events), the cocoonstack `dev` builds of Cloud Hypervisor, Firecracker and
+rust-hypervisor-firmware (the Windows fixes live there), the CNI plugin binaries in `/opt/cni/bin`
+with conf in `/etc/cni/net.d`, cocoon-agent inside the guest images, `oras` for the digest check
+and the split-qcow2 artifacts (with the node's own registry credentials), `sshd` with core's key in
+`authorized_keys`, and a login that may run `cocoon.binary` and write `cocoon.root` and
+`/run/eru/workloads`.
 
 ## process
 

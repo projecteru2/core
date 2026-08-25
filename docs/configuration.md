@@ -91,7 +91,7 @@ warning at startup and the build API returns an error.
 
 ## SSH
 
-Core's own key pair for every node it drives over SSH — `containerd://` as well as `process://`.
+Core's own key pair for every node it drives over SSH — `containerd://`, `cocoon://` and `process://`.
 The key is per core, not per node.
 
 | Key | Type | Default | Meaning |
@@ -103,7 +103,7 @@ The key is per core, not per node.
 ## Registry
 
 Shared by every engine: the containerd engine hands these to its resolver and to the BuildKit
-session, the process engine renders them as `oras` flags.
+session, the process engine renders them as `oras` flags. The cocoon engine leaves registry auth to cocoon's own config on the node.
 
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
@@ -142,6 +142,15 @@ request. With nothing configured, every node is a candidate.
 | --- | --- | --- | --- |
 | `process.root` | string | `/var/lib/eru/process` | Node directory holding the per-workload overlays and the artifact cache |
 | `process.stop_timeout` | duration | `10s` | Rendered as `TimeoutStopSec=` on every unit: how long systemd waits after `SIGTERM` before it kills the workload |
+
+## Cocoon
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `cocoon.binary` | string | `cocoon` | The cocoon command core runs on the node; a sudo wrapper works |
+| `cocoon.root` | string | `/var/lib/eru/cocoon` | Node directory holding the durable copy of each VM's meta record |
+| `cocoon.run_dir` | string | `/var/lib/cocoon/run` | cocoon's `run_dir`; the guest console socket path in the meta file derives from it |
+| `cocoon.cgroup_parent` | string | `cocoon.slice` | cocoon's `cgroup_parent`; the VM's cgroup scope in the meta file derives from it |
 
 ## Scheduler
 

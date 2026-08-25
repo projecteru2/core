@@ -27,7 +27,7 @@ git:                                                                    # option
     token: "***REMOVED***"
     clone_timeout: 300s
 
-ssh:                                                                    # optional, required by containerd:// and process:// nodes
+ssh:                                                                    # optional, required by containerd://, cocoon:// and process:// nodes
     private_key: "***REMOVED***"                                        # file path
     user: "root"                                                        # default root, overridden by user@ in the endpoint
     known_hosts: "/etc/eru/known_hosts"                                 # empty accepts any host key
@@ -73,6 +73,12 @@ containerd:
 process:
     root: "/var/lib/eru/process"                                        # default /var/lib/eru/process
     stop_timeout: 10s                                                   # default 10s, grace period before SIGKILL
+
+cocoon:
+    binary: "cocoon"                                                    # default, the cocoon command on the node; a sudo wrapper works
+    root: "/var/lib/eru/cocoon"                                         # default, durable copies of the VM meta records
+    run_dir: "/var/lib/cocoon/run"                                      # default, cocoon's run_dir
+    cgroup_parent: "cocoon.slice"                                       # default, cocoon's cgroup_parent
 
 scheduler:
     maxshare: -1                                                        # required default -1
