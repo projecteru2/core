@@ -4,14 +4,6 @@ import (
 	"context"
 )
 
-func (r *Rediaron) getByKeyPattern(ctx context.Context, pattern string, limit int64) (map[string]string, error) {
-	keys, err := r.scanKeys(ctx, pattern, limit)
-	if err != nil {
-		return nil, err
-	}
-	return r.GetMulti(ctx, keys)
-}
-
 func (r *Rediaron) scanKeys(ctx context.Context, pattern string, limit int64) ([]string, error) {
 	var (
 		cursor uint64

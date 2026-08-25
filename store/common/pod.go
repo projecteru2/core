@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
+	"slices"
 
 	"github.com/cockroachdb/errors"
 
@@ -62,9 +64,9 @@ func (s *Store) GetAllPods(ctx context.Context) ([]*types.Pod, error) {
 	}
 
 	pods := []*types.Pod{}
-	for _, value := range data {
+	for _, key := range slices.Sorted(maps.Keys(data)) {
 		pod := &types.Pod{}
-		if err := json.Unmarshal([]byte(value), pod); err != nil {
+		if err := json.Unmarshal([]byte(data[key]), pod); err != nil {
 			return nil, err
 		}
 		pods = append(pods, pod)

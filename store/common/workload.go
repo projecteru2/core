@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"path/filepath"
+	"slices"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
@@ -152,9 +154,9 @@ func (s *Store) WorkloadStatusStream(ctx context.Context, appname, entrypoint, n
 
 func (s *Store) filterWorkloads(ctx context.Context, data, labels map[string]string) ([]*types.Workload, error) {
 	workloads := []*types.Workload{}
-	for _, value := range data {
+	for _, key := range slices.Sorted(maps.Keys(data)) {
 		workload := &types.Workload{}
-		if err := json.Unmarshal([]byte(value), workload); err != nil {
+		if err := json.Unmarshal([]byte(data[key]), workload); err != nil {
 			return nil, err
 		}
 		if utils.LabelsFilter(workload.Labels, labels) {

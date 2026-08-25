@@ -24,7 +24,11 @@ func (k *redisKV) GetMulti(ctx context.Context, keys []string) (map[string]strin
 }
 
 func (k *redisKV) GetPrefix(ctx context.Context, prefix string, limit int64) (map[string]string, error) {
-	return k.r.getByKeyPattern(ctx, prefix+"*", limit)
+	keys, err := k.r.scanKeys(ctx, prefix+"*", limit)
+	if err != nil {
+		return nil, err
+	}
+	return k.r.GetMulti(ctx, keys)
 }
 
 func (k *redisKV) ListPrefix(ctx context.Context, prefix string) ([]string, error) {
@@ -63,8 +67,10 @@ func (k *redisKV) Watch(ctx context.Context, prefix string) iter.Seq[common.Even
 	messages := k.r.KNotify(ctx, prefix+"*")
 	return func(yield func(common.Event) bool) {
 		for message := range messages {
-			event := common.Event{Key: message.Key, Type: common.EventPut}
+			event := common.Event{Key: message.Key}
 			switch message.Action {
+			case actionSet, actionExpire:
+				event.Type = common.EventPut
 			case actionDel:
 				event.Type = common.EventDelete
 			case actionExpired:
