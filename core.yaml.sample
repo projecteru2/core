@@ -49,7 +49,6 @@ redis:                                                                  # option
     db: 0
 
 docker:
-    version: "1.40"                                                     # required, default 1.40 (the moby client minimum)
     network_mode: "bridge"                                              # required, default host
     use_local_dns: true
     log:

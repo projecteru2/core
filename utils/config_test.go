@@ -55,7 +55,7 @@ func TestLoadConfigAppliesDefaults(t *testing.T) {
 		{"string default holding a colon", config.ProbeTarget, "8.8.8.8:80"},
 		{"int default", config.Scheduler.ShareBase, 100},
 		{"negative int default", config.Scheduler.MaxShare, -1},
-		{"nested struct default", config.Docker.APIVersion, "1.40"},
+		{"nested struct default", config.Docker.NetworkMode, "host"},
 		{"twice-nested struct default", config.Docker.Log.Type, "journald"},
 		{"default in a section the file omits", config.Redis.Addr, "localhost:6379"},
 	}
@@ -81,7 +81,7 @@ func TestLoadConfigLetsTheFileOverrideDefaults(t *testing.T) {
 		{"nested string", config.Etcd.LockPrefix, "core/_lock"},
 		{"nested struct field", config.Docker.NetworkMode, "bridge"},
 		{"slice", config.Etcd.Machines, []string{"http://127.0.0.1:2379"}},
-		{"untouched default alongside overrides", config.Docker.APIVersion, "1.40"},
+		{"untouched default alongside overrides", config.Virt.APIVersion, "v1"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
