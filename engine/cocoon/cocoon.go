@@ -44,6 +44,9 @@ type Engine struct {
 
 	mu    sync.Mutex
 	execs map[string]sshrunner.Session
+
+	probe   sync.Once
+	hasOras bool
 }
 
 func MakeClient(_ context.Context, config coretypes.Config, nodename, endpoint, ca, cert, key string) (engine.API, error) {

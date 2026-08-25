@@ -266,7 +266,7 @@ the cocoon daemon's events on it. The eru name stays in the meta file and in cor
 | `VirtualizationUpdateResource` | a remap (the cpumem binding refresh core runs after every deploy) is a no-op without a round trip; a realloc is `ErrEngineNotImplemented`, CPU and memory hot-plug wait on cocoon (core#661) |
 | `ImagePull` | `image pull <ref>` for OCI VM images and cloud-image URLs, registry auth left to cocoon's own config; a split-qcow2 artifact (the Windows images) is `oras pull`ed and `image import`ed under the same ref, once |
 | `ImageList` / `ImageRemove` | `image list --format json` filtered by name prefix / `image rm` |
-| `ImageLocalDigests` / `ImageRemoteDigest` | `image inspect` / `oras manifest fetch --descriptor`; a cloud-image URL is its own digest, so it is pulled once |
+| `ImageLocalDigests` / `ImageRemoteDigest` | `image inspect` / `oras manifest fetch --descriptor`; a cloud-image URL is its own digest, so it is pulled once. A node without `oras` (probed once per engine with `command -v`) reports no remote digest, so every deploy runs `image pull`, which cocoon answers from its cache |
 | `ImageBuildFromExist` | `snapshot save --name <ref>`: a restore-state snapshot that stays on the node. `ImagePush` is `ErrEngineNotImplemented`, cocoon has no registry push |
 | `NetworkList` | the CNI conf dir (`/etc/cni/net.d`); `NetworkConnect` / `Disconnect` are `ErrEngineNotImplemented` |
 | `ImageBuild`, `ImagesPrune`, `RawEngine` | `ErrEngineNotImplemented` |
@@ -318,10 +318,12 @@ it, and eru-agent re-reads the file when it reconnects.
 cocoon, with `cocoon daemon` as a systemd service (the engine does not need it, eru-agent uses it
 for events), the cocoonstack `dev` builds of Cloud Hypervisor, Firecracker and
 rust-hypervisor-firmware (the Windows fixes live there), the CNI plugin binaries in `/opt/cni/bin`
-with conf in `/etc/cni/net.d`, cocoon-agent inside the guest images, `oras` for the digest check
-and the split-qcow2 artifacts (with the node's own registry credentials), `sshd` with core's key in
-`authorized_keys`, and a login that may run `cocoon.binary` and write `cocoon.root` and
-`/run/eru/workloads`.
+with conf in `/etc/cni/net.d`, cocoon-agent inside the guest images, `sshd` with core's key in
+`authorized_keys`, and a login that may run `cocoon.binary` and owns `cocoon.root` and
+`/run/eru/workloads` (create them and `chown` them to that login before the first deploy). `oras`
+is optional: without it the remote digest check is skipped and every deploy runs `image pull`;
+with it (and the node's own registry credentials) the check runs and split-qcow2 artifacts can be
+pulled.
 
 ## process
 

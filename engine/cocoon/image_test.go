@@ -28,6 +28,7 @@ func TestImagePullHandsAVMImageToCocoon(t *testing.T) {
 		t.Fatalf("pull: %v", err)
 	}
 	want := []string{
+		sshrunner.Quote(sshrunner.Shell(orasProbe)),
 		sshrunner.Quote([]string{"oras", "manifest", "fetch", testImage}),
 		sshrunner.Quote([]string{testBinary, "image", "pull", testImage}),
 	}
@@ -49,8 +50,8 @@ func TestImagePullImportsAPartsArtifact(t *testing.T) {
 		t.Fatalf("pull: %v", err)
 	}
 	want := sshrunner.Quote(sshrunner.Shell(importScript, testBinary, "ghcr.io/cocoonstack/windows/win11:25h2"))
-	if len(runner.Lines()) != 2 || runner.Lines()[1] != want {
-		t.Errorf("got %q, want the manifest read then %q", runner.Lines(), want)
+	if len(runner.Lines()) != 3 || runner.Lines()[2] != want {
+		t.Errorf("got %q, want the probe, the manifest read then %q", runner.Lines(), want)
 	}
 	for _, step := range []string{"oras pull", "image import", `"$tmp"/*.part`} {
 		if !strings.Contains(importScript, step) {
@@ -73,10 +74,10 @@ func TestImagePullSkipsOrasForACloudImageURL(t *testing.T) {
 	}
 }
 
-func TestImagePullFallsBackToCocoonWhenOrasCannotAnswer(t *testing.T) {
+func TestImagePullSkipsOrasOnANodeWithoutIt(t *testing.T) {
 	runner := &sshrunnertest.Fake{Respond: func(line string) *sshrunner.Result {
-		if strings.HasPrefix(line, "'oras'") {
-			return &sshrunner.Result{Code: 127, Stderr: "oras: not found"}
+		if strings.Contains(line, "command -v oras") {
+			return &sshrunner.Result{Code: 1}
 		}
 		return &sshrunner.Result{}
 	}}
@@ -85,8 +86,17 @@ func TestImagePullFallsBackToCocoonWhenOrasCannotAnswer(t *testing.T) {
 	if _, err := e.ImagePull(t.Context(), testImage, false); err != nil {
 		t.Fatalf("pull: %v", err)
 	}
-	if last := runner.Lines()[1]; last != sshrunner.Quote([]string{testBinary, "image", "pull", testImage}) {
-		t.Errorf("got %q, want cocoon's own pull", last)
+	want := []string{sshrunner.Quote(sshrunner.Shell(orasProbe)), sshrunner.Quote([]string{testBinary, "image", "pull", testImage})}
+	if !slices.Equal(runner.Lines(), want) {
+		t.Errorf("got %q, want the probe then cocoon's own pull", runner.Lines())
+	}
+
+	digest, err := e.ImageRemoteDigest(t.Context(), testImage)
+	if err != nil || digest != "" {
+		t.Errorf("got %q %v, want no digest and no error without oras", digest, err)
+	}
+	if len(runner.Lines()) != 2 {
+		t.Errorf("got %q, want the node probed once", runner.Lines())
 	}
 }
 
@@ -146,8 +156,8 @@ func TestImageRemoteDigest(t *testing.T) {
 	if digest, err = e.ImageRemoteDigest(t.Context(), url); err != nil || digest != url {
 		t.Errorf("got %q %v, want the url itself", digest, err)
 	}
-	if len(runner.Lines()) != 1 {
-		t.Errorf("got %q, want one oras call, none for the url", runner.Lines())
+	if len(runner.Lines()) != 2 {
+		t.Errorf("got %q, want the probe and one oras call, none for the url", runner.Lines())
 	}
 }
 

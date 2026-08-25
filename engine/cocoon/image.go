@@ -33,6 +33,8 @@ bin=$1; vm=$2; name=$3
 "$bin" snapshot save --name "$name" "$vm" >/dev/null
 exec "$bin" snapshot inspect "$name"
 `
+
+	orasProbe = `command -v oras >/dev/null 2>&1`
 )
 
 // cocoonImage is the part of cocoon's image JSON the engine reads.
@@ -130,6 +132,9 @@ func (e *Engine) ImageRemoteDigest(ctx context.Context, image string) (string, e
 	if isURL(image) {
 		return image, nil
 	}
+	if !e.orasPresent(ctx) {
+		return "", nil
+	}
 	res, err := e.run(ctx, "oras", "manifest", "fetch", "--descriptor", image)
 	if err != nil {
 		return "", err
@@ -164,10 +169,21 @@ func (e *Engine) BuildContent(context.Context, coresource.Source, *enginetypes.B
 
 // partsArtifact reads the manifest through oras; when oras cannot answer, cocoon pulls the ref itself.
 func (e *Engine) partsArtifact(ctx context.Context, ref string) bool {
+	if !e.orasPresent(ctx) {
+		return false
+	}
 	res, err := e.call(ctx, "oras", "manifest", "fetch", ref)
 	if err != nil || res.Code != 0 {
 		return false
 	}
 	m := &manifest{}
 	return json.Unmarshal([]byte(res.Stdout), m) == nil && m.parts()
+}
+
+func (e *Engine) orasPresent(ctx context.Context) bool {
+	e.probe.Do(func() {
+		res, err := e.call(ctx, sshrunner.Shell(orasProbe)...)
+		e.hasOras = err == nil && res.Code == 0
+	})
+	return e.hasOras
 }
