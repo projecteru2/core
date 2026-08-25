@@ -299,6 +299,40 @@ func TestWithNetworkDropsTheNamespaceForHostNetworking(t *testing.T) {
 	}
 }
 
+func TestWithNetworkKeepsNonNetSysctlsOnHostNetworking(t *testing.T) {
+	spec := newTestSpec()
+	spec.Linux.Namespaces = []specs.LinuxNamespace{{Type: specs.NetworkNamespace}}
+
+	opts := &enginetypes.VirtualizationCreateOptions{
+		Networks: map[string]string{hostNetwork: ""},
+		Sysctl:   map[string]string{"net.core.somaxconn": "1024", "kernel.shm_rmid_forced": "1"},
+	}
+	if err := withNetwork(opts)(t.Context(), nil, nil, spec); err != nil {
+		t.Fatalf("spec: %v", err)
+	}
+	if _, ok := spec.Linux.Sysctl["net.core.somaxconn"]; ok {
+		t.Error("the node owns net.* on host networking")
+	}
+	if spec.Linux.Sysctl["kernel.shm_rmid_forced"] != "1" {
+		t.Errorf("got %+v, want the namespaced sysctl kept", spec.Linux.Sysctl)
+	}
+}
+
+func TestWithNetworkKeepsEverySysctlOnACNINetwork(t *testing.T) {
+	spec := newTestSpec()
+
+	opts := &enginetypes.VirtualizationCreateOptions{
+		Networks: map[string]string{"eru-cni": ""},
+		Sysctl:   map[string]string{"net.core.somaxconn": "1024"},
+	}
+	if err := withNetwork(opts)(t.Context(), nil, nil, spec); err != nil {
+		t.Fatalf("spec: %v", err)
+	}
+	if spec.Linux.Sysctl["net.core.somaxconn"] != "1024" {
+		t.Errorf("got %+v, want net.* in the workload's own netns", spec.Linux.Sysctl)
+	}
+}
+
 func TestWithHooksHandTheNetnsToTheAgent(t *testing.T) {
 	spec := newTestSpec()
 

@@ -29,6 +29,7 @@ const (
 	minMemory       = 4 * units.MiB
 	defaultCPUShare = 1024
 	hostNetwork     = "host"
+	netSysctlPrefix = "net."
 	readOnlyMode    = "ro"
 	rootUser        = "root"
 	bindType        = "bind"
@@ -148,11 +149,15 @@ func withNetwork(opts *enginetypes.VirtualizationCreateOptions) oci.SpecOpts {
 		if spec.Linux == nil {
 			spec.Linux = &specs.Linux{}
 		}
+		sysctl := opts.Sysctl
 		if _, host := opts.Networks[hostNetwork]; host {
-			return oci.WithHostNamespace(specs.NetworkNamespace)(ctx, client, container, spec)
+			sysctl = withoutNetSysctls(sysctl)
+			if err := oci.WithHostNamespace(specs.NetworkNamespace)(ctx, client, container, spec); err != nil {
+				return err
+			}
 		}
-		if len(opts.Sysctl) > 0 {
-			maps.Copy(ensureSysctl(spec), opts.Sysctl)
+		if len(sysctl) > 0 {
+			maps.Copy(ensureSysctl(spec), sysctl)
 		}
 		return nil
 	}
@@ -415,6 +420,16 @@ func rlimits(ulimits []*units.Ulimit) []specs.POSIXRlimit {
 		})
 	}
 	return limits
+}
+
+func withoutNetSysctls(sysctl map[string]string) map[string]string {
+	kept := make(map[string]string, len(sysctl))
+	for key, value := range sysctl {
+		if !strings.HasPrefix(key, netSysctlPrefix) {
+			kept[key] = value
+		}
+	}
+	return kept
 }
 
 func ensureSysctl(spec *specs.Spec) map[string]string {
