@@ -104,7 +104,9 @@ func sliceHelper[T any](r RawParams, key string) []T {
 	return res
 }
 
-func intHelper[T int | int64](r RawParams, key string) T {
+type integer interface{ int | int64 }
+
+func intHelper[T integer](r RawParams, key string) T {
 	if !r.IsSet(key) {
 		return T(0)
 	}
