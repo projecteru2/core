@@ -17,6 +17,8 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
+const retryInterval = 10 * time.Second
+
 // EruServiceDiscovery watches eru service status
 type EruServiceDiscovery struct {
 	endpoint   string
@@ -44,12 +46,17 @@ func (w *EruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err
 	epPusher.Register(lbResolverBuilder.updateCh)
 	go func() {
 		defer close(ch)
-		for {
+		for ctx.Err() == nil {
 			watchCtx, cancelWatch := context.WithCancel(ctx)
 			stream, err := client.WatchServiceStatus(watchCtx, &pb.Empty{})
 			if err != nil {
 				logger.Error(ctx, err, "watch service status")
-				time.Sleep(10 * time.Second)
+				cancelWatch()
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(retryInterval):
+				}
 				continue
 			}
 			expectedInterval := time.Duration(math.MaxInt64) / time.Second
@@ -76,6 +83,7 @@ func (w *EruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err
 
 				epPusher.Push(ctx, status.GetAddresses())
 			}
+			cancelWatch()
 		}
 	}()
 
