@@ -29,7 +29,6 @@ const (
 	kiB                 = 1024
 	infoFields          = 4
 
-	// infoScript assigns before it prints: a command substitution inside printf would hide its exit code.
 	infoScript = `set -e
 mkdir -p "$1"
 id=$(cat /etc/machine-id)

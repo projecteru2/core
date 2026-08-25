@@ -72,7 +72,6 @@ func (c *Calcium) ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorklo
 	return ch
 }
 
-// sendAttachMessage drops the message when the caller is gone, so the exec is still reaped.
 func sendAttachMessage(ctx context.Context, ch chan<- *types.AttachWorkloadMessage, message *types.AttachWorkloadMessage) {
 	select {
 	case ch <- message:

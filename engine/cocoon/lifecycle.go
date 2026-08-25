@@ -75,7 +75,6 @@ test -f "$durable" || exit 64
 exec "$bin" vm stop "$@" "$vm"
 `
 
-	// inspectScript prints the stored record first: cocoon's own JSON has no eru user.
 	inspectScript = `bin=$1; vm=$2; durable=$3
 test -f "$durable" || exit 64
 cat "$durable"
@@ -200,8 +199,6 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, en
 	return errors.Wrap(coretypes.ErrEngineNotImplemented, "cpu and memory hot-plug wait on cocoon (projecteru2/core#661)")
 }
 
-// programAddress leaves the start path: the netsh loop waits minutes on a first boot, and calcium
-// shares one global timeout between the pull, the create and the start.
 func (e *Engine) programAddress(ctx context.Context, ID string, addr *guestAddress) {
 	ctx, cancel := context.WithTimeout(utils.NewInheritCtx(ctx), addressTimeout)
 	defer cancel()

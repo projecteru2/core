@@ -68,7 +68,6 @@ func newMeta(ctx context.Context, ID string, opts *enginetypes.VirtualizationCre
 	return record
 }
 
-// parseInspect splits the stored record the inspect script prints ahead of cocoon's own vm JSON.
 func parseInspect(out string) (*meta, *vmRecord, error) {
 	decoder := json.NewDecoder(strings.NewReader(out))
 	record, vm := &meta{}, &vmRecord{}
