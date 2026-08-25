@@ -108,3 +108,14 @@ func TestNormalizeRefExpandsAShortName(t *testing.T) {
 		})
 	}
 }
+
+func TestNewEngineFillsTheRegistersEveryEngineNeeds(t *testing.T) {
+	e := newEngine(&Engine{})
+
+	if e.execs == nil {
+		t.Error("an engine without an exec register panics on the first exec")
+	}
+	if e.attaches == nil {
+		t.Error("an engine without an attach register panics on the first attach")
+	}
+}

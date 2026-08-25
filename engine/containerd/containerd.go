@@ -96,7 +96,7 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 		_ = runner.Close()
 		return nil, err
 	}
-	return &Engine{
+	return newEngine(&Engine{
 		client:    cli,
 		runner:    runner,
 		config:    config,
@@ -105,9 +105,13 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 		socket:    socket,
 		host:      host,
 		platform:  platform,
-		execs:     sshrunner.NewExecs(),
-		attaches:  map[string]*attach{},
-	}, nil
+	}), nil
+}
+
+func newEngine(e *Engine) *Engine {
+	e.execs = sshrunner.NewExecs()
+	e.attaches = map[string]*attach{}
+	return e
 }
 
 func (e *Engine) Info(ctx context.Context) (*enginetypes.Info, error) {
