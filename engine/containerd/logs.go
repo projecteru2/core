@@ -9,20 +9,32 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/containerd/containerd/v2/client"
+	"github.com/containerd/containerd/v2/pkg/cio"
+	cerrdefs "github.com/containerd/errdefs"
 
 	"github.com/projecteru2/core/engine/journal"
 	"github.com/projecteru2/core/engine/sshrunner"
 	enginetypes "github.com/projecteru2/core/engine/types"
 )
 
-// logFlushGrace lets journald hand over the last lines a dying task wrote.
-const logFlushGrace = time.Second
+const (
+	// logFlushGrace lets journald hand over the last lines a dying task wrote.
+	logFlushGrace = time.Second
+
+	taskPollInterval = 20 * time.Millisecond
+	taskPollMax      = 200 * time.Millisecond
+)
 
 // attach is the `ctr tasks start` session an interactive workload runs under: it owns the
 // task's fifos, so it is at once the workload's stdio, its console and its exit status.
 type attach struct {
 	sess   sshrunner.Session
 	exited <-chan client.ExitStatus
+}
+
+type taskContainer interface {
+	ID() string
+	Task(ctx context.Context, attach cio.Attach) (client.Task, error)
 }
 
 func (e *Engine) VirtualizationLogs(ctx context.Context, opts *enginetypes.VirtualizationLogStreamOptions) (stdout, stderr io.ReadCloser, err error) {
@@ -73,8 +85,8 @@ func (e *Engine) VirtualizationAttach(ctx context.Context, ID string, _, stdin b
 
 // startInteractive runs the task under `ctr tasks start`, which reads process.terminal off the
 // spec, makes the fifos on the node and relays them to the session's own stdio.
-func (e *Engine) startInteractive(ctx context.Context, ID string) error {
-	argv := []string{ctrBinary, "--address", e.socket, "--namespace", e.namespace, "tasks", "start", ID}
+func (e *Engine) startInteractive(ctx context.Context, found taskContainer) error {
+	argv := []string{ctrBinary, "--address", e.socket, "--namespace", e.namespace, "tasks", "start", found.ID()}
 	running, err := e.runner.Start(ctx, sshrunner.Quote(argv), &sshrunner.StartOptions{Stdin: true, TTY: true})
 	if err != nil {
 		return err
@@ -82,8 +94,11 @@ func (e *Engine) startInteractive(ctx context.Context, ID string) error {
 
 	exited := make(chan client.ExitStatus, 1)
 	go waitSession(running, exited)
+	if err = awaitTask(ctx, found, exited); err != nil {
+		return err
+	}
 	e.mu.Lock()
-	e.attaches[ID] = &attach{sess: running, exited: exited}
+	e.attaches[found.ID()] = &attach{sess: running, exited: exited}
 	e.mu.Unlock()
 	return nil
 }
@@ -94,6 +109,28 @@ func waitSession(running sshrunner.Session, exited chan<- client.ExitStatus) {
 	_ = running.Close()
 	exited <- *client.NewExitStatus(uint32(max(code, 0)), time.Now(), err) //nolint:gosec // a shell exit status is never past 255
 	close(exited)
+}
+
+func awaitTask(ctx context.Context, found taskContainer, exited <-chan client.ExitStatus) error {
+	for wait := taskPollInterval; ; wait = min(wait*2, taskPollMax) {
+		_, err := found.Task(ctx, nil)
+		if err == nil {
+			return nil
+		}
+		if !cerrdefs.IsNotFound(err) {
+			return err
+		}
+		select {
+		case status := <-exited:
+			if err = status.Error(); err != nil {
+				return err
+			}
+			return errors.Newf("%s exited %d before the task of %s appeared", ctrBinary, status.ExitCode(), found.ID())
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(wait):
+		}
+	}
 }
 
 func endWithTask(ctx context.Context, task client.Task, running sshrunner.Session) {

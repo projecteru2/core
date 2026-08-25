@@ -77,6 +77,7 @@ type Session struct {
 	Code int
 	Out  string
 	Err  string
+	Hold <-chan struct{}
 
 	mu     sync.Mutex
 	closed bool
@@ -126,6 +127,9 @@ func (s *Session) Resize(height, width uint) error {
 }
 
 func (s *Session) Wait() (int, error) {
+	if s.Hold != nil {
+		<-s.Hold
+	}
 	return s.Code, nil
 }
 

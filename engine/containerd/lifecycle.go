@@ -18,6 +18,7 @@ import (
 	"github.com/containerd/containerd/v2/pkg/cio"
 	"github.com/containerd/containerd/v2/pkg/oci"
 	cerrdefs "github.com/containerd/errdefs"
+	"github.com/containerd/errdefs/pkg/errgrpc"
 	"github.com/containerd/typeurl/v2"
 	"github.com/moby/sys/signal"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
@@ -46,7 +47,7 @@ func (e *Engine) VirtualizationStart(ctx context.Context, ID string) error {
 	// a task has fifos or a log uri, never both: an interactive workload needs the fifos, so
 	// ctr makes them on the node and the session it runs under carries them
 	if spec.Process != nil && spec.Process.Terminal {
-		if err = e.startInteractive(ctx, found.ID()); err != nil {
+		if err = e.startInteractive(ctx, found); err != nil {
 			return err
 		}
 		return e.setDesiredStatus(ctx, found, info.Labels, client.Running)
@@ -171,7 +172,7 @@ func (e *Engine) VirtualizationInspect(ctx context.Context, ID string) (*enginet
 	}
 	resp, err := e.client.TaskService().Get(ctx, &tasks.GetRequest{ContainerID: found.ID()})
 	if err != nil {
-		if !cerrdefs.IsNotFound(err) {
+		if err = errgrpc.ToNative(err); !cerrdefs.IsNotFound(err) {
 			return nil, err
 		}
 		return r, nil

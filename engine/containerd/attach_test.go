@@ -1,10 +1,14 @@
 package containerd
 
 import (
+	"context"
 	"io"
 	"testing"
 
 	"github.com/cockroachdb/errors"
+	"github.com/containerd/containerd/v2/client"
+	"github.com/containerd/containerd/v2/pkg/cio"
+	cerrdefs "github.com/containerd/errdefs"
 
 	"github.com/projecteru2/core/engine/sshrunner"
 	"github.com/projecteru2/core/engine/sshrunner/sshrunnertest"
@@ -15,7 +19,7 @@ func TestInteractiveStartRunsCtrStartOverTheSession(t *testing.T) {
 	runner := &sshrunnertest.Fake{Started: running}
 	e := testEngine(t, runner)
 
-	if err := e.startInteractive(t.Context(), "app_web_abc123"); err != nil {
+	if err := e.startInteractive(t.Context(), &fakeTaskContainer{id: "app_web_abc123"}); err != nil {
 		t.Fatalf("start: %v", err)
 	}
 
@@ -37,7 +41,7 @@ func TestAttachHandsBackTheStartSessionsStreams(t *testing.T) {
 	running := &sshrunnertest.Session{Out: "hello\n", Err: "oops\n"}
 	e := testEngine(t, &sshrunnertest.Fake{Started: running})
 
-	if err := e.startInteractive(t.Context(), "app_web_abc123"); err != nil {
+	if err := e.startInteractive(t.Context(), &fakeTaskContainer{id: "app_web_abc123"}); err != nil {
 		t.Fatalf("start: %v", err)
 	}
 	stdout, stderr, stdin, err := e.VirtualizationAttach(t.Context(), "app_web_abc123", true, true)
@@ -79,7 +83,7 @@ func TestVirtualizationResizeGoesToTheStartedPty(t *testing.T) {
 	running := &sshrunnertest.Session{}
 	e := testEngine(t, &sshrunnertest.Fake{Started: running})
 
-	if err := e.startInteractive(t.Context(), "app_web_abc123"); err != nil {
+	if err := e.startInteractive(t.Context(), &fakeTaskContainer{id: "app_web_abc123"}); err != nil {
 		t.Fatalf("start: %v", err)
 	}
 	if err := e.VirtualizationResize(t.Context(), "app_web_abc123", 24, 80); err != nil {
@@ -102,7 +106,7 @@ func TestVirtualizationWaitTakesTheStartSessionsExit(t *testing.T) {
 	running := &sshrunnertest.Session{Code: 3}
 	e := testEngine(t, &sshrunnertest.Fake{Started: running})
 
-	if err := e.startInteractive(t.Context(), "app_web_abc123"); err != nil {
+	if err := e.startInteractive(t.Context(), &fakeTaskContainer{id: "app_web_abc123"}); err != nil {
 		t.Fatalf("start: %v", err)
 	}
 	result, err := e.VirtualizationWait(t.Context(), "app_web_abc123", "")
@@ -118,4 +122,56 @@ func TestVirtualizationWaitTakesTheStartSessionsExit(t *testing.T) {
 	if !running.Closed() {
 		t.Error("a finished workload must release its session")
 	}
+}
+
+func TestInteractiveStartWaitsForTheTaskCtrMakes(t *testing.T) {
+	hold := make(chan struct{})
+	t.Cleanup(func() { close(hold) })
+	e := testEngine(t, &sshrunnertest.Fake{Started: &sshrunnertest.Session{Hold: hold}})
+	found := &fakeTaskContainer{id: "app_web_abc123", appearsAfter: 1}
+
+	if err := e.startInteractive(t.Context(), found); err != nil {
+		t.Fatalf("start: %v", err)
+	}
+
+	if found.polls != 2 {
+		t.Errorf("got %d polls, want the start to wait for the task ctr creates", found.polls)
+	}
+	if _, ok := e.attaches["app_web_abc123"]; !ok {
+		t.Error("the attach is registered once the task is there")
+	}
+}
+
+func TestInteractiveStartFailsWhenCtrExitsBeforeItsTask(t *testing.T) {
+	running := &sshrunnertest.Session{Code: 1}
+	e := testEngine(t, &sshrunnertest.Fake{Started: running})
+	found := &fakeTaskContainer{id: "app_web_abc123", never: true}
+
+	err := e.startInteractive(t.Context(), found)
+
+	if err == nil {
+		t.Fatal("a workload whose task ctr never made must not report a started workload")
+	}
+	if _, ok := e.attaches["app_web_abc123"]; ok {
+		t.Error("a failed start leaves no attach behind for the next one to find")
+	}
+}
+
+type fakeTaskContainer struct {
+	id           string
+	appearsAfter int
+	never        bool
+	polls        int
+}
+
+func (f *fakeTaskContainer) ID() string {
+	return f.id
+}
+
+func (f *fakeTaskContainer) Task(context.Context, cio.Attach) (client.Task, error) {
+	f.polls++
+	if f.never || f.polls <= f.appearsAfter {
+		return nil, cerrdefs.ErrNotFound
+	}
+	return nil, nil
 }
