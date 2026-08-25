@@ -103,8 +103,8 @@ func TestBuild(t *testing.T) {
 	ch, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	rmgr.On("GetMostIdleNode", mock.Anything, mock.Anything).Return("test", nil)
-	c.config.Docker.Hub = "test.com"
-	c.config.Docker.Namespace = "test"
+	c.config.Registry.Hub = "test.com"
+	c.config.Registry.Namespace = "test"
 
 	buildImageMessage := &types.BuildImageMessage{}
 	buildImageMessage.Progress = "process"

@@ -21,7 +21,7 @@ type Config struct {
 	HAKeepaliveInterval time.Duration `yaml:"ha_keepalive_interval" required:"true" default:"16s"` // interval for node status watcher
 	Statsd              string        `yaml:"statsd"`                                              // statsd host:port
 	Profile             string        `yaml:"profile"`                                             // profile ip:port
-	CertPath            string        `yaml:"cert_path"`                                           // docker cert files path
+	CertPath            string        `yaml:"cert_path"`                                           // where the virt engine materializes a node's ca
 	MaxConcurrency      int           `yaml:"max_concurrency" default:"100000"`                    // max concurrent calls to one runtime
 	Store               string        `yaml:"store" default:"etcd"`
 	SentryDSN           string        `yaml:"sentry_dsn"`
@@ -33,7 +33,6 @@ type Config struct {
 	SSH            SSHConfig            `yaml:"ssh"`
 	Etcd           EtcdConfig           `yaml:"etcd"`
 	Redis          RedisConfig          `yaml:"redis"`
-	Docker         DockerConfig         `yaml:"docker"`
 	Registry       RegistryConfig       `yaml:"registry"`
 	Build          BuildConfig          `yaml:"build"`
 	Containerd     ContainerdConfig     `yaml:"containerd"`
@@ -102,28 +101,21 @@ type RedisConfig struct {
 	DB         int    `yaml:"db" default:"0"`
 }
 
-type DockerConfig struct {
-	NetworkMode string    `yaml:"network_mode" required:"true" default:"host"`
-	UseLocalDNS bool      `yaml:"use_local_dns"` // use node IP as dns
-	Log         LogConfig `yaml:"log"`           // docker log driver
-
-	Hub       string `yaml:"hub"`
-	Namespace string `yaml:"namespace"` // image path becomes $Hub/$Namespace/$appname
+// RegistryConfig is the registry every engine pulls from and pushes built images to.
+type RegistryConfig struct {
+	Hub       string                `yaml:"hub"`
+	Namespace string                `yaml:"namespace"`  // image path becomes $Hub/$Namespace/$appname
+	Auths     map[string]AuthConfig `yaml:"auths"`      // keyed by registry host
+	PlainHTTP []string              `yaml:"plain_http"` // registry hosts served without TLS
 }
 
 // ImageTag renders the registry reference an app's built image is pushed under.
-func (c DockerConfig) ImageTag(appname, tag string) string {
+func (c RegistryConfig) ImageTag(appname, tag string) string {
 	prefix := strings.Trim(c.Namespace, "/")
 	if prefix == "" {
 		return fmt.Sprintf("%s/%s:%s", c.Hub, appname, tag)
 	}
 	return fmt.Sprintf("%s/%s/%s:%s", c.Hub, prefix, appname, tag)
-}
-
-// RegistryConfig holds the credentials every engine hands to its image client.
-type RegistryConfig struct {
-	Auths     map[string]AuthConfig `yaml:"auths"`      // keyed by registry host
-	PlainHTTP []string              `yaml:"plain_http"` // registry hosts served without TLS
 }
 
 // BuildConfig selects the nodes allowed to run in-cluster image builds.

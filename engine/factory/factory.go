@@ -11,7 +11,6 @@ import (
 
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/engine/containerd"
-	"github.com/projecteru2/core/engine/docker"
 	"github.com/projecteru2/core/engine/fake"
 	"github.com/projecteru2/core/engine/mocks/fakeengine"
 	"github.com/projecteru2/core/engine/process"
@@ -26,8 +25,6 @@ import (
 
 var (
 	engines = map[string]factory{
-		docker.TCPPrefixKey:  docker.MakeClient,
-		docker.SockPrefixKey: docker.MakeClient,
 		virt.GRPCPrefixKey:   virt.MakeClient,
 		containerd.Prefix:    containerd.MakeClient,
 		process.Prefix:       process.MakeClient,

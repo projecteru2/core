@@ -14,14 +14,11 @@ require (
 	github.com/containerd/typeurl/v2 v2.3.0
 	github.com/distribution/reference v0.6.0
 	github.com/docker/cli v29.6.2+incompatible
-	github.com/docker/go-connections v0.8.1
 	github.com/docker/go-units v0.5.0
 	github.com/getsentry/sentry-go v0.48.0
 	github.com/go-git/go-git/v5 v5.19.2
 	github.com/moby/buildkit v0.32.2
 	github.com/moby/go-archive v0.3.3
-	github.com/moby/moby/api v1.55.0
-	github.com/moby/moby/client v0.5.1
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.1
 	github.com/opencontainers/runtime-spec v1.3.0
@@ -105,7 +102,6 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.15 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
-	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/locker v1.0.1 // indirect
 	github.com/moby/patternmatcher v0.6.1 // indirect
 	github.com/moby/sys/mountinfo v0.7.2 // indirect

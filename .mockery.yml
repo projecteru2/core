@@ -32,11 +32,6 @@ packages:
   github.com/projecteru2/core/wal:
     interfaces:
       WAL:
-  github.com/moby/moby/client:
-    config:
-      dir: engine/docker/mocks
-    interfaces:
-      APIClient:
   go.etcd.io/etcd/client/v3:
     config:
       dir: store/etcdv3/meta/mocks

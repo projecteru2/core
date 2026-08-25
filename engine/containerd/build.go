@@ -36,11 +36,11 @@ const (
 
 func (e *Engine) BuildRefs(_ context.Context, opts *enginetypes.BuildRefOptions) []string {
 	if len(opts.Tags) == 0 {
-		return []string{e.config.Docker.ImageTag(opts.Name, utils.DefaultVersion)}
+		return []string{e.config.Registry.ImageTag(opts.Name, utils.DefaultVersion)}
 	}
 	refs := make([]string, 0, len(opts.Tags))
 	for _, tag := range opts.Tags {
-		refs = append(refs, e.config.Docker.ImageTag(opts.Name, tag))
+		refs = append(refs, e.config.Registry.ImageTag(opts.Name, tag))
 	}
 	return refs
 }

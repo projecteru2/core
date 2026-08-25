@@ -29,8 +29,7 @@ etcd:
     lock_prefix: "core/_lock"
 git:
     scm_type: "github"
-docker:
-    network_mode: "bridge"
+registry:
     hub: "hub.docker.com"
     namespace: "projecteru2"
 build:
@@ -58,8 +57,8 @@ func TestLoadConfigAppliesDefaults(t *testing.T) {
 		{"string default holding a colon", config.ProbeTarget, "8.8.8.8:80"},
 		{"int default", config.Scheduler.ShareBase, 100},
 		{"negative int default", config.Scheduler.MaxShare, -1},
-		{"nested struct default", config.Docker.NetworkMode, "host"},
-		{"twice-nested struct default", config.Docker.Log.Type, "journald"},
+		{"nested struct default", config.Containerd.Socket, "/run/containerd/containerd.sock"},
+		{"twice-nested struct default", config.Process.StopTimeout, 10 * time.Second},
 		{"default in a section the file omits", config.Redis.Addr, "localhost:6379"},
 	}
 	for _, tt := range tests {
@@ -82,7 +81,7 @@ func TestLoadConfigLetsTheFileOverrideDefaults(t *testing.T) {
 		{"string", config.Bind, ":5001"},
 		{"int", config.Scheduler.ShareBase, 50},
 		{"nested string", config.Etcd.LockPrefix, "core/_lock"},
-		{"nested struct field", config.Docker.NetworkMode, "bridge"},
+		{"nested struct field", config.Registry.Hub, "hub.docker.com"},
 		{"map inside a twice-nested struct", config.Build.NodeFilter.Labels, map[string]string{"eru.build": "1"}},
 		{"slice", config.Etcd.Machines, []string{"http://127.0.0.1:2379"}},
 		{"untouched default alongside overrides", config.Virt.APIVersion, "v1"},
