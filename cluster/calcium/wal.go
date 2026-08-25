@@ -18,6 +18,7 @@ const (
 	eventCreateLambda              = "create-lambda"
 	eventWorkloadCreated           = "create-workload"   // created but yet to start
 	eventWorkloadReplaced          = "replace-workload"
+	eventWorkloadReallocated       = "realloc-workload"
 	eventWorkloadResourceAllocated = "allocate-workload" // resource updated in node meta but yet to create all workloads
 	eventProcessingCreated         = "create-processing" // processing created but yet to delete
 
@@ -129,6 +130,41 @@ func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw any) (err error)
 	}
 
 	logger.Info(ctx, "workload removed")
+	return nil
+}
+
+// ReallocWorkloadHandler re-applies the stored engine params of an interrupted realloc.
+type ReallocWorkloadHandler struct {
+	walBase[string]
+
+	calcium *Calcium
+}
+
+func newReallocWorkloadHandler(calcium *Calcium) *ReallocWorkloadHandler {
+	return &ReallocWorkloadHandler{calcium: calcium}
+}
+
+func (h *ReallocWorkloadHandler) Typ() string {
+	return eventWorkloadReallocated
+}
+
+func (h *ReallocWorkloadHandler) Handle(ctx context.Context, raw any) error {
+	workloadID, _ := raw.(string)
+	logger := log.WithFunc("calcium.ReallocWorkloadHandler.Handle").WithField("ID", workloadID)
+
+	ctx, cancel := getReplayContext(ctx)
+	defer cancel()
+
+	workload, err := getWorkloadIfExists(ctx, h.calcium, workloadID)
+	if err != nil || workload == nil {
+		return err
+	}
+
+	if err = workload.Engine.VirtualizationUpdateResource(ctx, workloadID, workload.EngineParams); err != nil {
+		logger.Error(ctx, err)
+		return err
+	}
+	logger.Info(ctx, "engine params reapplied")
 	return nil
 }
 
@@ -269,6 +305,7 @@ func enableWAL(config types.Config, calcium *Calcium, store store.Store) (wal.WA
 	hydro.Register(newCreateLambdaHandler(calcium, hydro))
 	hydro.Register(newCreateWorkloadHandler(calcium))
 	hydro.Register(newReplaceWorkloadHandler(calcium))
+	hydro.Register(newReallocWorkloadHandler(calcium))
 	hydro.Register(newWorkloadResourceAllocatedHandler(calcium))
 	hydro.Register(newProcessingCreatedHandler(store))
 	return hydro, nil

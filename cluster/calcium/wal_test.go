@@ -220,6 +220,30 @@ func TestHandleReplaceWorkloadKeepsTheOldOneWhenTheNewOneIsGone(t *testing.T) {
 	store.AssertExpectations(t)
 }
 
+func TestHandleReallocWorkload(t *testing.T) {
+	c := NewTestCluster()
+	wal, err := enableWAL(c.config, c, c.store)
+	require.NoError(t, err)
+	c.wal = wal
+
+	_, err = c.wal.Log(eventWorkloadReallocated, "workloadid")
+	require.NoError(t, err)
+
+	engine := &enginemocks.API{}
+	engineParams := resourcetypes.Resources{"cpumem": {"cpu": 2}}
+	store := c.store.(*storemocks.Store)
+	store.On("GetWorkload", mock.Anything, "workloadid").Return(
+		&types.Workload{ID: "workloadid", EngineParams: engineParams, Engine: engine}, nil,
+	).Once()
+	engine.On("VirtualizationUpdateResource", mock.Anything, "workloadid", engineParams).Return(nil).Once()
+
+	c.wal.Recover(context.Background())
+	store.AssertExpectations(t)
+	engine.AssertExpectations(t)
+
+	c.wal.Recover(context.Background())
+}
+
 func TestHandleCreateLambda(t *testing.T) {
 	c := NewTestCluster()
 	wal, err := enableWAL(c.config, c, c.store)
