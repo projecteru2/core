@@ -104,6 +104,13 @@ the readers' EOF. There is no terminal anywhere and no `SIGWINCH`, so `Virtualiz
 nothing to send — a real tty would need a deploy flag eru does not have. `VirtualizationWait` is
 plain `task.Wait` for every workload, interactive or not, because core owns the task either way.
 
+The relays are the one thing this engine starts that outlives the request that started it, so
+they are opened on a `context.WithoutCancel` of the deploy's context. Every other SSH session core
+holds — the `journalctl -f` follow and an exec — is consumed by a streaming RPC and *should* die
+with that RPC's context, and does. A relay bound the same way is closed the moment the create
+phase completes: the remote `cat` lingers, so the fifos still look attached from the node, but
+core's end of the channel is gone and the first write to stdin fails with EOF.
+
 Each relay is watched. A relay that ends on its own is only normal when it ends quietly — `cat`
 reaching EOF as the task exits — so an exit code, a wait error or anything the node wrote to the
 relay's stderr is logged against the workload id, and a relay already dead by the time the task

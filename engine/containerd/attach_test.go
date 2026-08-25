@@ -1,6 +1,7 @@
 package containerd
 
 import (
+	"context"
 	"io"
 	"slices"
 	"strings"
@@ -149,6 +150,39 @@ func TestRelayFifosReplacesTheRelaysOfAnEarlierStart(t *testing.T) {
 		if !sess.Closed() {
 			t.Errorf("relay %d of the first start holds a session slot on a fifo that is gone", i)
 		}
+	}
+}
+
+func TestTheRelaysOutliveTheDeployRequestThatStartedThem(t *testing.T) {
+	stdin := &sshrunnertest.Session{}
+	runner := &sshrunnertest.Fake{Started: []*sshrunnertest.Session{stdin, {}, {}}}
+	e := testEngine(t, runner)
+
+	ctx, cancel := context.WithCancel(t.Context())
+	if _, err := e.relayFifos(ctx, "app_web_abc123"); err != nil {
+		t.Fatalf("relay: %v", err)
+	}
+	cancel()
+
+	held := runner.Contexts()
+	if len(held) != relayStreams {
+		t.Fatalf("got %d relays, want %d", len(held), relayStreams)
+	}
+	for i, sessCtx := range held {
+		if sessCtx.Err() != nil {
+			t.Errorf("relay %d dies with the deploy request, and the workload outlives that", i)
+		}
+	}
+
+	_, _, in, err := e.VirtualizationAttach(t.Context(), "app_web_abc123", true, true)
+	if err != nil {
+		t.Fatalf("attach: %v", err)
+	}
+	if _, err = in.Write([]byte("ping\n")); err != nil {
+		t.Fatalf("stdin: %v", err)
+	}
+	if stdin.In() != "ping\n" {
+		t.Errorf("got %q, want a write after the request ended to still reach the fifo", stdin.In())
 	}
 }
 

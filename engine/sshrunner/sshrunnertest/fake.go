@@ -25,6 +25,7 @@ type Fake struct {
 	mu    sync.Mutex
 	lines []string
 	opts  []*sshrunner.StartOptions
+	ctxs  []context.Context
 }
 
 // Lines returns the command lines the engine has sent so far.
@@ -41,6 +42,13 @@ func (f *Fake) Options() []*sshrunner.StartOptions {
 	return append([]*sshrunner.StartOptions(nil), f.opts...)
 }
 
+// Contexts returns the context each started command was bound to, which is its lifetime.
+func (f *Fake) Contexts() []context.Context {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]context.Context(nil), f.ctxs...)
+}
+
 func (f *Fake) Run(_ context.Context, line string, _ io.Reader) (*sshrunner.Result, error) {
 	f.record(line)
 	if f.Respond != nil {
@@ -49,11 +57,12 @@ func (f *Fake) Run(_ context.Context, line string, _ io.Reader) (*sshrunner.Resu
 	return &sshrunner.Result{}, nil
 }
 
-func (f *Fake) Start(_ context.Context, line string, opts *sshrunner.StartOptions) (sshrunner.Session, error) {
+func (f *Fake) Start(ctx context.Context, line string, opts *sshrunner.StartOptions) (sshrunner.Session, error) {
 	f.record(line)
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.opts = append(f.opts, opts)
+	f.ctxs = append(f.ctxs, ctx)
 	if len(f.opts) > len(f.Started) {
 		if f.StartErr != nil {
 			return nil, f.StartErr

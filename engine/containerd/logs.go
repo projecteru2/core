@@ -35,7 +35,6 @@ mkfifo "$@"
 	fifoWriteScript = `exec cat > "$1"`
 )
 
-// attach is the three ssh sessions relaying an interactive workload's node-side fifos.
 type attach struct {
 	stdin  sshrunner.Session
 	stdout sshrunner.Session
@@ -123,31 +122,32 @@ func (e *Engine) relayFifos(ctx context.Context, ID string) (_ cio.Creator, err 
 		return nil, err
 	}
 
+	// a relay lives as long as the workload, and the deploy request that starts it does not
+	held := context.WithoutCancel(ctx)
 	relay := &attach{died: make(chan error, relayStreams)}
 	defer func() {
 		if err != nil {
 			relay.close()
 		}
 	}()
-	if relay.stdin, err = e.runner.Start(ctx, sshrunner.Quote(sshrunner.Shell(fifoWriteScript, set.Stdin)), &sshrunner.StartOptions{Stdin: true}); err != nil {
+	if relay.stdin, err = e.runner.Start(held, sshrunner.Quote(sshrunner.Shell(fifoWriteScript, set.Stdin)), &sshrunner.StartOptions{Stdin: true}); err != nil {
 		return nil, err
 	}
-	if relay.stdout, err = e.runner.Start(ctx, sshrunner.Quote([]string{"cat", set.Stdout}), &sshrunner.StartOptions{}); err != nil {
+	if relay.stdout, err = e.runner.Start(held, sshrunner.Quote([]string{"cat", set.Stdout}), &sshrunner.StartOptions{}); err != nil {
 		return nil, err
 	}
-	if relay.stderr, err = e.runner.Start(ctx, sshrunner.Quote([]string{"cat", set.Stderr}), &sshrunner.StartOptions{}); err != nil {
+	if relay.stderr, err = e.runner.Start(held, sshrunner.Quote([]string{"cat", set.Stderr}), &sshrunner.StartOptions{}); err != nil {
 		return nil, err
 	}
 	e.mu.Lock()
 	e.attaches[ID] = relay
 	e.mu.Unlock()
-	go relay.watch(ctx, ID, "stdin", relay.stdin)
-	go relay.watch(ctx, ID, "stdout", relay.stdout)
-	go relay.watch(ctx, ID, "stderr", relay.stderr)
+	go relay.watch(held, ID, "stdin", relay.stdin)
+	go relay.watch(held, ID, "stdout", relay.stdout)
+	go relay.watch(held, ID, "stderr", relay.stderr)
 	return func(string) (cio.IO, error) { return cio.Load(cio.NewFIFOSet(set, nil)) }, nil
 }
 
-// relayFailure is the death of a relay the workload cannot run without.
 func (e *Engine) relayFailure(ID string) error {
 	e.mu.Lock()
 	relay, ok := e.attaches[ID]
