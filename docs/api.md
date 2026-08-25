@@ -87,7 +87,7 @@ plugin name. See [Resource plugins](resource-plugins.md).
 | `ExecuteWorkload` ⇅ | `workload_id`, `commands`, `envs`, `workdir`, `open_stdin` | Exec inside a workload. When `open_stdin` is set, further client messages carry stdin in `repl_cmd` |
 | `RunAndWait` ⇅ | `deploy_options`, `cmd`, `async`, `async_timeout` | Lambda: deploy, attach, wait for exit, then remove. The first messages carry the new workload IDs (`TYPEWORKLOADID`), the last output line is `[exitcode] <n>`. With `async`, core sends the IDs, detaches from the stream, forces `open_stdin` off, and logs the output itself under `async_timeout` seconds (default `global_timeout`) |
 | `LogStream` ⇊ | `id`, `tail`, `since`, `until`, `follow` | Engine logs for one workload |
-| `RawEngine` | `id`, `op`, `params`, `ignore_lock` | Pass an engine-specific operation through to the node's engine. Implemented by the virt engine; the docker and process engines return `ErrEngineNotImplemented` |
+| `RawEngine` | `id`, `op`, `params`, `ignore_lock` | Pass an engine-specific operation through to the node's engine. Implemented by the virt engine; the containerd and process engines return `ErrEngineNotImplemented` |
 
 ## Files
 
@@ -106,8 +106,8 @@ plugin name. See [Resource plugins](resource-plugins.md).
 | `RemoveImage` ⇊ | `podname`, `nodenames`, `images`, `prune` | Remove them; with `prune`, also prune dangling images on each node afterwards |
 | `ListImage` ⇊ | `podname`, `nodenames`, `filter` | List images per node |
 
-Image references are built as `hub/namespace/appname:tag` from `docker.hub` and
-`docker.namespace`; with no tags, `latest` is used. Registry credentials come from
+Image references are built as `hub/namespace/appname:tag` from `registry.hub` and
+`registry.namespace`; with no tags, `latest` is used. Registry credentials come from
 `registry.auths`.
 
 ## Networks
@@ -118,7 +118,7 @@ Image references are built as `hub/namespace/appname:tag` from `docker.hub` and
 | `ConnectNetwork` | `network`, `target`, `ipv4`, `ipv6` | Attach a workload to a network; returns its subnets |
 | `DisconnectNetwork` | `network`, `target`, `force` | Detach it |
 
-The docker and virt engines implement these; `process://` nodes use the host network and return
+The virt engine implements all three and the containerd engine lists CNI networks; `process://` nodes use the host network and `NetworkConnect`/`Disconnect` return
 `ErrEngineNotImplemented`.
 
 ## DeployOptions

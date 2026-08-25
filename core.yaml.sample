@@ -6,7 +6,7 @@ connection_timeout: 10s                                                 # requir
 ha_keepalive_interval: 16s                                              # required, default 16s
 statsd: "127.0.0.1:8125"                                                # optional
 profile: ":12346"                                                       # optional
-cert_path: "/etc/eru/tls"                                               # optional, if you need connect to daemon without https
+cert_path: "/etc/eru/tls"                                               # optional, where the virt engine materializes a node's ca
 max_concurrency: 100000                                                 # optional, default 100000 for pool size
 store: etcd                                                             # optional, default etcd can choose redis
 sentry_dsn: "https://examplePublicKey@o0.ingest.sentry.io/0"            # optional
@@ -28,7 +28,7 @@ git:                                                                    # option
     token: "***REMOVED***"
     clone_timeout: 300s
 
-ssh:                                                                    # optional, required by process:// nodes
+ssh:                                                                    # optional, required by containerd:// and process:// nodes
     private_key: "***REMOVED***"                                        # file path
     user: "root"                                                        # default root, overridden by user@ in the endpoint
     known_hosts: "/etc/eru/known_hosts"                                 # empty accepts any host key
@@ -50,18 +50,9 @@ redis:                                                                  # option
     lock_prefix: "/lock"                                                # default  /lock
     db: 0
 
-docker:
-    network_mode: "bridge"                                              # required, default host
-    use_local_dns: true
-    log:
-      type: "json-file"                                                 # required, default journald
-      config:
-        "max-size": "10m"
- 
-    hub: "hub.docker.com"
-    namespace: "projecteru2"
-
 registry:                                                               # optional, shared by every engine
+    hub: "hub.docker.com"
+    namespace: "projecteru2"                                            # image path becomes $hub/$namespace/$appname
     auths:
         "hub.docker.com":
             username: root
@@ -73,6 +64,12 @@ build:                                                                  # option
     node_filter:
         labels:
             eru.build: "1"
+
+containerd:
+    socket: "/run/containerd/containerd.sock"                           # default, forwarded over ssh
+    namespace: "eru"                                                    # default
+    buildkit: "/run/buildkit/buildkitd.sock"                            # default, a tcp:// address is dialed directly
+    stop_timeout: 10s                                                   # default 10s, grace period before SIGKILL
 
 process:
     root: "/var/lib/eru/process"                                        # default /var/lib/eru/process

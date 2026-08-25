@@ -29,7 +29,6 @@ var (
 	ErrInvaildIPAddress     = errors.New("invalid IP address")
 	ErrInvaildIPWithPort    = errors.New("invalid IP with port")
 	ErrAllConnectionsFailed = errors.New("all connections failed")
-	ErrUnexpectedRedirect   = errors.New("unexpected redirect")
 
 	ErrInvaildMemory         = errors.New("invalid memory value")
 	ErrNilEngine             = errors.New("engine is nil")

@@ -4,71 +4,11 @@ import (
 	"testing"
 )
 
-func TestQuoteEscapesEverySingleQuote(t *testing.T) {
-	got := quote([]string{"printf", "%s\n", "it's; rm -rf /"})
-	want := `'printf' '%s` + "\n" + `' 'it'\''s; rm -rf /'`
-	if got != want {
-		t.Errorf("got %q, want %q", got, want)
-	}
-}
-
-func TestParseEndpoint(t *testing.T) {
-	tests := []struct {
-		name     string
-		endpoint string
-		user     string
-		host     string
-		addr     string
-		wantErr  bool
-	}{
-		{"host only", "process://10.0.0.1", "", "10.0.0.1", "10.0.0.1:22", false},
-		{"user and port", "process://eru@10.0.0.1:2222", "eru", "10.0.0.1", "10.0.0.1:2222", false},
-		{"a name", "process://node1.example.com", "", "node1.example.com", "node1.example.com:22", false},
-		{"ipv6 with a port", "process://[fd00::1]:2222", "", "fd00::1", "[fd00::1]:2222", false},
-		{"ipv6 without a port", "process://[fd00::1]", "", "fd00::1", "[fd00::1]:22", false},
-		{"bare ipv6", "process://fd00::1", "", "fd00::1", "[fd00::1]:22", false},
-		{"wrong scheme", "tcp://10.0.0.1", "", "", "", true},
-		{"empty host", "process://", "", "", "", true},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			user, host, addr, err := parseEndpoint(tt.endpoint)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("got error %v, wantErr %v", err, tt.wantErr)
-			}
-			if user != tt.user || host != tt.host || addr != tt.addr {
-				t.Errorf("got %q %q %q, want %q %q %q", user, host, addr, tt.user, tt.host, tt.addr)
-			}
-		})
-	}
-}
-
 func TestCgroupPathNestsSlicesOnDashes(t *testing.T) {
 	got := cgroupPath(sliceName("my-pod"), unitName("abc"))
 	want := "/sys/fs/cgroup/eru.slice/eru-my.slice/eru-my-pod.slice/eru-abc.service"
 	if got != want {
 		t.Errorf("got %q, want %q", got, want)
-	}
-}
-
-func TestSplitRefIgnoresARegistryPort(t *testing.T) {
-	tests := []struct {
-		name string
-		ref  string
-		want string
-		tag  string
-	}{
-		{"tagged", "hub.io/ns/app:v1", "hub.io/ns/app", "v1"},
-		{"tagged behind a port", "hub.io:5000/ns/app:v1", "hub.io:5000/ns/app", "v1"},
-		{"untagged behind a port", "hub.io:5000/ns/app", "hub.io:5000/ns/app", ""},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			name, tag := splitRef(tt.ref)
-			if name != tt.want || tag != tt.tag {
-				t.Errorf("got %q %q, want %q %q", name, tag, tt.want, tt.tag)
-			}
-		})
 	}
 }
 

@@ -20,9 +20,6 @@ import (
 
 func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error) {
 	logger := log.WithFunc("calcium.BuildImage").WithField("opts", opts)
-	if c.source == nil {
-		return nil, types.ErrNoSCMSetting
-	}
 	node, err := c.selectBuildNode(ctx, opts)
 	if err != nil {
 		logger.Error(ctx, err)
@@ -89,6 +86,9 @@ func (c *Calcium) getMostIdleNode(ctx context.Context, nodes []*types.Node) (*ty
 }
 
 func (c *Calcium) buildFromSCM(ctx context.Context, node *types.Node, opts *types.BuildOptions) ([]string, io.ReadCloser, error) {
+	if c.source == nil && needsSCM(opts.Builds) {
+		return nil, nil, types.ErrNoSCMSetting
+	}
 	buildContentOpts := &enginetypes.BuildContentOptions{
 		User:   opts.User,
 		UID:    opts.UID,
@@ -218,6 +218,16 @@ func cleanupNodeImages(ctx context.Context, node *types.Node, IDs []string, ttl 
 	} else {
 		logger.Infof(ctx, "clean cached image and release space %d", spaceReclaimed)
 	}
+}
+
+func needsSCM(builds *enginetypes.Builds) bool {
+	if builds == nil {
+		return false
+	}
+	return slices.ContainsFunc(builds.Stages, func(stage string) bool {
+		build, ok := builds.Builds[stage]
+		return ok && build.Repo != ""
+	})
 }
 
 func toBuildRefOptions(opts *types.BuildOptions) *enginetypes.BuildRefOptions {

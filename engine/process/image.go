@@ -12,6 +12,7 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/distribution/reference"
 
+	"github.com/projecteru2/core/engine/sshrunner"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	coretypes "github.com/projecteru2/core/types"
 )
@@ -23,8 +24,7 @@ const (
 
 	listScript = `ls -1 "$1" 2>/dev/null || true`
 
-	// a bundle layer is a tar of the rootfs, so oras leaves it packed; an artifact pushed as a
-	// directory arrives unpacked and is left alone.
+	// oras leaves a bundle layer packed; an artifact pushed as a directory arrives unpacked
 	unpackFunc = `unpack() {
 for archive in "$1"/*.tar; do
 [ -f "$archive" ] || continue
@@ -65,11 +65,11 @@ oras manifest fetch --descriptor "$ref" "$@"
 )
 
 func (e *Engine) ImageList(ctx context.Context, image string) ([]*enginetypes.Image, error) {
-	res, err := e.run(ctx, shell(listScript, filepath.Join(e.root, imageCache))...)
+	res, err := e.run(ctx, sshrunner.Shell(listScript, filepath.Join(e.root, imageCache))...)
 	if err != nil {
 		return nil, err
 	}
-	name, _ := splitRef(image)
+	name, _ := enginetypes.SplitRef(image)
 	images := []*enginetypes.Image{}
 	for entry := range strings.FieldsSeq(res.Stdout) {
 		ref, unescapeErr := url.PathUnescape(entry)
@@ -94,7 +94,7 @@ func (e *Engine) ImagesPrune(ctx context.Context) error {
 }
 
 func (e *Engine) ImagePull(ctx context.Context, ref string, _ bool) (io.ReadCloser, error) {
-	res, err := e.run(ctx, shell(pullScript, slices.Concat([]string{ref, imageDir(e.root, ref)}, e.registryFlags(ref))...)...)
+	res, err := e.run(ctx, sshrunner.Shell(pullScript, slices.Concat([]string{ref, imageDir(e.root, ref)}, e.registryFlags(ref))...)...)
 	if err != nil {
 		return nil, err
 	}
@@ -152,12 +152,12 @@ func (e *Engine) ImageBuildFromExist(ctx context.Context, ID string, refs []stri
 
 	dir := workloadDir(e.root, ID)
 	existArgs := slices.Concat([]string{unitName(ID), dir, refs[0], filepath.Join(dir, existArchive)}, e.registryFlags(refs[0]))
-	res, err := e.run(ctx, shell(existScript, existArgs...)...)
+	res, err := e.run(ctx, sshrunner.Shell(existScript, existArgs...)...)
 	if err != nil {
 		return "", err
 	}
 	for _, ref := range refs[1:] {
-		_, tag := splitRef(ref)
+		_, tag := enginetypes.SplitRef(ref)
 		if _, err = e.run(ctx, slices.Concat([]string{"oras", "tag", refs[0], tag}, e.registryFlags(ref))...); err != nil {
 			return "", err
 		}
@@ -197,6 +197,6 @@ func parseDescriptor(out string) (string, error) {
 }
 
 func imageDigest(image, digest string) string {
-	name, _ := splitRef(image)
+	name, _ := enginetypes.SplitRef(image)
 	return name + "@" + digest
 }

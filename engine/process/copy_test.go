@@ -3,6 +3,9 @@ package process
 import (
 	"slices"
 	"testing"
+
+	"github.com/projecteru2/core/engine/sshrunner"
+	"github.com/projecteru2/core/engine/sshrunner/sshrunnertest"
 )
 
 func TestHostPaths(t *testing.T) {
@@ -38,7 +41,7 @@ func TestHostPaths(t *testing.T) {
 			if tt.wantErr {
 				code = notExistsCode
 			}
-			e := testEngine(t, &fakeRunner{respond: func(string) *result { return &result{Stdout: tt.stdout, Code: code} }})
+			e := testEngine(t, &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: tt.stdout, Code: code} }})
 
 			got, err := e.hostPaths(t.Context(), "w1", "/etc/app.conf")
 			if (err != nil) != tt.wantErr {

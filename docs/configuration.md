@@ -20,7 +20,7 @@ Durations are Go duration strings (`30s`, `5m`).
 | `ha_keepalive_interval` | duration | `16s` | TTL of the node-status-watcher election key; see [Operations](operations.md) |
 | `statsd` | string | — | `host:port` of a statsd server. Empty disables statsd; Prometheus is unaffected |
 | `profile` | string | — | `host:port` for the HTTP server exposing `/metrics` and net/http/pprof. Empty disables it |
-| `cert_path` | string | — | Directory used to materialize per-node TLS material before handing it to the engine client. Empty means plain HTTP |
+| `cert_path` | string | — | Directory the virt engine materializes a node's CA into. Empty means plain HTTP |
 | `max_concurrency` | int | `100000` | Size of the goroutine pools core uses for fan-out work |
 | `store` | string | `etcd` | Metadata backend: `etcd` or `redis` |
 | `sentry_dsn` | string | — | Sentry DSN. Empty disables Sentry |
@@ -92,8 +92,8 @@ warning at startup and the build API returns an error.
 
 ## SSH
 
-Core's own key pair for the nodes it drives over SSH (`process://`). The key is per core, not per
-node.
+Core's own key pair for every node it drives over SSH — `containerd://` as well as `process://`.
+The key is per core, not per node.
 
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
@@ -101,27 +101,15 @@ node.
 | `ssh.user` | string | `root` | Login user, overridden by a `user@` prefix in the node endpoint |
 | `ssh.known_hosts` | string | — | Path to a `known_hosts` file. Empty accepts any host key |
 
-## Docker
-
-| Key | Type | Default | Meaning |
-| --- | --- | --- | --- |
-| `docker.network_mode` | string | `host` | Network mode for workloads that do not request a network |
-| `docker.use_local_dns` | bool | `false` | When the deploy request sets no DNS, use the node's own IP as the workload's resolver |
-| `docker.log.type` | string | `journald` | Default log driver for workloads (`journald`, `json-file`, `none`, …) |
-| `docker.log.config` | map of string | — | Extra options passed to that log driver |
-| `docker.hub` | string | — | Registry host used when building image references |
-| `docker.namespace` | string | — | Path segment between host and app name: `hub/namespace/appname:tag` |
-
-Core always forces `mode=non-blocking`, `max-buffer-size=4m` and a per-workload `tag` into the
-log driver options before merging `docker.log.config`.
-
 ## Registry
 
-Shared by every engine: the docker engine sends these as its registry auth header, the process
-engine as `oras` flags.
+Shared by every engine: the containerd engine hands these to its resolver and to the BuildKit
+session, the process engine renders them as `oras` flags.
 
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
+| `registry.hub` | string | — | Registry host used when building image references |
+| `registry.namespace` | string | — | Path segment between host and app name: `hub/namespace/appname:tag` |
 | `registry.auths` | map | — | Credentials keyed by registry host: `{username, password}` |
 | `registry.plain_http` | list of string | — | Registry hosts served without TLS |
 
@@ -139,6 +127,15 @@ engine as `oras` flags.
 `node_filter`, which is intersected into the configured one: naming a pod or a label value the
 config rules out is rejected with `ErrInvaildNodeFilter`, and `all` is never taken from the
 request. With nothing configured, every node is a candidate.
+
+## Containerd
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `containerd.socket` | string | `/run/containerd/containerd.sock` | Node-side path of containerd's API socket, forwarded to core over SSH |
+| `containerd.namespace` | string | `eru` | containerd namespace every eru container lives in |
+| `containerd.buildkit` | string | `/run/buildkit/buildkitd.sock` | buildkitd address on a build node: a socket path is forwarded over the same SSH connection, a `tcp://` address is dialed directly |
+| `containerd.stop_timeout` | duration | `10s` | Grace period between the stop signal and `SIGKILL`; a forced stop ignores it |
 
 ## Process
 
@@ -189,6 +186,6 @@ See [Resource plugins](resource-plugins.md) for the contract these files must sa
 `core.yaml.sample` predates two renames. Both are silently ignored if you copy them verbatim:
 
 - top-level `log_level` — use the `log:` section above (`log.level`)
-- `docker.auth` and `docker.auths` — use `registry.auths`, which every engine reads
-- `docker.build_pod` — use `build.node_filter`
+- the whole `docker:` section — the engine it configured is gone; `hub` and `namespace` moved to
+  `registry`, the credentials to `registry.auths`, and `docker.build_pod` to `build.node_filter`
 - the `systemd:` section — the engine it configured is gone; see `process` above

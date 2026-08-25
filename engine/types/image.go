@@ -1,5 +1,16 @@
 package types
 
+import "strings"
+
+// SplitRef separates an image reference from its tag, ignoring a registry port.
+func SplitRef(ref string) (name, tag string) {
+	colon := strings.LastIndex(ref, ":")
+	if colon < 0 || colon < strings.LastIndex(ref, "/") {
+		return ref, ""
+	}
+	return ref[:colon], ref[colon+1:]
+}
+
 // Image is an image's ID and tags.
 type Image struct {
 	ID   string

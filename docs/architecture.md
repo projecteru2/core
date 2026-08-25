@@ -72,7 +72,10 @@ service registration, ephemeral keys and lock creation. Two implementations —
 
 `engine.API` is the runtime abstraction: virtualization lifecycle, exec, image, network and log
 operations. `engine/factory` picks the implementation from the node endpoint's scheme and caches
-the client, keyed by endpoint plus TLS material. See [Engines](engines.md).
+the client, keyed by endpoint plus TLS material. Engines are horizontally decoupled — no engine
+imports another; what they share lives in its own package, `engine/sshrunner` for the SSH
+transport the containerd and process engines both run on, `engine/journal` for the journalctl
+arguments they both render. See [Engines](engines.md).
 
 ## resource
 

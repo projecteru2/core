@@ -6,11 +6,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/engine/fake"
+	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
 )
@@ -35,6 +38,22 @@ func TestNewEnginePassesParamsInDeclaredOrder(t *testing.T) {
 	_, err := newEngine(t.Context(), types.Config{ConnectionTimeout: time.Second}, params)
 	require.NoError(t, err)
 	assert.Equal(t, []string{"node", testPrefix + "host", "ca-pem", "cert-pem", "key-pem"}, got)
+}
+
+func TestNewEngineClosesAnEngineThatCannotAnswer(t *testing.T) {
+	unreachable := &enginemocks.API{}
+	unreachable.On("Ping", mock.Anything).Return(errors.New("containerd is down"))
+	unreachable.On("CloseConn").Return(nil)
+	engines[testPrefix] = func(context.Context, types.Config, string, string, string, string, string) (engine.API, error) {
+		return unreachable, nil
+	}
+	defer delete(engines, testPrefix)
+
+	params := &enginetypes.Params{Nodename: "node", Endpoint: testPrefix + "host"}
+	_, err := newEngine(t.Context(), types.Config{ConnectionTimeout: time.Second}, params)
+
+	require.Error(t, err)
+	unreachable.AssertCalled(t, "CloseConn")
 }
 
 func TestGetReturnsNilAfterDelete(t *testing.T) {

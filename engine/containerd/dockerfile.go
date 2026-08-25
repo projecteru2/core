@@ -1,21 +1,27 @@
-package docker
+package containerd
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+	"text/template"
+
+	"github.com/moby/go-archive"
+	"github.com/moby/go-archive/compression"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	coresource "github.com/projecteru2/core/source"
-	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
 
 const (
+	dockerfileName = "Dockerfile"
+
 	fromAsTmpl = "FROM %s as %s"
 	commonTmpl = `{{ range $k, $v:= .Args -}}
 {{ printf "ARG %s=%q" $k $v }}
@@ -39,38 +45,7 @@ USER {{.User}}
 `
 )
 
-func (e *Engine) BuildRefs(_ context.Context, opts *enginetypes.BuildRefOptions) []string {
-	name := opts.Name
-	tags := opts.Tags
-	refs := []string{}
-	for _, tag := range tags {
-		ref := e.config.Docker.ImageTag(name, tag)
-		refs = append(refs, ref)
-	}
-	if len(refs) == 0 {
-		refs = append(refs, e.config.Docker.ImageTag(name, utils.DefaultVersion))
-	}
-	return refs
-}
-
-// layout: <buildDir>/<reponame>/<code> next to <buildDir>/Dockerfile
-func (e *Engine) BuildContent(ctx context.Context, scm coresource.Source, opts *enginetypes.BuildContentOptions) (string, io.Reader, error) {
-	if opts.Builds == nil {
-		return "", nil, coretypes.ErrNoBuildsInSpec
-	}
-	buildDir, err := os.MkdirTemp(os.TempDir(), "corebuild-")
-	if err != nil {
-		return "", nil, err
-	}
-	log.WithFunc("engine.docker.BuildContent").Debugf(ctx, "build dir %s", buildDir)
-	if err = e.makeDockerFile(ctx, opts, scm, buildDir); err != nil {
-		return buildDir, nil, err
-	}
-	tar, err := CreateTarStream(buildDir)
-	return buildDir, tar, err
-}
-
-func (e *Engine) makeDockerFile(ctx context.Context, opts *enginetypes.BuildContentOptions, scm coresource.Source, buildDir string) error {
+func makeDockerfile(ctx context.Context, opts *enginetypes.BuildContentOptions, scm coresource.Source, buildDir string) error {
 	var preCache map[string]string
 	var preStage string
 	var buildTmpl []string
@@ -78,11 +53,11 @@ func (e *Engine) makeDockerFile(ctx context.Context, opts *enginetypes.BuildCont
 	for _, stage := range opts.Stages {
 		build, ok := opts.Builds.Builds[stage]
 		if !ok {
-			log.WithFunc("engine.docker.makeDockerFile").Warnf(ctx, "build stage %s not defined", stage)
+			log.WithFunc("engine.containerd.makeDockerfile").Warnf(ctx, "build stage %s not defined", stage)
 			continue
 		}
 
-		reponame, err := e.preparedSource(ctx, build, scm, buildDir)
+		reponame, err := preparedSource(ctx, build, scm, buildDir)
 		if err != nil {
 			return err
 		}
@@ -100,7 +75,7 @@ func (e *Engine) makeDockerFile(ctx context.Context, opts *enginetypes.BuildCont
 			commands = append(commands, fmt.Sprintf(runTmpl, command))
 		}
 
-		mainPart, err := makeMainPart(opts, build, from, commands, copys)
+		mainPart, err := makeMainPart(build, from, commands, copys)
 		if err != nil {
 			return err
 		}
@@ -116,11 +91,10 @@ func (e *Engine) makeDockerFile(ctx context.Context, opts *enginetypes.BuildCont
 		}
 		buildTmpl = append(buildTmpl, userPart)
 	}
-	dockerfile := strings.Join(buildTmpl, "\n")
-	return createDockerfile(dockerfile, buildDir)
+	return writeDockerfile(strings.Join(buildTmpl, "\n"), buildDir)
 }
 
-func (e *Engine) preparedSource(ctx context.Context, build *enginetypes.Build, scm coresource.Source, buildDir string) (string, error) {
+func preparedSource(ctx context.Context, build *enginetypes.Build, scm coresource.Source, buildDir string) (string, error) {
 	var cloneDir string
 	var err error
 	reponame := ""
@@ -164,4 +138,62 @@ func (e *Engine) preparedSource(ctx context.Context, build *enginetypes.Build, s
 	}
 
 	return reponame, nil
+}
+
+func makeMainPart(build *enginetypes.Build, from string, commands, copys []string) (string, error) {
+	common, err := renderTemplate("common", commonTmpl, build)
+	if err != nil {
+		return "", err
+	}
+	buildTmpl := []string{from, common}
+	buildTmpl = append(buildTmpl, copys...)
+	buildTmpl = append(buildTmpl, commands...)
+	return strings.Join(buildTmpl, "\n"), nil
+}
+
+func makeUserPart(opts *enginetypes.BuildContentOptions) (string, error) {
+	return renderTemplate("user", userTmpl, opts)
+}
+
+func renderTemplate(name, body string, data any) (string, error) {
+	tmpl := template.Must(template.New(name).Parse(body))
+	out := bytes.Buffer{}
+	if err := tmpl.Execute(&out, data); err != nil {
+		return "", err
+	}
+	return out.String(), nil
+}
+
+func recreateDir(path string) error {
+	if err := os.RemoveAll(path); err != nil {
+		return err
+	}
+	return os.MkdirAll(path, os.ModeDir)
+}
+
+func writeDockerfile(dockerfile, buildDir string) (err error) {
+	f, err := os.Create(filepath.Clean(filepath.Join(buildDir, dockerfileName)))
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if closeErr := f.Close(); err == nil {
+			err = closeErr
+		}
+	}()
+	_, err = f.WriteString(dockerfile)
+	return err
+}
+
+func createTarStream(path string) (io.ReadCloser, error) {
+	return archive.TarWithOptions(path, &archive.TarOptions{
+		ExcludePatterns: []string{},
+		IncludeFiles:    []string{"."},
+		Compression:     compression.None,
+		NoLchown:        true,
+	})
+}
+
+func unpackContext(input io.Reader, dir string) error {
+	return archive.Untar(input, dir, &archive.TarOptions{NoLchown: true})
 }

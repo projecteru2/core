@@ -7,15 +7,17 @@ import (
 
 	"github.com/cockroachdb/errors"
 
+	"github.com/projecteru2/core/engine/sshrunner"
+	"github.com/projecteru2/core/engine/sshrunner/sshrunnertest"
 	coretypes "github.com/projecteru2/core/types"
 )
 
 func TestImageBuildFromExistCapturesTheBundle(t *testing.T) {
-	runner := &fakeRunner{respond: func(line string) *result {
+	runner := &sshrunnertest.Fake{Respond: func(line string) *sshrunner.Result {
 		if strings.Contains(line, "meta.json") {
-			return &result{Stdout: "1\n" + overlayMeta}
+			return &sshrunner.Result{Stdout: "1\n" + overlayMeta}
 		}
-		return &result{Stdout: `{"digest":"sha256:abc"}`}
+		return &sshrunner.Result{Stdout: `{"digest":"sha256:abc"}`}
 	}}
 	e := testEngine(t, runner)
 
@@ -32,14 +34,14 @@ func TestImageBuildFromExistCapturesTheBundle(t *testing.T) {
 		bundleMedia,
 		"trap cleanup EXIT",
 	} {
-		if !strings.Contains(runner.lines[1], want) {
+		if !strings.Contains(runner.Lines()[1], want) {
 			t.Errorf("exist command does not carry %q", want)
 		}
 	}
 }
 
 func TestImageBuildFromExistRefusesARawWorkload(t *testing.T) {
-	runner := &fakeRunner{respond: func(string) *result { return &result{Stdout: "0\n" + rawMeta} }}
+	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: "0\n" + rawMeta} }}
 	e := testEngine(t, runner)
 
 	_, err := e.ImageBuildFromExist(t.Context(), "w1", []string{"hub.io/ns/app:v2"}, "")
@@ -49,7 +51,7 @@ func TestImageBuildFromExistRefusesARawWorkload(t *testing.T) {
 }
 
 func TestRegistryFlags(t *testing.T) {
-	e := testEngine(t, &fakeRunner{})
+	e := testEngine(t, &sshrunnertest.Fake{})
 	e.config.Registry = coretypes.RegistryConfig{
 		Auths:     map[string]coretypes.AuthConfig{"hub.io": {Username: "u", Password: "p"}},
 		PlainHTTP: []string{"local:5000"},
@@ -75,14 +77,14 @@ func TestRegistryFlags(t *testing.T) {
 }
 
 func TestImagePullUnpacksTheBundleLayer(t *testing.T) {
-	runner := &fakeRunner{}
+	runner := &sshrunnertest.Fake{}
 	e := testEngine(t, runner)
 
 	if _, err := e.ImagePull(t.Context(), "hub.io/ns/app:v1", false); err != nil {
 		t.Fatalf("pull: %v", err)
 	}
 	for _, want := range []string{`rm -rf "$dir"`, "oras pull", `unpack "$dir"`, `tar -C "$1" -xf "$archive"`} {
-		if !strings.Contains(runner.lines[0], want) {
+		if !strings.Contains(runner.Lines()[0], want) {
 			t.Errorf("pull command does not carry %q", want)
 		}
 	}

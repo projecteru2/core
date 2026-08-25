@@ -414,11 +414,6 @@ func (c *Calcium) doMakeWorkloadOptions(ctx context.Context, no int, msg *types.
 	createOpts.Sysctl = entry.Sysctls
 	createOpts.Publish = entry.Publish
 	createOpts.Restart = entry.Restart
-	if entry.Log != nil {
-		createOpts.LogType = entry.Log.Type
-		createOpts.LogConfig = map[string]string{}
-		maps.Copy(createOpts.LogConfig, entry.Log.Config)
-	}
 	suffix := utils.RandomString(6)
 	createOpts.Name = utils.MakeWorkloadName(opts.Name, opts.Entrypoint.Name, suffix)
 	msg.WorkloadName = createOpts.Name
