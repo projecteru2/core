@@ -30,8 +30,6 @@ const (
 var (
 	// ErrAlreadyExists indicates SETNX found the key already set.
 	ErrAlreadyExists = errors.New("key already exists")
-	// ErrBadCmdType indicates a redis command replied with an unexpected type.
-	ErrBadCmdType = errors.New("bad redis cmd type")
 	// ErrKeyNotExists indicates an update targeted a missing key, as the etcd store reports it.
 	ErrKeyNotExists = errors.New("key not exists")
 )
@@ -110,38 +108,20 @@ func (r *Rediaron) GetOne(ctx context.Context, key string) (string, error) {
 }
 
 func (r *Rediaron) GetMulti(ctx context.Context, keys []string) (map[string]string, error) {
-	data := map[string]string{}
-	fetch := func(pipe redis.Pipeliner) error {
+	cmds := make([]*redis.StringCmd, 0, len(keys))
+	_, err := r.cli.Pipelined(ctx, func(pipe redis.Pipeliner) error {
 		for _, k := range keys {
-			_, err := pipe.Get(ctx, k).Result()
-			if err != nil {
-				return err
-			}
+			cmds = append(cmds, pipe.Get(ctx, k))
 		}
 		return nil
-	}
-	cmders, err := r.cli.Pipelined(ctx, fetch)
-	for _, cmd := range cmders {
-		c, ok := cmd.(*redis.StringCmd)
-		if !ok {
-			return nil, ErrBadCmdType
-		}
+	})
 
-		args := c.Args()
-		if len(args) != 2 {
-			return nil, ErrBadCmdType
+	data := make(map[string]string, len(keys))
+	for i, cmd := range cmds {
+		if isRedisNoKeyError(cmd.Err()) {
+			return nil, errors.Wrapf(cmd.Err(), "key not found: %s", keys[i])
 		}
-
-		key, ok := args[1].(string)
-		if !ok {
-			return nil, ErrBadCmdType
-		}
-
-		if isRedisNoKeyError(c.Err()) {
-			return nil, errors.Wrapf(c.Err(), "key not found: %s", key)
-		}
-
-		data[key] = c.Val()
+		data[keys[i]] = cmd.Val()
 	}
 	return data, err
 }
@@ -165,17 +145,8 @@ func (r *Rediaron) BatchUpdate(ctx context.Context, data map[string]string) erro
 		return nil
 	}
 
-	cmds, err := r.cli.TxPipelined(ctx, update)
-	if err != nil {
-		return err
-	}
-
-	for _, cmd := range cmds {
-		if err := cmd.Err(); err != nil {
-			return err
-		}
-	}
-	return nil
+	_, err = r.cli.TxPipelined(ctx, update)
+	return err
 }
 
 func (r *Rediaron) BatchCreate(ctx context.Context, data map[string]string) error {
@@ -192,17 +163,8 @@ func (r *Rediaron) BatchCreate(ctx context.Context, data map[string]string) erro
 	}
 
 	for _, cmd := range cmds {
-		bc, ok := cmd.(*redis.BoolCmd)
-		if !ok {
-			return ErrBadCmdType
-		}
-
-		created, err := bc.Result()
-		if !created {
+		if created, _ := cmd.(*redis.BoolCmd).Result(); !created {
 			return ErrAlreadyExists
-		}
-		if err != nil {
-			return err
 		}
 	}
 	return nil
@@ -216,17 +178,8 @@ func (r *Rediaron) BatchPut(ctx context.Context, data map[string]string) error {
 		return nil
 	}
 
-	cmds, err := r.cli.TxPipelined(ctx, replace)
-	if err != nil {
-		return err
-	}
-
-	for _, cmd := range cmds {
-		if err := cmd.Err(); err != nil {
-			return err
-		}
-	}
-	return nil
+	_, err := r.cli.TxPipelined(ctx, replace)
+	return err
 }
 
 func (r *Rediaron) BatchCreateAndDecr(ctx context.Context, data map[string]string, decrKey string) (err error) {
@@ -264,11 +217,6 @@ func (r *Rediaron) BindStatus(ctx context.Context, entityKey, statusKey, statusV
 
 	_, err = r.cli.Set(ctx, statusKey, statusValue, time.Duration(ttl)*time.Second).Result()
 	return err
-}
-
-// TerminateEmbededStorage closes the redis client; only tests call it.
-func (r *Rediaron) TerminateEmbededStorage() {
-	_ = r.cli.Close()
 }
 
 // go-redis does not export proto.Error, so the message is the only signal.

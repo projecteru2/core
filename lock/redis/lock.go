@@ -45,9 +45,11 @@ func New(cli redislock.RedisClient, key string, waitTimeout, lockTTL time.Durati
 func (r *RedisLock) Lock(ctx context.Context) (context.Context, error) {
 	lockCtx, cancel := context.WithTimeout(ctx, r.timeout)
 	defer cancel()
-	if err := r.lock(lockCtx, opts); err != nil {
+	l, err := r.lc.Obtain(lockCtx, r.key, r.ttl, opts)
+	if err != nil {
 		return nil, err
 	}
+	r.l = l
 	return ctx, nil
 }
 
@@ -59,14 +61,4 @@ func (r *RedisLock) Unlock(ctx context.Context) error {
 	lockCtx, cancel := context.WithTimeout(ctx, r.ttl)
 	defer cancel()
 	return r.l.Release(lockCtx)
-}
-
-func (r *RedisLock) lock(ctx context.Context, opts *redislock.Options) error {
-	l, err := r.lc.Obtain(ctx, r.key, r.ttl, opts)
-	if err != nil {
-		return err
-	}
-
-	r.l = l
-	return nil
 }

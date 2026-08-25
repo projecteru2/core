@@ -8,7 +8,6 @@ import (
 
 	"github.com/cockroachdb/errors"
 
-	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -135,7 +134,8 @@ func (c *Calcium) doReplaceWorkload(
 			return utils.Txn(
 				ctx,
 				func(ctx context.Context) error {
-					vco := c.doMakeReplaceWorkloadOptions(ctx, index, createMessage, &opts.DeployOptions, node, workload.ID)
+					vco := c.doMakeWorkloadOptions(ctx, index, createMessage, &opts.DeployOptions, node)
+					vco.AncestorWorkloadID = workload.ID
 					return c.doDeployOneWorkload(ctx, node, &opts.DeployOptions, createMessage, vco, false)
 				},
 				func(ctx context.Context) (err error) {
@@ -168,10 +168,4 @@ func (c *Calcium) doReplaceWorkload(
 	_ = c.pool.Invoke(func() { c.RemapResourceAndLog(ctx, logger, node) })
 
 	return createMessage, removeMessage, err
-}
-
-func (c *Calcium) doMakeReplaceWorkloadOptions(ctx context.Context, no int, msg *types.CreateWorkloadMessage, opts *types.DeployOptions, node *types.Node, ancestorWorkloadID string) *enginetypes.VirtualizationCreateOptions {
-	vco := c.doMakeWorkloadOptions(ctx, no, msg, opts, node)
-	vco.AncestorWorkloadID = ancestorWorkloadID
-	return vco
 }
