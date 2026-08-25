@@ -6,6 +6,7 @@ import (
 	"context"
 	"io"
 	"path/filepath"
+	"strings"
 
 	"github.com/cockroachdb/errors"
 
@@ -13,6 +14,11 @@ import (
 	enginetypes "github.com/projecteru2/core/engine/types"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
+)
+
+const (
+	tarFatalCode = 2
+	noSuchFile   = "No such file"
 )
 
 func (e *Engine) VirtualizationCopyTo(ctx context.Context, ID, target string, content []byte, uid, gid int, mode int64) error {
@@ -46,7 +52,10 @@ func (e *Engine) VirtualizationCopyFrom(ctx context.Context, ID, path string) (c
 		return nil, 0, 0, 0, err
 	}
 	if err = sshrunner.ExitError(argv, res); err != nil {
-		return nil, 0, 0, 0, errors.Wrapf(coretypes.ErrWorkloadNotExists, "%s not found in workload %s", path, ID)
+		if missingPath(res) {
+			return nil, 0, 0, 0, errors.Wrapf(coretypes.ErrWorkloadNotExists, "%s not found in workload %s", path, ID)
+		}
+		return nil, 0, 0, 0, err
 	}
 	reader := tar.NewReader(bytes.NewReader([]byte(res.Stdout)))
 	header, err := reader.Next()
@@ -65,6 +74,10 @@ func (e *Engine) tarArgv(ctx context.Context, ID string, args ...string) ([]stri
 	}
 	config := &enginetypes.ExecConfig{Cmd: append([]string{"tar"}, args...)}
 	return e.execArgv(found.ID(), utils.RandomID(), config), nil
+}
+
+func missingPath(res *sshrunner.Result) bool {
+	return res.Code == tarFatalCode || strings.Contains(res.Stderr, noSuchFile)
 }
 
 func writeTar(out io.Writer, name string, size int64, content io.Reader, uid, gid int, mode int64) error {
