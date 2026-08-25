@@ -4,8 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/cockroachdb/errors"
-
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
@@ -104,27 +102,17 @@ func (h *Helium) start(ctx context.Context) {
 			case <-ticker.C:
 			}
 
-			h.dispatch(ctx, latestStatus)
+			h.dispatch(latestStatus)
 		}
 	}()
 }
 
-func (h *Helium) dispatch(ctx context.Context, status types.ServiceStatus) {
-	f := func(key uint32, val entry) {
-		defer func() {
-			if err := recover(); err != nil {
-				log.WithFunc("helium.dispatch").Errorf(ctx, errors.Errorf("%+v", err), "dispatch %+v failed", key)
-			}
-		}()
+func (h *Helium) dispatch(status types.ServiceStatus) {
+	h.subs.ForEach(func(_ uint32, v entry) bool {
 		select {
-		case val.ch <- status:
-			return
-		case <-val.ctx.Done():
-			return
+		case v.ch <- status:
+		case <-v.ctx.Done():
 		}
-	}
-	h.subs.ForEach(func(k uint32, v entry) bool {
-		f(k, v)
 		return true
 	})
 }
