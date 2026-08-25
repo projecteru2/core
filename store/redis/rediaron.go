@@ -137,7 +137,7 @@ func (r *Rediaron) GetMulti(ctx context.Context, keys []string) (map[string]stri
 		}
 
 		if isRedisNoKeyError(c.Err()) {
-			return nil, errors.Wrapf(err, "key not found: %s", key)
+			return nil, errors.Wrapf(c.Err(), "key not found: %s", key)
 		}
 
 		data[key] = c.Val()

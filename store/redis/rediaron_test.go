@@ -95,6 +95,15 @@ func (s *RediaronTestSuite) TestIsRedisNoKeyError() {
 	s.False(isRedisNoKeyError(fmt.Errorf("i am not redis no key error")))
 }
 
+func (s *RediaronTestSuite) TestGetMultiWrapsTheMissingKeysOwnError() {
+	ctx := context.Background()
+	s.NoError(s.rediaron.cli.HSet(ctx, "hash", "f", "v").Err())
+
+	_, err := s.rediaron.GetMulti(ctx, []string{"hash", "absent"})
+	s.Error(err)
+	s.True(s.rediaron.NotFound(err))
+}
+
 func (s *RediaronTestSuite) TestKeyNotify() {
 	ctx, cancel := context.WithCancel(context.Background())
 	ch := s.rediaron.KNotify(ctx, "a*")
