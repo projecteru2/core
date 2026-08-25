@@ -40,9 +40,9 @@ func parseEndpoint(endpoint string) (user, host, addr string, err error) {
 	if name, rest, found := strings.Cut(target, "@"); found {
 		user, target = name, rest
 	}
-	host, port := target, defaultPort
-	if left, right, found := strings.Cut(target, ":"); found {
-		host, port = left, right
+	host, port, err := net.SplitHostPort(target)
+	if err != nil {
+		host, port = strings.Trim(target, "[]"), defaultPort
 	}
 	if host == "" || port == "" {
 		return "", "", "", errors.Wrapf(coretypes.ErrInvaildEngineEndpoint, "endpoint %s", endpoint)
