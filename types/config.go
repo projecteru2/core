@@ -39,6 +39,7 @@ type Config struct {
 	Build          BuildConfig          `yaml:"build"`
 	Containerd     ContainerdConfig     `yaml:"containerd"`
 	Process        ProcessConfig        `yaml:"process"`
+	Cocoon         CocoonConfig         `yaml:"cocoon"`
 	Virt           VirtConfig           `yaml:"virt"`
 	Scheduler      SchedulerConfig      `yaml:"scheduler"`
 	ResourcePlugin ResourcePluginConfig `yaml:"resource_plugin"`
@@ -148,6 +149,14 @@ type ContainerdConfig struct {
 type ProcessConfig struct {
 	Root        string        `yaml:"root" default:"/var/lib/eru/process"`
 	StopTimeout time.Duration `yaml:"stop_timeout" default:"10s"` // grace period before systemd kills the unit
+}
+
+// CocoonConfig is the node-side layout the cocoon engine drives over SSH.
+type CocoonConfig struct {
+	Binary       string `yaml:"binary" default:"cocoon"`               // the cocoon command on the node; a sudo wrapper works
+	Root         string `yaml:"root" default:"/var/lib/eru/cocoon"`    // durable copies of the workload records
+	RunDir       string `yaml:"run_dir" default:"/var/lib/cocoon/run"` // cocoon's run_dir, where the guest consoles live
+	CgroupParent string `yaml:"cgroup_parent" default:"cocoon.slice"`  // cocoon's cgroup_parent
 }
 
 type VirtConfig struct {

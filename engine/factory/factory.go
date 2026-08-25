@@ -10,6 +10,7 @@ import (
 	"github.com/panjf2000/ants/v2"
 
 	"github.com/projecteru2/core/engine"
+	"github.com/projecteru2/core/engine/cocoon"
 	"github.com/projecteru2/core/engine/containerd"
 	"github.com/projecteru2/core/engine/fake"
 	"github.com/projecteru2/core/engine/mocks/fakeengine"
@@ -27,6 +28,7 @@ var (
 	engines = map[string]factory{
 		virt.GRPCPrefixKey:   virt.MakeClient,
 		containerd.Prefix:    containerd.MakeClient,
+		cocoon.Prefix:        cocoon.MakeClient,
 		process.Prefix:       process.MakeClient,
 		fakeengine.PrefixKey: fakeengine.MakeClient,
 	}
