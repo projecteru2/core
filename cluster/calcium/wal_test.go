@@ -111,6 +111,7 @@ func TestHandleCreateWorkloadError(t *testing.T) {
 	err = errors.Wrapf(types.ErrInvaildCount, "keys: [%s]", wrkid)
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(wrk, err).Once()
 	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, err).Once()
+	store.On("NotFound", err).Return(false).Once()
 	c.wal.Recover(context.Background())
 	store.AssertExpectations(t)
 	engine.AssertExpectations(t)
@@ -128,6 +129,18 @@ func TestHandleCreateWorkloadError(t *testing.T) {
 	c.wal.Recover(context.Background())
 	store.AssertExpectations(t)
 	engine.AssertExpectations(t)
+
+	_, err = c.wal.Log(eventWorkloadCreated, &types.Workload{ID: wrkid, Nodename: node.Name})
+	require.NoError(t, err)
+	gone := fmt.Errorf("node gone")
+	store.On("GetWorkload", mock.Anything, wrkid).Return(wrk, gone).Once()
+	store.On("GetNode", mock.Anything, wrk.Nodename).Return(nil, gone).Once()
+	store.On("NotFound", gone).Return(true).Once()
+	c.wal.Recover(context.Background())
+	store.AssertExpectations(t)
+	engine.AssertExpectations(t)
+	c.wal.Recover(context.Background())
+	store.AssertExpectations(t)
 
 	c.wal.Recover(context.Background())
 }

@@ -121,6 +121,10 @@ func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw any) (err error)
 
 	node, err := h.calcium.GetNode(ctx, wrk.Nodename)
 	if err != nil {
+		if h.calcium.store.NotFound(err) {
+			logger.Info(ctx, "node is gone, nothing to remove")
+			return nil
+		}
 		logger.Error(ctx, err)
 		return err
 	}
