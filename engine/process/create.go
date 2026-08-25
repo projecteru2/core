@@ -71,7 +71,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		return nil, errors.Wrapf(coretypes.ErrInvalidEngineArgs, "pod %q cannot name a systemd slice", podname)
 	}
 
-	ID := newID()
+	ID := utils.RandomID()
 	dir := workloadDir(e.root, ID)
 	u := &unit{
 		ID:          ID,

@@ -12,6 +12,7 @@ import (
 	"github.com/projecteru2/core/engine/sshrunner"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	coretypes "github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 func (e *Engine) VirtualizationCopyTo(ctx context.Context, ID, target string, content []byte, uid, gid int, mode int64) error {
@@ -63,7 +64,7 @@ func (e *Engine) tarArgv(ctx context.Context, ID string, args ...string) ([]stri
 		return nil, err
 	}
 	config := &enginetypes.ExecConfig{Cmd: append([]string{"tar"}, args...)}
-	return e.execArgv(found.ID(), newID(), config), nil
+	return e.execArgv(found.ID(), utils.RandomID(), config), nil
 }
 
 func writeTar(out io.Writer, name string, size int64, content io.Reader, uid, gid int, mode int64) error {

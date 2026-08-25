@@ -25,6 +25,7 @@ import (
 const (
 	letters       = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	shortenLength = 7
+	idBytes       = 16
 )
 
 // RandomString returns n random letters from [a-zA-Z].
@@ -38,6 +39,12 @@ func RandomString(n int) string {
 		r[i] = letters[n.Int64()]
 	}
 	return string(r)
+}
+
+func RandomID() string {
+	buf := make([]byte, idBytes)
+	_, _ = rand.Read(buf)
+	return hex.EncodeToString(buf)
 }
 
 // Tail returns the segment of path after the last "/".

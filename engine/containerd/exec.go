@@ -9,6 +9,7 @@ import (
 
 	"github.com/projecteru2/core/engine/sshrunner"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/utils"
 )
 
 // ctrBinary ships with containerd; a task's stdio lives in node-local fifos, so an exec
@@ -22,7 +23,7 @@ func (e *Engine) Execute(ctx context.Context, ID string, config *enginetypes.Exe
 	if err != nil {
 		return "", nil, nil, nil, err
 	}
-	execID = newID()
+	execID = utils.RandomID()
 	argv := e.execArgv(found.ID(), execID, config)
 	running, err := e.runner.Start(ctx, sshrunner.Quote(argv), &sshrunner.StartOptions{Stdin: config.AttachStdin, TTY: config.Tty})
 	if err != nil {

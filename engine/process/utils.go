@@ -1,8 +1,6 @@
 package process
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"net/url"
 	"path/filepath"
 	"regexp"
@@ -15,7 +13,6 @@ const (
 	sliceSuffix = ".slice"
 	cgroupRoot  = "/sys/fs/cgroup"
 	imageCache  = "_images"
-	idBytes     = 16
 )
 
 var (
@@ -54,12 +51,6 @@ func cgroupPath(slice, unit string) string {
 		segments = append(segments, strings.Join(parts[:i+1], "-")+sliceSuffix)
 	}
 	return filepath.Join(append(segments, unit)...)
-}
-
-func newID() string {
-	buf := make([]byte, idBytes)
-	_, _ = rand.Read(buf)
-	return hex.EncodeToString(buf)
 }
 
 func restartPolicy(restart string) string {

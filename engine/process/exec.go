@@ -8,6 +8,7 @@ import (
 
 	"github.com/projecteru2/core/engine/sshrunner"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/utils"
 )
 
 func (e *Engine) Execute(ctx context.Context, ID string, config *enginetypes.ExecConfig) (execID string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
@@ -21,7 +22,7 @@ func (e *Engine) Execute(ctx context.Context, ID string, config *enginetypes.Exe
 		return "", nil, nil, nil, err
 	}
 
-	execID = newID()
+	execID = utils.RandomID()
 	e.execs.Add(execID, running)
 	if config.AttachStdin {
 		return execID, running.Stdout(), nil, running.Stdin(), nil
