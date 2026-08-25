@@ -93,6 +93,8 @@ func (c *Calcium) newWorkloadSender(ctx context.Context, ID string, resp chan *t
 			}
 		}
 		_ = writer.Close()
+		for range sender.buffer { //nolint:revive
+		}
 	})
 	return sender
 }
