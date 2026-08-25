@@ -3,12 +3,18 @@ package wal
 import (
 	"context"
 	"maps"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	"github.com/projecteru2/core/lock"
+	lockmocks "github.com/projecteru2/core/lock/mocks"
 )
 
 func TestRecover(t *testing.T) {
@@ -79,9 +85,10 @@ func (h simpleEventHandler) Handle(ctx context.Context, raw any) error {
 type memStore struct {
 	sync.Mutex
 
-	data   map[string]string
-	getErr error
-	putErr error
+	data    map[string]string
+	getErr  error
+	putErr  error
+	lockErr error
 }
 
 func newMemStore() *memStore {
@@ -105,6 +112,24 @@ func (s *memStore) Delete(_ context.Context, keys []string) error {
 		delete(s.data, key)
 	}
 	return nil
+}
+
+func (s *memStore) ListPrefix(ctx context.Context, prefix string) ([]string, error) {
+	data, err := s.GetPrefix(ctx, prefix, 0)
+	if err != nil {
+		return nil, err
+	}
+	return slices.Sorted(maps.Keys(data)), nil
+}
+
+func (s *memStore) CreateLock(_ string, _ time.Duration) (lock.DistributedLock, error) {
+	if s.lockErr != nil {
+		return nil, s.lockErr
+	}
+	journalLock := &lockmocks.DistributedLock{}
+	journalLock.On("Lock", mock.Anything).Return(context.Background(), nil)
+	journalLock.On("Unlock", mock.Anything).Return(nil)
+	return journalLock, nil
 }
 
 func (s *memStore) GetPrefix(_ context.Context, prefix string, _ int64) (map[string]string, error) {

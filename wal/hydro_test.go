@@ -212,7 +212,7 @@ func TestHydroWithRealStore(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	logged, err := store.GetPrefix(ctx, fmt.Sprintf(eventPrefix, address), 0)
+	logged, err := store.GetPrefix(ctx, fmt.Sprintf(addressPrefix, address), 0)
 	require.NoError(t, err)
 	require.Len(t, logged, 3)
 	require.Contains(t, logged, fmt.Sprintf(eventKey, address, 1))
@@ -226,9 +226,67 @@ func TestHydroWithRealStore(t *testing.T) {
 	restarted.Recover(ctx)
 	assert.Equal(t, []string{"first", "second", "third", "fourth"}, handled)
 
-	left, err := store.GetPrefix(ctx, fmt.Sprintf(eventPrefix, address), 0)
+	left, err := store.GetPrefix(ctx, fmt.Sprintf(addressPrefix, address), 0)
 	require.NoError(t, err)
 	assert.Empty(t, left)
+}
+
+func TestTakeoverReplaysAnUnregisteredInstance(t *testing.T) {
+	var handled, encoded, decoded bool
+	eventype := "create"
+	handler := newTestEventHandler(eventype, &handled, &encoded, &decoded)
+
+	store := newMemStore()
+	hydro := newTestHydro(t, store)
+	hydro.Register(handler)
+
+	_, err := hydro.Log(eventype, struct{}{})
+	require.NoError(t, err)
+	mine := fmt.Sprintf(eventKey, hydro.address, 1)
+	dead := fmt.Sprintf(eventKey, "10.0.0.9:5001", 1)
+	store.data[dead] = store.data[mine]
+
+	hydro.Takeover(context.Background(), []string{hydro.address})
+	assert.True(t, handled)
+	assert.Equal(t, []string{mine}, keysOf(store))
+}
+
+func TestTakeoverLeavesRegisteredInstancesAlone(t *testing.T) {
+	var handled, encoded, decoded bool
+	eventype := "create"
+	handler := newTestEventHandler(eventype, &handled, &encoded, &decoded)
+
+	store := newMemStore()
+	hydro := newTestHydro(t, store)
+	hydro.Register(handler)
+
+	_, err := hydro.Log(eventype, struct{}{})
+	require.NoError(t, err)
+	peer := "10.0.0.9:5001"
+	store.data[fmt.Sprintf(eventKey, peer, 1)] = store.data[fmt.Sprintf(eventKey, hydro.address, 1)]
+
+	hydro.Takeover(context.Background(), []string{hydro.address, peer})
+	assert.False(t, handled)
+	assert.Len(t, store.data, 2)
+}
+
+func TestTakeoverFailedAsNoLock(t *testing.T) {
+	var handled, encoded, decoded bool
+	eventype := "create"
+	handler := newTestEventHandler(eventype, &handled, &encoded, &decoded)
+
+	store := newMemStore()
+	hydro := newTestHydro(t, store)
+	hydro.Register(handler)
+
+	value, err := NewHydroEvent(eventype, []byte("{}")).Encode()
+	require.NoError(t, err)
+	store.data[fmt.Sprintf(eventKey, "10.0.0.9:5001", 1)] = string(value)
+	store.lockErr = fmt.Errorf("lock error")
+
+	hydro.Takeover(context.Background(), nil)
+	assert.False(t, handled)
+	assert.Len(t, store.data, 1)
 }
 
 func newTestHydro(t *testing.T, store Store) *Hydro {

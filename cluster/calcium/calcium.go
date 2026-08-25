@@ -121,3 +121,7 @@ func (c *Calcium) GetIdentifier() string {
 func (c *Calcium) GetStore() store.Store {
 	return c.store
 }
+
+func (c *Calcium) GetWAL() wal.WAL {
+	return c.wal
+}

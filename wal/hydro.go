@@ -6,6 +6,7 @@ import (
 	"maps"
 	"slices"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -17,8 +18,10 @@ import (
 )
 
 const (
-	eventKey    = "/wal/%s/%016x"
-	eventPrefix = "/wal/%s/"
+	journalPrefix = "/wal/"
+	addressPrefix = "/wal/%s/"
+	eventKey      = "/wal/%s/%016x"
+	replayLockKey = "/wal-replay/%s"
 )
 
 // Hydro journals events into the eru store, under the prefix of this instance's service address.
@@ -55,6 +58,23 @@ func (h *Hydro) Recover(ctx context.Context) {
 	h.recoverAddress(ctx, h.address)
 }
 
+// Takeover replays the journals of every instance that is no longer registered as live.
+func (h *Hydro) Takeover(ctx context.Context, live []string) {
+	logger := log.WithFunc("wal.hydro.Takeover")
+	keys, err := h.store.ListPrefix(ctx, journalPrefix)
+	if err != nil {
+		logger.Error(ctx, err, "list journals")
+		return
+	}
+
+	for _, address := range h.deadAddresses(keys, live) {
+		logger.Infof(ctx, "replaying the journal of %s", address)
+		if err := h.takeoverAddress(ctx, address); err != nil {
+			logger.Errorf(ctx, err, "failed to replay the journal of %s", address)
+		}
+	}
+}
+
 func (h *Hydro) Log(eventyp string, item any) (Commit, error) {
 	handler, ok := h.handler(eventyp)
 	if !ok {
@@ -84,9 +104,43 @@ func (h *Hydro) Log(eventyp string, item any) (Commit, error) {
 	}, nil
 }
 
+func (h *Hydro) takeoverAddress(ctx context.Context, address string) error {
+	journalLock, err := h.store.CreateLock(fmt.Sprintf(replayLockKey, address), h.config.LockTimeout)
+	if err != nil {
+		return err
+	}
+
+	lockCtx, err := journalLock.Lock(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		unlockCtx, cancel := context.WithTimeout(utils.NewInheritCtx(ctx), h.config.LockTimeout)
+		defer cancel()
+		if err := journalLock.Unlock(unlockCtx); err != nil {
+			log.WithFunc("wal.hydro.takeoverAddress").Errorf(ctx, err, "failed to unlock the journal of %s", address)
+		}
+	}()
+
+	h.recoverAddress(lockCtx, address)
+	return nil
+}
+
+func (h *Hydro) deadAddresses(keys, live []string) []string {
+	dead := map[string]struct{}{}
+	for _, key := range keys {
+		address, _, ok := strings.Cut(strings.TrimPrefix(key, journalPrefix), "/")
+		if !ok || address == h.address || slices.Contains(live, address) {
+			continue
+		}
+		dead[address] = struct{}{}
+	}
+	return slices.Sorted(maps.Keys(dead))
+}
+
 func (h *Hydro) recoverAddress(ctx context.Context, address string) {
 	logger := log.WithFunc("wal.hydro.recoverAddress").WithField("address", address)
-	events, err := h.store.GetPrefix(ctx, fmt.Sprintf(eventPrefix, address), 0)
+	events, err := h.store.GetPrefix(ctx, fmt.Sprintf(addressPrefix, address), 0)
 	if err != nil {
 		logger.Error(ctx, err, "read journal")
 		return
@@ -132,7 +186,7 @@ func (h *Hydro) handler(eventyp string) (EventHandler, bool) {
 }
 
 func (h *Hydro) lastSeq(ctx context.Context) (uint64, error) {
-	events, err := h.store.GetPrefix(ctx, fmt.Sprintf(eventPrefix, h.address), 0)
+	events, err := h.store.GetPrefix(ctx, fmt.Sprintf(addressPrefix, h.address), 0)
 	if err != nil {
 		return 0, err
 	}

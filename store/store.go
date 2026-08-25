@@ -14,6 +14,7 @@ type Store interface {
 	Put(ctx context.Context, data map[string]string) error
 	Delete(ctx context.Context, keys []string) error
 	GetPrefix(ctx context.Context, prefix string, limit int64) (map[string]string, error)
+	ListPrefix(ctx context.Context, prefix string) ([]string, error)
 
 	ServiceStatusStream(context.Context) (chan []string, error)
 	RegisterService(context.Context, string, time.Duration) (<-chan struct{}, func(), error)
