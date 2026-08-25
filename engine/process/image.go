@@ -30,9 +30,9 @@ oras manifest fetch --descriptor "$ref" > "$dir/.digest"
 	existScript = `set -e
 unit=$1; dir=$2; ref=$3; layer=$4
 systemctl freeze "$unit"
-tar -C "$dir/upper" -cf "$layer" . || { systemctl thaw "$unit"; exit 1; }
+tar -C "$dir/merged" -cf "$layer" . || { systemctl thaw "$unit"; exit 1; }
 systemctl thaw "$unit"
-oras push "$ref" "$layer:` + bundleMedia + `" >/dev/null
+oras push --artifact-type ` + bundleMedia + ` "$ref" "$layer:` + bundleMedia + `" >/dev/null
 rm -f "$layer"
 oras manifest fetch --descriptor "$ref"
 `

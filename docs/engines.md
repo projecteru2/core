@@ -86,7 +86,7 @@ One transient service per workload (`eru-<id>.service`), one slice per pod (`eru
 | `VirtualizationUpdateResource` | `systemctl set-property` — live, no restart |
 | `VirtualizationCopyTo` / `CopyFrom` | sftp into the overlay `upper`, or into the working directory of a raw workload |
 | `ImagePull` / `ImageList` / `ImageRemove` | `oras pull` into the artifact cache / list the cache / `rm -rf` the entry |
-| `ImageBuildFromExist` | `systemctl freeze`, tar the overlay `upper`, `oras push` it under the new ref, `systemctl thaw` |
+| `ImageBuildFromExist` | `systemctl freeze`, tar the mounted overlay at `merged` so the layer is a complete bundle, `oras push` it under the new ref with the bundle artifact and layer media type, `systemctl thaw` |
 | `NetworkConnect` / `Disconnect` / `List`, `ImageBuild` | `ErrEngineNotImplemented`: process pods use the host network and build elsewhere |
 
 `ImagePush` has nothing left to do — `ImageBuildFromExist` pushes the artifact as it builds it.
