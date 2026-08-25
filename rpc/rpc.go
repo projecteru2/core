@@ -525,7 +525,11 @@ func (v *Vibranium) Send(opts *pb.SendOptions, stream pb.CoreRPC_SendServer) err
 			defer close(dc)
 			data := toSendLargeFileChunks(file, sendOpts.IDs)
 			for _, chunk := range data {
-				dc <- chunk
+				select {
+				case dc <- chunk:
+				case <-task.context.Done():
+					return
+				}
 			}
 		})
 
@@ -765,7 +769,11 @@ func (v *Vibranium) ExecuteWorkload(stream pb.CoreRPC_ExecuteWorkloadServer) err
 					log.WithFunc("vibranium.ExecuteWorkload").Error(task.context, recvErr, "recv command")
 					return
 				}
-				inCh <- execWorkloadOpt.ReplCmd
+				select {
+				case inCh <- execWorkloadOpt.ReplCmd:
+				case <-task.context.Done():
+					return
+				}
 			}
 		}
 	})
@@ -887,7 +895,11 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 				logger.Error(ctx, recvErr, "recv command")
 				break
 			}
-			inCh <- replOpts.Cmd
+			select {
+			case inCh <- replOpts.Cmd:
+			case <-ctx.Done():
+				return
+			}
 		}
 	})
 
