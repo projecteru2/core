@@ -279,19 +279,21 @@ func (h *WorkloadResourceAllocatedHandler) Handle(ctx context.Context, raw any) 
 	ctx, cancel := getReplayContext(ctx)
 	defer cancel()
 
+	errs := make([]error, len(nodes))
 	wg := &sync.WaitGroup{}
-	defer wg.Wait()
-	for _, node := range nodes {
+	for i, node := range nodes {
 		wg.Go(func() {
 			if _, e := h.calcium.NodeResource(ctx, node.Name, true); e != nil {
 				logger.Errorf(ctx, e, "failed to fix node resource: %s", node.Name)
+				errs[i] = e
 				return
 			}
 			logger.Infof(ctx, "fixed node resource: %s", node.Name)
 		})
 	}
+	wg.Wait()
 
-	return nil
+	return errors.Join(errs...)
 }
 
 // ProcessingCreatedHandler deletes processing records left by an interrupted deploy.
