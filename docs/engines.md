@@ -104,6 +104,13 @@ the readers' EOF. There is no terminal anywhere and no `SIGWINCH`, so `Virtualiz
 nothing to send — a real tty would need a deploy flag eru does not have. `VirtualizationWait` is
 plain `task.Wait` for every workload, interactive or not, because core owns the task either way.
 
+Each relay is watched. A relay that ends on its own is only normal when it ends quietly — `cat`
+reaching EOF as the task exits — so an exit code, a wait error or anything the node wrote to the
+relay's stderr is logged against the workload id, and a relay already dead by the time the task
+starts fails `VirtualizationStart`. A stdin relay that dies while still blocked opening its fifo
+leaves nothing on the node and hangs the workload forever, which is precisely the failure that
+must not be silent.
+
 The relays are closed once that exit is consumed, or when the workload is removed, and the fifo
 directory goes with the workload directory. Until then they hold three of the eight SSH sessions a
 node allows ([core#670](https://github.com/projecteru2/core/issues/670)). Such a workload has no

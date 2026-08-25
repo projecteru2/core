@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -15,13 +16,15 @@ import (
 	"github.com/projecteru2/core/engine/journal"
 	"github.com/projecteru2/core/engine/sshrunner"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/log"
 )
 
 const (
 	// logFlushGrace lets journald hand over the last lines a dying task wrote.
 	logFlushGrace = time.Second
 
-	fifoDirName = "fifo"
+	fifoDirName  = "fifo"
+	relayStreams = 3
 
 	fifoMakeScript = `set -e
 mkdir -p "$1"
@@ -37,13 +40,33 @@ type attach struct {
 	stdin  sshrunner.Session
 	stdout sshrunner.Session
 	stderr sshrunner.Session
+
+	released atomic.Bool
+	died     chan error
 }
 
 func (a *attach) close() {
+	a.released.Store(true)
 	for _, sess := range []sshrunner.Session{a.stdin, a.stdout, a.stderr} {
 		if sess != nil {
 			_ = sess.Close()
 		}
+	}
+}
+
+// watch reports a relay that ends on its own; its stderr is the only account of why it did.
+func (a *attach) watch(ctx context.Context, ID, stream string, sess sshrunner.Session) {
+	output, _ := io.ReadAll(sess.Stderr())
+	code, waitErr := sess.Wait()
+	reason := strings.TrimSpace(string(output))
+	if a.released.Load() || (code == 0 && waitErr == nil && reason == "") {
+		return
+	}
+	err := errors.Newf("%s relay ended with code %d: %s", stream, code, reason)
+	log.WithFunc("engine.containerd.attach.watch").WithField("ID", ID).Error(ctx, errors.Join(err, waitErr))
+	select {
+	case a.died <- err:
+	default:
 	}
 }
 
@@ -76,8 +99,7 @@ func (e *Engine) VirtualizationLogs(ctx context.Context, opts *enginetypes.Virtu
 	return sshrunner.Reader(running), nil, nil
 }
 
-// VirtualizationAttach without stdin is the journald follow; with stdin it hands back the
-// sessions parked on the workload's fifos.
+// VirtualizationAttach without stdin is the journald follow; with stdin it is the fifo relays.
 func (e *Engine) VirtualizationAttach(ctx context.Context, ID string, _, stdin bool) (io.ReadCloser, io.ReadCloser, io.WriteCloser, error) {
 	if !stdin {
 		stdout, stderr, err := e.VirtualizationLogs(ctx, &enginetypes.VirtualizationLogStreamOptions{ID: ID, Follow: true})
@@ -93,8 +115,7 @@ func (e *Engine) VirtualizationAttach(ctx context.Context, ID string, _, stdin b
 	return relay.stdout.Stdout(), relay.stderr.Stdout(), relay.stdin.Stdin(), nil
 }
 
-// relayFifos parks a session on each node fifo before the task exists: the shim's own open of
-// the stdout and stderr fifos blocks until a reader is there.
+// relayFifos parks a session on each fifo before the task exists; the shim's own open blocks on them.
 func (e *Engine) relayFifos(ctx context.Context, ID string) (_ cio.Creator, err error) {
 	e.releaseAttach(ID)
 	set := fifoSet(ID)
@@ -102,7 +123,7 @@ func (e *Engine) relayFifos(ctx context.Context, ID string) (_ cio.Creator, err 
 		return nil, err
 	}
 
-	relay := &attach{}
+	relay := &attach{died: make(chan error, relayStreams)}
 	defer func() {
 		if err != nil {
 			relay.close()
@@ -120,7 +141,26 @@ func (e *Engine) relayFifos(ctx context.Context, ID string) (_ cio.Creator, err 
 	e.mu.Lock()
 	e.attaches[ID] = relay
 	e.mu.Unlock()
+	go relay.watch(ctx, ID, "stdin", relay.stdin)
+	go relay.watch(ctx, ID, "stdout", relay.stdout)
+	go relay.watch(ctx, ID, "stderr", relay.stderr)
 	return func(string) (cio.IO, error) { return cio.Load(cio.NewFIFOSet(set, nil)) }, nil
+}
+
+// relayFailure is the death of a relay the workload cannot run without.
+func (e *Engine) relayFailure(ID string) error {
+	e.mu.Lock()
+	relay, ok := e.attaches[ID]
+	e.mu.Unlock()
+	if !ok {
+		return nil
+	}
+	select {
+	case err := <-relay.died:
+		return err
+	default:
+		return nil
+	}
 }
 
 // releaseAttach ends the relays; the stdin one parks on its fifo until the session is closed.

@@ -3,6 +3,7 @@ package containerd
 import (
 	"io"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/cockroachdb/errors"
@@ -29,6 +30,9 @@ func TestRelayFifosParksASessionOnEveryNodeFifo(t *testing.T) {
 	}
 	if !slices.Equal(runner.Lines(), want) {
 		t.Fatalf("got %q, want %q", runner.Lines(), want)
+	}
+	if !strings.Contains(want[1], `'exec cat > "$1"'`) {
+		t.Errorf("got %q, want the redirect inside a quoted script: handed to cat as argv it becomes a filename", want[1])
 	}
 	if opts := runner.Options(); len(opts) != 3 || !opts[0].Stdin || opts[1].Stdin || opts[2].Stdin ||
 		opts[0].TTY || opts[1].TTY || opts[2].TTY {
@@ -145,6 +149,65 @@ func TestRelayFifosReplacesTheRelaysOfAnEarlierStart(t *testing.T) {
 		if !sess.Closed() {
 			t.Errorf("relay %d of the first start holds a session slot on a fifo that is gone", i)
 		}
+	}
+}
+
+func TestARelayDeathIsSurfacedWithTheReasonTheNodeGave(t *testing.T) {
+	dying := &sshrunnertest.Session{Code: 1, Err: "sh: cannot create /var/lib/eru/containerd/w1/fifo/stdin: Permission denied\n"}
+	relay := &attach{died: make(chan error, relayStreams)}
+
+	relay.watch(t.Context(), "app_web_abc123", "stdin", dying)
+
+	select {
+	case err := <-relay.died:
+		if !strings.Contains(err.Error(), "Permission denied") {
+			t.Errorf("got %v, want the node's own account of the failure", err)
+		}
+		if !strings.Contains(err.Error(), "stdin") {
+			t.Errorf("got %v, want the stream named", err)
+		}
+	default:
+		t.Fatal("a relay that dies under the workload must not die silently")
+	}
+}
+
+func TestARelayThatEndsCleanlyIsNotReported(t *testing.T) {
+	relay := &attach{died: make(chan error, relayStreams)}
+
+	relay.watch(t.Context(), "app_web_abc123", "stdout", &sshrunnertest.Session{})
+
+	if len(relay.died) != 0 {
+		t.Error("a relay ends with the task it serves, and that is not a failure")
+	}
+}
+
+func TestARelayTheEngineReleasedIsNotReported(t *testing.T) {
+	relay := &attach{died: make(chan error, relayStreams)}
+	relay.close()
+
+	relay.watch(t.Context(), "app_web_abc123", "stdin", &sshrunnertest.Session{Code: 255, Err: "killed\n"})
+
+	if len(relay.died) != 0 {
+		t.Error("tearing an attach down is not a relay failure")
+	}
+}
+
+func TestStartRefusesAWorkloadWhoseRelayAlreadyDied(t *testing.T) {
+	e := testEngine(t, &sshrunnertest.Fake{Started: []*sshrunnertest.Session{
+		{Code: 1, Err: "cannot create fifo\n"}, {}, {},
+	}})
+
+	if _, err := e.relayFifos(t.Context(), "app_web_abc123"); err != nil {
+		t.Fatalf("relay: %v", err)
+	}
+	relay := e.attaches["app_web_abc123"]
+	relay.watch(t.Context(), "app_web_abc123", "stdin", relay.stdin)
+
+	if err := e.relayFailure("app_web_abc123"); err == nil {
+		t.Error("a workload whose stdin relay is gone would hang forever, so the start must fail")
+	}
+	if err := e.relayFailure("app_web_other"); err != nil {
+		t.Errorf("got %v, want nothing for a workload with no relays", err)
 	}
 }
 

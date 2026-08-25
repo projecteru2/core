@@ -68,6 +68,9 @@ func (e *Engine) VirtualizationStart(ctx context.Context, ID string) (err error)
 	if err = task.Start(ctx); err != nil && !cerrdefs.IsFailedPrecondition(err) {
 		return err
 	}
+	if err = e.relayFailure(ID); err != nil {
+		return err
+	}
 	return e.setDesiredStatus(ctx, found, info.Labels, client.Running)
 }
 
