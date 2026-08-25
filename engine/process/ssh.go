@@ -7,12 +7,14 @@ import (
 	"net"
 	"os"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/knownhosts"
+	"golang.org/x/sync/semaphore"
 
 	coretypes "github.com/projecteru2/core/types"
 )
@@ -21,22 +23,30 @@ const (
 	ptyTerm   = "xterm"
 	ptyHeight = 40
 	ptyWidth  = 80
+	// sshd's default MaxSessions is 10; queue past that instead of being refused.
+	maxSessions = 8
 )
 
-// sshRunner keeps one connection per node and redials when it drops.
+// sshRunner keeps one connection per node and redials when the transport drops.
 type sshRunner struct {
-	addr   string
-	config *ssh.ClientConfig
+	addr     string
+	config   *ssh.ClientConfig
+	sessions *semaphore.Weighted
 
 	mu     sync.Mutex
 	client *ssh.Client
 }
 
 func newSSHRunner(addr string, config *ssh.ClientConfig) *sshRunner {
-	return &sshRunner{addr: addr, config: config}
+	return &sshRunner{addr: addr, config: config, sessions: semaphore.NewWeighted(maxSessions)}
 }
 
 func (r *sshRunner) Run(ctx context.Context, line string, stdin io.Reader) (*result, error) {
+	if err := r.sessions.Acquire(ctx, 1); err != nil {
+		return nil, err
+	}
+	defer r.sessions.Release(1)
+
 	sess, err := r.newSession(ctx)
 	if err != nil {
 		return nil, err
@@ -57,11 +67,17 @@ func (r *sshRunner) Run(ctx context.Context, line string, stdin io.Reader) (*res
 }
 
 func (r *sshRunner) Start(ctx context.Context, line string, opts *startOptions) (_ session, err error) {
-	sess, err := r.newSession(ctx)
-	if err != nil {
+	if err = r.sessions.Acquire(ctx, 1); err != nil {
 		return nil, err
 	}
-	running := &sshSession{sess: sess, stop: closeOnDone(ctx, sess)}
+	release := sync.OnceFunc(func() { r.sessions.Release(1) })
+
+	sess, err := r.newSession(ctx)
+	if err != nil {
+		release()
+		return nil, err
+	}
+	running := &sshSession{sess: sess, stop: closeOnDone(ctx, sess), release: release}
 	defer func() {
 		if err != nil {
 			_ = running.Close()
@@ -94,20 +110,27 @@ func (r *sshRunner) Start(ctx context.Context, line string, opts *startOptions) 
 }
 
 func (r *sshRunner) Files(ctx context.Context) (files, error) {
+	if err := r.sessions.Acquire(ctx, 1); err != nil {
+		return nil, err
+	}
+	release := sync.OnceFunc(func() { r.sessions.Release(1) })
+
 	client, err := r.connect(ctx, false)
 	if err != nil {
+		release()
 		return nil, err
 	}
 	remote, err := sftp.NewClient(client)
-	if err != nil {
-		if client, err = r.connect(ctx, true); err != nil {
-			return nil, err
-		}
-		if remote, err = sftp.NewClient(client); err != nil {
-			return nil, err
+	if err != nil && isTransportError(err) {
+		if client, err = r.connect(ctx, true); err == nil {
+			remote, err = sftp.NewClient(client)
 		}
 	}
-	return &sftpFiles{client: remote}, nil
+	if err != nil {
+		release()
+		return nil, err
+	}
+	return &sftpFiles{client: remote, release: release}, nil
 }
 
 func (r *sshRunner) Close() error {
@@ -127,8 +150,8 @@ func (r *sshRunner) newSession(ctx context.Context) (*ssh.Session, error) {
 		return nil, err
 	}
 	sess, err := client.NewSession()
-	if err == nil {
-		return sess, nil
+	if err == nil || !isTransportError(err) {
+		return sess, err
 	}
 	if client, err = r.connect(ctx, true); err != nil {
 		return nil, err
@@ -160,11 +183,12 @@ func (r *sshRunner) connect(ctx context.Context, renew bool) (*ssh.Client, error
 }
 
 type sshSession struct {
-	sess   *ssh.Session
-	stdin  io.WriteCloser
-	stdout io.ReadCloser
-	stderr io.ReadCloser
-	stop   func()
+	sess    *ssh.Session
+	stdin   io.WriteCloser
+	stdout  io.ReadCloser
+	stderr  io.ReadCloser
+	stop    func()
+	release func()
 }
 
 func (s *sshSession) Stdin() io.WriteCloser { return s.stdin }
@@ -183,11 +207,13 @@ func (s *sshSession) Wait() (int, error) {
 
 func (s *sshSession) Close() error {
 	s.stop()
+	s.release()
 	return s.sess.Close()
 }
 
 type sftpFiles struct {
-	client *sftp.Client
+	client  *sftp.Client
+	release func()
 }
 
 func (f *sftpFiles) Open(path string) (io.ReadCloser, error) {
@@ -231,6 +257,7 @@ func (f *sftpFiles) Chmod(path string, mode os.FileMode) error {
 }
 
 func (f *sftpFiles) Close() error {
+	f.release()
 	return f.client.Close()
 }
 
@@ -267,6 +294,18 @@ func closeOnDone(ctx context.Context, sess *ssh.Session) func() {
 		}
 	}()
 	return sync.OnceFunc(func() { close(done) })
+}
+
+// isTransportError separates a dead connection from sshd refusing one more channel,
+// which redialing would only make worse.
+func isTransportError(err error) bool {
+	var openErr *ssh.OpenChannelError
+	if errors.As(err, &openErr) {
+		return false
+	}
+	var netErr net.Error
+	return errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed) ||
+		errors.Is(err, syscall.EPIPE) || errors.Is(err, syscall.ECONNRESET) || errors.As(err, &netErr)
 }
 
 func exitStatus(err error) (int, error) {
