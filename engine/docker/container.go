@@ -477,6 +477,12 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, en
 
 	newResource := makeResourceSetting(quota, memory, cpuMap, numaNode, resourceOpts.IOPSOptions, resourceOpts.Remap)
 	_, err := e.client.ContainerUpdate(ctx, ID, dockerapi.ContainerUpdateOptions{Resources: &newResource})
+	switch {
+	case cerrdefs.IsNotFound(err):
+		return coretypes.ErrWorkloadNotExists
+	case cerrdefs.IsConflict(err):
+		return coretypes.ErrWorkloadRemoving
+	}
 	return err
 }
 

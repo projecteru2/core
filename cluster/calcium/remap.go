@@ -3,6 +3,8 @@ package calcium
 import (
 	"context"
 
+	"github.com/cockroachdb/errors"
+
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -25,7 +27,10 @@ func (c *Calcium) RemapResourceAndLog(ctx context.Context, logger *log.Fields, n
 		}
 		for msg := range ch {
 			logger.Infof(ctx, "remap workload ID %+v", msg.ID)
-			if msg.err != nil {
+			switch {
+			case errors.Is(msg.err, types.ErrWorkloadNotExists), errors.Is(msg.err, types.ErrWorkloadRemoving):
+				logger.Warnf(ctx, "skip remap of workload %s: %+v", msg.ID, msg.err)
+			case msg.err != nil:
 				logger.Error(ctx, msg.err)
 			}
 		}

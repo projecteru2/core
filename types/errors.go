@@ -46,6 +46,7 @@ var (
 	ErrInvalidWorkloadName   = errors.New("invalid workload name")
 	ErrWorkloadIgnored       = errors.New("ignore this workload")
 	ErrWorkloadNotExists     = errors.New("workload not exists")
+	ErrWorkloadRemoving      = errors.New("workload is being removed")
 
 	ErrPodHasNodes = errors.New("pod has nodes")
 	ErrPodNoNodes  = errors.New("pod has no nodes")
