@@ -267,7 +267,7 @@ the cocoon daemon's events on it. The eru name stays in the meta file and in cor
 | `ImagePull` | `image pull <ref>` for OCI VM images and cloud-image URLs, registry auth left to cocoon's own config; a split-qcow2 artifact (the Windows images) is `oras pull`ed and `image import`ed under the same ref, once |
 | `ImageList` / `ImageRemove` | `image list --format json` filtered by name prefix / `image rm` |
 | `ImageLocalDigests` / `ImageRemoteDigest` | `image inspect` / `oras manifest fetch --descriptor`; a cloud-image URL is its own digest, so it is pulled once. A node without `oras` (probed once per engine with `command -v`) reports no remote digest, so every deploy runs `image pull`, which cocoon answers from its cache |
-| `ImageBuildFromExist` | `snapshot save --name <ref>`: a restore-state snapshot that stays on the node. `ImagePush` is `ErrEngineNotImplemented`, cocoon has no registry push |
+| `ImageBuildFromExist` | `ErrEngineNotImplemented`, and so is `ImagePush`: cocoon has no registry push, and core deletes the tag once a push fails, which would take the snapshot with it |
 | `NetworkList` | the CNI conf dir (`/etc/cni/net.d`); `NetworkConnect` / `Disconnect` are `ErrEngineNotImplemented` |
 | `ImageBuild`, `ImagesPrune`, `RawEngine` | `ErrEngineNotImplemented` |
 

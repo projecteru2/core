@@ -28,12 +28,6 @@ oras pull "$ref" -o "$tmp" >/dev/null
 "$bin" image import "$ref" "$tmp"/*.part
 `
 
-	saveScript = `set -e
-bin=$1; vm=$2; name=$3
-"$bin" snapshot save --name "$name" "$vm" >/dev/null
-exec "$bin" snapshot inspect "$name"
-`
-
 	orasProbe = `command -v oras >/dev/null 2>&1`
 )
 
@@ -146,17 +140,8 @@ func (e *Engine) ImageRemoteDigest(ctx context.Context, image string) (string, e
 	return imageDigest(image, digest), nil
 }
 
-// ImageBuildFromExist saves a restore-state snapshot named after the ref; it stays on the node.
-func (e *Engine) ImageBuildFromExist(ctx context.Context, ID string, refs []string, _ string) (string, error) {
-	res, err := e.run(ctx, sshrunner.Shell(saveScript, e.cocoon.Binary, ID, refs[0])...)
-	if err != nil {
-		return "", err
-	}
-	saved := cocoonImage{}
-	if err = json.Unmarshal([]byte(res.Stdout), &saved); err != nil {
-		return "", err
-	}
-	return saved.ID, nil
+func (e *Engine) ImageBuildFromExist(context.Context, string, []string, string) (string, error) {
+	return "", errors.Wrap(coretypes.ErrEngineNotImplemented, "cocoon has no snapshot push")
 }
 
 func (e *Engine) BuildRefs(_ context.Context, opts *enginetypes.BuildRefOptions) []string {

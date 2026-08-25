@@ -161,24 +161,17 @@ func TestImageRemoteDigest(t *testing.T) {
 	}
 }
 
-func TestImageBuildFromExistSavesASnapshot(t *testing.T) {
-	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result {
-		return &sshrunner.Result{Stdout: `{"id":"snap1","name":"hub.io/ns/app:v2"}`}
-	}}
+func TestImageBuildFromExistNeedsARegistryPush(t *testing.T) {
+	runner := &sshrunnertest.Fake{}
 	e := testEngine(t, runner)
 
-	id, err := e.ImageBuildFromExist(t.Context(), "w1", []string{"hub.io/ns/app:v2"}, "")
-	if err != nil {
-		t.Fatalf("exist: %v", err)
+	if _, err := e.ImageBuildFromExist(t.Context(), "w1", []string{"hub.io/ns/app:v2"}, ""); !errors.Is(err, coretypes.ErrEngineNotImplemented) {
+		t.Errorf("got %v, want ErrEngineNotImplemented", err)
 	}
-	if id != "snap1" {
-		t.Errorf("got %q, want the snapshot id", id)
+	if len(runner.Lines()) != 0 {
+		t.Errorf("got %q, want no snapshot for a build core cannot push", runner.Lines())
 	}
-	want := sshrunner.Quote(sshrunner.Shell(saveScript, testBinary, "w1", "hub.io/ns/app:v2"))
-	if len(runner.Lines()) != 1 || runner.Lines()[0] != want {
-		t.Errorf("got %q, want %q", runner.Lines(), want)
-	}
-	if _, err = e.ImagePush(t.Context(), "hub.io/ns/app:v2"); !errors.Is(err, coretypes.ErrEngineNotImplemented) {
+	if _, err := e.ImagePush(t.Context(), "hub.io/ns/app:v2"); !errors.Is(err, coretypes.ErrEngineNotImplemented) {
 		t.Errorf("got %v, want ErrEngineNotImplemented", err)
 	}
 }
