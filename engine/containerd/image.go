@@ -32,7 +32,7 @@ func (e *Engine) ImageList(ctx context.Context, image string) ([]*enginetypes.Im
 	if err != nil {
 		return nil, err
 	}
-	name := imageName(image)
+	name := imageName(normalizeRef(image))
 	r := []*enginetypes.Image{}
 	for _, item := range listed {
 		if !strings.HasPrefix(item.Name(), name) {
@@ -44,6 +44,7 @@ func (e *Engine) ImageList(ctx context.Context, image string) ([]*enginetypes.Im
 }
 
 func (e *Engine) ImageRemove(ctx context.Context, image string, _, _ bool) ([]string, error) {
+	image = normalizeRef(image)
 	if err := e.client.ImageService().Delete(ctx, image, images.SynchronousDelete()); err != nil {
 		if cerrdefs.IsNotFound(err) {
 			return []string{}, nil
@@ -84,7 +85,7 @@ func (e *Engine) ImagesPrune(ctx context.Context) error {
 }
 
 func (e *Engine) ImagePull(ctx context.Context, ref string, _ bool) (io.ReadCloser, error) {
-	if _, err := e.client.Pull(ctx, ref, client.WithPullUnpack, client.WithResolver(e.resolver())); err != nil {
+	if _, err := e.client.Pull(ctx, normalizeRef(ref), client.WithPullUnpack, client.WithResolver(e.resolver())); err != nil {
 		return nil, err
 	}
 	return io.NopCloser(strings.NewReader("")), nil
@@ -93,6 +94,7 @@ func (e *Engine) ImagePull(ctx context.Context, ref string, _ bool) (io.ReadClos
 // ImagePush has nothing left to send after a BuildKit solve: the exporter pushed the image
 // and never wrote it into the node's own store.
 func (e *Engine) ImagePush(ctx context.Context, ref string) (io.ReadCloser, error) {
+	ref = normalizeRef(ref)
 	image, err := e.client.GetImage(ctx, ref)
 	if err != nil {
 		if cerrdefs.IsNotFound(err) {
@@ -107,6 +109,7 @@ func (e *Engine) ImagePush(ctx context.Context, ref string) (io.ReadCloser, erro
 }
 
 func (e *Engine) ImageLocalDigests(ctx context.Context, image string) ([]string, error) {
+	image = normalizeRef(image)
 	found, err := e.client.GetImage(ctx, image)
 	if err != nil {
 		if cerrdefs.IsNotFound(err) {
@@ -119,6 +122,7 @@ func (e *Engine) ImageLocalDigests(ctx context.Context, image string) ([]string,
 }
 
 func (e *Engine) ImageRemoteDigest(ctx context.Context, image string) (string, error) {
+	image = normalizeRef(image)
 	_, desc, err := e.resolver().Resolve(ctx, image)
 	if err != nil {
 		return "", err

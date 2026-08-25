@@ -4,6 +4,8 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"strings"
+
+	"github.com/distribution/reference"
 )
 
 const idBytes = 16
@@ -12,6 +14,14 @@ func newID() string {
 	buf := make([]byte, idBytes)
 	_, _ = rand.Read(buf)
 	return hex.EncodeToString(buf)
+}
+
+func normalizeRef(ref string) string {
+	named, err := reference.ParseDockerRef(ref)
+	if err != nil {
+		return ref
+	}
+	return named.String()
 }
 
 // imageName drops an image reference's tag, ignoring a registry port.

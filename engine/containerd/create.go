@@ -86,7 +86,8 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	if err != nil {
 		return nil, err
 	}
-	image, err := e.client.GetImage(ctx, opts.Image)
+	ref := normalizeRef(opts.Image)
+	image, err := e.client.GetImage(ctx, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +102,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 
 	created, err := e.client.NewContainer(ctx, ID, slices.Concat([]client.NewContainerOpts{
 		client.WithImage(image),
-		client.WithImageName(opts.Image),
+		client.WithImageName(ref),
 		client.WithNewSnapshot(ID, image),
 		client.WithContainerLabels(labels),
 		client.WithNewSpec(

@@ -2,6 +2,7 @@ package containerd
 
 import (
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/cockroachdb/errors"
@@ -93,6 +94,29 @@ func TestExecArgvCarriesTheEnvironmentIntoTheCommand(t *testing.T) {
 	}
 	if !slices.Equal(argv, want) {
 		t.Errorf("got %q, want %q", argv, want)
+	}
+}
+
+func TestNormalizeRefExpandsAShortName(t *testing.T) {
+	tests := []struct {
+		name string
+		ref  string
+		want string
+	}{
+		{"a short name and tag", "nginx:alpine", "docker.io/library/nginx:alpine"},
+		{"a short name alone", "nginx", "docker.io/library/nginx:latest"},
+		{"a namespaced short name", "projecteru2/core:v1", "docker.io/projecteru2/core:v1"},
+		{"a fully qualified ref", "hub.io/ns/app:v1", "hub.io/ns/app:v1"},
+		{"a ref behind a registry port", "hub.io:5000/ns/app:v1", "hub.io:5000/ns/app:v1"},
+		{"a digest ref", "nginx@sha256:" + strings.Repeat("a", 64), "docker.io/library/nginx@sha256:" + strings.Repeat("a", 64)},
+		{"an unparsable filter passes through", "", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := normalizeRef(tt.ref); got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
 	}
 }
 
