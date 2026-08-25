@@ -256,8 +256,8 @@ func TestVirtualizationWaitEndsWhenTheGuestStops(t *testing.T) {
 	if !running.Closed() {
 		t.Error("the status stream must be closed once the guest stopped")
 	}
-	if strings.Contains(waitScript, "-n 1") {
-		t.Error("cocoon answers -n 1 with the current state and exits, so the wait must follow the stream")
+	if !strings.Contains(waitScript, "vm status --event --format json -n 1") {
+		t.Error("the wait must follow the status stream, polled once a second")
 	}
 }
 

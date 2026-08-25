@@ -84,7 +84,7 @@ exec "$bin" vm inspect "$vm"
 	// waitScript checks the vm first: the event stream stays silent for a vm that is not there.
 	waitScript = `bin=$1; vm=$2
 "$bin" vm inspect "$vm" >/dev/null || exit 1
-exec "$bin" vm status --event --format json "$vm"
+exec "$bin" vm status --event --format json -n 1 "$vm"
 `
 )
 

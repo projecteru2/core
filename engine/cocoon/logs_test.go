@@ -50,11 +50,13 @@ func TestVirtualizationLogsFollowStopsWithTheGuest(t *testing.T) {
 	if len(runner.Lines()) != 1 || runner.Lines()[0] != want {
 		t.Fatalf("got %q, want %q", runner.Lines(), want)
 	}
-	if !strings.Contains(followScript, "vm status --event") || !strings.Contains(followScript, "kill") {
-		t.Error("the follow script must watch the status stream and kill journalctl")
+	for _, step := range []string{"vm status --event --format json -n 1", `kill "$reader" "$watcher"`} {
+		if !strings.Contains(followScript, step) {
+			t.Errorf("the follow script does not carry %q", step)
+		}
 	}
-	if strings.Contains(followScript, "-n 1") {
-		t.Error("cocoon answers -n 1 with the current state and exits, so the follow must watch the stream")
+	if strings.Contains(followScript, "| grep") {
+		t.Error("a pipeline leaves the status producer alive until its next event, so the follow must not use one")
 	}
 	if err = stdout.Close(); err != nil {
 		t.Fatalf("close: %v", err)

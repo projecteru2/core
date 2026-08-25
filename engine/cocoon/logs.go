@@ -16,12 +16,19 @@ import (
 
 // followScript ends the journal follow once the status stream shows the guest no longer running.
 const followScript = `bin=$1; vm=$2; shift 2
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+mkfifo "$tmp/events"
 journalctl "$@" &
 reader=$!
-"$bin" vm status --event --format json "$vm" | grep -q -v '"state":"running"'
+"$bin" vm status --event --format json -n 1 "$vm" > "$tmp/events" &
+watcher=$!
+while IFS= read -r event; do
+case "$event" in *'"state":"running"'*) ;; *) break;; esac
+done < "$tmp/events"
 sleep 1
-kill "$reader" 2>/dev/null || true
-wait "$reader" 2>/dev/null || true
+kill "$reader" "$watcher" 2>/dev/null || true
+wait "$reader" "$watcher" 2>/dev/null || true
 `
 
 // sessionReader closes the ssh session backing a follow stream.
