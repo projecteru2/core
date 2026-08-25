@@ -50,7 +50,10 @@ func (f *Fake) Contexts() []context.Context {
 	return append([]context.Context(nil), f.ctxs...)
 }
 
-func (f *Fake) Run(_ context.Context, line string, _ io.Reader) (*sshrunner.Result, error) {
+func (f *Fake) Run(ctx context.Context, line string, _ io.Reader) (*sshrunner.Result, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	f.record(line)
 	if f.Respond != nil {
 		return f.Respond(line), nil
@@ -59,6 +62,9 @@ func (f *Fake) Run(_ context.Context, line string, _ io.Reader) (*sshrunner.Resu
 }
 
 func (f *Fake) Start(ctx context.Context, line string, opts *sshrunner.StartOptions) (sshrunner.Session, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	f.record(line)
 	f.mu.Lock()
 	defer f.mu.Unlock()
