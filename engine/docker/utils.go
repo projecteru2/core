@@ -215,14 +215,6 @@ func encodeAuthToBase64(authConfig coretypes.AuthConfig) (string, error) {
 	return base64.URLEncoding.EncodeToString(buf), nil
 }
 
-func createImageTag(config coretypes.DockerConfig, appname, tag string) string {
-	prefix := strings.Trim(config.Namespace, "/")
-	if prefix == "" {
-		return fmt.Sprintf("%s/%s:%s", config.Hub, appname, tag)
-	}
-	return fmt.Sprintf("%s/%s/%s:%s", config.Hub, prefix, appname, tag)
-}
-
 func makeCommonPart(build *enginetypes.Build) (string, error) {
 	tmpl := template.Must(template.New("common").Parse(commonTmpl))
 	out := bytes.Buffer{}

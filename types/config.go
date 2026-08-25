@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -32,11 +33,12 @@ type Config struct {
 	Auth           AuthConfig           `yaml:"auth"` // grpc auth
 	GRPCConfig     GRPCConfig           `yaml:"grpc"`
 	Git            GitConfig            `yaml:"git"`
+	SSH            SSHConfig            `yaml:"ssh"`
 	Etcd           EtcdConfig           `yaml:"etcd"`
 	Redis          RedisConfig          `yaml:"redis"`
 	Docker         DockerConfig         `yaml:"docker"`
+	Process        ProcessConfig        `yaml:"process"`
 	Virt           VirtConfig           `yaml:"virt"`
-	Systemd        SystemdConfig        `yaml:"systemd"`
 	Scheduler      SchedulerConfig      `yaml:"scheduler"`
 	ResourcePlugin ResourcePluginConfig `yaml:"resource_plugin"`
 	Log            ServerLogConfig      `yaml:"log"`
@@ -93,6 +95,18 @@ type RedisConfig struct {
 	DB         int    `yaml:"db" default:"0"`
 }
 
+// SSHConfig is core's key pair for nodes it drives over SSH.
+type SSHConfig struct {
+	PrivateKey string `yaml:"private_key"` // file path
+	User       string `yaml:"user" default:"root"`
+	KnownHosts string `yaml:"known_hosts"` // file path; empty accepts any host key
+}
+
+// ProcessConfig is the node-side layout the process engine writes into.
+type ProcessConfig struct {
+	Root string `yaml:"root" default:"/var/lib/eru/process"`
+}
+
 type DockerConfig struct {
 	NetworkMode string    `yaml:"network_mode" required:"true" default:"host"`
 	UseLocalDNS bool      `yaml:"use_local_dns"` // use node IP as dns
@@ -104,12 +118,17 @@ type DockerConfig struct {
 	AuthConfigs map[string]AuthConfig `yaml:"auths"`     // docker registry credentials
 }
 
-type VirtConfig struct {
-	APIVersion string `yaml:"version" default:"v1"` // Yavirtd API version
+// ImageTag renders the registry reference an app's built image is pushed under.
+func (c DockerConfig) ImageTag(appname, tag string) string {
+	prefix := strings.Trim(c.Namespace, "/")
+	if prefix == "" {
+		return fmt.Sprintf("%s/%s:%s", c.Hub, appname, tag)
+	}
+	return fmt.Sprintf("%s/%s/%s:%s", c.Hub, prefix, appname, tag)
 }
 
-type SystemdConfig struct {
-	Runtime string `yaml:"runtime" default:"io.containerd.eru.v2"`
+type VirtConfig struct {
+	APIVersion string `yaml:"version" default:"v1"` // Yavirtd API version
 }
 
 type SchedulerConfig struct {

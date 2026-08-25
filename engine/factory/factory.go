@@ -13,7 +13,7 @@ import (
 	"github.com/projecteru2/core/engine/docker"
 	"github.com/projecteru2/core/engine/fake"
 	"github.com/projecteru2/core/engine/mocks/fakeengine"
-	"github.com/projecteru2/core/engine/systemd"
+	"github.com/projecteru2/core/engine/process"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/engine/virt"
 	"github.com/projecteru2/core/log"
@@ -28,7 +28,7 @@ var (
 		docker.TCPPrefixKey:  docker.MakeClient,
 		docker.SockPrefixKey: docker.MakeClient,
 		virt.GRPCPrefixKey:   virt.MakeClient,
-		systemd.TCPPrefix:    systemd.MakeClient,
+		process.Prefix:       process.MakeClient,
 		fakeengine.PrefixKey: fakeengine.MakeClient,
 	}
 	engineCache *EngineCache
