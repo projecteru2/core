@@ -150,10 +150,7 @@ func (e *Engine) buildAuth() session.Attachable {
 	auths := e.config.Registry.Auths
 	return authprovider.NewDockerAuthProvider(authprovider.DockerAuthProviderConfig{
 		AuthConfigProvider: func(_ context.Context, host string, _ []string, _ authprovider.ExpireCachedAuthCheck) (types.AuthConfig, error) {
-			if host == authprovider.DockerHubRegistryHost {
-				host = authprovider.DockerHubConfigfileKey
-			}
-			auth, ok := auths[host]
+			auth, ok := registryAuth(auths, host)
 			if !ok {
 				return types.AuthConfig{}, nil
 			}

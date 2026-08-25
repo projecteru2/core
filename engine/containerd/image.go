@@ -23,9 +23,12 @@ import (
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
+	coretypes "github.com/projecteru2/core/types"
 )
 
 const commitAuthor = "eru-core"
+
+var hubAliases = []string{"docker.io", "index.docker.io", "registry-1.docker.io", "https://index.docker.io/v1/"}
 
 func (e *Engine) ImageList(ctx context.Context, image string) ([]*enginetypes.Image, error) {
 	listed, err := e.client.ListImages(ctx)
@@ -220,7 +223,7 @@ func (e *Engine) resolver() remotes.Resolver {
 	return docker.NewResolver(docker.ResolverOptions{
 		Hosts: docker.ConfigureDefaultRegistries(
 			docker.WithAuthorizer(docker.NewDockerAuthorizer(docker.WithAuthCreds(func(host string) (string, string, error) {
-				auth, ok := auths[host]
+				auth, ok := registryAuth(auths, host)
 				if !ok {
 					return "", "", nil
 				}
@@ -231,6 +234,21 @@ func (e *Engine) resolver() remotes.Resolver {
 			}),
 		),
 	})
+}
+
+func registryAuth(auths map[string]coretypes.AuthConfig, host string) (coretypes.AuthConfig, bool) {
+	if auth, ok := auths[host]; ok {
+		return auth, true
+	}
+	if !slices.Contains(hubAliases, host) {
+		return coretypes.AuthConfig{}, false
+	}
+	for _, alias := range hubAliases {
+		if auth, ok := auths[alias]; ok {
+			return auth, true
+		}
+	}
+	return coretypes.AuthConfig{}, false
 }
 
 func readBlob(ctx context.Context, store content.Provider, desc ocispec.Descriptor, target any) error {
