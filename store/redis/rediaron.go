@@ -72,18 +72,19 @@ type KNotifyMessage struct {
 func (r *Rediaron) KNotify(ctx context.Context, pattern string) chan *KNotifyMessage {
 	ch := make(chan *KNotifyMessage)
 	logger := log.WithFunc("store.redis.KNotify")
+	prefix := fmt.Sprintf(keyNotifyPrefix, r.Config.Redis.DB, "")
+	channel := fmt.Sprintf(keyNotifyPrefix, r.Config.Redis.DB, pattern)
+	pubsub := r.cli.PSubscribe(ctx, channel)
+	subC := pubsub.Channel()
 	_ = r.Pool.Invoke(func() {
 		defer close(ch)
-
-		prefix := fmt.Sprintf(keyNotifyPrefix, r.Config.Redis.DB, "")
-		channel := fmt.Sprintf(keyNotifyPrefix, r.Config.Redis.DB, pattern)
-		pubsub := r.cli.PSubscribe(ctx, channel)
-		subC := pubsub.Channel()
+		defer func() {
+			_ = pubsub.Close()
+		}()
 
 		for {
 			select {
 			case <-ctx.Done():
-				_ = pubsub.Close()
 				return
 			case v := <-subC:
 				if v == nil {
