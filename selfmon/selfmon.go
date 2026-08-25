@@ -10,8 +10,6 @@ import (
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/store"
-	"github.com/projecteru2/core/store/etcdv3/embedded"
-	storefactory "github.com/projecteru2/core/store/factory"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -26,16 +24,9 @@ type NodeStatusWatcher struct {
 	store   store.Store
 }
 
-func RunNodeStatusWatcher(ctx context.Context, config types.Config, cluster cluster.Cluster, embeddedETCD *embedded.Cluster) {
-	ID := rand.Int64N(10000) //nolint:gosec // a log-only instance tag, not a security token
-	store, err := storefactory.NewStore(config, embeddedETCD)
-	if err != nil {
-		log.WithFunc("selfmon.RunNodeStatusWatcher").WithField("ID", ID).Error(ctx, err, "failed to create store")
-		return
-	}
-
+func RunNodeStatusWatcher(ctx context.Context, config types.Config, cluster cluster.Cluster, store store.Store) {
 	watcher := &NodeStatusWatcher{
-		ID:      ID,
+		ID:      rand.Int64N(10000), //nolint:gosec // a log-only instance tag, not a security token
 		config:  config,
 		store:   store,
 		cluster: cluster,

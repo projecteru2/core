@@ -63,7 +63,8 @@ func serve(ctx context.Context, _ *cli.Command) error {
 	}
 	defer cluster.Finalizer()
 
-	factory.InitEngineCache(ctx, config, cluster.GetStore())
+	stor := cluster.GetStore()
+	factory.InitEngineCache(ctx, config, stor)
 
 	cluster.DisasterRecover(ctx)
 
@@ -118,7 +119,7 @@ func serve(ctx context.Context, _ *cli.Command) error {
 	defer cancel()
 
 	utils.SentryGo(func() {
-		selfmon.RunNodeStatusWatcher(signalCtx, config, cluster, embeddedETCD)
+		selfmon.RunNodeStatusWatcher(signalCtx, config, cluster, stor)
 	})
 
 	<-signalCtx.Done()
