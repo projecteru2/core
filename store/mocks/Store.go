@@ -1285,63 +1285,6 @@ func (_c *Store_ListWorkloads_Call) RunAndReturn(run func(ctx context.Context, a
 	return _c
 }
 
-// LoadNodeCert provides a mock function for the type Store
-func (_mock *Store) LoadNodeCert(ctx context.Context, node *types.Node) error {
-	ret := _mock.Called(ctx, node)
-
-	if len(ret) == 0 {
-		panic("no return value specified for LoadNodeCert")
-	}
-
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *types.Node) error); ok {
-		r0 = returnFunc(ctx, node)
-	} else {
-		r0 = ret.Error(0)
-	}
-	return r0
-}
-
-// Store_LoadNodeCert_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'LoadNodeCert'
-type Store_LoadNodeCert_Call struct {
-	*mock.Call
-}
-
-// LoadNodeCert is a helper method to define mock.On call
-//   - ctx context.Context
-//   - node *types.Node
-func (_e *Store_Expecter) LoadNodeCert(ctx any, node any) *Store_LoadNodeCert_Call {
-	return &Store_LoadNodeCert_Call{Call: _e.mock.On("LoadNodeCert", ctx, node)}
-}
-
-func (_c *Store_LoadNodeCert_Call) Run(run func(ctx context.Context, node *types.Node)) *Store_LoadNodeCert_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 *types.Node
-		if args[1] != nil {
-			arg1 = args[1].(*types.Node)
-		}
-		run(
-			arg0,
-			arg1,
-		)
-	})
-	return _c
-}
-
-func (_c *Store_LoadNodeCert_Call) Return(err error) *Store_LoadNodeCert_Call {
-	_c.Call.Return(err)
-	return _c
-}
-
-func (_c *Store_LoadNodeCert_Call) RunAndReturn(run func(ctx context.Context, node *types.Node) error) *Store_LoadNodeCert_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // NodeStatusStream provides a mock function for the type Store
 func (_mock *Store) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
 	ret := _mock.Called(ctx)

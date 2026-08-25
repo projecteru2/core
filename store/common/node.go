@@ -200,15 +200,6 @@ func (s *Store) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
 	return ch
 }
 
-func (s *Store) LoadNodeCert(ctx context.Context, node *types.Node) error {
-	ca, cert, key, err := s.loadCert(ctx, node.Name)
-	if err != nil {
-		return err
-	}
-	node.Ca, node.Cert, node.Key = ca, cert, key
-	return nil
-}
-
 func (s *Store) MakeClient(ctx context.Context, node *types.Node) (engine.API, error) {
 	// cache lookup ignores ca/cert/key
 	if client := enginefactory.GetEngineFromCache(ctx, node.Endpoint, "", "", ""); client != nil {

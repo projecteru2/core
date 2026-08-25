@@ -29,7 +29,6 @@ type Store interface {
 	SetNodeStatus(ctx context.Context, node *types.Node, ttl int64) error
 	GetNodeStatus(ctx context.Context, nodename string) (*types.NodeStatus, error)
 	NodeStatusStream(ctx context.Context) chan *types.NodeStatus
-	LoadNodeCert(ctx context.Context, node *types.Node) (err error)
 
 	AddWorkload(context.Context, *types.Workload, *types.Processing) error
 	UpdateWorkload(ctx context.Context, workload *types.Workload) error
