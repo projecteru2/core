@@ -50,7 +50,6 @@ func parseEndpoint(endpoint string) (user, host, addr string, err error) {
 	return user, host, net.JoinHostPort(host, port), nil
 }
 
-// quote renders argv as a shell line with every word single-quoted.
 func quote(argv []string) string {
 	words := make([]string, len(argv))
 	for i, arg := range argv {
@@ -84,11 +83,6 @@ func metaPath(ID string) string {
 	return filepath.Join(metaDir, ID+".json")
 }
 
-// recordPath is the meta file's durable copy; the one under metaDir lives on tmpfs.
-func recordPath(root, ID string) string {
-	return filepath.Join(workloadDir(root, ID), "meta.json")
-}
-
 // cgroupPath expands a slice name into its cgroup directory; systemd nests slices on "-".
 func cgroupPath(slice, unit string) string {
 	parts := strings.Split(strings.TrimSuffix(slice, sliceSuffix), "-")
@@ -106,7 +100,6 @@ func newID() string {
 	return hex.EncodeToString(buf)
 }
 
-// restartPolicy maps eru's docker-shaped restart string onto systemd's Restart=.
 func restartPolicy(restart string) string {
 	policy, _, _ := strings.Cut(restart, ":")
 	switch policy {

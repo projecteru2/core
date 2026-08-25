@@ -169,7 +169,10 @@ func (v *Vibranium) GetNodeResource(ctx context.Context, opts *pb.GetNodeResourc
 func (v *Vibranium) AddNode(ctx context.Context, opts *pb.AddNodeOptions) (*pb.Node, error) {
 	task := v.newTask(ctx, "AddNode", false)
 	defer task.done()
-	addNodeOpts := toCoreAddNodeOptions(opts)
+	addNodeOpts, err := toCoreAddNodeOptions(opts)
+	if err != nil {
+		return nil, grpcstatus.Error(AddNode, err.Error())
+	}
 	n, err := v.cluster.AddNode(task.context, addNodeOpts)
 	if err != nil {
 		return nil, grpcstatus.Error(AddNode, err.Error())
@@ -232,7 +235,11 @@ func (v *Vibranium) GetNodeEngineInfo(ctx context.Context, opts *pb.GetNodeOptio
 func (v *Vibranium) SetNode(ctx context.Context, opts *pb.SetNodeOptions) (*pb.Node, error) {
 	task := v.newTask(ctx, "SetNode", false)
 	defer task.done()
-	n, err := v.cluster.SetNode(task.context, toCoreSetNodeOptions(opts))
+	setNodeOpts, err := toCoreSetNodeOptions(opts)
+	if err != nil {
+		return nil, grpcstatus.Error(SetNode, err.Error())
+	}
+	n, err := v.cluster.SetNode(task.context, setNodeOpts)
 	if err != nil {
 		return nil, grpcstatus.Error(SetNode, err.Error())
 	}
@@ -797,11 +804,16 @@ func (v *Vibranium) ReallocResource(ctx context.Context, opts *pb.ReallocOptions
 		return msg, grpcstatus.Error(ReallocResource, types.ErrNoWorkloadIDs.Error())
 	}
 
+	resources, err := toCoreResources(opts.Resources)
+	if err != nil {
+		return msg, grpcstatus.Error(ReallocResource, err.Error())
+	}
+
 	if err := v.cluster.ReallocResource(
 		ctx,
 		&types.ReallocOptions{
 			ID:        opts.Id,
-			Resources: toCoreResources(opts.Resources),
+			Resources: resources,
 		},
 	); err != nil {
 		return msg, grpcstatus.Error(ReallocResource, err.Error())

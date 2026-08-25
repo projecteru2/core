@@ -27,7 +27,6 @@ const (
 
 var throttleKeys = [...]string{"IOReadIOPSMax", "IOWriteIOPSMax", "IOReadBandwidthMax", "IOWriteBandwidthMax"}
 
-// unit is the transient service that runs one workload.
 type unit struct {
 	ID          string
 	Podname     string
@@ -41,7 +40,6 @@ type unit struct {
 	Resource    *engine.VirtualizationResource
 }
 
-// argv renders the systemd-run command that starts the unit.
 func (u *unit) argv() []string {
 	argv := []string{
 		"systemd-run",
@@ -99,7 +97,6 @@ func (u *unit) description() string {
 	return appname + "/" + entrypoint
 }
 
-// properties maps the cpumem and storage plugins' engine params onto cgroup v2 knobs.
 func properties(resource *engine.VirtualizationResource, tasksMax int) []string {
 	props := []string{}
 	if cpus := allowedCPUs(resource); cpus != "" {
@@ -180,8 +177,7 @@ func cpuWeight(quota float64, remap bool) int {
 	return min(max(1, int(math.Round(defaultCPUWeight*fraction))), maxCPUWeight)
 }
 
-// bindPaths maps the volume plugin's src:dst[:mode] bindings onto the unit's mount properties.
-// A bind needs no RootDirectory, so raw workloads carry them too.
+// a bind needs no RootDirectory, so raw workloads carry them too
 func bindPaths(volumes, env []string) []string {
 	lookup := make(map[string]string, len(env))
 	for _, entry := range env {

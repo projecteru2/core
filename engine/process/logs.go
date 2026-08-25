@@ -24,6 +24,16 @@ kill "$reader" 2>/dev/null || true
 wait "$reader" 2>/dev/null || true
 `
 
+// sessionReader closes the ssh session backing a follow stream.
+type sessionReader struct {
+	io.Reader
+	sess session
+}
+
+func (r *sessionReader) Close() error {
+	return r.sess.Close()
+}
+
 func (e *Engine) VirtualizationLogs(ctx context.Context, opts *enginetypes.VirtualizationLogStreamOptions) (stdout, stderr io.ReadCloser, err error) {
 	unit := unitName(opts.ID)
 	flags, err := journalFlags(opts)
@@ -51,16 +61,6 @@ func (e *Engine) VirtualizationAttach(ctx context.Context, ID string, _, stdin b
 	}
 	stdout, stderr, err := e.VirtualizationLogs(ctx, &enginetypes.VirtualizationLogStreamOptions{ID: ID, Follow: true})
 	return stdout, stderr, nil, err
-}
-
-// sessionReader closes the ssh session backing a follow stream.
-type sessionReader struct {
-	io.Reader
-	sess session
-}
-
-func (r *sessionReader) Close() error {
-	return r.sess.Close()
 }
 
 func journalFlags(opts *enginetypes.VirtualizationLogStreamOptions) ([]string, error) {

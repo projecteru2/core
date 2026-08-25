@@ -16,7 +16,6 @@ const (
 	rawMeta     = `{"id":"w1","kind":"process","podname":"prod","working_dir":"/srv/app"}`
 )
 
-// fakeRunner records every command line and replays canned results.
 type fakeRunner struct {
 	lines   []string
 	respond func(line string) *result

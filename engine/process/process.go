@@ -56,7 +56,6 @@ type Engine struct {
 	execs map[string]session
 }
 
-// MakeClient builds a process engine for endpoint.
 func MakeClient(_ context.Context, config coretypes.Config, nodename, endpoint, ca, cert, key string) (engine.API, error) {
 	user, host, addr, err := parseEndpoint(endpoint)
 	if err != nil {

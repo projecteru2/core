@@ -9,8 +9,9 @@ import (
 	"slices"
 	"time"
 
+	"github.com/cockroachdb/errors"
+
 	enginetypes "github.com/projecteru2/core/engine/types"
-	"github.com/projecteru2/core/log"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
@@ -116,8 +117,12 @@ func toCoreSendOptions(b *pb.SendOptions) *types.SendOptions {
 	}
 }
 
-func toCoreAddNodeOptions(b *pb.AddNodeOptions) *types.AddNodeOptions {
-	r := &types.AddNodeOptions{
+func toCoreAddNodeOptions(b *pb.AddNodeOptions) (*types.AddNodeOptions, error) {
+	resources, err := toCoreResources(b.Resources)
+	if err != nil {
+		return nil, err
+	}
+	return &types.AddNodeOptions{
 		Nodename:  b.Nodename,
 		Endpoint:  b.Endpoint,
 		Podname:   b.Podname,
@@ -125,13 +130,16 @@ func toCoreAddNodeOptions(b *pb.AddNodeOptions) *types.AddNodeOptions {
 		Cert:      b.Cert,
 		Key:       b.Key,
 		Labels:    b.Labels,
-		Resources: toCoreResources(b.Resources),
+		Resources: resources,
 		Test:      b.Test,
-	}
-	return r
+	}, nil
 }
 
-func toCoreSetNodeOptions(b *pb.SetNodeOptions) *types.SetNodeOptions {
+func toCoreSetNodeOptions(b *pb.SetNodeOptions) (*types.SetNodeOptions, error) {
+	resources, err := toCoreResources(b.Resources)
+	if err != nil {
+		return nil, err
+	}
 	return &types.SetNodeOptions{
 		Nodename:      b.Nodename,
 		Endpoint:      b.Endpoint,
@@ -139,11 +147,11 @@ func toCoreSetNodeOptions(b *pb.SetNodeOptions) *types.SetNodeOptions {
 		Cert:          b.Cert,
 		Key:           b.Key,
 		WorkloadsDown: b.WorkloadsDown,
-		Resources:     toCoreResources(b.Resources),
+		Resources:     resources,
 		Delta:         b.Delta,
 		Labels:        b.Labels,
 		Bypass:        types.TriOptions(b.Bypass),
-	}
+	}, nil
 }
 
 // toCoreNodeFilter maps a request-side filter; All stays off, so a request can never widen a selection.
@@ -301,8 +309,13 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		nodeFilter = requested
 	}
 
+	resources, err := toCoreResources(d.Resources)
+	if err != nil {
+		return nil, err
+	}
+
 	return &types.DeployOptions{
-		Resources:      toCoreResources(d.Resources),
+		Resources:      resources,
 		Name:           d.Name,
 		Entrypoint:     entry,
 		Podname:        d.Podname,
@@ -539,17 +552,16 @@ func toCoreRemoveImageOptions(opts *pb.RemoveImageOptions) *types.ImageOptions {
 	}
 }
 
-func toCoreResources(resources map[string][]byte) resourcetypes.Resources {
+func toCoreResources(resources map[string][]byte) (resourcetypes.Resources, error) {
 	r := resourcetypes.Resources{}
 	for k, v := range resources {
 		rp := resourcetypes.RawParams{}
 		if err := json.Unmarshal(v, &rp); err != nil {
-			log.WithFunc("transform.toCoreResources").Errorf(nil, err, "unmarshal resource %s", k) //nolint
-			continue
+			return nil, errors.Wrapf(err, "unmarshal resource %s", k)
 		}
 		r[k] = rp
 	}
-	return r
+	return r, nil
 }
 
 func toRPCListImageMessage(msg *types.ListImageMessage) *pb.ListImageMessage {

@@ -6,7 +6,6 @@ import (
 	"os"
 )
 
-// runner executes commands and moves files on one node.
 type runner interface {
 	Run(ctx context.Context, line string, stdin io.Reader) (*result, error)
 	Start(ctx context.Context, line string, opts *startOptions) (session, error)
@@ -14,7 +13,6 @@ type runner interface {
 	Close() error
 }
 
-// session is one command still running on the node.
 type session interface {
 	Stdin() io.WriteCloser
 	Stdout() io.ReadCloser
@@ -24,7 +22,6 @@ type session interface {
 	Close() error
 }
 
-// files is the node's filesystem.
 type files interface {
 	Open(path string) (io.ReadCloser, error)
 	Create(path string) (io.WriteCloser, error)
