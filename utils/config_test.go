@@ -1,26 +1,21 @@
 package utils
 
 import (
-	"bytes"
-	"io"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestLoadConfig(t *testing.T) {
-	f1 := "test"
-	buffer := bytes.NewBufferString(f1)
-	fname, err := TempFile(io.NopCloser(buffer))
-	assert.NoError(t, err)
-	_, err = LoadConfig(fname)
-	assert.Error(t, err)
-	os.Remove(fname)
+const (
+	minimalConfig = `etcd:
+    machines:
+        - "http://127.0.0.1:2379"
+`
 
-	f1 = `log_level: "DEBUG"
-bind: ":5001"
+	fullConfig = `bind: ":5001"
 statsd: "127.0.0.1:8125"
 profile: ":12346"
 global_timeout: 300s
@@ -33,30 +28,101 @@ etcd:
         - "http://127.0.0.1:2379"
     lock_prefix: "core/_lock"
 git:
-    public_key: "***REMOVED***"
-    private_key: "***REMOVED***"
-    token: "***REMOVED***"
     scm_type: "github"
 docker:
     network_mode: "bridge"
-    cert_path: "/etc/eru/tls"
     hub: "hub.docker.com"
     namespace: "projecteru2"
     build_pod: "eru-test"
-    local_dns: true
+scheduler:
+    sharebase: 50
 `
+)
 
-	buffer = bytes.NewBufferString(f1)
-	fname, err = TempFile(io.NopCloser(buffer))
+func TestLoadConfigAppliesDefaults(t *testing.T) {
+	config, err := LoadConfig(writeConfig(t, minimalConfig))
 	assert.NoError(t, err)
-	config, err := LoadConfig(fname)
+
+	tests := []struct {
+		name string
+		got  any
+		want any
+	}{
+		{"duration default", config.LockTimeout, 30 * time.Second},
+		{"duration default on a nested struct", config.GRPCConfig.ServiceHeartbeatInterval, 15 * time.Second},
+		{"string default", config.Etcd.Prefix, "/eru"},
+		{"numeric string default", config.Bind, "5001"},
+		{"string default holding a colon", config.ProbeTarget, "8.8.8.8:80"},
+		{"int default", config.Scheduler.ShareBase, 100},
+		{"negative int default", config.Scheduler.MaxShare, -1},
+		{"nested struct default", config.Docker.APIVersion, "1.32"},
+		{"twice-nested struct default", config.Docker.Log.Type, "journald"},
+		{"default in a section the file omits", config.Redis.Addr, "localhost:6379"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, tt.got)
+		})
+	}
+}
+
+func TestLoadConfigLetsTheFileOverrideDefaults(t *testing.T) {
+	config, err := LoadConfig(writeConfig(t, fullConfig))
 	assert.NoError(t, err)
-	assert.Equal(t, config.LockTimeout, time.Duration(time.Second*30))
-	assert.Equal(t, config.GlobalTimeout, time.Duration(time.Second*300))
-	assert.Equal(t, config.Etcd.Prefix, "/eru")
-	assert.Equal(t, config.Docker.Log.Type, "journald")
-	assert.Equal(t, config.Docker.APIVersion, "1.32")
-	assert.Equal(t, config.Scheduler.MaxShare, -1)
-	assert.Equal(t, config.Scheduler.ShareBase, 100)
-	os.Remove(fname)
+
+	tests := []struct {
+		name string
+		got  any
+		want any
+	}{
+		{"duration", config.GlobalTimeout, 300 * time.Second},
+		{"string", config.Bind, ":5001"},
+		{"int", config.Scheduler.ShareBase, 50},
+		{"nested string", config.Etcd.LockPrefix, "core/_lock"},
+		{"nested struct field", config.Docker.NetworkMode, "bridge"},
+		{"slice", config.Etcd.Machines, []string{"http://127.0.0.1:2379"}},
+		{"untouched default alongside overrides", config.Docker.APIVersion, "1.32"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, tt.got)
+		})
+	}
+}
+
+func TestLoadConfigRejectsBadInput(t *testing.T) {
+	tests := []struct {
+		name string
+		body string
+	}{
+		{"missing required field", "bind: \":5001\"\n"},
+		{"required field set to its zero value", minimalConfig + "scheduler:\n    maxshare: 0\n"},
+		{"file is not a mapping", "test\n"},
+		{"malformed yaml", "bind: \":5001\"\n  broken\n"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := LoadConfig(writeConfig(t, tt.body))
+			assert.Error(t, err)
+		})
+	}
+}
+
+func TestLoadConfigNamesTheMissingRequiredField(t *testing.T) {
+	_, err := LoadConfig(writeConfig(t, "bind: \":5001\"\n"))
+	assert.ErrorContains(t, err, "Machines is required, but blank")
+}
+
+func TestLoadConfigRejectsAMissingFile(t *testing.T) {
+	_, err := LoadConfig(filepath.Join(t.TempDir(), "absent.yaml"))
+	assert.Error(t, err)
+}
+
+func writeConfig(t *testing.T, body string) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "core.yaml")
+	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+	return path
 }
