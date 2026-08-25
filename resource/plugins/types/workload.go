@@ -2,8 +2,8 @@ package types
 
 import resourcetypes "github.com/projecteru2/core/resource/types"
 
-// 带 keepbind
+// WorkloadResourceRequest carries the request params, keepbind included.
 type WorkloadResourceRequest = resourcetypes.RawParams
 
-// 不带 keepbind
+// WorkloadResource carries the allocated params, keepbind excluded.
 type WorkloadResource = resourcetypes.RawParams

@@ -20,43 +20,6 @@ import (
 	walmocks "github.com/projecteru2/core/wal/mocks"
 )
 
-func NewTestCluster() *Calcium {
-	walDir, err := os.MkdirTemp(os.TempDir(), "core.wal.*")
-	if err != nil {
-		panic(err)
-	}
-
-	pool, _ := utils.NewPool(20)
-	c := &Calcium{pool: pool}
-	c.config = types.Config{
-		GlobalTimeout: 30 * time.Second,
-		Git: types.GitConfig{
-			CloneTimeout: 300 * time.Second,
-		},
-		Scheduler: types.SchedulerConfig{
-			MaxShare:  -1,
-			ShareBase: 100,
-		},
-		GRPCConfig: types.GRPCConfig{
-			ServiceDiscoveryPushInterval: 15 * time.Second,
-		},
-		WALFile:             filepath.Join(walDir, "core.wal.log"),
-		MaxConcurrency:      100000,
-		HAKeepaliveInterval: 16 * time.Second,
-		ProbeTarget:         "8.8.8.8:80",
-	}
-	mwal := &walmocks.WAL{}
-	commit := wal.Commit(func() error { return nil })
-	mwal.On("Log", mock.Anything, mock.Anything).Return(commit, nil)
-
-	c.store = &storemocks.Store{}
-	c.source = &sourcemocks.Source{}
-	c.rmgr = &resourcemocks.Manager{}
-	c.wal = mwal
-
-	return c
-}
-
 func TestNewCluster(t *testing.T) {
 	ctx := context.Background()
 	config := types.Config{WALFile: "/tmp/a", HAKeepaliveInterval: 16 * time.Second}
@@ -108,4 +71,42 @@ func TestFinalizer(t *testing.T) {
 	store := c.store.(*storemocks.Store)
 	store.On("TerminateEmbededStorage").Return(nil)
 	c.Finalizer()
+}
+
+func NewTestCluster() *Calcium {
+	walDir, err := os.MkdirTemp(os.TempDir(), "core.wal.*")
+	if err != nil {
+		panic(err)
+	}
+
+	pool, _ := utils.NewPool(20)
+	c := &Calcium{pool: pool}
+	c.config = types.Config{
+		GlobalTimeout: 30 * time.Second,
+		Git: types.GitConfig{
+			CloneTimeout: 300 * time.Second,
+		},
+		Scheduler: types.SchedulerConfig{
+			MaxShare:  -1,
+			ShareBase: 100,
+		},
+		GRPCConfig: types.GRPCConfig{
+			ServiceDiscoveryPushInterval: 15 * time.Second,
+		},
+		WALFile:             filepath.Join(walDir, "core.wal.log"),
+		MaxConcurrency:      100000,
+		HAKeepaliveInterval: 16 * time.Second,
+		ProbeTarget:         "8.8.8.8:80",
+	}
+	mwal := &walmocks.WAL{}
+	commit := wal.Commit(func() error { return nil })
+	mwal.On("Log", mock.Anything, mock.Anything).Return(commit, nil)
+	mwal.On("Close").Return(nil)
+
+	c.store = &storemocks.Store{}
+	c.source = &sourcemocks.Source{}
+	c.rmgr = &resourcemocks.Manager{}
+	c.wal = mwal
+
+	return c
 }

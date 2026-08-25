@@ -23,10 +23,7 @@ type RedisLock struct {
 	l       *redislock.Lock
 }
 
-// New creates a lock
-// key: name of the lock
-// waitTimeout: timeout before getting the lock, Lock returns error if the lock is not acquired after this time
-// lockTTL: ttl of lock, after this time, lock will be released automatically
+// New creates a lock on key, waiting at most waitTimeout to acquire it and holding it for lockTTL.
 func New(cli redislock.RedisClient, key string, waitTimeout, lockTTL time.Duration) (*RedisLock, error) {
 	if key == "" {
 		return nil, types.ErrLockKeyInvaild
@@ -45,23 +42,15 @@ func New(cli redislock.RedisClient, key string, waitTimeout, lockTTL time.Durati
 	}, nil
 }
 
-// Lock acquires the lock
-// will try waitTimeout time before getting the lock
 func (r *RedisLock) Lock(ctx context.Context) (context.Context, error) {
 	lockCtx, cancel := context.WithTimeout(ctx, r.timeout)
 	defer cancel()
-	return r.lock(lockCtx, opts)
+	if err := r.lock(lockCtx, opts); err != nil {
+		return nil, err
+	}
+	return ctx, nil
 }
 
-// TryLock tries to lock
-// returns error if the lock is already acquired by someone else
-// will not retry to get lock
-func (r *RedisLock) TryLock(ctx context.Context) (context.Context, error) {
-	return r.lock(ctx, nil)
-}
-
-// Unlock releases the lock
-// if the lock is not acquired, will return ErrLockNotHeld
 func (r *RedisLock) Unlock(ctx context.Context) error {
 	if r.l == nil {
 		return redislock.ErrLockNotHeld
@@ -72,12 +61,12 @@ func (r *RedisLock) Unlock(ctx context.Context) error {
 	return r.l.Release(lockCtx)
 }
 
-func (r *RedisLock) lock(ctx context.Context, opts *redislock.Options) (context.Context, error) {
+func (r *RedisLock) lock(ctx context.Context, opts *redislock.Options) error {
 	l, err := r.lc.Obtain(ctx, r.key, r.ttl, opts)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	r.l = l
-	return context.TODO(), nil // no need wrapped, not like etcd
+	return nil
 }

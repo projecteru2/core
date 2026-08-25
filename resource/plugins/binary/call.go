@@ -9,13 +9,12 @@ import (
 	"github.com/projecteru2/core/log"
 )
 
-// calls the plugin and gets json response
 func (p Plugin) call(ctx context.Context, cmd string, req, resp any) error {
 	ctx, cancel := context.WithTimeout(ctx, p.config.ResourcePlugin.CallTimeout)
 	defer cancel()
 	logger := log.WithFunc("resource.binary.call")
 
-	command := exec.CommandContext(ctx, p.path, cmd) // nolint
+	command := exec.CommandContext(ctx, p.path, cmd) //nolint:gosec // the plugin path comes from the operator's own config
 	command.Dir = p.config.ResourcePlugin.Dir
 
 	out, err := p.execCommand(ctx, command, req)
@@ -37,7 +36,7 @@ func (p Plugin) execCommand(ctx context.Context, cmd *exec.Cmd, req any) ([]byte
 		return nil, err
 	}
 	if len(cmd.Args) < 2 || cmd.Args[1] != GetMetricsCommand {
-		logger.WithField("in", string(b)).WithField("cmd", cmd.String()).Info(ctx, "call params")
+		logger.WithField("in", string(b)).WithField("cmd", cmd.String()).Debug(ctx, "call params")
 	}
 	cmd.Stdin = bytes.NewBuffer(b)
 	return cmd.CombinedOutput()

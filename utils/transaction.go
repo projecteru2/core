@@ -7,16 +7,18 @@ import (
 	"github.com/projecteru2/core/log"
 )
 
-// ContextFunc .
-type contextFunc = func(context.Context) error
+type (
+	contextFunc  func(context.Context) error
+	rollbackFunc func(context.Context, bool) error
+)
 
-// Txn provides unified API to perform txn
-func Txn(ctx context.Context, cond, then contextFunc, rollback func(context.Context, bool) error, ttl time.Duration) (txnErr error) {
+// Txn runs cond then then; on any error it runs rollback under a fresh ttl-bounded context.
+func Txn(ctx context.Context, cond, then contextFunc, rollback rollbackFunc, ttl time.Duration) (txnErr error) {
 	var condErr, thenErr error
 	txnCtx, txnCancel := context.WithTimeout(ctx, ttl)
 	defer txnCancel()
 	logger := log.WithFunc("utils.Txn")
-	defer func() { // rollback
+	defer func() {
 		txnErr = condErr
 		if txnErr == nil {
 			txnErr = thenErr
@@ -31,7 +33,7 @@ func Txn(ctx context.Context, cond, then contextFunc, rollback func(context.Cont
 
 		logger.Error(ctx, txnErr, "txn failed, rolling back")
 
-		// forbid interrupting rollback
+		// rollback must survive cancellation of ctx
 		rollbackCtx, rollBackCancel := context.WithTimeout(NewInheritCtx(ctx), ttl)
 		defer rollBackCancel()
 		failureByCond := condErr != nil
@@ -40,9 +42,11 @@ func Txn(ctx context.Context, cond, then contextFunc, rollback func(context.Cont
 		}
 	}()
 
-	// let caller decide process then or not
-	if condErr = cond(txnCtx); condErr == nil && then != nil {
-		// no rollback and forbid interrupting further process
+	if cond != nil {
+		condErr = cond(txnCtx)
+	}
+	if condErr == nil && then != nil {
+		// with no rollback, then must not be interruptible
 		thenCtx := txnCtx
 		var thenCancel context.CancelFunc
 		if rollback == nil {
@@ -55,13 +59,10 @@ func Txn(ctx context.Context, cond, then contextFunc, rollback func(context.Cont
 	return txnErr
 }
 
-// PCR Prepare, Commit, Rollback.
-// `prepare` should be a pure calculation process without side effects.
-// `commit` writes the calculation result of `prepare` into database.
-// if `commit` returns error, `rollback` will be performed.
-func PCR(ctx context.Context, prepare, commit, rollback func(ctx context.Context) error, ttl time.Duration) error {
+// PCR runs prepare, commit and rollback; prepare must be side-effect free.
+func PCR(ctx context.Context, prepare, commit, rollback contextFunc, ttl time.Duration) error {
 	return Txn(ctx, prepare, commit, func(ctx context.Context, failureByCond bool) error {
-		if !failureByCond {
+		if !failureByCond && rollback != nil {
 			return rollback(ctx)
 		}
 		return nil

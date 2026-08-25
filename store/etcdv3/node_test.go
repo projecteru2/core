@@ -7,9 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/projecteru2/core/types"
-
 	"github.com/stretchr/testify/assert"
+
+	"github.com/projecteru2/core/store/common"
+	"github.com/projecteru2/core/types"
 )
 
 func TestAddNode(t *testing.T) {
@@ -26,27 +27,20 @@ func TestAddNode(t *testing.T) {
 	labels := map[string]string{"test": "1"}
 
 	endpoint = "mock://fakeengine"
-	// wrong no pod
 	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: "abc", Labels: labels})
 	assert.Error(t, err)
-	// AddNode
 	node, err := m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: podname, Labels: labels})
 	assert.NoError(t, err)
 	assert.Equal(t, node.Name, nodename)
-	// add again and failed
 	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: podname, Labels: labels})
 	assert.Error(t, err)
-	// Addnode again will failed
 	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: podname, Labels: labels})
 	assert.Error(t, err)
-	// Check etcd has node data
-	key := fmt.Sprintf(nodeInfoKey, nodename)
-	_, err = m.GetOne(ctx, key)
+	key := fmt.Sprintf(common.NodeInfoKey, nodename)
+	_, err = m.kv.GetOne(ctx, key)
 	assert.NoError(t, err)
-	// AddNode with mocked engine and default value
 	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename2, Endpoint: endpoint, Podname: podname, Labels: labels})
 	assert.NoError(t, err)
-	// with tls
 	ca := `-----BEGIN CERTIFICATE-----
 MIIC7TCCAdWgAwIBAgIJAM8uLRZf9jttMA0GCSqGSIb3DQEBCwUAMA0xCzAJBgNV
 BAYTAkNOMB4XDTE4MDYxODA5MTkwNloXDTI4MDYxNTA5MTkwNlowDTELMAkGA1UE
@@ -111,21 +105,22 @@ RdCPRPt513WozkJZZAjUSP2U
 -----END PRIVATE KEY-----`
 	nodename3 := "nodename3"
 	endpoint3 := "tcp://path"
-	m.config.CertPath = "/tmp"
-	node3, err := m.doAddNode(ctx, nodename3, endpoint3, podname, ca, cert, certkey, labels, false)
+	m.Config.CertPath = "/tmp"
+	node3, err := m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename3, Endpoint: endpoint3, Podname: podname, Ca: ca, Cert: cert, Key: certkey, Labels: labels})
 	assert.NoError(t, err)
-	_, err = m.makeClient(ctx, node3)
+	_, err = m.MakeClient(ctx, node3)
 	assert.Error(t, err)
-	// failed by get key
 	node3.Name = "nokey"
-	_, err = m.makeClient(ctx, node3)
+	_, err = m.MakeClient(ctx, node3)
 	assert.Error(t, err)
 }
 
 func TestRemoveNode(t *testing.T) {
 	m := NewMercury(t)
 	ctx := context.Background()
-	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", nil, false)
+	_, err := m.AddPod(ctx, "testpod", "")
+	assert.NoError(t, err)
+	node, err := m.AddNode(ctx, &types.AddNodeOptions{Nodename: "test", Endpoint: "mock://", Podname: "testpod"})
 	assert.NoError(t, err)
 	assert.Equal(t, node.Name, "test")
 	assert.NoError(t, m.RemoveNode(ctx, nil))
@@ -135,7 +130,9 @@ func TestRemoveNode(t *testing.T) {
 func TestGetNode(t *testing.T) {
 	m := NewMercury(t)
 	ctx := context.Background()
-	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", nil, false)
+	_, err := m.AddPod(ctx, "testpod", "")
+	assert.NoError(t, err)
+	node, err := m.AddNode(ctx, &types.AddNodeOptions{Nodename: "test", Endpoint: "mock://", Podname: "testpod"})
 	assert.NoError(t, err)
 	assert.Equal(t, node.Name, "test")
 	_, err = m.GetNode(ctx, "wtf")
@@ -148,21 +145,21 @@ func TestGetNode(t *testing.T) {
 func TestGetNodesByPod(t *testing.T) {
 	m := NewMercury(t)
 	ctx := context.Background()
-	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", nil, false)
+	_, err := m.AddPod(ctx, "testpod", "")
+	assert.NoError(t, err)
+	node, err := m.AddNode(ctx, &types.AddNodeOptions{Nodename: "test", Endpoint: "mock://", Podname: "testpod"})
 	assert.NoError(t, err)
 	assert.Equal(t, node.Name, "test")
-	ns, err := m.GetNodesByPod(ctx, &types.NodeFilter{Podname: "wtf", All: false})
+	ns, err := m.GetNodesByPod(ctx, &types.NodeFilter{Podname: "wtf", All: false}, false)
 	assert.NoError(t, err)
 	assert.Empty(t, ns)
-	ns, err = m.GetNodesByPod(ctx, &types.NodeFilter{Podname: "testpod", All: true})
+	ns, err = m.GetNodesByPod(ctx, &types.NodeFilter{Podname: "testpod", All: true}, false)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, ns)
-	_, err = m.AddPod(ctx, "testpod", "")
+	ns, err = m.GetNodesByPod(ctx, &types.NodeFilter{All: false}, false)
 	assert.NoError(t, err)
-	ns, err = m.GetNodesByPod(ctx, &types.NodeFilter{All: false})
-	assert.NoError(t, err)
-	assert.Len(t, ns, 1) // because mock forced to up, so here is 1
-	ns, err = m.GetNodesByPod(ctx, &types.NodeFilter{All: true})
+	assert.Len(t, ns, 1)
+	ns, err = m.GetNodesByPod(ctx, &types.NodeFilter{All: true}, false)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, ns)
 }
@@ -170,7 +167,9 @@ func TestGetNodesByPod(t *testing.T) {
 func TestUpdateNode(t *testing.T) {
 	m := NewMercury(t)
 	ctx := context.Background()
-	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", nil, false)
+	_, err := m.AddPod(ctx, "testpod", "")
+	assert.NoError(t, err)
+	node, err := m.AddNode(ctx, &types.AddNodeOptions{Nodename: "test", Endpoint: "mock://", Podname: "testpod"})
 	assert.NoError(t, err)
 	assert.Equal(t, node.Name, "test")
 	fakeNode := &types.Node{
@@ -187,11 +186,6 @@ func TestUpdateNode(t *testing.T) {
 	assert.NoError(t, m.UpdateNodes(ctx, node))
 	node.Available = false
 	assert.NoError(t, m.UpdateNodes(ctx, node))
-}
-
-func TestExtractNodename(t *testing.T) {
-	assert := assert.New(t)
-	assert.Equal(extractNodename("/nodestatus/testname"), "testname")
 }
 
 func TestSetNodeStatus(t *testing.T) {
@@ -214,14 +208,12 @@ func TestSetNodeStatus(t *testing.T) {
 	})
 	assert.NoError(err)
 	assert.NoError(m.SetNodeStatus(context.Background(), node, 1))
-	key := filepath.Join(nodeStatusPrefix, node.Name)
+	key := filepath.Join(common.NodeStatusPrefix, node.Name)
 
-	// not expired yet
-	_, err = m.GetOne(context.Background(), key)
+	_, err = m.kv.GetOne(context.Background(), key)
 	assert.NoError(err)
-	// expired
 	time.Sleep(2000 * time.Millisecond)
-	_, err = m.GetOne(context.Background(), key)
+	_, err = m.kv.GetOne(context.Background(), key)
 	assert.Error(err)
 }
 
@@ -246,12 +238,10 @@ func TestGetNodeStatus(t *testing.T) {
 	assert.NoError(err)
 	assert.NoError(m.SetNodeStatus(context.Background(), node, 1))
 
-	// not expired yet
 	ns, err := m.GetNodeStatus(context.Background(), node.Name)
 	assert.NoError(err)
 	assert.Equal(ns.Nodename, node.Name)
 	assert.True(ns.Alive)
-	// expired
 	time.Sleep(2 * time.Second)
 	ns1, err := m.GetNodeStatus(context.Background(), node.Name)
 	assert.Error(err)

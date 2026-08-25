@@ -1,7 +1,9 @@
 package strategy
 
 import (
+	"cmp"
 	"context"
+	"slices"
 	"sort"
 
 	"github.com/cockroachdb/errors"
@@ -10,10 +12,8 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-// AveragePlan deploy workload each node
-// 容量够的机器每一台部署 N 个
-// need 是每台机器所需总量，limit 是限制节点数, 保证本轮增量部署 need*limit 个实例
-// limit = 0 即对所有节点部署
+// AveragePlan deploys need workloads onto each of limit nodes with enough capacity, adding need*limit instances.
+// need is per node, not a total; limit 0 means every node
 func AveragePlan(ctx context.Context, infos []Info, need, _, limit int) (map[string]int, error) {
 	log.WithFunc("strategy.AveragePlan").Debugf(ctx, "need %d limit %d infos %+v", need, limit, infos)
 	scheduleInfosLength := len(infos)
@@ -23,7 +23,7 @@ func AveragePlan(ctx context.Context, infos []Info, need, _, limit int) (map[str
 	if scheduleInfosLength < limit {
 		return nil, errors.Wrapf(types.ErrInsufficientResource, "node len %d < limit, cannot alloc an average node plan", scheduleInfosLength)
 	}
-	sort.Slice(infos, func(i, j int) bool { return infos[i].Capacity > infos[j].Capacity })
+	slices.SortFunc(infos, func(a, b Info) int { return cmp.Compare(b.Capacity, a.Capacity) })
 	p := sort.Search(scheduleInfosLength, func(i int) bool { return infos[i].Capacity < need })
 	if p == 0 {
 		return nil, errors.Wrap(types.ErrInsufficientCapacity, "insufficient nodes, at least 1 needed")

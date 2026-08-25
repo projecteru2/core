@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/projecteru2/core/store/common"
 )
 
 func TestRegisterServiceWithDeregister(t *testing.T) {
@@ -15,17 +17,16 @@ func TestRegisterServiceWithDeregister(t *testing.T) {
 
 	ctx := context.Background()
 	svc := "svc"
-	path := fmt.Sprintf(serviceStatusKey, svc)
+	path := fmt.Sprintf(common.ServiceStatusKey, svc)
 	_, deregister, err := m.RegisterService(ctx, svc, time.Minute)
 	assert.NoError(t, err)
 
-	kv, err := m.GetOne(ctx, path)
+	kv, err := m.kv.GetOne(ctx, path)
 	assert.NoError(t, err)
 	assert.Equal(t, path, string(kv.Key))
 
 	deregister()
-	// time.Sleep(time.Second)
-	kv, err = m.GetOne(ctx, path)
+	kv, err = m.kv.GetOne(ctx, path)
 	assert.Error(t, err)
 	assert.Nil(t, kv)
 }

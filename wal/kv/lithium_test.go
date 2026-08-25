@@ -3,7 +3,7 @@ package kv
 import (
 	"context"
 	"fmt"
-	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -43,7 +43,6 @@ func TestDelete(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, value, act)
 
-	// deletes the key
 	require.NoError(t, lit.Delete(key))
 
 	act, err = lit.Get(key)
@@ -69,7 +68,7 @@ func TestScanAbort(t *testing.T) {
 	lit, cancel := newTestLithium(t)
 	defer cancel()
 
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		key := []byte(fmt.Sprintf("p%d", i))
 		require.NoError(t, lit.Put(key, []byte("v")))
 	}
@@ -77,9 +76,6 @@ func TestScanAbort(t *testing.T) {
 	ch, abort := lit.Scan([]byte("p"))
 	abort()
 
-	// before the above abort() has been finished, the scanned key/value pair
-	// had sent to ch already, then the code tries to recv again to make sure the
-	// ch had been closed.
 	if real := <-ch; real != nil {
 		require.Nil(t, <-ch)
 	}
@@ -97,7 +93,6 @@ func TestNextSequence(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, seq1 > seq0)
 
-	// Closes and Reopens
 	require.NoError(t, lit.Reopen())
 
 	seq2, err := lit.NextSequence()
@@ -109,14 +104,12 @@ func TestScanOrderedByKeys(t *testing.T) {
 	lit, cancel := newTestLithium(t)
 	defer cancel()
 
-	// put by descending order.
 	for i := 0xf; i > 0; i-- {
 		key := []byte(fmt.Sprintf("/events/%016x", i))
 		require.NoError(t, lit.Put(key, []byte("v")))
 	}
 
 	var last uint64
-	// asserts read by ascending order.
 	ch, _ := lit.Scan([]byte("/events/"))
 	for ent := range ch {
 		require.NoError(t, ent.Error())
@@ -133,9 +126,7 @@ func TestScanOrderedByKeys(t *testing.T) {
 }
 
 func newTestLithium(t *testing.T) (lit *Lithium, cancel func()) {
-	path := "/tmp/lithium.unitest.wal"
-	os.Remove(path)
-
+	path := filepath.Join(t.TempDir(), "lithium.wal")
 	lit = NewLithium()
 	require.NoError(t, lit.Open(path, 0o666, time.Second))
 

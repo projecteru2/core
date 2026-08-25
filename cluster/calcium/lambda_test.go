@@ -7,6 +7,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
@@ -17,9 +20,6 @@ import (
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
 	walmocks "github.com/projecteru2/core/wal/mocks"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestRunAndWaitFailedThenWALCommitted(t *testing.T) {
@@ -235,7 +235,7 @@ func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {
 	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nodes, nil)
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil)
 	store.On("GetNode",
 		mock.Anything,
 		mock.AnythingOfType("string"),
@@ -276,11 +276,9 @@ func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {
 	)
 	engine := node1.Engine.(*enginemocks.API)
 
-	// doDeployOneWorkload fails: VirtualizationCreate
 	engine.On("ImageLocalDigests", mock.Anything, mock.Anything).Return([]string{""}, nil)
 	engine.On("ImageRemoteDigest", mock.Anything, mock.Anything).Return("", nil)
 
-	// doCreateAndStartWorkload fails: AddWorkload
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationCreated{ID: "workloadfortonictest"}, nil)
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
 	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)

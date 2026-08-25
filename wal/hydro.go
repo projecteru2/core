@@ -3,9 +3,9 @@ package wal
 import (
 	"context"
 	"encoding/json"
+	"sync"
 	"time"
 
-	"github.com/alphadose/haxmap"
 	"github.com/cockroachdb/errors"
 
 	"github.com/projecteru2/core/log"
@@ -13,63 +13,48 @@ import (
 	"github.com/projecteru2/core/wal/kv"
 )
 
-const (
-	fileMode = 0o600
-)
+const fileMode = 0o600
 
 // Hydro is the simplest wal implementation.
 type Hydro struct {
-	*haxmap.Map[string, EventHandler]
-	store kv.KV
+	handlers sync.Map
+	store    kv.KV
 }
 
-// NewHydro initailizes a new Hydro instance.
 func NewHydro(path string, timeout time.Duration) (*Hydro, error) {
 	store := kv.NewLithium()
 	if err := store.Open(path, fileMode, timeout); err != nil {
 		return nil, err
 	}
-	return &Hydro{
-		Map:   haxmap.New[string, EventHandler](),
-		store: store,
-	}, nil
+	return &Hydro{store: store}, nil
 }
 
-// Close disconnects the kvdb.
 func (h *Hydro) Close() error {
 	return h.store.Close()
 }
 
-// Register registers a new event handler.
 func (h *Hydro) Register(handler EventHandler) {
-	h.Set(handler.Typ(), handler)
+	h.handlers.Store(handler.Typ(), handler)
 }
 
-// Recover starts a disaster recovery, which will replay all the events.
 func (h *Hydro) Recover(ctx context.Context) {
 	ch, _ := h.store.Scan([]byte(eventPrefix))
-	events := []HydroEvent{}
 	logger := log.WithFunc("wal.hydro.Recover")
 
-	for {
-		scanEntry, ok := <-ch
-		if !ok {
-			logger.Warn(ctx, "noting have to restore, wal recover closed")
-			break
-		}
-
+	var events []HydroEvent
+	for scanEntry := range ch {
 		event, err := h.decodeEvent(scanEntry)
 		if err != nil {
-			logger.Error(ctx, err, "decode event error")
+			logger.Error(ctx, err, "decode event")
 			continue
 		}
 		events = append(events, event)
 	}
 
 	for _, event := range events {
-		handler, ok := h.getEventHandler(event.Type)
+		handler, ok := h.handler(event.Type)
 		if !ok {
-			logger.Warn(ctx, "no such event handler for %s", event.Type)
+			logger.Warnf(ctx, "no such event handler for %s", event.Type)
 			continue
 		}
 
@@ -80,14 +65,13 @@ func (h *Hydro) Recover(ctx context.Context) {
 	}
 }
 
-// Log records a log item.
 func (h *Hydro) Log(eventyp string, item any) (Commit, error) {
-	handler, ok := h.getEventHandler(eventyp)
+	handler, ok := h.handler(eventyp)
 	if !ok {
 		return nil, errors.Wrap(coretypes.ErrInvaildWALEventType, eventyp)
 	}
 
-	bs, err := handler.Encode(item) // TODO 2 times encode is necessary?
+	bs, err := handler.Encode(item)
 	if err != nil {
 		return nil, err
 	}
@@ -111,35 +95,24 @@ func (h *Hydro) Log(eventyp string, item any) (Commit, error) {
 	}, nil
 }
 
+func (h *Hydro) handler(eventyp string) (EventHandler, bool) {
+	v, ok := h.handlers.Load(eventyp)
+	if !ok {
+		return nil, false
+	}
+	return v.(EventHandler), true
+}
+
 func (h *Hydro) recover(ctx context.Context, handler EventHandler, event HydroEvent) error {
 	item, err := handler.Decode(event.Item)
 	if err != nil {
 		return err
 	}
 
-	del := func() error {
-		return h.store.Delete(event.Key())
-	}
-
-	switch handle, err := handler.Check(ctx, item); {
-	case err != nil:
+	if err := handler.Handle(ctx, item); err != nil {
 		return err
-	case !handle:
-		return del()
-	default:
-		if err := handler.Handle(ctx, item); err != nil {
-			return err
-		}
 	}
-	return del()
-}
-
-func (h *Hydro) getEventHandler(eventyp string) (EventHandler, bool) {
-	handler, ok := h.Get(eventyp)
-	if !ok {
-		return nil, ok
-	}
-	return handler, ok
+	return h.store.Delete(event.Key())
 }
 
 func (h *Hydro) decodeEvent(scanEntry kv.ScanEntry) (event HydroEvent, err error) {

@@ -23,7 +23,6 @@ func NewMercury(t *testing.T) *Mercury {
 	}
 	config.ProbeTarget = "8.8.8.8:80"
 	config.MaxConcurrency = 100000
-	//	config.Docker.CertPath = "/tmp"
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

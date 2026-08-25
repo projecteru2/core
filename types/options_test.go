@@ -10,13 +10,6 @@ import (
 	resourcetypes "github.com/projecteru2/core/resource/types"
 )
 
-func TestParseTriOption(t *testing.T) {
-	assert.False(t, ParseTriOption(TriFalse, true))
-	assert.True(t, ParseTriOption(TriTrue, false))
-	assert.False(t, ParseTriOption(TriKeep, false))
-	assert.True(t, ParseTriOption(TriKeep, true))
-}
-
 func TestSetNodeOptions(t *testing.T) {
 	o := &SetNodeOptions{
 		Resources: resourcetypes.Resources{},

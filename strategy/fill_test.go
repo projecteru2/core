@@ -1,9 +1,8 @@
 package strategy
 
 import (
-	"context"
 	"errors"
-	"sort"
+	"slices"
 	"testing"
 
 	"github.com/projecteru2/core/types"
@@ -12,50 +11,44 @@ import (
 )
 
 func TestFillPlan(t *testing.T) {
-	// 正常的全量补充
 	n := 10
 	nodes := deployedNodes()
-	r, err := FillPlan(context.Background(), nodes, n, 0, 0)
+	r, err := FillPlan(t.Context(), nodes, n, 0, 0)
 	assert.NoError(t, err)
 	finalCounts := []int{}
 	for _, node := range nodes {
 		finalCounts = append(finalCounts, node.Count+r[node.Nodename])
 	}
-	sort.Ints(finalCounts)
+	slices.Sort(finalCounts)
 	assert.ElementsMatch(t, []int{10, 10, 10, 10}, finalCounts)
 
-	// 局部补充
 	n = 5
 	nodes = deployedNodes()
-	r, err = FillPlan(context.Background(), nodes, n, 0, 0)
+	r, err = FillPlan(t.Context(), nodes, n, 0, 0)
 	assert.NoError(t, err)
 	finalCounts = []int{}
 	for _, node := range nodes {
 		finalCounts = append(finalCounts, node.Count+r[node.Nodename])
 	}
-	sort.Ints(finalCounts)
+	slices.Sort(finalCounts)
 	assert.ElementsMatch(t, []int{5, 5, 5, 7}, finalCounts)
 
-	// 局部补充不能
 	n = 15
 	nodes = deployedNodes()
-	_, err = FillPlan(context.Background(), nodes, n, 0, 0)
+	_, err = FillPlan(t.Context(), nodes, n, 0, 0)
 	assert.True(t, errors.Is(err, types.ErrInsufficientResource))
 
-	// 全局补充不能
 	n = 1
 	nodes = deployedNodes()
-	_, err = FillPlan(context.Background(), nodes, n, 0, 0)
+	_, err = FillPlan(t.Context(), nodes, n, 0, 0)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "each node has enough workloads")
 
-	// LimitNode
 	n = 10
 	nodes = deployedNodes()
-	_, err = FillPlan(context.Background(), nodes, n, 0, 2)
+	_, err = FillPlan(t.Context(), nodes, n, 0, 2)
 	assert.NoError(t, err)
 
-	// 局部补充
 	n = 1
 	nodes = []Info{
 		{
@@ -70,18 +63,18 @@ func TestFillPlan(t *testing.T) {
 		},
 	}
 
-	_, err = FillPlan(context.Background(), nodes, n, 0, 3)
+	_, err = FillPlan(t.Context(), nodes, n, 0, 3)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "cannot alloc a fill node plan")
 
 	nodes = genNodesByCapCount([]int{1, 2, 3, 4, 5}, []int{3, 3, 3, 3, 3})
-	r, err = FillPlan(context.Background(), nodes, 4, 0, 3)
+	r, err = FillPlan(t.Context(), nodes, 4, 0, 3)
 	assert.Nil(t, err)
 	assert.ElementsMatch(t, []int{3, 3, 4, 4, 4}, getFinalStatus(r, nodes))
 	assert.EqualValues(t, 1, r["4"])
 	assert.EqualValues(t, 1, r["3"])
 	assert.EqualValues(t, 1, r["2"])
 
-	_, err = FillPlan(context.Background(), nodes, 5, 1000, 0)
+	_, err = FillPlan(t.Context(), nodes, 5, 1000, 0)
 	assert.Contains(t, err.Error(), "not enough nodes that can fill up to 5 instances, require 1 nodes")
 }

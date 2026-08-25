@@ -10,7 +10,7 @@ import (
 	coresource "github.com/projecteru2/core/source"
 )
 
-// API define a remote engine
+// API is the contract every runtime engine implements.
 type API interface {
 	Info(ctx context.Context) (*enginetypes.Info, error)
 	Ping(ctx context.Context) error

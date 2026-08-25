@@ -2,12 +2,12 @@ package source
 
 import "context"
 
-// Source defines SCM funcions
+// Source defines the SCM operations a build needs.
 type Source interface {
-	// Get source code from repository into path by revision
+	// SourceCode clones repository at revision into path.
 	SourceCode(ctx context.Context, repository, path, revision string, submodule bool) error
-	// Get related artifact by artifact into path
+	// Artifact downloads artifact into path and unpacks it.
 	Artifact(ctx context.Context, artifact, path string) error
-	// Keep code security
+	// Security removes VCS metadata from path.
 	Security(path string) error
 }

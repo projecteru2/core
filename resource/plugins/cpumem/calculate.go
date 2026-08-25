@@ -2,6 +2,7 @@ package cpumem
 
 import (
 	"context"
+	"slices"
 
 	"github.com/cockroachdb/errors"
 	"github.com/go-viper/mapstructure/v2"
@@ -13,13 +14,10 @@ import (
 	coretypes "github.com/projecteru2/core/types"
 )
 
-// CalculateDeploy .
 func (p Plugin) CalculateDeploy(ctx context.Context, nodename string, deployCount int, resourceRequest plugintypes.WorkloadResourceRequest) (*plugintypes.CalculateDeployResponse, error) {
 	logger := log.WithFunc("resource.cpumem.CalculateDeploy").WithField("node", nodename)
 	req := &cpumemtypes.WorkloadResourceRequest{}
-	if err := req.Parse(resourceRequest); err != nil {
-		return nil, err
-	}
+	req.Parse(resourceRequest)
 	if err := req.Validate(); err != nil {
 		logger.Errorf(ctx, err, "invalid resource opts %+v", req)
 		return nil, err
@@ -50,12 +48,9 @@ func (p Plugin) CalculateDeploy(ctx context.Context, nodename string, deployCoun
 	}, resp)
 }
 
-// CalculateRealloc .
 func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource plugintypes.WorkloadResource, resourceRequest plugintypes.WorkloadResourceRequest) (*plugintypes.CalculateReallocResponse, error) {
 	req := &cpumemtypes.WorkloadResourceRequest{}
-	if err := req.Parse(resourceRequest); err != nil {
-		return nil, err
-	}
+	req.Parse(resourceRequest)
 	originResource := &cpumemtypes.WorkloadResource{}
 	if err := originResource.Parse(resource); err != nil {
 		return nil, err
@@ -71,7 +66,7 @@ func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource 
 		return nil, err
 	}
 
-	// put resources back into the resource pool
+	// the origin usage returns to the pool before the new total is computed
 	nodeResourceInfo.Usage.Sub(&cpumemtypes.NodeResource{
 		CPU:        originResource.CPURequest,
 		CPUMap:     originResource.CPUMap,
@@ -91,7 +86,6 @@ func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource 
 		return nil, err
 	}
 
-	// if cpu was specified before, try to ensure cpu affinity
 	var cpuMap cpumemtypes.CPUMap
 	var numaNodeID string
 	var numaMemory cpumemtypes.NUMAMemory
@@ -140,7 +134,6 @@ func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource 
 	}, resp)
 }
 
-// CalculateRemap .
 func (p Plugin) CalculateRemap(ctx context.Context, nodename string, workloadsResource map[string]plugintypes.WorkloadResource) (*plugintypes.CalculateRemapResponse, error) {
 	resp := &plugintypes.CalculateRemapResponse{}
 	engineParamsMap := map[string]*cpumemtypes.EngineParams{}
@@ -181,7 +174,6 @@ func (p Plugin) CalculateRemap(ctx context.Context, nodename string, workloadsRe
 	}
 
 	for ID, workloadResource := range workloadResourceMap {
-		// only process workloads without cpu binding
 		if len(workloadResource.CPUMap) == 0 {
 			engineParamsMap[ID] = &cpumemtypes.EngineParams{
 				CPU:      workloadResource.CPULimit,
@@ -208,9 +200,6 @@ func (p Plugin) doAllocByMemory(resourceInfo *cpumemtypes.NodeResourceInfo, depl
 		return nil, nil, errors.Wrap(coretypes.ErrInsufficientCapacity, "memory")
 	}
 
-	enginesParams := []*cpumemtypes.EngineParams{}
-	workloadsResource := []*cpumemtypes.WorkloadResource{}
-
 	engineParams := &cpumemtypes.EngineParams{
 		CPU:    req.CPULimit,
 		Memory: req.MemLimit,
@@ -222,11 +211,8 @@ func (p Plugin) doAllocByMemory(resourceInfo *cpumemtypes.NodeResourceInfo, depl
 		MemoryLimit:   req.MemLimit,
 	}
 
-	for len(enginesParams) < deployCount {
-		enginesParams = append(enginesParams, engineParams)
-		workloadsResource = append(workloadsResource, workloadResource)
-	}
-	return enginesParams, workloadsResource, nil
+	return slices.Repeat([]*cpumemtypes.EngineParams{engineParams}, deployCount),
+		slices.Repeat([]*cpumemtypes.WorkloadResource{workloadResource}, deployCount), nil
 }
 
 func (p Plugin) doAllocByCPU(resourceInfo *cpumemtypes.NodeResourceInfo, deployCount int, req *cpumemtypes.WorkloadResourceRequest) ([]*cpumemtypes.EngineParams, []*cpumemtypes.WorkloadResource, error) {

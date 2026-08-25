@@ -4,30 +4,21 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/go-viper/mapstructure/v2"
-
 	engine "github.com/projecteru2/core/engine"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 )
 
-// NodeMeta .
 type NodeMeta struct {
-	Name     string            `json:"name" mapstructure:"name"`
-	Endpoint string            `json:"endpoint" mapstructure:"endpoint"`
-	Podname  string            `json:"podname" mapstructure:"podname"`
-	Labels   map[string]string `json:"labels" mapstructure:"labels"`
+	Name     string            `json:"name"`
+	Endpoint string            `json:"endpoint"`
+	Podname  string            `json:"podname"`
+	Labels   map[string]string `json:"labels"`
 
-	Ca   string `json:"-" mapstructure:"-"`
-	Cert string `json:"-" mapstructure:"-"`
-	Key  string `json:"-" mapstructure:"-"`
+	Ca   string `json:"-"`
+	Cert string `json:"-"`
+	Key  string `json:"-"`
 }
 
-// DeepCopy returns a deepcopy of nodemeta
-func (n NodeMeta) DeepCopy() (nn NodeMeta, err error) {
-	return nn, mapstructure.Decode(n, &nn)
-}
-
-// NodeResourceInfo for node resource info
 type NodeResourceInfo struct {
 	Name      string                  `json:"-"`
 	Capacity  resourcetypes.Resources `json:"capacity,omitempty"`
@@ -36,12 +27,11 @@ type NodeResourceInfo struct {
 	Workloads []*Workload             `json:"-"`
 }
 
-// Node store node info
 type Node struct {
 	NodeMeta
-	// Bypass if bypass is true, it will not participate in future scheduling
+	// Bypass excludes the node from future scheduling.
 	Bypass bool `json:"bypass,omitempty"`
-	// Test mean can ignore node health check
+	// Test skips the node health check.
 	Test bool `json:"test,omitempty"`
 
 	ResourceInfo NodeResourceInfo `json:"-"`
@@ -50,7 +40,6 @@ type Node struct {
 	Engine       engine.API       `json:"-"`
 }
 
-// Info show node info
 func (n *Node) Info(ctx context.Context) (err error) {
 	info, err := n.Engine.Info(ctx)
 	if err != nil {
@@ -67,15 +56,11 @@ func (n *Node) Info(ctx context.Context) (err error) {
 	return nil
 }
 
-// IsDown returns if the node is marked as down.
 func (n *Node) IsDown() bool {
-	// If `bypass` is true, then even if the node is still healthy, the node will be regarded as `down`.
-	// Currently `bypass` will only be set when the cli calls the `up` and `down` commands.
 	return n.Bypass || !n.Available
 }
 
-// NodeStatus wraps node status
-// only used for node status stream
+// NodeStatus carries one node status stream event.
 type NodeStatus struct {
 	Nodename string
 	Podname  string
@@ -83,9 +68,7 @@ type NodeStatus struct {
 	Error    error
 }
 
-// NodeFilter is used to filter nodes in a pod
-// names in includes will be used
-// names in excludes will not be used
+// NodeFilter selects nodes in a pod by Includes, then drops Excludes.
 type NodeFilter struct {
 	Podname  string
 	Includes []string

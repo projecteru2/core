@@ -6,12 +6,12 @@ import (
 	"io"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestLogStream(t *testing.T) {
@@ -25,7 +25,6 @@ func TestLogStream(t *testing.T) {
 	}
 	ctx := context.Background()
 	opts := &types.LogStreamOptions{ID: ID}
-	// failed by GetWorkload
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch, err := c.LogStream(ctx, opts)
 	assert.NoError(t, err)
@@ -34,7 +33,6 @@ func TestLogStream(t *testing.T) {
 		assert.Empty(t, c.Data)
 	}
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
-	// failed by VirtualizationLogs
 	engine.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(nil, nil, types.ErrMockError).Once()
 	ch, err = c.LogStream(ctx, opts)
 	assert.NoError(t, err)
@@ -44,7 +42,6 @@ func TestLogStream(t *testing.T) {
 	}
 	reader := bytes.NewBufferString("aaaa\nbbbb\n")
 	engine.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(io.NopCloser(reader), nil, nil)
-	// success
 	ch, err = c.LogStream(ctx, opts)
 	assert.NoError(t, err)
 	for c := range ch {

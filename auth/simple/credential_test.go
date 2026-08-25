@@ -1,7 +1,6 @@
 package simple
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,7 +8,7 @@ import (
 
 func TestBasicCredential(t *testing.T) {
 	sc := NewBasicCredential("test", "password")
-	m, err := sc.GetRequestMetadata(context.Background(), "a.com", "b.com")
+	m, err := sc.GetRequestMetadata(t.Context(), "a.com", "b.com")
 	assert.NoError(t, err)
 	v, ok := m["test"]
 	assert.True(t, ok)

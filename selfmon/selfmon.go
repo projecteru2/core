@@ -2,8 +2,7 @@ package selfmon
 
 import (
 	"context"
-	"hash/maphash"
-	"math/rand"
+	"math/rand/v2"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -11,40 +10,18 @@ import (
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/store"
-	"github.com/projecteru2/core/store/etcdv3/embedded"
-	storefactory "github.com/projecteru2/core/store/factory"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
 
-// ActiveKey .
 const ActiveKey = "/selfmon/active"
 
-// NodeStatusWatcher monitors the changes of node status
+// NodeStatusWatcher watches node status changes.
 type NodeStatusWatcher struct {
 	ID      int64
 	config  types.Config
 	cluster cluster.Cluster
 	store   store.Store
-}
-
-// RunNodeStatusWatcher .
-func RunNodeStatusWatcher(ctx context.Context, config types.Config, cluster cluster.Cluster, embeddedETCD *embedded.Cluster) {
-	r := rand.New(rand.NewSource(int64(new(maphash.Hash).Sum64()))) //nolint
-	ID := r.Int63n(10000)                                           //nolint
-	store, err := storefactory.NewStore(config, embeddedETCD)
-	if err != nil {
-		log.WithFunc("selfmon.RunNodeStatusWatcher").WithField("ID", ID).Error(ctx, err, "failed to create store")
-		return
-	}
-
-	watcher := &NodeStatusWatcher{
-		ID:      ID,
-		config:  config,
-		store:   store,
-		cluster: cluster,
-	}
-	watcher.run(ctx)
 }
 
 func (n *NodeStatusWatcher) run(ctx context.Context) {
@@ -55,7 +32,7 @@ func (n *NodeStatusWatcher) run(ctx context.Context) {
 		default:
 			n.withActiveLock(ctx, func(ctx context.Context) {
 				if err := n.monitor(ctx); err != nil {
-					log.WithFunc("selfmon.run").Errorf(ctx, err, "stops watching node id %+v", n.ID)
+					log.WithFunc("selfmon.run").WithField("ID", n.ID).Error(ctx, err, "stops watching node status")
 				}
 			})
 			time.Sleep(n.config.ConnectionTimeout)
@@ -63,7 +40,6 @@ func (n *NodeStatusWatcher) run(ctx context.Context) {
 	}
 }
 
-// withActiveLock acquires the active lock synchronously
 func (n *NodeStatusWatcher) withActiveLock(parentCtx context.Context, f func(ctx context.Context)) {
 	ctx, cancel := context.WithCancel(parentCtx)
 	defer cancel()
@@ -88,13 +64,12 @@ func (n *NodeStatusWatcher) withActiveLock(parentCtx context.Context, f func(ctx
 		default:
 		}
 
-		// try to get the lock
-		if ne, un, err := n.register(ctx); err != nil {
+		if ne, un, err := n.store.StartEphemeral(ctx, ActiveKey, n.config.HAKeepaliveInterval); err != nil {
 			if errors.Is(err, context.Canceled) {
 				logger.Info(ctx, "context canceled")
 				return
 			} else if !errors.Is(err, types.ErrKeyExists) {
-				logger.Error(ctx, err, "failed to re-register")
+				logger.Error(ctx, err, "failed to register")
 				time.Sleep(time.Second)
 				continue
 			}
@@ -111,7 +86,7 @@ func (n *NodeStatusWatcher) withActiveLock(parentCtx context.Context, f func(ctx
 		}
 	}
 
-	// cancel the ctx when: 1. selfmon closed 2. lost the active lock
+	// cancels f's ctx when the active lock expires
 	go func() {
 		defer cancel()
 
@@ -120,16 +95,12 @@ func (n *NodeStatusWatcher) withActiveLock(parentCtx context.Context, f func(ctx
 			logger.Info(ctx, "context canceled")
 			return
 		case <-expiry:
-			logger.Info(ctx, "lock expired")
+			logger.Warn(ctx, "active lock expired")
 			return
 		}
 	}()
 
 	f(ctx)
-}
-
-func (n *NodeStatusWatcher) register(ctx context.Context) (<-chan struct{}, func(), error) {
-	return n.store.StartEphemeral(ctx, ActiveKey, n.config.HAKeepaliveInterval)
 }
 
 func (n *NodeStatusWatcher) initNodeStatus(ctx context.Context) {
@@ -139,11 +110,8 @@ func (n *NodeStatusWatcher) initNodeStatus(ctx context.Context) {
 
 	go func() {
 		defer close(nodes)
-		// Get all nodes which are active status, and regardless of pod.
-		var err error
-		var ch <-chan *types.Node
 		utils.WithTimeout(ctx, n.config.GlobalTimeout, func(ctx context.Context) {
-			ch, err = n.cluster.ListPodNodes(ctx, &types.ListNodesOptions{
+			ch, err := n.cluster.ListPodNodes(ctx, &types.ListNodesOptions{
 				Podname:  "",
 				Labels:   nil,
 				All:      true,
@@ -158,10 +126,6 @@ func (n *NodeStatusWatcher) initNodeStatus(ctx context.Context) {
 				nodes <- node
 			}
 		})
-		if err != nil {
-			logger.Error(ctx, err, "get pod nodes failed")
-			return
-		}
 	}()
 
 	for node := range nodes {
@@ -173,7 +137,6 @@ func (n *NodeStatusWatcher) initNodeStatus(ctx context.Context) {
 				Alive:    false,
 			}
 		}
-		// deal with test node
 		if node.Test {
 			status.Alive = true
 		}
@@ -182,11 +145,9 @@ func (n *NodeStatusWatcher) initNodeStatus(ctx context.Context) {
 }
 
 func (n *NodeStatusWatcher) monitor(ctx context.Context) error {
-	// init node status first
 	go n.initNodeStatus(ctx)
 	logger := log.WithFunc("selfmon.monitor").WithField("ID", n.ID)
 
-	// monitor node status
 	messageChan := n.cluster.NodeStatusStream(ctx)
 	logger.Info(ctx, "watch node status started")
 	defer logger.Info(ctx, "stop watching node status")
@@ -210,7 +171,7 @@ func (n *NodeStatusWatcher) dealNodeStatusMessage(ctx context.Context, message *
 		logger.Errorf(ctx, message.Error, "deal with node status stream message failed %+v", message)
 		return
 	}
-	// here we ignore node back to alive status because it will updated by agent
+	// the agent owns the transition back to alive
 	if message.Alive {
 		return
 	}
@@ -218,7 +179,6 @@ func (n *NodeStatusWatcher) dealNodeStatusMessage(ctx context.Context, message *
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	// TODO maybe we need a distributed lock to control concurrency
 	opts := &types.SetNodeOptions{
 		Nodename:      message.Nodename,
 		WorkloadsDown: true,
@@ -227,5 +187,15 @@ func (n *NodeStatusWatcher) dealNodeStatusMessage(ctx context.Context, message *
 		logger.Errorf(ctx, err, "set node %s failed", message.Nodename)
 		return
 	}
-	logger.Infof(ctx, "set node %s as alive: %+v", message.Nodename, message.Alive)
+	logger.Infof(ctx, "set node %s workloads down", message.Nodename)
+}
+
+func RunNodeStatusWatcher(ctx context.Context, config types.Config, cluster cluster.Cluster, store store.Store) {
+	watcher := &NodeStatusWatcher{
+		ID:      rand.Int64N(10000), //nolint:gosec // a log-only instance tag, not a security token
+		config:  config,
+		store:   store,
+		cluster: cluster,
+	}
+	watcher.run(ctx)
 }

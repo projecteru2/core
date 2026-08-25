@@ -521,7 +521,6 @@ func (x *ListWorkloadsOptions) GetLimit() int64 {
 	return 0
 }
 
-// 对的, protobuf 就是这样...
 type Pod struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1001,opt,name=name,proto3" json:"name,omitempty"`

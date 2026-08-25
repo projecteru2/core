@@ -1,7 +1,6 @@
 package cpumem
 
 import (
-	"context"
 	"testing"
 
 	"github.com/docker/go-units"
@@ -9,7 +8,7 @@ import (
 )
 
 func TestGetMetricsDescription(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	cm := initCPUMEM(ctx, t)
 	md, err := cm.GetMetricsDescription(ctx)
 	assert.NoError(t, err)
@@ -18,7 +17,7 @@ func TestGetMetricsDescription(t *testing.T) {
 }
 
 func TestGetMetrics(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	cm := initCPUMEM(ctx, t)
 	_, err := cm.GetMetrics(ctx, "", "")
 	assert.Error(t, err)

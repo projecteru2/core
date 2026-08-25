@@ -1,19 +1,18 @@
 package rpc
 
 import (
-	"context"
+	"sync"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
-func TestCounter(t *testing.T) {
-	v := Vibranium{}
-	task := v.newTask(context.Background(), "test", true)
-	assert.Equal(t, v.TaskNum, 1)
-
-	task.done()
-	assert.Equal(t, v.TaskNum, 0)
-
+func TestWaitReturnsAfterEveryTaskIsDone(t *testing.T) {
+	v := &Vibranium{}
+	var wg sync.WaitGroup
+	for range 32 {
+		wg.Go(func() {
+			v.newTask(t.Context(), "test", false).done()
+		})
+	}
+	wg.Wait()
 	v.Wait()
 }

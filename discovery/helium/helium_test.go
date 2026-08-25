@@ -21,10 +21,10 @@ func TestHelium(t *testing.T) {
 	grpcConfig := types.GRPCConfig{
 		ServiceDiscoveryPushInterval: time.Duration(1) * time.Second,
 	}
-	service := New(context.TODO(), grpcConfig, store)
-	ctx, cancel := context.WithCancel(context.Background())
+	service := New(t.Context(), grpcConfig, store)
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
-	uuid, chStatus := service.Subscribe(ctx)
+	ID, chStatus := service.Subscribe(ctx)
 
 	addresses1 := []string{
 		"10.0.0.1",
@@ -45,7 +45,7 @@ func TestHelium(t *testing.T) {
 	assert.Equal(t, addresses2, status2.Addresses)
 	assert.NotEqual(t, status1.Addresses, status2.Addresses)
 
-	service.Unsubscribe(uuid)
+	service.Unsubscribe(ID)
 	close(chAddr)
 }
 
@@ -58,24 +58,49 @@ func TestPanic(t *testing.T) {
 	grpcConfig := types.GRPCConfig{
 		ServiceDiscoveryPushInterval: time.Duration(1) * time.Second,
 	}
-	service := New(context.TODO(), grpcConfig, store)
-	ctx, cancel := context.WithCancel(context.Background())
+	service := New(t.Context(), grpcConfig, store)
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
-	for i := 0; i < 1000; i++ {
+	for range 1000 {
 		go func() {
-			uuid, _ := service.Subscribe(ctx)
+			ID, _ := service.Subscribe(ctx)
 			time.Sleep(time.Second)
-			service.Unsubscribe(uuid)
-			// close(chStatus)
+			service.Unsubscribe(ID)
 		}()
 	}
 
 	go func() {
-		for i := 0; i < 1000; i++ {
+		for range 1000 {
 			chAddr <- []string{"hhh", "hhh2"}
 		}
 	}()
 
 	time.Sleep(5 * time.Second)
+}
+
+func TestUnsubscribeAfterWatchClosed(t *testing.T) {
+	chAddr := make(chan []string)
+
+	store := &storemocks.Store{}
+	store.On("ServiceStatusStream", mock.Anything).Return(chAddr, nil)
+
+	grpcConfig := types.GRPCConfig{ServiceDiscoveryPushInterval: time.Second}
+	service := New(t.Context(), grpcConfig, store)
+	ID, _ := service.Subscribe(t.Context())
+
+	close(chAddr)
+	<-service.done
+
+	returned := make(chan struct{})
+	go func() {
+		defer close(returned)
+		service.Unsubscribe(ID)
+	}()
+
+	select {
+	case <-returned:
+	case <-time.After(5 * time.Second):
+		assert.Fail(t, "Unsubscribe blocked after the watch loop exited")
+	}
 }

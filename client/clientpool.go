@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"slices"
 	"sync"
 	"time"
 
@@ -11,26 +12,23 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-type clientWithStatus struct {
-	client pb.CoreRPCClient
-	addr   string
-	alive  bool
-}
-
-// PoolConfig config for client pool
 type PoolConfig struct {
 	EruAddrs          []string
 	Auth              types.AuthConfig
 	ConnectionTimeout time.Duration
 }
 
-// Pool implement of RPCClientPool
+type clientWithStatus struct {
+	client pb.CoreRPCClient
+	addr   string
+	alive  bool
+}
+
 type Pool struct {
 	mu         sync.Mutex
 	rpcClients []*clientWithStatus
 }
 
-// NewCoreRPCClientPool .
 func NewCoreRPCClientPool(ctx context.Context, config *PoolConfig) (*Pool, error) {
 	if len(config.EruAddrs) == 0 {
 		return nil, types.ErrInvaildEruIPAddress
@@ -50,17 +48,9 @@ func NewCoreRPCClientPool(ctx context.Context, config *PoolConfig) (*Pool, error
 		c.rpcClients = append(c.rpcClients, &clientWithStatus{client: rpcClient, addr: addr})
 	}
 
-	// init client status
 	c.updateClientsStatus(ctx, config.ConnectionTimeout)
 
-	allFailed := true
-	for _, rpc := range c.rpcClients {
-		if rpc.alive {
-			allFailed = false
-		}
-	}
-
-	if allFailed {
+	if !slices.ContainsFunc(c.rpcClients, func(rpc *clientWithStatus) bool { return rpc.alive }) {
 		return nil, types.ErrAllConnectionsFailed
 	}
 
@@ -80,7 +70,7 @@ func NewCoreRPCClientPool(ctx context.Context, config *PoolConfig) (*Pool, error
 	return c, nil
 }
 
-// GetClient finds the first *client.Client instance with an active connection. If all connections are dead, returns the first one.
+// GetClient returns the first alive client, or the first client when none are alive.
 func (c *Pool) GetClient() pb.CoreRPCClient {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -93,6 +83,19 @@ func (c *Pool) GetClient() pb.CoreRPCClient {
 	return c.rpcClients[0].client
 }
 
+func (c *Pool) updateClientsStatus(ctx context.Context, timeout time.Duration) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	var wg sync.WaitGroup
+	defer wg.Wait()
+	for _, rpc := range c.rpcClients {
+		wg.Go(func() {
+			rpc.alive = checkAlive(ctx, rpc, timeout)
+		})
+	}
+}
+
 func checkAlive(ctx context.Context, rpc *clientWithStatus, timeout time.Duration) bool {
 	var err error
 	utils.WithTimeout(ctx, timeout, func(ctx context.Context) {
@@ -100,24 +103,9 @@ func checkAlive(ctx context.Context, rpc *clientWithStatus, timeout time.Duratio
 	})
 	logger := log.WithFunc("client.checkAlive")
 	if err != nil {
-		logger.Errorf(ctx, err, "connect to %s failed", rpc.addr)
+		logger.Warnf(ctx, "connect to %s failed: %+v", rpc.addr, err)
 		return false
 	}
 	logger.Debugf(ctx, "connect to %s success", rpc.addr)
 	return true
-}
-
-func (c *Pool) updateClientsStatus(ctx context.Context, timeout time.Duration) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	wg := &sync.WaitGroup{}
-	defer wg.Wait()
-	for _, rpc := range c.rpcClients {
-		wg.Add(1)
-		go func(r *clientWithStatus) {
-			defer wg.Done()
-			r.alive = checkAlive(ctx, r, timeout)
-		}(rpc)
-	}
 }

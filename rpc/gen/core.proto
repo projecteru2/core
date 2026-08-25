@@ -91,7 +91,6 @@ message ListWorkloadsOptions {
   int64 limit = 1005;
 }
 
-// 对的, protobuf 就是这样...
 message Pod {
   string name = 1001;
   string desc = 1002;

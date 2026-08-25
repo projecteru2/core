@@ -5,21 +5,18 @@ import (
 	"maps"
 	"slices"
 
+	"github.com/cockroachdb/errors"
 	"github.com/sanity-io/litter"
 
 	"github.com/projecteru2/core/log"
+	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
-
-	"github.com/cockroachdb/errors"
-
-	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 )
 
-// CalculateCapacity calculates capacity
 func (c *Calcium) CalculateCapacity(ctx context.Context, opts *types.DeployOptions) (*types.CapacityMessage, error) {
 	logger := log.WithFunc("calcium.CalculateCapacity").WithField("opts", opts)
-	logger.Infof(ctx, "Calculate capacity with options:\n%s", litter.Options{Compact: true}.Sdump(opts))
+	logger.Infof(ctx, "calculate capacity with options:\n%s", litter.Options{Compact: true}.Sdump(opts))
 	var err error
 	msg := &types.CapacityMessage{
 		Total:          0,
@@ -31,7 +28,7 @@ func (c *Calcium) CalculateCapacity(ctx context.Context, opts *types.DeployOptio
 
 		if opts.DeployStrategy != strategy.Dummy {
 			if msg.NodeCapacities, err = c.doGetDeployStrategy(ctx, nodenames, opts); err != nil {
-				logger.Error(ctx, err, "doGetDeployMap failed")
+				logger.Error(ctx, err, "failed to get deploy strategy")
 				return err
 			}
 

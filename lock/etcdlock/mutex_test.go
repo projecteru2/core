@@ -29,8 +29,6 @@ func TestMutex(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, ctx.Err())
 
-	// round 2: another lock attempt timeout
-
 	m2, err := New(cli, "test", time.Second)
 	assert.NoError(t, err)
 	_, err = m2.Lock(context.Background())
@@ -41,7 +39,6 @@ func TestMutex(t *testing.T) {
 	m2.Unlock(context.Background())
 	m3.Unlock(context.Background())
 
-	// round 3: ctx canceled after lock secured
 	m4, err := New(cli, "test", time.Second)
 	assert.NoError(t, err)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -51,67 +48,8 @@ func TestMutex(t *testing.T) {
 	assert.EqualError(t, rCtx.Err(), "context deadline exceeded")
 	m4.Unlock(context.Background())
 
-	// round 4: passive release
-
 	m5, err := New(cli, "test", time.Second)
 	assert.NoError(t, err)
 	_, err = m5.Lock(context.Background())
 	assert.NoError(t, err)
-	// then after embedded ETCD close, m5 will be unlocked from passive branch
-}
-
-func TestTryLock(t *testing.T) {
-	cluster, err := embedded.New(t.TempDir())
-	assert.NoError(t, err)
-	t.Cleanup(cluster.Close)
-	cli := cluster.Client("/test")
-
-	m1, err := New(cli, "test", time.Second*1)
-	assert.NoError(t, err)
-	m2, err := New(cli, "test", time.Second*1)
-	assert.NoError(t, err)
-
-	ctx1, err := m1.Lock(context.Background())
-	assert.Nil(t, ctx1.Err())
-	assert.NoError(t, err)
-
-	ctx2, err := m2.TryLock(context.Background())
-	assert.Nil(t, ctx2)
-	assert.Error(t, err)
-
-	assert.NoError(t, m1.Unlock(context.Background()))
-	assert.NoError(t, m2.Unlock(context.Background()))
-
-	// round 2: lock conflict
-
-	m3, err := New(cli, "test", time.Second)
-	assert.NoError(t, err)
-	m4, err := New(cli, "test", time.Second)
-	assert.NoError(t, err)
-
-	rCtx, err := m3.TryLock(context.Background())
-	assert.NoError(t, err)
-	_, err = m4.TryLock(context.Background())
-	assert.EqualError(t, err, "mutex: Locked by another session")
-	m4.Unlock(context.Background())
-	m3.Unlock(context.Background())
-	assert.NoError(t, rCtx.Err())
-
-	// round 3: ctx canceled after lock secured
-	m5, err := New(cli, "test", time.Second)
-	assert.NoError(t, err)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	rCtx, err = m5.TryLock(ctx)
-	<-rCtx.Done()
-	assert.EqualError(t, rCtx.Err(), "context deadline exceeded")
-	m5.Unlock(context.Background())
-
-	// round 4: passive release
-
-	m6, err := New(cli, "test", time.Second)
-	assert.NoError(t, err)
-	_, err = m6.TryLock(context.Background())
-	assert.NoError(t, err)
-	// then after embedded ETCD close, m5 will be unlocked from passive branch
 }

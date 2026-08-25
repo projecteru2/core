@@ -14,11 +14,10 @@ import (
 	enginetypes "github.com/projecteru2/core/engine/types"
 )
 
-// ImageList list image
 func (e *Engine) ImageList(ctx context.Context, image string) ([]*enginetypes.Image, error) {
 	image = normalizeImage(image)
 	imgListFilter := dockerfilters.NewArgs()
-	imgListFilter.Add("reference", image) // 相同 repo 的image
+	imgListFilter.Add("reference", image)
 
 	images, err := e.client.ImageList(ctx, dockerimage.ListOptions{Filters: imgListFilter})
 	if err != nil {
@@ -36,7 +35,6 @@ func (e *Engine) ImageList(ctx context.Context, image string) ([]*enginetypes.Im
 	return r, nil
 }
 
-// ImageRemove remove a image
 func (e *Engine) ImageRemove(ctx context.Context, image string, force, prune bool) ([]string, error) {
 	opts := dockerimage.RemoveOptions{
 		Force:         force,
@@ -61,13 +59,11 @@ func (e *Engine) ImageRemove(ctx context.Context, image string, force, prune boo
 	return r, nil
 }
 
-// ImagesPrune prune images
 func (e *Engine) ImagesPrune(ctx context.Context) error {
 	_, err := e.client.ImagesPrune(ctx, dockerfilters.NewArgs())
 	return err
 }
 
-// ImagePull pull Image
 func (e *Engine) ImagePull(ctx context.Context, ref string, all bool) (io.ReadCloser, error) {
 	auth, err := makeEncodedAuthConfigFromRemote(e.config.Docker.AuthConfigs, ref)
 	if err != nil {
@@ -77,7 +73,6 @@ func (e *Engine) ImagePull(ctx context.Context, ref string, all bool) (io.ReadCl
 	return e.client.ImagePull(ctx, ref, pullOptions)
 }
 
-// ImagePush push image
 func (e *Engine) ImagePush(ctx context.Context, ref string) (io.ReadCloser, error) {
 	auth, err := makeEncodedAuthConfigFromRemote(e.config.Docker.AuthConfigs, ref)
 	if err != nil {
@@ -87,20 +82,17 @@ func (e *Engine) ImagePush(ctx context.Context, ref string) (io.ReadCloser, erro
 	return e.client.ImagePush(ctx, ref, pushOptions)
 }
 
-// ImageBuild build image
 func (e *Engine) ImageBuild(ctx context.Context, input io.Reader, refs []string, platform string) (io.ReadCloser, error) {
-	authConfigs := map[string]registrytypes.AuthConfig{}
+	authConfigs := make(map[string]registrytypes.AuthConfig, len(e.config.Docker.AuthConfigs))
 	for domain, conf := range e.config.Docker.AuthConfigs {
 		b64auth, err := encodeAuthToBase64(conf)
 		if err != nil {
 			return nil, err
 		}
-		if _, ok := authConfigs[domain]; !ok {
-			authConfigs[domain] = registrytypes.AuthConfig{
-				Username: conf.Username,
-				Password: conf.Password,
-				Auth:     b64auth,
-			}
+		authConfigs[domain] = registrytypes.AuthConfig{
+			Username: conf.Username,
+			Password: conf.Password,
+			Auth:     b64auth,
 		}
 	}
 	buildOptions := dockerbuild.ImageBuildOptions{
@@ -120,7 +112,6 @@ func (e *Engine) ImageBuild(ctx context.Context, input io.Reader, refs []string,
 	return resp.Body, nil
 }
 
-// ImageBuildFromExist commits image from running workload
 func (e *Engine) ImageBuildFromExist(ctx context.Context, ID string, refs []string, _ string) (imageID string, err error) {
 	opts := dockercontainer.CommitOptions{
 		Reference: refs[0],
@@ -130,15 +121,14 @@ func (e *Engine) ImageBuildFromExist(ctx context.Context, ID string, refs []stri
 	if err != nil {
 		return "", err
 	}
-	for i := 1; i < len(refs); i++ {
-		if err = e.client.ImageTag(ctx, resp.ID, refs[i]); err != nil {
+	for _, ref := range refs[1:] {
+		if err = e.client.ImageTag(ctx, resp.ID, ref); err != nil {
 			return "", err
 		}
 	}
 	return resp.ID, err
 }
 
-// ImageBuildCachePrune prune build cache
 func (e *Engine) ImageBuildCachePrune(ctx context.Context, all bool) (uint64, error) {
 	r, err := e.client.BuildCachePrune(ctx, dockerbuild.CachePruneOptions{All: all})
 	if err != nil {
@@ -147,7 +137,6 @@ func (e *Engine) ImageBuildCachePrune(ctx context.Context, all bool) (uint64, er
 	return r.SpaceReclaimed, nil
 }
 
-// ImageLocalDigests return image digests
 func (e *Engine) ImageLocalDigests(ctx context.Context, image string) ([]string, error) {
 	inspect, err := e.client.ImageInspect(ctx, image)
 	if err != nil {
@@ -156,7 +145,6 @@ func (e *Engine) ImageLocalDigests(ctx context.Context, image string) ([]string,
 	return inspect.RepoDigests, nil
 }
 
-// ImageRemoteDigest return image digest at remote
 func (e *Engine) ImageRemoteDigest(ctx context.Context, image string) (string, error) {
 	auth, err := makeEncodedAuthConfigFromRemote(e.config.Docker.AuthConfigs, image)
 	if err != nil {

@@ -5,14 +5,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cockroachdb/errors"
+
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	"github.com/cockroachdb/errors"
 )
 
-// WatchServiceStatus returns chan of available service address
 func (c *Calcium) WatchServiceStatus(ctx context.Context) (<-chan types.ServiceStatus, error) {
 	id, ch := c.watcher.Subscribe(ctx)
 	_ = c.pool.Invoke(func() {
@@ -22,7 +21,7 @@ func (c *Calcium) WatchServiceStatus(ctx context.Context) (<-chan types.ServiceS
 	return ch, nil
 }
 
-// RegisterService writes self service address in store
+// RegisterService registers this core's service address in the store.
 func (c *Calcium) RegisterService(ctx context.Context) (unregister func(), err error) {
 	serviceAddress, err := utils.GetOutboundAddress(c.config.Bind, c.config.ProbeTarget)
 	logger := log.WithFunc("calcium.RegisterService")
@@ -60,7 +59,6 @@ func (c *Calcium) RegisterService(ctx context.Context) (unregister func(), err e
 		for {
 			select {
 			case <-expiry:
-				// The original one had been expired, we're going to register again.
 				if ne, us, err := c.registerService(ctx, serviceAddress); err != nil {
 					logger.Error(ctx, err, "failed to re-register service")
 					time.Sleep(c.config.GRPCConfig.ServiceHeartbeatInterval)

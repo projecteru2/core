@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/cockroachdb/errors"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -16,10 +18,35 @@ import (
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
-
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 )
+
+func TestHandleWorkloadResourceAllocatedMultipleNodes(t *testing.T) {
+	c := NewTestCluster()
+	store := c.store.(*storemocks.Store)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	lock := &lockmocks.DistributedLock{}
+	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
+	lock.On("Unlock", mock.Anything).Return(nil)
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
+	store.On("GetNode", mock.Anything, mock.Anything).Return(
+		func(_ context.Context, name string) *types.Node {
+			return &types.Node{NodeMeta: types.NodeMeta{Name: name}}
+		}, nil,
+	)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		resourcetypes.Resources{}, resourcetypes.Resources{}, []string{}, nil,
+	)
+
+	h := newWorkloadResourceAllocatedHandler(c)
+	nodes := []*types.Node{
+		{NodeMeta: types.NodeMeta{Name: "n1"}},
+		{NodeMeta: types.NodeMeta{Name: "n2"}},
+		{NodeMeta: types.NodeMeta{Name: "n3"}},
+		{NodeMeta: types.NodeMeta{Name: "n4"}},
+	}
+	require.NoError(t, h.Handle(context.Background(), nodes))
+}
 
 func TestHandleCreateWorkloadNoHandle(t *testing.T) {
 	c := NewTestCluster()
@@ -49,7 +76,6 @@ func TestHandleCreateWorkloadNoHandle(t *testing.T) {
 	c.wal.Recover(context.Background())
 	store.AssertExpectations(t)
 
-	// Recovers nothing.
 	c.wal.Recover(context.Background())
 }
 
@@ -103,7 +129,6 @@ func TestHandleCreateWorkloadError(t *testing.T) {
 	store.AssertExpectations(t)
 	engine.AssertExpectations(t)
 
-	// Nothing recovered.
 	c.wal.Recover(context.Background())
 }
 
@@ -132,7 +157,7 @@ func TestHandleCreateWorkloadHandled(t *testing.T) {
 	wrk := &types.Workload{
 		ID:       wrkid,
 		Nodename: node.Name,
-		Engine:   nil, // explicitly set a nil as it will be evaluated by CreateWorkloadHandler.Handle.
+		Engine:   nil,
 	}
 
 	store := c.store.(*storemocks.Store)
@@ -151,7 +176,6 @@ func TestHandleCreateWorkloadHandled(t *testing.T) {
 	store.AssertExpectations(t)
 	eng.AssertExpectations(t)
 
-	// Recovers nothing.
 	c.wal.Recover(context.Background())
 }
 
@@ -222,7 +246,6 @@ func TestHandleCreateLambda(t *testing.T) {
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 
 	c.wal.Recover(context.Background())
-	// Recovered nothing.
 	c.wal.Recover(context.Background())
 	time.Sleep(500 * time.Millisecond)
 	store.AssertExpectations(t)

@@ -25,7 +25,6 @@ const (
 	labelCPUID    = "cpuid"
 )
 
-// GetMetricsDescription .
 func (p Plugin) GetMetricsDescription(context.Context) (*plugintypes.GetMetricsDescriptionResponse, error) {
 	resp := &plugintypes.GetMetricsDescriptionResponse{}
 	return resp, mapstructure.Decode([]map[string]any{
@@ -56,7 +55,6 @@ func (p Plugin) GetMetricsDescription(context.Context) (*plugintypes.GetMetricsD
 	}, resp)
 }
 
-// GetMetrics .
 func (p Plugin) GetMetrics(ctx context.Context, podname, nodename string) (*plugintypes.GetMetricsResponse, error) {
 	nodeResourceInfo, err := p.doGetNodeResourceInfo(ctx, nodename)
 	if err != nil {

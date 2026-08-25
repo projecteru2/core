@@ -5,7 +5,7 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-// New new a gitlab obj
+// New returns a GitScm configured for GitLab.
 func New(config types.Config) (*common.GitScm, error) {
 	gitConfig := config.Git
 	authHeaders := map[string]string{"PRIVATE-TOKEN": gitConfig.Token}

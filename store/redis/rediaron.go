@@ -3,72 +3,47 @@ package redis
 import (
 	"context"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/panjf2000/ants/v2"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/store/common"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	"github.com/cockroachdb/errors"
-	"github.com/redis/go-redis/v9"
-)
-
-var (
-	// ErrMaxRetryExceeded indicates redis transaction failed after all the retries
-	ErrMaxRetryExceeded = errors.New("[Redis transaction] Max retry exceeded")
-	// ErrAlreadyExists indicates the key already exists when do redis SETNX
-	ErrAlreadyExists = errors.New("[Redis setnx] Already exists")
-	// ErrBadCmdType indicates command type is not correct
-	// e.g. SET should be StringCmd
-	ErrBadCmdType = errors.New("[Redis cmd] Bad cmd type")
-	// ErrKeyNotExitsts indicates no key found
-	// When do update, we need to ensure the key exists, just like the behavior of etcd client
-	ErrKeyNotExitsts = errors.New("[Redis exists] Key not exists")
 )
 
 const (
-	// storage key pattern
-	podInfoKey       = "/pod/info/%s" // /pod/info/{podname}
-	serviceStatusKey = "/services/%s" // /service/{ipv4:port}
-
-	nodeInfoKey      = "/node/%s"              // /node/{nodename}
-	nodePodKey       = "/node/%s:pod/%s"       // /node/{podname}:pod/{nodename}
-	nodeCaKey        = "/node/%s:ca"           // /node/{nodename}:ca
-	nodeCertKey      = "/node/%s:cert"         // /node/{nodename}:cert
-	nodeKeyKey       = "/node/%s:key"          // /node/{nodename}:key
-	nodeStatusPrefix = "/status:node/"         // /status:node/{nodename} -> node status key
-	nodeWorkloadsKey = "/node/%s:workloads/%s" // /node/{nodename}:workloads/{workloadID}
-
-	workloadInfoKey          = "/workloads/%s" // /workloads/{workloadID}
-	workloadDeployPrefix     = "/deploy"       // /deploy/{appname}/{entrypoint}/{nodename}/{workloadID}
-	workloadStatusPrefix     = "/status"       // /status/{appname}/{entrypoint}/{nodename}/{workloadID} value -> something by agent
-	workloadProcessingPrefix = "/processing"   // /processing/{appname}/{entrypoint}/{nodename}/{opsIdent} value -> count
-
-	// keyspace notification prefix pattern
 	keyNotifyPrefix = "__keyspace@%d__:%s"
 
-	// key event action
 	actionExpire  = "expire"
 	actionExpired = "expired"
 	actionSet     = "set"
 	actionDel     = "del"
 )
 
+var (
+	// ErrAlreadyExists indicates SETNX found the key already set.
+	ErrAlreadyExists = errors.New("key already exists")
+	// ErrBadCmdType indicates a redis command replied with an unexpected type.
+	ErrBadCmdType = errors.New("bad redis cmd type")
+	// ErrKeyNotExists indicates an update targeted a missing key, as the etcd store reports it.
+	ErrKeyNotExists = errors.New("key not exists")
+)
+
 // Rediaron is a store implemented by redis
 type Rediaron struct {
-	cli    *redis.Client
-	config types.Config
-	pool   *ants.PoolWithFunc
-	db     int
+	*common.Store
+
+	cli *redis.Client
 }
 
-// New creates a new Rediaron instance from config
-// Only redis address and db is used
-// db is used to separate data, by default db 0 will be used
-// TODO mock redis for testing
+// New creates a Rediaron, using only the redis address and db from config.
 func New(config types.Config) (*Rediaron, error) {
 	cli := redis.NewClient(&redis.Options{
 		Addr: config.Redis.Addr,
@@ -78,12 +53,13 @@ func New(config types.Config) (*Rediaron, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Rediaron{
-		cli:    cli,
-		config: config,
-		pool:   pool,
-		db:     config.Redis.DB,
-	}, nil
+	return newRediaron(cli, config, pool), nil
+}
+
+func newRediaron(cli *redis.Client, config types.Config, pool *ants.PoolWithFunc) *Rediaron {
+	r := &Rediaron{cli: cli}
+	r.Store = common.New(&redisKV{r: r}, config, pool)
+	return r
 }
 
 // KNotifyMessage is received when using KNotify
@@ -92,15 +68,15 @@ type KNotifyMessage struct {
 	Action string
 }
 
-// KNotify is like `watch` in etcd
-// knotify comes from inotify, when a key is changed, notification will be published
+// KNotify streams key change notifications, the redis counterpart of an etcd watch.
 func (r *Rediaron) KNotify(ctx context.Context, pattern string) chan *KNotifyMessage {
 	ch := make(chan *KNotifyMessage)
-	_ = r.pool.Invoke(func() {
+	logger := log.WithFunc("store.redis.KNotify")
+	_ = r.Pool.Invoke(func() {
 		defer close(ch)
 
-		prefix := fmt.Sprintf(keyNotifyPrefix, r.db, "")
-		channel := fmt.Sprintf(keyNotifyPrefix, r.db, pattern)
+		prefix := fmt.Sprintf(keyNotifyPrefix, r.Config.Redis.DB, "")
+		channel := fmt.Sprintf(keyNotifyPrefix, r.Config.Redis.DB, pattern)
 		pubsub := r.cli.PSubscribe(ctx, channel)
 		subC := pubsub.Channel()
 
@@ -111,7 +87,7 @@ func (r *Rediaron) KNotify(ctx context.Context, pattern string) chan *KNotifyMes
 				return
 			case v := <-subC:
 				if v == nil {
-					log.WithFunc("store.redis.KNotify").Warnf(ctx, "channel already closed, knotify returns")
+					logger.Warn(ctx, "channel closed, knotify returns")
 					return
 				}
 				ch <- &KNotifyMessage{
@@ -124,16 +100,14 @@ func (r *Rediaron) KNotify(ctx context.Context, pattern string) chan *KNotifyMes
 	return ch
 }
 
-// GetOne is a wrapper
 func (r *Rediaron) GetOne(ctx context.Context, key string) (string, error) {
 	value, err := r.cli.Get(ctx, key).Result()
 	if isRedisNoKeyError(err) {
-		return "", errors.Wrapf(err, "Key not found: %s", key)
+		return "", errors.Wrapf(err, "key not found: %s", key)
 	}
 	return value, err
 }
 
-// GetMulti is a wrapper
 func (r *Rediaron) GetMulti(ctx context.Context, keys []string) (map[string]string, error) {
 	data := map[string]string{}
 	fetch := func(pipe redis.Pipeliner) error {
@@ -163,7 +137,7 @@ func (r *Rediaron) GetMulti(ctx context.Context, keys []string) (map[string]stri
 		}
 
 		if isRedisNoKeyError(c.Err()) {
-			return nil, errors.Wrapf(err, "Key not found: %s", key)
+			return nil, errors.Wrapf(c.Err(), "key not found: %s", key)
 		}
 
 		data[key] = c.Val()
@@ -171,21 +145,16 @@ func (r *Rediaron) GetMulti(ctx context.Context, keys []string) (map[string]stri
 	return data, err
 }
 
-// BatchUpdate is wrapper to adapt etcd batch update
 func (r *Rediaron) BatchUpdate(ctx context.Context, data map[string]string) error {
-	keys := []string{}
-	for k := range data {
-		keys = append(keys, k)
-	}
+	keys := slices.Collect(maps.Keys(data))
 
-	// check existence of keys
-	// FIXME: no transaction ensured
+	// the existence check is not part of the transaction below
 	e, err := r.cli.Exists(ctx, keys...).Result()
 	if err != nil {
 		return err
 	}
 	if int(e) != len(keys) {
-		return ErrKeyNotExitsts
+		return ErrKeyNotExists
 	}
 
 	update := func(pipe redis.Pipeliner) error {
@@ -208,7 +177,6 @@ func (r *Rediaron) BatchUpdate(ctx context.Context, data map[string]string) erro
 	return nil
 }
 
-// BatchCreate is wrapper to adapt etcd batch create
 func (r *Rediaron) BatchCreate(ctx context.Context, data map[string]string) error {
 	create := func(pipe redis.Pipeliner) error {
 		for key, value := range data {
@@ -239,7 +207,6 @@ func (r *Rediaron) BatchCreate(ctx context.Context, data map[string]string) erro
 	return nil
 }
 
-// BatchPut is wrapper to adapt etcd batch replace
 func (r *Rediaron) BatchPut(ctx context.Context, data map[string]string) error {
 	replace := func(pipe redis.Pipeliner) error {
 		for key, value := range data {
@@ -261,7 +228,6 @@ func (r *Rediaron) BatchPut(ctx context.Context, data map[string]string) error {
 	return nil
 }
 
-// BatchCreateAndDecr decr processing and add workload
 func (r *Rediaron) BatchCreateAndDecr(ctx context.Context, data map[string]string, decrKey string) (err error) {
 	batchCreateAndDecr := func(pipe redis.Pipeliner) error {
 		pipe.Decr(ctx, decrKey)
@@ -274,7 +240,6 @@ func (r *Rediaron) BatchCreateAndDecr(ctx context.Context, data map[string]strin
 	return err
 }
 
-// BatchDelete is wrapper to adapt etcd batch delete
 func (r *Rediaron) BatchDelete(ctx context.Context, keys []string) error {
 	del := func(pipe redis.Pipeliner) error {
 		for _, key := range keys {
@@ -286,14 +251,12 @@ func (r *Rediaron) BatchDelete(ctx context.Context, keys []string) error {
 	return err
 }
 
-// BindStatus is wrapper to adapt etcd bind status
 func (r *Rediaron) BindStatus(ctx context.Context, entityKey, statusKey, statusValue string, ttl int64) error {
 	count, err := r.cli.Exists(ctx, entityKey).Result()
 	if err != nil {
 		return err
 	}
-	// doesn't exist, returns error
-	// to behave just like etcd
+	// mirrors etcd: a missing entity key is an error
 	if count != 1 {
 		return types.ErrInvaildCount
 	}
@@ -302,16 +265,12 @@ func (r *Rediaron) BindStatus(ctx context.Context, entityKey, statusKey, statusV
 	return err
 }
 
-// TerminateEmbededStorage terminates embedded store
-// in order to implement Store interface
-// we can't use embedded redis, it doesn't support keyspace notification
-// never call this except running unittests
+// TerminateEmbededStorage closes the redis client; only tests call it.
 func (r *Rediaron) TerminateEmbededStorage() {
 	_ = r.cli.Close()
 }
 
-// go-redis doesn't export its proto.Error type,
-// we have to check the content in this error
+// go-redis does not export proto.Error, so the message is the only signal.
 func isRedisNoKeyError(e error) bool {
 	return e != nil && strings.Contains(e.Error(), "redis: nil")
 }

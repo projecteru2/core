@@ -15,7 +15,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	zerolog "github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v3"
-	_ "go.uber.org/automaxprocs"
 	"google.golang.org/grpc"
 
 	"github.com/projecteru2/core/auth"
@@ -63,7 +62,8 @@ func serve(ctx context.Context, _ *cli.Command) error {
 	}
 	defer cluster.Finalizer()
 
-	factory.InitEngineCache(ctx, config, cluster.GetStore())
+	stor := cluster.GetStore()
+	factory.InitEngineCache(ctx, config, stor)
 
 	cluster.DisasterRecover(ctx)
 
@@ -81,18 +81,16 @@ func serve(ctx context.Context, _ *cli.Command) error {
 	}
 
 	if config.Auth.Username != "" {
-		logger.Info(ctx, "cluster auth enable.")
+		logger.Infof(ctx, "cluster auth enabled for %s", config.Auth.Username)
 		auth := auth.NewAuth(config.Auth)
-		opts = append(opts, grpc.StreamInterceptor(auth.StreamInterceptor))
-		opts = append(opts, grpc.UnaryInterceptor(auth.UnaryInterceptor))
-		logger.Infof(ctx, "username %s password %s", config.Auth.Username, config.Auth.Password)
+		opts = append(opts, grpc.StreamInterceptor(auth.StreamInterceptor), grpc.UnaryInterceptor(auth.UnaryInterceptor))
 	}
 
 	grpcServer := grpc.NewServer(opts...)
 	pb.RegisterCoreRPCServer(grpcServer, vibranium)
 	utils.SentryGo(func() {
 		if serveErr := grpcServer.Serve(s); serveErr != nil {
-			logger.Error(ctx, serveErr, "start grpc failed")
+			logger.Error(ctx, serveErr, "start grpc server")
 		}
 	})
 
@@ -104,23 +102,23 @@ func serve(ctx context.Context, _ *cli.Command) error {
 				ReadHeaderTimeout: 3 * time.Second,
 			}
 			if serveErr := server.ListenAndServe(); serveErr != nil {
-				logger.Error(ctx, serveErr, "start http failed")
+				logger.Error(ctx, serveErr, "start http server")
 			}
 		})
 	}
 
 	unregisterService, err := cluster.RegisterService(ctx)
 	if err != nil {
-		logger.Error(ctx, err, "failed to register service")
+		logger.Error(ctx, err, "register service")
 		return err
 	}
-	logger.Info(ctx, "cluster started successfully.")
+	logger.Info(ctx, "cluster started")
 
 	signalCtx, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	defer cancel()
 
 	utils.SentryGo(func() {
-		selfmon.RunNodeStatusWatcher(signalCtx, config, cluster, embeddedETCD)
+		selfmon.RunNodeStatusWatcher(signalCtx, config, cluster, stor)
 	})
 
 	<-signalCtx.Done()
@@ -129,11 +127,11 @@ func serve(ctx context.Context, _ *cli.Command) error {
 	close(stop)
 	unregisterService()
 	grpcServer.GracefulStop()
-	logger.Info(ctx, "gRPC server gracefully stopped.")
+	logger.Info(ctx, "grpc server gracefully stopped")
 
-	logger.Info(ctx, "check if cluster still have running tasks.")
+	logger.Info(ctx, "waiting for running tasks")
 	vibranium.Wait()
-	logger.Info(ctx, "cluster gracefully stopped.")
+	logger.Info(ctx, "cluster gracefully stopped")
 	return nil
 }
 
@@ -162,5 +160,7 @@ func main() {
 		},
 		Action: serve,
 	}
-	_ = app.Run(context.Background(), os.Args)
+	if err := app.Run(context.Background(), os.Args); err != nil {
+		os.Exit(1)
+	}
 }

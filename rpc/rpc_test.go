@@ -4,23 +4,18 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"google.golang.org/grpc"
+	grpcstatus "google.golang.org/grpc/status"
+
 	grpcmocks "github.com/projecteru2/core/3rdmocks"
 	clustermock "github.com/projecteru2/core/cluster/mocks"
 	enginemock "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
-
-func newVibranium() *Vibranium {
-	v := &Vibranium{
-		cluster: &clustermock.Cluster{},
-	}
-	return v
-}
 
 func TestAddPod(t *testing.T) {
 	v := newVibranium()
@@ -66,8 +61,7 @@ func TestSetNodeTranform(t *testing.T) {
 	b := &pb.SetNodeOptions{
 		Nodename: "a",
 	}
-	_, err := toCoreSetNodeOptions(b)
-	assert.Nil(t, err)
+	assert.Equal(t, "a", toCoreSetNodeOptions(b).Nodename)
 }
 
 func TestRunAndWaitSync(t *testing.T) {
@@ -101,7 +95,6 @@ func TestRunAndWaitSync(t *testing.T) {
 	runAndWait := func(_ context.Context, _ *types.DeployOptions, _ <-chan []byte) <-chan *types.AttachWorkloadMessage {
 		ch := make(chan *types.AttachWorkloadMessage)
 		go func() {
-			// message to report output of process
 			ch <- &types.AttachWorkloadMessage{
 				WorkloadID:    "workloadidfortonic",
 				Data:          []byte("network not reachable"),
@@ -160,7 +153,6 @@ func TestRunAndWaitAsync(t *testing.T) {
 	runAndWait := func(_ context.Context, _ *types.DeployOptions, _ <-chan []byte) <-chan *types.AttachWorkloadMessage {
 		ch := make(chan *types.AttachWorkloadMessage)
 		go func() {
-			// message to report output of process
 			ch <- &types.AttachWorkloadMessage{
 				WorkloadID:    "workloadidfortonic",
 				Data:          []byte("network not reachable"),
@@ -182,3 +174,63 @@ func TestRunAndWaitAsync(t *testing.T) {
 	assert.Equal(t, m1.Data, []byte(""))
 	assert.Equal(t, m1.StdStreamType, pb.StdStreamType_TYPEWORKLOADID)
 }
+
+func TestRemoveWorkloadReportsItsOwnStatusCode(t *testing.T) {
+	v := newVibranium()
+
+	cluster := v.cluster.(*clustermock.Cluster)
+	cluster.On("RemoveWorkload", mock.Anything, mock.Anything, mock.Anything).
+		Return(nil, types.ErrMockError).Once()
+
+	err := v.RemoveWorkload(&pb.RemoveWorkloadOptions{IDs: []string{"id"}}, &removeWorkloadStream{})
+	assert.Error(t, err)
+	assert.Equal(t, RemoveWorkload, grpcstatus.Code(err))
+}
+
+func TestSendLargeFileReportsItsOwnStatusCode(t *testing.T) {
+	v := newVibranium()
+
+	stream := &grpcmocks.BidiStreamingServer[pb.FileOptions, pb.SendMessage]{}
+	stream.On("Context").Return(context.Background())
+	stream.On("Recv").Return(nil, types.ErrMockError)
+
+	cluster := v.cluster.(*clustermock.Cluster)
+	cluster.On("SendLargeFile", mock.Anything, mock.Anything).Return(
+		func(_ context.Context, opts chan *types.SendLargeFileOptions) chan *types.SendMessage {
+			ch := make(chan *types.SendMessage)
+			go func() {
+				defer close(ch)
+				for range opts { //revive:disable-line:empty-block
+				}
+			}()
+			return ch
+		},
+	)
+
+	err := v.SendLargeFile(stream)
+	assert.Error(t, err)
+	assert.Equal(t, SendLargeFile, grpcstatus.Code(err))
+}
+
+func TestReallocResourceStatusHidesStackTrace(t *testing.T) {
+	v := newVibranium()
+
+	_, err := v.ReallocResource(context.Background(), &pb.ReallocOptions{})
+	assert.Error(t, err)
+	assert.NotContains(t, grpcstatus.Convert(err).Message(), ".go:")
+}
+
+func newVibranium() *Vibranium {
+	v := &Vibranium{
+		cluster: &clustermock.Cluster{},
+	}
+	return v
+}
+
+type removeWorkloadStream struct {
+	grpc.ServerStream
+}
+
+func (s *removeWorkloadStream) Send(*pb.RemoveWorkloadMessage) error { return nil }
+
+func (s *removeWorkloadStream) Context() context.Context { return context.Background() }

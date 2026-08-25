@@ -10,14 +10,10 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-// ListNetworks by podname
-// get one node from a pod
-// and list networks
-// only get those driven by network driver
 func (c *Calcium) ListNetworks(ctx context.Context, podname, driver string) ([]*enginetypes.Network, error) {
 	logger := log.WithFunc("calcium.ListNetworks").WithField("podname", podname).WithField("driver", driver)
 	networks := []*enginetypes.Network{}
-	nodes, err := c.store.GetNodesByPod(ctx, &types.NodeFilter{Podname: podname})
+	nodes, err := c.store.GetNodesByPod(ctx, &types.NodeFilter{Podname: podname}, false)
 	if err != nil {
 		logger.Error(ctx, err)
 		return networks, err
@@ -34,6 +30,7 @@ func (c *Calcium) ListNetworks(ctx context.Context, podname, driver string) ([]*
 		drivers = append(drivers, driver)
 	}
 
+	// every node of a pod reports the same networks
 	node := nodes[0]
 
 	networks, err = node.Engine.NetworkList(ctx, drivers)
@@ -41,7 +38,6 @@ func (c *Calcium) ListNetworks(ctx context.Context, podname, driver string) ([]*
 	return networks, err
 }
 
-// ConnectNetwork connect to a network
 func (c *Calcium) ConnectNetwork(ctx context.Context, network, target, ipv4, ipv6 string) ([]string, error) {
 	logger := log.WithFunc("calcium.ConnectNetwork").WithField("network", network).WithField("target", target).WithField("ipv4", ipv4).WithField("ipv6", ipv6)
 	workload, err := c.GetWorkload(ctx, target)
@@ -54,7 +50,6 @@ func (c *Calcium) ConnectNetwork(ctx context.Context, network, target, ipv4, ipv
 	return networks, err
 }
 
-// DisconnectNetwork connect to a network
 func (c *Calcium) DisconnectNetwork(ctx context.Context, network, target string, force bool) error {
 	logger := log.WithFunc("calcium.DisconnectNetwork").WithField("network", network).WithField("target", target).WithField("force", force)
 	workload, err := c.GetWorkload(ctx, target)

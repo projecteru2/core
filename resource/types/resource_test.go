@@ -11,7 +11,7 @@ func TestRawParams(t *testing.T) {
 
 	r = RawParams{
 		"cde": 1,
-		"bef": []interface{}{1, 2, 3, "1"},
+		"bef": []any{1, 2, 3, "1"},
 		"efg": []string{},
 	}
 	assert.Equal(t, r.Float64("abc"), 0.0)
@@ -30,7 +30,7 @@ func TestRawParams(t *testing.T) {
 		"string":       "string",
 		"string-slice": []string{"string", "string"},
 		"bool":         nil,
-		"raw-params": map[string]interface{}{
+		"raw-params": map[string]any{
 			"int64":        1,
 			"str-int":      "1",
 			"float-int":    1.999999999999999999999,
@@ -39,7 +39,7 @@ func TestRawParams(t *testing.T) {
 			"string-slice": []string{"string", "string"},
 			"bool":         nil,
 		},
-		"slice-raw-params": []map[string]interface{}{
+		"slice-raw-params": []map[string]any{
 			{"int": 1},
 			{"float": 1},
 		},

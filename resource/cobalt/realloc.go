@@ -10,7 +10,6 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-// Realloc .
 func (m Manager) Realloc(ctx context.Context, nodename string, nodeResource, opts resourcetypes.Resources) (resourcetypes.Resources, resourcetypes.Resources, resourcetypes.Resources, error) {
 	logger := log.WithFunc("resource.cobalt.Realloc").WithField("node", nodename)
 	engineParams := resourcetypes.Resources{}
@@ -18,7 +17,6 @@ func (m Manager) Realloc(ctx context.Context, nodename string, nodeResource, opt
 	workloadResource := resourcetypes.Resources{}
 
 	return engineParams, deltaResources, workloadResource, utils.PCR(ctx,
-		// prepare: calculate engine args, delta node resource args and final workload resource args
 		func(ctx context.Context) error {
 			resps, err := call(ctx, m.plugins, func(plugin plugins.Plugin) (*plugintypes.CalculateReallocResponse, error) {
 				resp, err := plugin.CalculateRealloc(ctx, nodename, nodeResource[plugin.Name()], opts[plugin.Name()])
@@ -44,24 +42,18 @@ func (m Manager) Realloc(ctx context.Context, nodename string, nodeResource, opt
 			}
 			return nil
 		},
-		// commit: update node resource
 		func(ctx context.Context) error {
-			// TODO 存在问题？？3个参数是完整的变化，差值变化，按照 workloads 的变化
 			if _, _, err := m.SetNodeResourceUsage(ctx, nodename, nil, nil, []resourcetypes.Resources{deltaResources}, true, plugins.Incr); err != nil {
-				logger.Error(ctx, err, "failed to update nodename resource")
+				logger.Error(ctx, err, "failed to update node resource")
 				return err
 			}
 			return nil
 		},
-		// rollback: do nothing
-		func(_ context.Context) error {
-			return nil
-		},
+		nil,
 		m.config.GlobalTimeout,
 	)
 }
 
-// RollbackRealloc .
 func (m Manager) RollbackRealloc(ctx context.Context, nodename string, workloadParams resourcetypes.Resources) error {
 	_, _, err := m.SetNodeResourceUsage(ctx, nodename, nil, nil, []resourcetypes.Resources{workloadParams}, true, plugins.Decr)
 	return err

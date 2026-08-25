@@ -5,18 +5,17 @@ import (
 	"testing"
 	"time"
 
-	enginemocks "github.com/projecteru2/core/engine/mocks"
-	lockmocks "github.com/projecteru2/core/lock/mocks"
-	resourcemocks "github.com/projecteru2/core/resource/mocks"
-	plugintypes "github.com/projecteru2/core/resource/plugins/types"
-	storemocks "github.com/projecteru2/core/store/mocks"
-	"github.com/projecteru2/core/types"
-
 	"github.com/cockroachdb/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
+	enginemocks "github.com/projecteru2/core/engine/mocks"
+	lockmocks "github.com/projecteru2/core/lock/mocks"
+	resourcemocks "github.com/projecteru2/core/resource/mocks"
+	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	resourcetypes "github.com/projecteru2/core/resource/types"
+	storemocks "github.com/projecteru2/core/store/mocks"
+	"github.com/projecteru2/core/types"
 )
 
 func TestRemoveWorkload(t *testing.T) {
@@ -35,13 +34,11 @@ func TestRemoveWorkload(t *testing.T) {
 	)
 	rmgr.On("GetNodeMetrics", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*plugintypes.Metrics{}, nil)
 
-	// failed by GetWorkload
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch, err := c.RemoveWorkload(ctx, []string{"xx"}, false)
 	assert.True(t, errors.Is(err, types.ErrMockError))
 	store.AssertExpectations(t)
 
-	// failed by GetNode
 	workload := &types.Workload{
 		ID:       "xx",
 		Name:     "test",
@@ -57,7 +54,6 @@ func TestRemoveWorkload(t *testing.T) {
 	time.Sleep(time.Second)
 	store.AssertExpectations(t)
 
-	// failed by Remove
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	node := &types.Node{
 		NodeMeta: types.NodeMeta{
@@ -72,11 +68,10 @@ func TestRemoveWorkload(t *testing.T) {
 	for r := range ch {
 		assert.False(t, r.Success)
 	}
-	assert.NoError(t, c.doRemoveWorkloadSync(ctx, []string{"xx"}))
+	assert.Error(t, c.doRemoveWorkloadSync(ctx, []string{"xx"}))
 	time.Sleep(time.Second)
 	store.AssertExpectations(t)
 
-	// success
 	engine := &enginemocks.API{}
 	workload.Engine = engine
 	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)

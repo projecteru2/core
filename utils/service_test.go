@@ -12,3 +12,10 @@ func TestGetOutboundAddress(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Contains(t, addr, "1234")
 }
+
+func TestGetOutboundAddressIPv6(t *testing.T) {
+	bind := "[::1]:1234"
+	addr, err := GetOutboundAddress(bind, "8.8.8.8:80")
+	assert.NoError(t, err)
+	assert.Equal(t, bind, addr)
+}

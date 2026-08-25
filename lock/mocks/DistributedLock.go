@@ -99,68 +99,6 @@ func (_c *DistributedLock_Lock_Call) RunAndReturn(run func(ctx context.Context) 
 	return _c
 }
 
-// TryLock provides a mock function for the type DistributedLock
-func (_mock *DistributedLock) TryLock(ctx context.Context) (context.Context, error) {
-	ret := _mock.Called(ctx)
-
-	if len(ret) == 0 {
-		panic("no return value specified for TryLock")
-	}
-
-	var r0 context.Context
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context) (context.Context, error)); ok {
-		return returnFunc(ctx)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context) context.Context); ok {
-		r0 = returnFunc(ctx)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(context.Context)
-		}
-	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context) error); ok {
-		r1 = returnFunc(ctx)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
-}
-
-// DistributedLock_TryLock_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'TryLock'
-type DistributedLock_TryLock_Call struct {
-	*mock.Call
-}
-
-// TryLock is a helper method to define mock.On call
-//   - ctx context.Context
-func (_e *DistributedLock_Expecter) TryLock(ctx any) *DistributedLock_TryLock_Call {
-	return &DistributedLock_TryLock_Call{Call: _e.mock.On("TryLock", ctx)}
-}
-
-func (_c *DistributedLock_TryLock_Call) Run(run func(ctx context.Context)) *DistributedLock_TryLock_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		run(
-			arg0,
-		)
-	})
-	return _c
-}
-
-func (_c *DistributedLock_TryLock_Call) Return(context1 context.Context, err error) *DistributedLock_TryLock_Call {
-	_c.Call.Return(context1, err)
-	return _c
-}
-
-func (_c *DistributedLock_TryLock_Call) RunAndReturn(run func(ctx context.Context) (context.Context, error)) *DistributedLock_TryLock_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // Unlock provides a mock function for the type DistributedLock
 func (_mock *DistributedLock) Unlock(ctx context.Context) error {
 	ret := _mock.Called(ctx)

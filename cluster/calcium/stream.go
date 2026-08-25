@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"slices"
 	"sync"
 
 	"github.com/cockroachdb/errors"
@@ -21,12 +22,14 @@ var (
 	escapeCommand = []byte{0x1d} // 29, ^]
 )
 
+type prefixHandler func([]byte)
+
 type window struct {
 	Height uint `json:"Row"`
 	Width  uint `json:"Col"`
 }
 
-func (c *Calcium) execuateInside(ctx context.Context, client engine.API, ID, cmd, user string, env []string, privileged bool) ([]byte, error) {
+func (c *Calcium) executeInside(ctx context.Context, client engine.API, ID, cmd, user string, env []string, privileged bool) ([]byte, error) {
 	cmds := utils.MakeCommandLineArgs(cmd)
 	execConfig := &enginetypes.ExecConfig{
 		User:         user,
@@ -61,9 +64,9 @@ func (c *Calcium) processVirtualizationInStream(
 	inStream io.WriteCloser,
 	inCh <-chan []byte,
 	resizeFunc func(height, width uint) error,
-) <-chan struct{} { //nolint
+) {
 	logger := log.WithFunc("calcium.processVirtualizationInStream")
-	specialPrefixCallback := map[string]func([]byte){
+	specialPrefixCallback := map[string]prefixHandler{
 		string(winchCommand): func(body []byte) {
 			w := &window{}
 			if err := json.Unmarshal(body, w); err != nil {
@@ -80,14 +83,14 @@ func (c *Calcium) processVirtualizationInStream(
 			_ = inStream.Close()
 		},
 	}
-	return c.rawProcessVirtualizationInStream(ctx, inStream, inCh, specialPrefixCallback)
+	c.rawProcessVirtualizationInStream(ctx, inStream, inCh, specialPrefixCallback)
 }
 
 func (c *Calcium) rawProcessVirtualizationInStream(
 	ctx context.Context,
 	inStream io.WriteCloser,
 	inCh <-chan []byte,
-	specialPrefixCallback map[string]func([]byte),
+	specialPrefixCallback map[string]prefixHandler,
 ) <-chan struct{} {
 	done := make(chan struct{})
 	_ = c.pool.Invoke(func() {
@@ -132,7 +135,7 @@ func (c *Calcium) processVirtualizationOutStream(
 		scanner := bufio.NewScanner(outStream)
 		scanner.Split(splitFunc)
 		for scanner.Scan() {
-			bs := scanner.Bytes()
+			bs := slices.Clone(scanner.Bytes())
 			if split != 0 {
 				bs = append(bs, split)
 			}
@@ -155,8 +158,8 @@ func (c *Calcium) processBuildImageStream(ctx context.Context, reader io.ReadClo
 			message := &types.BuildImageMessage{}
 			err := decoder.Decode(message)
 			if err != nil {
-				if err != io.EOF {
-					malformed, _ := io.ReadAll(decoder.Buffered()) // TODO err check
+				if !errors.Is(err, io.EOF) {
+					malformed, _ := io.ReadAll(decoder.Buffered())
 					log.WithFunc("calcium.processBuildImageStream").Errorf(ctx, err, "decode image message failed, buffered: %s", string(malformed))
 					message.Error = err.Error()
 					ch <- message

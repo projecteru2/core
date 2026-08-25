@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/projecteru2/core/store/common"
 	"github.com/projecteru2/core/types"
 )
 
@@ -15,10 +16,9 @@ func (s *RediaronTestSuite) TestAddNode() {
 	s.NoError(err)
 	_, err = s.rediaron.AddPod(ctx, "numapod", "test")
 	s.NoError(err)
-	s.rediaron.config.Scheduler.ShareBase = 100
+	s.rediaron.Config.Scheduler.ShareBase = 100
 	labels := map[string]string{"test": "1"}
 
-	// with tls
 	ca := `-----BEGIN CERTIFICATE-----
 MIIC7TCCAdWgAwIBAgIJAM8uLRZf9jttMA0GCSqGSIb3DQEBCwUAMA0xCzAJBgNV
 BAYTAkNOMB4XDTE4MDYxODA5MTkwNloXDTI4MDYxNTA5MTkwNlowDTELMAkGA1UE
@@ -83,20 +83,21 @@ RdCPRPt513WozkJZZAjUSP2U
 -----END PRIVATE KEY-----`
 	nodename3 := "nodename3"
 	endpoint3 := "tcp://path"
-	s.rediaron.config.CertPath = "/tmp"
-	node3, err := s.rediaron.doAddNode(ctx, nodename3, endpoint3, podname, ca, cert, certkey, labels, false)
+	s.rediaron.Config.CertPath = "/tmp"
+	node3, err := s.rediaron.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename3, Endpoint: endpoint3, Podname: podname, Ca: ca, Cert: cert, Key: certkey, Labels: labels})
 	s.NoError(err)
-	_, err = s.rediaron.makeClient(ctx, node3)
+	_, err = s.rediaron.MakeClient(ctx, node3)
 	s.Error(err)
-	// failed by get key
 	node3.Name = "nokey"
-	_, err = s.rediaron.makeClient(ctx, node3)
+	_, err = s.rediaron.MakeClient(ctx, node3)
 	s.Error(err)
 }
 
 func (s *RediaronTestSuite) TestRemoveNode() {
 	ctx := context.Background()
-	node, err := s.rediaron.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", nil, false)
+	_, err := s.rediaron.AddPod(ctx, "testpod", "")
+	s.NoError(err)
+	node, err := s.rediaron.AddNode(ctx, &types.AddNodeOptions{Nodename: "test", Endpoint: "mock://", Podname: "testpod"})
 	s.NoError(err)
 	s.Equal(node.Name, "test")
 	s.NoError(s.rediaron.RemoveNode(ctx, nil))
@@ -105,7 +106,9 @@ func (s *RediaronTestSuite) TestRemoveNode() {
 
 func (s *RediaronTestSuite) TestGetNode() {
 	ctx := context.Background()
-	node, err := s.rediaron.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", nil, false)
+	_, err := s.rediaron.AddPod(ctx, "testpod", "")
+	s.NoError(err)
+	node, err := s.rediaron.AddNode(ctx, &types.AddNodeOptions{Nodename: "test", Endpoint: "mock://", Podname: "testpod"})
 	s.NoError(err)
 	s.Equal(node.Name, "test")
 	_, err = s.rediaron.GetNode(ctx, "wtf")
@@ -117,28 +120,30 @@ func (s *RediaronTestSuite) TestGetNode() {
 
 func (s *RediaronTestSuite) TestGetNodesByPod() {
 	ctx := context.Background()
-	node, err := s.rediaron.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", map[string]string{"x": "y"}, false)
+	_, err := s.rediaron.AddPod(ctx, "testpod", "")
+	s.NoError(err)
+	node, err := s.rediaron.AddNode(ctx, &types.AddNodeOptions{Nodename: "test", Endpoint: "mock://", Podname: "testpod", Labels: map[string]string{"x": "y"}})
 	s.NoError(err)
 	s.Equal(node.Name, "test")
-	ns, err := s.rediaron.GetNodesByPod(ctx, &types.NodeFilter{Podname: "wtf", All: false})
+	ns, err := s.rediaron.GetNodesByPod(ctx, &types.NodeFilter{Podname: "wtf", All: false}, false)
 	s.NoError(err)
 	s.Empty(ns)
-	ns, err = s.rediaron.GetNodesByPod(ctx, &types.NodeFilter{Podname: "testpod", All: true})
+	ns, err = s.rediaron.GetNodesByPod(ctx, &types.NodeFilter{Podname: "testpod", All: true}, false)
 	s.NoError(err)
 	s.NotEmpty(ns)
-	_, err = s.rediaron.AddPod(ctx, "testpod", "")
+	ns, err = s.rediaron.GetNodesByPod(ctx, &types.NodeFilter{All: false}, false)
 	s.NoError(err)
-	ns, err = s.rediaron.GetNodesByPod(ctx, &types.NodeFilter{All: false})
-	s.NoError(err)
-	s.Len(ns, 1) // because mock forced to up, so here is 1
-	ns, err = s.rediaron.GetNodesByPod(ctx, &types.NodeFilter{All: true})
+	s.Len(ns, 1)
+	ns, err = s.rediaron.GetNodesByPod(ctx, &types.NodeFilter{All: true}, false)
 	s.NoError(err)
 	s.NotEmpty(ns)
 }
 
 func (s *RediaronTestSuite) TestUpdateNode() {
 	ctx := context.Background()
-	node, err := s.rediaron.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", map[string]string{"x": "y"}, false)
+	_, err := s.rediaron.AddPod(ctx, "testpod", "")
+	s.NoError(err)
+	node, err := s.rediaron.AddNode(ctx, &types.AddNodeOptions{Nodename: "test", Endpoint: "mock://", Podname: "testpod", Labels: map[string]string{"x": "y"}})
 	s.NoError(err)
 	s.Equal(node.Name, "test")
 	fakeNode := &types.Node{
@@ -157,13 +162,11 @@ func (s *RediaronTestSuite) TestUpdateNode() {
 
 func (s *RediaronTestSuite) TestUpdateNodeResource() {
 	ctx := context.Background()
-	node, err := s.rediaron.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", map[string]string{"x": "y"}, false)
+	_, err := s.rediaron.AddPod(ctx, "testpod", "")
+	s.NoError(err)
+	node, err := s.rediaron.AddNode(ctx, &types.AddNodeOptions{Nodename: "test", Endpoint: "mock://", Podname: "testpod", Labels: map[string]string{"x": "y"}})
 	s.NoError(err)
 	s.Equal(node.Name, "test")
-}
-
-func (s *RediaronTestSuite) TestExtractNodename() {
-	s.Equal(extractNodename("/nodestatus/testname"), "testname")
 }
 
 func (s *RediaronTestSuite) TestSetNodeStatus() {
@@ -175,14 +178,11 @@ func (s *RediaronTestSuite) TestSetNodeStatus() {
 		},
 	}
 	s.NoError(s.rediaron.SetNodeStatus(context.Background(), node, 1))
-	key := filepath.Join(nodeStatusPrefix, node.Name)
+	key := filepath.Join(common.NodeStatusPrefix, node.Name)
 
-	// not expired yet
 	_, err := s.rediaron.GetOne(context.Background(), key)
 	s.NoError(err)
-	// expired
 	time.Sleep(2 * time.Second)
-	// fastforward
 	s.rediserver.FastForward(2 * time.Second)
 	_, err = s.rediaron.GetOne(context.Background(), key)
 	s.Error(err)
@@ -198,14 +198,11 @@ func (s *RediaronTestSuite) TestGetNodeStatus() {
 	}
 	s.NoError(s.rediaron.SetNodeStatus(context.Background(), node, 1))
 
-	// not expired yet
 	ns, err := s.rediaron.GetNodeStatus(context.Background(), node.Name)
 	s.NoError(err)
 	s.Equal(ns.Nodename, node.Name)
 	s.True(ns.Alive)
-	// expired
 	time.Sleep(2 * time.Second)
-	// fastforward
 	s.rediserver.FastForward(2 * time.Second)
 	ns1, err := s.rediaron.GetNodeStatus(context.Background(), node.Name)
 	s.Error(err)
@@ -232,8 +229,7 @@ func (s *RediaronTestSuite) TestNodeStatusStream() {
 			}
 			time.Sleep(500 * time.Millisecond)
 			s.NoError(s.rediaron.SetNodeStatus(context.Background(), node, 1))
-			// manually trigger
-			triggerMockedKeyspaceNotification(s.rediaron.cli, filepath.Join(nodeStatusPrefix, node.Name), actionSet)
+			triggerMockedKeyspaceNotification(s.rediaron.cli, filepath.Join(common.NodeStatusPrefix, node.Name), actionSet)
 		}
 	}()
 
@@ -241,8 +237,7 @@ func (s *RediaronTestSuite) TestNodeStatusStream() {
 	ch := s.rediaron.NodeStatusStream(ctx)
 	go func() {
 		time.Sleep(1500 * time.Millisecond)
-		// manually trigger
-		triggerMockedKeyspaceNotification(s.rediaron.cli, filepath.Join(nodeStatusPrefix, node.Name), actionExpired)
+		triggerMockedKeyspaceNotification(s.rediaron.cli, filepath.Join(common.NodeStatusPrefix, node.Name), actionExpired)
 		time.Sleep(500 * time.Millisecond)
 		cancel()
 	}()

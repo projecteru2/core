@@ -1,23 +1,15 @@
 package types
 
 import (
-	"context"
 	"strings"
 	"testing"
 
-	enginemocks "github.com/projecteru2/core/engine/mocks"
-	enginetypes "github.com/projecteru2/core/engine/types"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-)
 
-func TestNodeMeta(t *testing.T) {
-	nm := NodeMeta{Name: "1"}
-	nnm, err := nm.DeepCopy()
-	assert.NoError(t, err)
-	assert.Equal(t, nm.Name, nnm.Name)
-}
+	enginemocks "github.com/projecteru2/core/engine/mocks"
+	enginetypes "github.com/projecteru2/core/engine/types"
+)
 
 func TestNodeInfo(t *testing.T) {
 	mockEngine := &enginemocks.API{}
@@ -25,7 +17,7 @@ func TestNodeInfo(t *testing.T) {
 	mockEngine.On("Info", mock.Anything).Return(r, ErrNoOps).Once()
 
 	node := &Node{}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	node.Engine = mockEngine
 	err := node.Info(ctx)

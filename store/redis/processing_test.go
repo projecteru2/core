@@ -15,15 +15,12 @@ func (s *RediaronTestSuite) TestProcessing() {
 		Nodename:  "node",
 	}
 
-	// create
 	s.NoError(s.rediaron.CreateProcessing(ctx, processing, 10))
-	// create again
 	s.Error(s.rediaron.CreateProcessing(ctx, processing, 10))
 	s.NoError(s.rediaron.AddWorkload(ctx, &types.Workload{Name: "a_b_c"}, processing))
 
-	nodeCount, err := s.rediaron.doLoadProcessing(ctx, processing.Appname, processing.Entryname)
+	nodeCount, err := s.rediaron.GetDeployStatus(ctx, processing.Appname, processing.Entryname)
 	s.NoError(err)
 	s.Equal(nodeCount["node"], 9)
-	// delete
 	s.NoError(s.rediaron.DeleteProcessing(ctx, processing))
 }

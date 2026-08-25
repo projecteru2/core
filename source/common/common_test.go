@@ -102,20 +102,17 @@ func TestSourceCode(t *testing.T) {
 	os.Mkdir(dname, 0o755)
 	err = g.SourceCode(ctx, repo, dname, rev, true)
 	assert.NoError(t, err)
-	// auto clone submodule, so vendor can't remove by os.Remove
 	subrepo := filepath.Join(dname, subname)
 	err = os.Remove(subrepo)
 	assert.Error(t, err)
 	dotGit := filepath.Join(dname, ".git")
 	_, err = os.Stat(dotGit)
 	assert.NoError(t, err)
-	// Security dir
 	err = g.Security(dname)
 	assert.NoError(t, err)
 	_, err = os.Stat(dotGit)
 	assert.Error(t, err)
 
-	os.Remove(privFile.Name())
 	os.Remove(privFile.Name())
 	os.RemoveAll(dname)
 }
@@ -145,13 +142,11 @@ func TestArtifact(t *testing.T) {
 		}
 		res.Write(data)
 	}))
-	defer func() { testServer.Close() }()
+	defer testServer.Close()
 	err = g.Artifact(context.Background(), "invaildurl", savedDir)
 	assert.Error(t, err)
-	// no header
 	err = g.Artifact(context.Background(), testServer.URL, savedDir)
 	assert.Error(t, err)
-	// vaild
 	g.AuthHeaders = map[string]string{"TEST": authValue}
 	err = g.Artifact(context.Background(), testServer.URL, savedDir)
 	assert.NoError(t, err)
@@ -168,13 +163,38 @@ func TestArtifact(t *testing.T) {
 	os.RemoveAll(savedDir)
 }
 
+func TestArtifactHonoursContextCancellation(t *testing.T) {
+	release := make(chan struct{})
+	testServer := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		<-release
+	}))
+	defer testServer.Close()
+	defer close(release)
+
+	ctx, cancel := context.WithCancel(t.Context())
+	g := &GitScm{}
+	done := make(chan error, 1)
+	go func() {
+		done <- g.Artifact(ctx, testServer.URL, t.TempDir())
+	}()
+
+	time.Sleep(50 * time.Millisecond)
+	cancel()
+
+	select {
+	case err := <-done:
+		assert.ErrorIs(t, err, context.Canceled)
+	case <-time.After(5 * time.Second):
+		t.Fatal("Artifact ignored the cancelled context: the request carries no deadline at all")
+	}
+}
+
 func zipFiles(newfile *os.File, files []string) error {
 	defer newfile.Close()
 
 	zipWriter := zip.NewWriter(newfile)
 	defer zipWriter.Close()
 
-	// Add files to zip
 	for _, file := range files {
 
 		zipfile, err := os.Open(file)
@@ -183,7 +203,6 @@ func zipFiles(newfile *os.File, files []string) error {
 		}
 		defer zipfile.Close()
 
-		// Get the file information
 		info, err := zipfile.Stat()
 		if err != nil {
 			return err
@@ -194,8 +213,6 @@ func zipFiles(newfile *os.File, files []string) error {
 			return err
 		}
 
-		// Change to deflate to gain better compression
-		// see http://golang.org/pkg/archive/zip/#pkg-constants
 		header.Method = zip.Deflate
 
 		writer, err := zipWriter.CreateHeader(header)

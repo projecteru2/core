@@ -6,72 +6,57 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alphadose/haxmap"
 	"github.com/cockroachdb/errors"
 
 	"github.com/projecteru2/core/types"
 )
 
-// MockedKV .
+// MockedKV is an in-memory KV for tests.
 type MockedKV struct {
 	sync.Mutex
-	pool    *haxmap.Map[string, []byte]
+	pool    sync.Map
 	nextSeq uint64
 }
 
-// NewMockedKV .
 func NewMockedKV() *MockedKV {
-	return &MockedKV{
-		nextSeq: 1,
-		pool:    haxmap.New[string, []byte](),
-	}
+	return &MockedKV{nextSeq: 1}
 }
 
-// Open .
 func (m *MockedKV) Open(string, os.FileMode, time.Duration) error {
 	return nil
 }
 
-// Close .
 func (m *MockedKV) Close() error {
-	m.pool.ForEach(func(k string, _ []byte) bool {
-		m.pool.Del(k)
-		return true
-	})
+	m.pool.Clear()
 	return nil
 }
 
-// NextSequence .
-func (m *MockedKV) NextSequence() (nextSeq uint64, err error) {
+func (m *MockedKV) NextSequence() (uint64, error) {
 	m.Lock()
 	defer m.Unlock()
-	nextSeq = m.nextSeq
+	nextSeq := m.nextSeq
 	m.nextSeq++
-	return nextSeq, err
+	return nextSeq, nil
 }
 
-// Put .
-func (m *MockedKV) Put(key, value []byte) (err error) {
-	m.pool.Set(string(key), value)
-	return err
+func (m *MockedKV) Put(key, value []byte) error {
+	m.pool.Store(string(key), value)
+	return nil
 }
 
-// Get .
-func (m *MockedKV) Get(key []byte) (value []byte, err error) {
-	value, ok := m.pool.Get(string(key))
+func (m *MockedKV) Get(key []byte) ([]byte, error) {
+	value, ok := m.pool.Load(string(key))
 	if !ok {
-		return value, errors.Wrapf(types.ErrInvaildCount, "no such key: %s", key)
+		return nil, errors.Wrapf(types.ErrInvaildCount, "no such key: %s", key)
 	}
-	return value, err
+	return value.([]byte), nil
 }
 
-// Delete .
-func (m *MockedKV) Delete(key []byte) (err error) {
-	m.pool.Del(string(key))
-	return err
+func (m *MockedKV) Delete(key []byte) error {
+	m.pool.Delete(string(key))
+	return nil
 }
 
-// Scan .
 func (m *MockedKV) Scan(prefix []byte) (<-chan ScanEntry, func()) {
 	ch := make(chan ScanEntry)
 
@@ -86,8 +71,8 @@ func (m *MockedKV) Scan(prefix []byte) (<-chan ScanEntry, func()) {
 		dataCh := make(chan MockedScanEntry)
 		go func() {
 			defer close(dataCh)
-			m.pool.ForEach(func(k string, v []byte) bool {
-				dataCh <- MockedScanEntry{Key: k, Value: v}
+			m.pool.Range(func(k, v any) bool {
+				dataCh <- MockedScanEntry{Key: k.(string), Value: v.([]byte)}
 				return true
 			})
 		}()
@@ -110,19 +95,17 @@ func (m *MockedKV) Scan(prefix []byte) (<-chan ScanEntry, func()) {
 	return ch, abort
 }
 
-// MockedScanEntry .
+// MockedScanEntry is a key/value pair produced by MockedKV.Scan.
 type MockedScanEntry struct {
 	Err   error
 	Key   string
 	Value []byte
 }
 
-// Pair .
 func (e MockedScanEntry) Pair() ([]byte, []byte) {
 	return []byte(e.Key), e.Value
 }
 
-// Error .
 func (e MockedScanEntry) Error() error {
 	return e.Err
 }

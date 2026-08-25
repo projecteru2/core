@@ -4,14 +4,13 @@ import (
 	"context"
 	"time"
 
+	"github.com/cockroachdb/errors"
+
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	resourcetypes "github.com/projecteru2/core/resource/types"
-
-	"github.com/cockroachdb/errors"
 )
 
-// StatusMeta indicate contaienr runtime
 type StatusMeta struct {
 	ID string `json:"id"`
 
@@ -20,21 +19,18 @@ type StatusMeta struct {
 	Healthy   bool              `json:"healthy,omitempty"`
 	Extension []byte            `json:"extension,omitempty"`
 
-	// These attributes are only used when setting workload status.
+	// set only when writing workload status
 	Appname    string `json:"-"`
 	Nodename   string `json:"-"`
 	Entrypoint string `json:"-"`
 }
 
-// LabelMeta bind meta info store in labels
 type LabelMeta struct {
 	Publish     []string
 	HealthCheck *HealthCheck
 }
 
-// Workload store workload info
-// only relationship with pod and node is stored
-// if you wanna get realtime information, use Inspect method
+// Workload is the stored pod/node relation; use Inspect for live state.
 type Workload struct {
 	Resources    resourcetypes.Resources `json:"resources"`
 	EngineParams resourcetypes.Resources `json:"engine_params"`
@@ -53,83 +49,54 @@ type Workload struct {
 	Engine       engine.API              `json:"-"`
 }
 
-// Inspect a workload
-func (c *Workload) Inspect(ctx context.Context) (*enginetypes.VirtualizationInfo, error) {
-	if c.Engine == nil {
-		return nil, ErrNilEngine
-	}
-	info, err := c.Engine.VirtualizationInspect(ctx, c.ID)
-	return info, err
+func (w *Workload) Inspect(ctx context.Context) (*enginetypes.VirtualizationInfo, error) {
+	return w.Engine.VirtualizationInspect(ctx, w.ID)
 }
 
-// Start a workload
-func (c *Workload) Start(ctx context.Context) error {
-	if c.Engine == nil {
-		return ErrNilEngine
-	}
-	return c.Engine.VirtualizationStart(ctx, c.ID)
+func (w *Workload) Start(ctx context.Context) error {
+	return w.Engine.VirtualizationStart(ctx, w.ID)
 }
 
-// Stop a workload
-func (c *Workload) Stop(ctx context.Context, force bool) error {
-	if c.Engine == nil {
-		return ErrNilEngine
-	}
-	gracefulTimeout := time.Duration(-1) // -1 indicates use engine default timeout
+func (w *Workload) Stop(ctx context.Context, force bool) error {
+	gracefulTimeout := time.Duration(-1) // -1 means engine default timeout
 	if force {
-		gracefulTimeout = 0 // don't wait, kill -15 && kill -9
+		gracefulTimeout = 0 // 0 means SIGTERM then SIGKILL, no wait
 	}
-	return c.Engine.VirtualizationStop(ctx, c.ID, gracefulTimeout)
+	return w.Engine.VirtualizationStop(ctx, w.ID, gracefulTimeout)
 }
 
-// Suspend a workload
-func (c *Workload) Suspend(ctx context.Context) error {
-	if c.Engine == nil {
-		return ErrNilEngine
-	}
-	return c.Engine.VirtualizationSuspend(ctx, c.ID)
+func (w *Workload) Suspend(ctx context.Context) error {
+	return w.Engine.VirtualizationSuspend(ctx, w.ID)
 }
 
-// Resume a workload
-func (c *Workload) Resume(ctx context.Context) error {
-	if c.Engine == nil {
-		return ErrNilEngine
-	}
-	return c.Engine.VirtualizationResume(ctx, c.ID)
+func (w *Workload) Resume(ctx context.Context) error {
+	return w.Engine.VirtualizationResume(ctx, w.ID)
 }
 
-// Remove a workload
-func (c *Workload) Remove(ctx context.Context, force bool) (err error) {
-	if c.Engine == nil {
-		return ErrNilEngine
-	}
-	if err = c.Engine.VirtualizationRemove(ctx, c.ID, true, force); errors.Is(err, ErrWorkloadNotExists) {
+func (w *Workload) Remove(ctx context.Context, force bool) (err error) {
+	if err = w.Engine.VirtualizationRemove(ctx, w.ID, true, force); errors.Is(err, ErrWorkloadNotExists) {
 		err = nil
 	}
 	return err
 }
 
-func (c *Workload) RawEngine(ctx context.Context, opts *RawEngineOptions) (ans *RawEngineMessage, err error) {
-	if c.Engine == nil {
-		return nil, ErrNilEngine
-	}
+func (w *Workload) RawEngine(ctx context.Context, opts *RawEngineOptions) (ans *RawEngineMessage, err error) {
 	eOpts := &enginetypes.RawEngineOptions{
 		ID:     opts.ID,
 		Op:     opts.Op,
 		Params: opts.Params,
 	}
-	eResp, err := c.Engine.RawEngine(ctx, eOpts)
+	eResp, err := w.Engine.RawEngine(ctx, eOpts)
 	if err != nil {
-		return ans, err
+		return nil, err
 	}
 	ans = &RawEngineMessage{
 		ID:   eResp.ID,
 		Data: eResp.Data,
 	}
-	return ans, err
+	return ans, nil
 }
 
-// WorkloadStatus store deploy status
 type WorkloadStatus struct {
 	ID       string
 	Workload *Workload

@@ -4,15 +4,15 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
 	resourcemocks "github.com/projecteru2/core/resource/mocks"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestPodResource(t *testing.T) {
@@ -26,8 +26,7 @@ func TestPodResource(t *testing.T) {
 	lock.On("Lock", mock.Anything).Return(ctx, nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 
-	// failed by GetNodesByPod
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch, err := c.PodResource(ctx, podname)
 	assert.Error(t, err)
 	store.AssertExpectations(t)
@@ -36,11 +35,10 @@ func TestPodResource(t *testing.T) {
 			Name: nodename,
 		},
 	}
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 
-	// failed by ListNodeWorkloads
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch, err = c.PodResource(ctx, podname)
 	assert.NoError(t, err)
@@ -54,7 +52,6 @@ func TestPodResource(t *testing.T) {
 	}
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(workloads, nil)
 
-	// failed by GetNodeResourceInfo
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		nil, nil, nil, types.ErrMockError,
 	).Once()
@@ -71,7 +68,6 @@ func TestPodResource(t *testing.T) {
 		nil,
 	)
 
-	// success
 	ch, err = c.PodResource(ctx, podname)
 	msg = <-ch
 	assert.NoError(t, err)

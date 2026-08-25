@@ -31,3 +31,8 @@ func TestParseRAMInHuman(t *testing.T) {
 	assert.Nil(t, err)
 	assert.EqualValues(t, -units.TiB, size)
 }
+
+func TestParseRAMInHumanRejectsRepeatedSign(t *testing.T) {
+	_, err := ParseRAMInHuman("--1G")
+	assert.Error(t, err)
+}

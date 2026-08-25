@@ -1,23 +1,19 @@
 package utils
 
 import (
-	"fmt"
 	"net"
-	"strings"
 
 	"github.com/cockroachdb/errors"
 
 	"github.com/projecteru2/core/types"
 )
 
-// GetOutboundAddress finds out self-service address
+// GetOutboundAddress returns bind, or the local IP reaching probeTarget when bind's host is unspecified.
 func GetOutboundAddress(bind, probeTarget string) (string, error) {
-	parts := strings.Split(bind, ":")
-	if len(parts) != 2 {
+	ip, port, err := net.SplitHostPort(bind)
+	if err != nil {
 		return "", errors.Wrap(types.ErrInvaildIPWithPort, bind)
 	}
-	ip := parts[0]
-	port := parts[1]
 
 	address := net.ParseIP(ip)
 	if ip == "" || address == nil || address.IsUnspecified() {
@@ -37,5 +33,5 @@ func getOutboundAddress(port, probeTarget string) (string, error) {
 	}()
 
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
-	return fmt.Sprintf("%s:%s", localAddr.IP, port), nil
+	return net.JoinHostPort(localAddr.IP.String(), port), nil
 }

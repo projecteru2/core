@@ -5,15 +5,13 @@ import (
 	"context"
 	"sync"
 
+	"github.com/cockroachdb/errors"
+
 	"github.com/projecteru2/core/log"
-	"github.com/projecteru2/core/resource/plugins"
-	resourcetypes "github.com/projecteru2/core/resource/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
 
-// RemoveWorkload remove workloads
-// returns a channel that contains removing responses
 func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) (chan *types.RemoveWorkloadMessage, error) {
 	logger := log.WithFunc("calcium.RemoveWorkload").WithField("IDs", IDs).WithField("force", force)
 
@@ -30,75 +28,51 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 		defer wg.Wait()
 		for nodename, workloadIDs := range nodeWorkloadGroup {
 			wg.Add(1)
-			_ = c.pool.Invoke(func(nodename string, workloadIDs []string) func() {
-				return func() {
-					defer wg.Done()
-					if nodeErr := c.withNodePodLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
-						for _, workloadID := range workloadIDs {
-							ret := &types.RemoveWorkloadMessage{WorkloadID: workloadID, Success: true, Hook: []*bytes.Buffer{}}
-							if workloadErr := c.withWorkloadLocked(ctx, workloadID, false, func(ctx context.Context, workload *types.Workload) error {
-								return utils.Txn(
-									ctx,
-									// if
-									func(ctx context.Context) (err error) {
-										_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []resourcetypes.Resources{workload.Resources}, true, plugins.Decr)
-										return err
-									},
-									// then
-									func(ctx context.Context) (err error) {
-										if err = c.doRemoveWorkload(ctx, workload, force); err == nil {
-											logger.Infof(ctx, "Workload %s removed", workload.ID)
-										}
-										return err
-									},
-									// rollback
-									func(ctx context.Context, failedByCond bool) (err error) {
-										if failedByCond {
-											return nil
-										}
-										_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []resourcetypes.Resources{workload.Resources}, true, plugins.Incr)
-										return err
-									},
-									c.config.GlobalTimeout,
-								)
-							}); workloadErr != nil {
-								logger.WithField("id", workloadID).Error(ctx, workloadErr, "failed to lock workload")
-								ret.Hook = append(ret.Hook, bytes.NewBufferString(workloadErr.Error()))
-								ret.Success = false
-							}
-							ch <- ret
+			_ = c.pool.Invoke(func() {
+				defer wg.Done()
+				if nodeErr := c.withNodePodLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
+					for _, workloadID := range workloadIDs {
+						ret := &types.RemoveWorkloadMessage{WorkloadID: workloadID, Success: true, Hook: []*bytes.Buffer{}}
+						if workloadErr := c.withWorkloadLocked(ctx, workloadID, false, func(ctx context.Context, workload *types.Workload) error {
+							return c.withResourceReleased(ctx, node, workload, func(ctx context.Context) (err error) {
+								if err = c.doRemoveWorkload(ctx, workload, force); err == nil {
+									logger.Infof(ctx, "workload %s removed", workload.ID)
+								}
+								return err
+							})
+						}); workloadErr != nil {
+							logger.WithField("id", workloadID).Error(ctx, workloadErr, "failed to remove workload")
+							ret.Hook = append(ret.Hook, bytes.NewBufferString(workloadErr.Error()))
+							ret.Success = false
 						}
-						_ = c.pool.Invoke(func() { c.RemapResourceAndLog(ctx, logger, node) })
-						return nil
-					}); nodeErr != nil {
-						logger.WithField("node", nodename).Error(ctx, nodeErr, "failed to lock node")
-						ch <- &types.RemoveWorkloadMessage{Success: false}
+						ch <- ret
 					}
+					_ = c.pool.Invoke(func() { c.RemapResourceAndLog(ctx, logger, node) })
+					return nil
+				}); nodeErr != nil {
+					logger.WithField("node", nodename).Error(ctx, nodeErr, "failed to lock node")
+					ch <- &types.RemoveWorkloadMessage{Success: false}
 				}
-			}(nodename, workloadIDs))
+			})
 		}
 	})
 	return ch, nil
 }
 
-// RemoveWorkloadSync .
 func (c *Calcium) RemoveWorkloadSync(ctx context.Context, IDs []string) error {
 	return c.doRemoveWorkloadSync(ctx, IDs)
 }
 
-// semantic: instance removed on err == nil, instance remained on err != nil
+// removes the instance on nil error; leaves it in place otherwise
 func (c *Calcium) doRemoveWorkload(ctx context.Context, workload *types.Workload, force bool) error {
 	return utils.Txn(
 		ctx,
-		// if
 		func(ctx context.Context) error {
 			return c.store.RemoveWorkload(ctx, workload)
 		},
-		// then
 		func(ctx context.Context) error {
 			return workload.Remove(ctx, force)
 		},
-		// rollback
 		func(ctx context.Context, failedByCond bool) error {
 			if failedByCond {
 				return nil
@@ -109,18 +83,22 @@ func (c *Calcium) doRemoveWorkload(ctx context.Context, workload *types.Workload
 	)
 }
 
-// 同步地删除容器, 在某些需要等待的场合异常有用!
 func (c *Calcium) doRemoveWorkloadSync(ctx context.Context, IDs []string) error {
 	ch, err := c.RemoveWorkload(ctx, IDs, true)
 	if err != nil {
 		return err
 	}
 
+	logger := log.WithFunc("calcium.doRemoveWorkloadSync")
+	errs := []error{}
 	for m := range ch {
-		// TODO deal with failed
-		log.WithFunc("calcium.doRemoveWorkloadSync").Debugf(ctx, "Removed %s", m.WorkloadID)
+		if !m.Success {
+			errs = append(errs, errors.Newf("failed to remove workload %s: %s", m.WorkloadID, utils.MergeHookOutputs(m.Hook)))
+			continue
+		}
+		logger.Debugf(ctx, "removed %s", m.WorkloadID)
 	}
-	return nil
+	return errors.Join(errs...)
 }
 
 func (c *Calcium) groupWorkloadsByNode(ctx context.Context, IDs []string) (map[string][]string, error) {

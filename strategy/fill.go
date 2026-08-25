@@ -1,20 +1,18 @@
 package strategy
 
 import (
+	"cmp"
 	"context"
-	"sort"
+	"slices"
 
 	"github.com/cockroachdb/errors"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 )
 
-// FillPlan deploy workload each node
-// 根据之前部署的策略每一台补充到 N 个，已经超过 N 个的节点视为已满足
-// need 是每台上限, limit 是限制节点数, 保证最终状态至少有 limit*need 个实例
-// limit = 0 代表对所有节点进行填充
+// FillPlan tops every node up to need workloads and skips nodes already at or above need.
+// need is the per-node ceiling, not an increment; limit 0 means every node
 func FillPlan(ctx context.Context, infos []Info, need, _, limit int) (_ map[string]int, err error) {
 	log.WithFunc("strategy.FillPlan").Debugf(ctx, "need %d limit %d infos %+v", need, limit, infos)
 	scheduleInfosLength := len(infos)
@@ -24,16 +22,13 @@ func FillPlan(ctx context.Context, infos []Info, need, _, limit int) (_ map[stri
 	if scheduleInfosLength < limit {
 		return nil, errors.Wrapf(types.ErrInsufficientResource, "node len %d cannot alloc a fill node plan", scheduleInfosLength)
 	}
-	sort.Slice(infos, func(i, j int) bool {
-		if infos[i].Count == infos[j].Count {
-			return infos[i].Capacity > infos[j].Capacity
-		}
-		return infos[i].Count > infos[j].Count
+	slices.SortFunc(infos, func(a, b Info) int {
+		return cmp.Or(cmp.Compare(b.Count, a.Count), cmp.Compare(b.Capacity, a.Capacity))
 	})
 	deployMap, toDeploy := make(map[string]int), 0
 	for _, info := range infos {
 		if info.Count+info.Capacity >= need {
-			deployMap[info.Nodename] += utils.Max(need-info.Count, 0)
+			deployMap[info.Nodename] += max(need-info.Count, 0)
 			toDeploy += deployMap[info.Nodename]
 			limit--
 			if limit == 0 {

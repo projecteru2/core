@@ -9,11 +9,10 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/getsentry/sentry-go"
+	"github.com/rs/zerolog"
 	"gopkg.in/natefinch/lumberjack.v2"
 
 	"github.com/projecteru2/core/types"
-
-	"github.com/rs/zerolog"
 )
 
 var (
@@ -21,91 +20,87 @@ var (
 	sentryDSN    string
 )
 
-// SetupLog init logger
+// SetupLog configures the global logger and the optional Sentry client.
 func SetupLog(ctx context.Context, cfg *types.ServerLogConfig, dsn string) error {
 	level, err := zerolog.ParseLevel(strings.ToLower(cfg.Level))
 	if err != nil {
 		return err
 	}
 
-	var writer io.Writer
+	rslog := zerolog.New(logWriter(cfg)).With().Timestamp().Logger().Level(level)
+	zerolog.ErrorStackMarshaler = func(err error) any {
+		return errors.GetSafeDetails(err).SafeDetails
+	}
+	globalLogger = rslog
+	if dsn != "" {
+		if err := sentry.Init(sentry.ClientOptions{Dsn: dsn}); err != nil {
+			return err
+		}
+		sentryDSN = dsn
+		WithFunc("log.SetupLog").Info(ctx, "sentry enabled")
+	}
+	return nil
+}
+
+func GetGlobalLogger() *zerolog.Logger {
+	return &globalLogger
+}
+
+// Fatalf logs at fatal level and reports to Sentry.
+func Fatalf(ctx context.Context, err error, format string, args ...any) {
+	fatalf(ctx, err, format, nil, args...)
+}
+
+func Warnf(ctx context.Context, format string, args ...any) {
+	warnf(ctx, format, nil, args...)
+}
+
+func Warn(ctx context.Context, args ...any) {
+	Warnf(ctx, formatArgs(args), args...)
+}
+
+func Infof(ctx context.Context, format string, args ...any) {
+	infof(ctx, format, nil, args...)
+}
+
+func Info(ctx context.Context, args ...any) {
+	Infof(ctx, formatArgs(args), args...)
+}
+
+func Debugf(ctx context.Context, format string, args ...any) {
+	debugf(ctx, format, nil, args...)
+}
+
+func Debug(ctx context.Context, args ...any) {
+	Debugf(ctx, formatArgs(args), args...)
+}
+
+// Errorf logs at error level and reports to Sentry.
+func Errorf(ctx context.Context, err error, format string, args ...any) {
+	errorf(ctx, err, format, nil, args...)
+}
+
+// Error logs at error level and reports to Sentry.
+func Error(ctx context.Context, err error, args ...any) {
+	Errorf(ctx, err, formatArgs(args), args...)
+}
+
+func logWriter(cfg *types.ServerLogConfig) io.Writer {
 	switch {
 	case cfg.Filename != "":
 		// file log always uses json format
-		writer = &lumberjack.Logger{
+		return &lumberjack.Logger{
 			Filename:   cfg.Filename,
 			MaxBackups: cfg.MaxBackups, // files
 			MaxSize:    cfg.MaxSize,    // megabytes
 			MaxAge:     cfg.MaxAge,     // days
 		}
 	case !cfg.UseJSON:
-		writer = zerolog.ConsoleWriter{
-			Out:        os.Stdout,
+		return zerolog.ConsoleWriter{
+			Out:        os.Stderr,
 			TimeFormat: time.RFC822,
 		}
 	default:
-		writer = os.Stdout
+		return os.Stderr
 	}
-	rslog := zerolog.New(writer).With().Timestamp().Logger().Level(level)
-	zerolog.ErrorStackMarshaler = func(err error) any {
-		return errors.GetSafeDetails(err).SafeDetails
-	}
-	globalLogger = rslog
-	// Sentry
-	if dsn != "" {
-		sentryDSN = dsn
-		WithFunc("log.SetupLog").Infof(ctx, "sentry %v", sentryDSN)
-		_ = sentry.Init(sentry.ClientOptions{Dsn: sentryDSN})
-	}
-	return nil
-}
-
-// GetGlobalLogger returns global logger
-func GetGlobalLogger() *zerolog.Logger {
-	return &globalLogger
-}
-
-// Fatalf forwards to sentry
-func Fatalf(ctx context.Context, err error, format string, args ...any) {
-	fatalf(ctx, err, format, nil, args...)
-}
-
-// Warnf is Warnf
-func Warnf(ctx context.Context, format string, args ...any) {
-	warnf(ctx, format, nil, args...)
-}
-
-// Warn is Warn
-func Warn(ctx context.Context, args ...any) {
-	Warnf(ctx, "%+v", args...)
-}
-
-// Infof is Infof
-func Infof(ctx context.Context, format string, args ...any) {
-	infof(ctx, format, nil, args...)
-}
-
-// Info is Info
-func Info(ctx context.Context, args ...any) {
-	Infof(ctx, "%+v", args...)
-}
-
-// Debugf is Debugf
-func Debugf(ctx context.Context, format string, args ...any) {
-	debugf(ctx, format, nil, args...)
-}
-
-// Debug is Debug
-func Debug(ctx context.Context, args ...any) {
-	Debugf(ctx, "%+v", args...)
-}
-
-// Errorf forwards to sentry
-func Errorf(ctx context.Context, err error, format string, args ...any) {
-	errorf(ctx, err, format, nil, args...)
-}
-
-// Error forwards to sentry
-func Error(ctx context.Context, err error, args ...any) {
-	Errorf(ctx, err, "%+v", args...)
 }

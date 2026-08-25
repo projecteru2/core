@@ -61,7 +61,7 @@ func TestGrant(t *testing.T) {
 	e := NewMockedETCD(t)
 	expErr := fmt.Errorf("exp")
 	e.cliv3.(*mocks.ETCDClientV3).On("Grant", mock.Anything, mock.Anything).Return(nil, expErr)
-	resp, err := e.Grant(context.Background(), 1)
+	resp, err := e.grant(context.Background(), 1)
 	require.Equal(t, expErr, err)
 	require.Nil(t, resp)
 }
@@ -117,7 +117,6 @@ func TestBindStatusButStatusTxnUnsuccessful(t *testing.T) {
 		Responses: []*etcdserverpb.ResponseOp{
 			{
 				Response: &etcdserverpb.ResponseOp_ResponseTxn{
-					// statusTxn
 					ResponseTxn: &etcdserverpb.TxnResponse{Succeeded: false},
 				},
 			},
@@ -144,7 +143,6 @@ func TestBindStatusWithZeroTTL(t *testing.T) {
 		Responses: []*etcdserverpb.ResponseOp{
 			{
 				Response: &etcdserverpb.ResponseOp_ResponseTxn{
-					// statusTxn
 					ResponseTxn: &etcdserverpb.TxnResponse{Succeeded: true},
 				},
 			},
@@ -172,7 +170,6 @@ func TestBindStatusButValueTxnUnsuccessful(t *testing.T) {
 		Responses: []*etcdserverpb.ResponseOp{
 			{
 				Response: &etcdserverpb.ResponseOp_ResponseTxn{
-					// valueTxn
 					ResponseTxn: &etcdserverpb.TxnResponse{Succeeded: false},
 				},
 			},
@@ -183,7 +180,6 @@ func TestBindStatusButValueTxnUnsuccessful(t *testing.T) {
 		Responses: []*etcdserverpb.ResponseOp{
 			{
 				Response: &etcdserverpb.ResponseOp_ResponseTxn{
-					// statusTxn
 					ResponseTxn: statusTxn,
 				},
 			},
@@ -235,7 +231,6 @@ func TestBindStatus(t *testing.T) {
 		Responses: []*etcdserverpb.ResponseOp{
 			{
 				Response: &etcdserverpb.ResponseOp_ResponseTxn{
-					// statusTxn
 					ResponseTxn: statusTxn,
 				},
 			},
@@ -253,11 +248,166 @@ func TestBindStatus(t *testing.T) {
 	require.Equal(t, nil, e.BindStatus(context.Background(), "/entity", "/status", "status", 1))
 }
 
-func testKeepAliveETCD(t *testing.T) (*ETCD, *mocks.ETCDClientV3, func()) {
-	e := NewMockedETCD(t)
-	etcd, ok := e.cliv3.(*mocks.ETCDClientV3)
-	require.True(t, ok)
-	return e, etcd, func() { etcd.AssertExpectations(t) }
+func TestETCD(t *testing.T) {
+	m := NewEmbeddedETCD(t)
+	ctx := context.Background()
+
+	_, err := m.CreateLock("test", 5)
+	require.NoError(t, err)
+	resp, err := m.Get(ctx, "test")
+	require.NoError(t, err)
+	require.Equal(t, resp.Count, int64(0))
+	_, err = m.Put(ctx, "test/1", "a")
+	m.Put(ctx, "test/2", "a")
+	require.NoError(t, err)
+	resp, err = m.Get(ctx, "test/1")
+	require.NoError(t, err)
+	require.Equal(t, resp.Count, int64(len(resp.Kvs)))
+	_, err = m.GetOne(ctx, "test", clientv3.WithPrefix())
+	require.Error(t, err)
+	ev, err := m.GetOne(ctx, "test/1")
+	require.NoError(t, err)
+	require.Equal(t, string(ev.Value), "a")
+	_, err = m.Delete(ctx, "test/2")
+	require.NoError(t, err)
+	m.Put(ctx, "d1", "a")
+	m.Put(ctx, "d2", "a")
+	m.Put(ctx, "d3", "a")
+	r, err := m.BatchDelete(ctx, []string{"d1", "d2", "d3"})
+	require.NoError(t, err)
+	require.True(t, r.Succeeded)
+	r, err = m.Create(ctx, "test/2", "a")
+	require.NoError(t, err)
+	require.True(t, r.Succeeded)
+	r, err = m.Create(ctx, "test/2", "a")
+	require.Error(t, err)
+	require.False(t, r.Succeeded)
+	data := map[string]string{
+		"k1": "a1",
+		"k2": "a2",
+	}
+	r, err = m.BatchCreate(ctx, data)
+	require.NoError(t, err)
+	require.True(t, r.Succeeded)
+	r, err = m.BatchCreate(ctx, data)
+	require.Error(t, err)
+	require.False(t, r.Succeeded)
+	data = map[string]string{
+		"k1": "b1",
+		"k2": "b2",
+	}
+	r, err = m.BatchUpdate(ctx, data)
+	require.NoError(t, err)
+	require.True(t, r.Succeeded)
+	data = map[string]string{
+		"k1": "c1",
+		"k3": "b2",
+	}
+	r, err = m.BatchUpdate(ctx, data)
+	require.EqualError(t, err, "key not exists")
+	require.False(t, r.Succeeded)
+	ctx2, cancel := context.WithCancel(ctx)
+	ch := m.Watch(ctx2, "watchkey", clientv3.WithPrefix())
+	go func() {
+		for r := range ch {
+			require.NotEmpty(t, r.Events)
+			require.Equal(t, len(r.Events), 1)
+			require.Equal(t, r.Events[0].Type, clientv3.EventTypePut)
+			require.Equal(t, string(r.Events[0].Kv.Value), "b")
+		}
+	}()
+	m.Create(ctx, "watchkey/1", "b")
+	cancel()
+
+	data = map[string]string{
+		"bcad_k1": "v1",
+		"bcad_k2": "v1",
+	}
+	err = m.BatchCreateAndDecr(context.Background(), data, "bcad_process")
+	require.EqualError(t, err, "bcad_process: key not exists")
+
+	_, err = m.Put(context.Background(), "bcad_process", "a")
+	require.NoError(t, err)
+	err = m.BatchCreateAndDecr(context.Background(), data, "bcad_process")
+	require.EqualError(t, err, "strconv.Atoi: parsing \"a\": invalid syntax")
+
+	_, err = m.Put(context.Background(), "bcad_process", "20")
+	require.NoError(t, err)
+	err = m.BatchCreateAndDecr(context.Background(), data, "bcad_process")
+	require.NoError(t, err)
+	resp, err = m.Get(context.Background(), "bcad_process")
+	require.NoError(t, err)
+	processCnt, err := strconv.Atoi(string(resp.Kvs[0].Value))
+	require.NoError(t, err)
+	require.EqualValues(t, 19, processCnt)
+
+	_, err = m.Put(context.Background(), "bcad_process", "200")
+	require.NoError(t, err)
+	wg := sync.WaitGroup{}
+	for range 200 {
+		wg.Go(func() {
+			m.BatchCreateAndDecr(context.Background(), data, "bcad_process")
+		})
+	}
+	wg.Wait()
+	resp, err = m.Get(context.Background(), "bcad_process")
+	require.NoError(t, err)
+	processCnt, err = strconv.Atoi(string(resp.Kvs[0].Value))
+	require.NoError(t, err)
+	require.EqualValues(t, 0, processCnt)
+
+	_, err = m.doBatchOp(context.Background(), nil)
+	require.EqualError(t, err, "no txn ops")
+
+	txnes := []ETCDTxn{}
+	for range 999 {
+		txnes = append(txnes, ETCDTxn{Then: []clientv3.Op{clientv3.OpGet("a")}})
+	}
+	txnResp, err := m.doBatchOp(context.Background(), txnes)
+	require.NoError(t, err)
+	require.True(t, txnResp.Succeeded)
+	require.EqualValues(t, 999, len(txnResp.Responses))
+
+	txnes = []ETCDTxn{{}, {}}
+	for range 999 {
+		txnes[0].Then = append(txnes[0].Then, clientv3.OpGet("a"))
+		txnes[1].Then = append(txnes[1].Then, clientv3.OpGet("a"), clientv3.OpGet("b"))
+	}
+	txnResp, err = m.doBatchOp(context.Background(), txnes)
+	require.NoError(t, err)
+	require.True(t, txnResp.Succeeded)
+	require.EqualValues(t, 999*3, len(txnResp.Responses))
+
+	txnes = []ETCDTxn{{If: []clientv3.Cmp{
+		clientv3.Compare(clientv3.Value("a"), "=", string("123")),
+	}}}
+	txnResp, err = m.doBatchOp(context.Background(), txnes)
+	require.NoError(t, err)
+	require.False(t, txnResp.Succeeded)
+	require.EqualValues(t, 0, len(txnResp.Responses))
+
+	_, err = m.GetMulti(context.Background(), []string{"a", "b"})
+	require.EqualError(t, err, "key: a: bad `Count` value, entity count invalid")
+
+	m.Put(context.Background(), "a", "b")
+	m.Put(context.Background(), "b", "c")
+	kvs, err := m.GetMulti(context.Background(), []string{"a", "b"})
+	require.NoError(t, err)
+	require.EqualValues(t, 2, len(kvs))
+
+	data = map[string]string{
+		"aa": "bb",
+		"cc": "dd",
+	}
+	limit := map[string]map[string]string{
+		"aa": {cmpValue: "!="},
+		"cc": {cmpValue: "!="},
+	}
+	m.Put(context.Background(), "aa", "aa")
+	m.Put(context.Background(), "cc", "cc")
+	txnResp, err = m.batchPut(context.Background(), data, limit)
+	require.NoError(t, err)
+	require.True(t, txnResp.Succeeded)
 }
 
 func NewMockedETCD(t *testing.T) *ETCD {
@@ -280,199 +430,9 @@ func NewEmbeddedETCD(t *testing.T) *ETCD {
 	return e
 }
 
-func TestETCD(t *testing.T) {
-	m := NewEmbeddedETCD(t)
-	ctx := context.Background()
-
-	// CreateLock
-	_, err := m.CreateLock("test", 5)
-	require.NoError(t, err)
-	// Get
-	resp, err := m.Get(ctx, "test")
-	require.NoError(t, err)
-	require.Equal(t, resp.Count, int64(0))
-	// Put
-	_, err = m.Put(ctx, "test/1", "a")
-	m.Put(ctx, "test/2", "a")
-	require.NoError(t, err)
-	// Get again
-	resp, err = m.Get(ctx, "test/1")
-	require.NoError(t, err)
-	require.Equal(t, resp.Count, int64(len(resp.Kvs)))
-	// GetOne
-	_, err = m.GetOne(ctx, "test", clientv3.WithPrefix())
-	require.Error(t, err)
-	ev, err := m.GetOne(ctx, "test/1")
-	require.NoError(t, err)
-	require.Equal(t, string(ev.Value), "a")
-	// Delete
-	_, err = m.Delete(ctx, "test/2")
-	require.NoError(t, err)
-	m.Put(ctx, "d1", "a")
-	m.Put(ctx, "d2", "a")
-	m.Put(ctx, "d3", "a")
-	// BatchDelete
-	r, err := m.BatchDelete(ctx, []string{"d1", "d2", "d3"})
-	require.NoError(t, err)
-	require.True(t, r.Succeeded)
-	// Create
-	r, err = m.Create(ctx, "test/2", "a")
-	require.NoError(t, err)
-	require.True(t, r.Succeeded)
-	// CreateFail
-	r, err = m.Create(ctx, "test/2", "a")
-	require.Error(t, err)
-	require.False(t, r.Succeeded)
-	// BatchCreate
-	data := map[string]string{
-		"k1": "a1",
-		"k2": "a2",
-	}
-	r, err = m.BatchCreate(ctx, data)
-	require.NoError(t, err)
-	require.True(t, r.Succeeded)
-	// BatchCreateFailed
-	r, err = m.BatchCreate(ctx, data)
-	require.Error(t, err)
-	require.False(t, r.Succeeded)
-	// Update
-	r, err = m.Update(ctx, "test/2", "b")
-	require.NoError(t, err)
-	require.True(t, r.Succeeded)
-	// UpdateFail
-	r, err = m.Update(ctx, "test/3", "b")
-	require.EqualError(t, err, "key not exists")
-	require.False(t, r.Succeeded)
-	// BatchUpdate
-	data = map[string]string{
-		"k1": "b1",
-		"k2": "b2",
-	}
-	r, err = m.BatchUpdate(ctx, data)
-	require.NoError(t, err)
-	require.True(t, r.Succeeded)
-	// BatchUpdate
-	data = map[string]string{
-		"k1": "c1",
-		"k3": "b2",
-	}
-	r, err = m.BatchUpdate(ctx, data)
-	require.EqualError(t, err, "key not exists")
-	require.False(t, r.Succeeded)
-	// Watch
-	ctx2, cancel := context.WithCancel(ctx)
-	ch := m.watch(ctx2, "watchkey", clientv3.WithPrefix())
-	go func() {
-		for r := range ch {
-			require.NotEmpty(t, r.Events)
-			require.Equal(t, len(r.Events), 1)
-			require.Equal(t, r.Events[0].Type, clientv3.EventTypePut)
-			require.Equal(t, string(r.Events[0].Kv.Value), "b")
-		}
-	}()
-	m.Create(ctx, "watchkey/1", "b")
-	cancel()
-
-	// BatchCreateAndDecr error
-	data = map[string]string{
-		"bcad_k1": "v1",
-		"bcad_k2": "v1",
-	}
-	err = m.BatchCreateAndDecr(context.Background(), data, "bcad_process")
-	require.EqualError(t, err, "bcad_process: key not exists")
-
-	// BatchCreateAndDecr error
-	_, err = m.Put(context.Background(), "bcad_process", "a")
-	require.NoError(t, err)
-	err = m.BatchCreateAndDecr(context.Background(), data, "bcad_process")
-	require.EqualError(t, err, "strconv.Atoi: parsing \"a\": invalid syntax")
-
-	// BatchCreateAndDecr success
-	_, err = m.Put(context.Background(), "bcad_process", "20")
-	require.NoError(t, err)
-	err = m.BatchCreateAndDecr(context.Background(), data, "bcad_process")
-	require.NoError(t, err)
-	resp, err = m.Get(context.Background(), "bcad_process")
-	require.NoError(t, err)
-	processCnt, err := strconv.Atoi(string(resp.Kvs[0].Value))
-	require.NoError(t, err)
-	require.EqualValues(t, 19, processCnt)
-
-	// BatchCreateAndDecr concurrency
-	_, err = m.Put(context.Background(), "bcad_process", "200")
-	require.NoError(t, err)
-	wg := sync.WaitGroup{}
-	for i := 0; i < 200; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			m.BatchCreateAndDecr(context.Background(), data, "bcad_process")
-		}()
-	}
-	wg.Wait()
-	resp, err = m.Get(context.Background(), "bcad_process")
-	require.NoError(t, err)
-	processCnt, err = strconv.Atoi(string(resp.Kvs[0].Value))
-	require.NoError(t, err)
-	require.EqualValues(t, 0, processCnt)
-
-	// doBatchOp error
-	_, err = m.doBatchOp(context.Background(), nil)
-	require.EqualError(t, err, "no txn ops")
-
-	// doBatchOp: many groups
-	txnes := []ETCDTxn{}
-	for i := 0; i < 999; i++ {
-		txnes = append(txnes, ETCDTxn{Then: []clientv3.Op{clientv3.OpGet("a")}})
-	}
-	txnResp, err := m.doBatchOp(context.Background(), txnes)
-	require.NoError(t, err)
-	require.True(t, txnResp.Succeeded)
-	require.EqualValues(t, 999, len(txnResp.Responses))
-
-	// doBatchOp: many then
-	txnes = []ETCDTxn{{}, {}}
-	for i := 0; i < 999; i++ {
-		txnes[0].Then = append(txnes[0].Then, clientv3.OpGet("a"))
-		txnes[1].Then = append(txnes[1].Then, clientv3.OpGet("a"), clientv3.OpGet("b"))
-	}
-	txnResp, err = m.doBatchOp(context.Background(), txnes)
-	require.NoError(t, err)
-	require.True(t, txnResp.Succeeded)
-	require.EqualValues(t, 999*3, len(txnResp.Responses))
-
-	// doBatchOp: empty
-	txnes = []ETCDTxn{{If: []clientv3.Cmp{
-		clientv3.Compare(clientv3.Value("a"), "=", string("123")),
-	}}}
-	txnResp, err = m.doBatchOp(context.Background(), txnes)
-	require.NoError(t, err)
-	require.False(t, txnResp.Succeeded)
-	require.EqualValues(t, 0, len(txnResp.Responses))
-
-	// GetMulti error
-	_, err = m.GetMulti(context.Background(), []string{"a", "b"})
-	require.EqualError(t, err, "key: a: bad `Count` value, entity count invalid")
-
-	// GetMulti success
-	m.Put(context.Background(), "a", "b")
-	m.Put(context.Background(), "b", "c")
-	kvs, err := m.GetMulti(context.Background(), []string{"a", "b"})
-	require.NoError(t, err)
-	require.EqualValues(t, 2, len(kvs))
-
-	// batchPut: cmpValue branch
-	data = map[string]string{
-		"aa": "bb",
-		"cc": "dd",
-	}
-	limit := map[string]map[string]string{
-		"aa": {cmpValue: "!="},
-		"cc": {cmpValue: "!="},
-	}
-	m.Put(context.Background(), "aa", "aa")
-	m.Put(context.Background(), "cc", "cc")
-	txnResp, err = m.batchPut(context.Background(), data, limit)
-	require.NoError(t, err)
-	require.True(t, txnResp.Succeeded)
+func testKeepAliveETCD(t *testing.T) (*ETCD, *mocks.ETCDClientV3, func()) {
+	e := NewMockedETCD(t)
+	etcd, ok := e.cliv3.(*mocks.ETCDClientV3)
+	require.True(t, ok)
+	return e, etcd, func() { etcd.AssertExpectations(t) }
 }

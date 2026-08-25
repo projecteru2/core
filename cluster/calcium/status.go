@@ -8,14 +8,10 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-// GetNodeStatus set status of a node
-// it's used to report whether a node is still alive
 func (c *Calcium) GetNodeStatus(ctx context.Context, nodename string) (*types.NodeStatus, error) {
 	return c.store.GetNodeStatus(ctx, nodename)
 }
 
-// SetNodeStatus set status of a node
-// it's used to report whether a node is still alive
 func (c *Calcium) SetNodeStatus(ctx context.Context, nodename string, ttl int64) error {
 	logger := log.WithFunc("calcium.SetNodeStatus").WithField("node", nodename).WithField("ttl", ttl)
 	node, err := c.store.GetNode(ctx, nodename)
@@ -28,18 +24,16 @@ func (c *Calcium) SetNodeStatus(ctx context.Context, nodename string, ttl int64)
 	return err
 }
 
-// NodeStatusStream returns a stream of node status for subscribing
 func (c *Calcium) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
 	return c.store.NodeStatusStream(ctx)
 }
 
-// GetWorkloadsStatus get workload status
 func (c *Calcium) GetWorkloadsStatus(ctx context.Context, IDs []string) ([]*types.StatusMeta, error) {
 	r := []*types.StatusMeta{}
 	for _, ID := range IDs {
 		s, err := c.store.GetWorkloadStatus(ctx, ID)
 		if err != nil {
-			log.WithFunc("calcium.GetWorkloadStatus").WithField("IDs", IDs).Error(ctx, err)
+			log.WithFunc("calcium.GetWorkloadsStatus").WithField("IDs", IDs).Error(ctx, err)
 			return r, err
 		}
 		r = append(r, s)
@@ -47,12 +41,11 @@ func (c *Calcium) GetWorkloadsStatus(ctx context.Context, IDs []string) ([]*type
 	return r, nil
 }
 
-// SetWorkloadsStatus set workloads status
 func (c *Calcium) SetWorkloadsStatus(ctx context.Context, statusMetas []*types.StatusMeta, ttls map[string]int64) ([]*types.StatusMeta, error) {
-	logger := log.WithFunc("calcium.SetWorkloadsStatus").WithField("status", statusMetas[0]).WithField("ttls", ttls)
+	logger := log.WithFunc("calcium.SetWorkloadsStatus").WithField("count", len(statusMetas)).WithField("ttls", ttls)
 	r := []*types.StatusMeta{}
 	for _, statusMeta := range statusMetas {
-		// In order to compat
+		// old callers omit appname, nodename and entrypoint; look them up
 		if statusMeta.Appname == "" || statusMeta.Nodename == "" || statusMeta.Entrypoint == "" {
 			workload, err := c.store.GetWorkload(ctx, statusMeta.ID)
 			if err != nil {
@@ -85,7 +78,6 @@ func (c *Calcium) SetWorkloadsStatus(ctx context.Context, statusMetas []*types.S
 	return r, nil
 }
 
-// WorkloadStatusStream stream workload status
 func (c *Calcium) WorkloadStatusStream(ctx context.Context, appname, entrypoint, nodename string, labels map[string]string) chan *types.WorkloadStatus {
 	return c.store.WorkloadStatusStream(ctx, appname, entrypoint, nodename, labels)
 }

@@ -9,8 +9,45 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
+
+func TestEphemeralMustRevokeAfterKeepaliveFailed(t *testing.T) {
+	assert := assert.New(t)
+
+	s, err := miniredis.Run()
+	if err != nil {
+		t.Fail()
+	}
+	defer s.Close()
+
+	cli := redis.NewClient(&redis.Options{
+		Addr: s.Addr(),
+		DB:   0,
+	})
+	defer cli.Close()
+
+	pool, _ := utils.NewPool(10000)
+
+	rediaron := newRediaron(cli, types.Config{}, pool)
+
+	ctx := context.Background()
+	path := "/ident"
+	expiry, stop, err := rediaron.StartEphemeral(ctx, path, time.Millisecond)
+
+	assert.NoError(err)
+	assert.NotNil(stop)
+	assert.NotNil(expiry)
+
+	cli.Close()
+
+	select {
+	case <-expiry:
+	case <-time.After(time.Second * 8):
+		assert.FailNow("%s should had been removed", path)
+	}
+}
 
 func (s *RediaronTestSuite) TestEphemeralDeregister() {
 	ctx := context.Background()
@@ -44,7 +81,6 @@ func (s *RediaronTestSuite) TestEphemeral() {
 	s.NoError(err)
 	s.Equal(ephemeralValue, v)
 
-	// Makes sure that the ephemeral keeps alived.
 	time.Sleep(heartbeat * 2)
 	v, err = s.rediaron.GetOne(ctx, path)
 	s.NoError(err)
@@ -56,12 +92,10 @@ func (s *RediaronTestSuite) TestEphemeral() {
 	default:
 	}
 
-	// Stop and waiting for expiry.
 	stop()
 	time.Sleep(heartbeat * 2)
-	// Ephemeral kv has been removed.
 	v, err = s.rediaron.GetOne(ctx, path)
-	s.Error(err) // no such path
+	s.Error(err)
 	s.Empty(v)
 
 	select {
@@ -84,43 +118,4 @@ func (s *RediaronTestSuite) TestEphemeralFailedAsPutAlready() {
 
 	_, _, err = s.rediaron.StartEphemeral(ctx, path, heartbeat)
 	s.Error(err)
-}
-
-func TestEphemeralMustRevokeAfterKeepaliveFailed(t *testing.T) {
-	assert := assert.New(t)
-
-	s, err := miniredis.Run()
-	if err != nil {
-		t.Fail()
-	}
-	defer s.Close()
-
-	cli := redis.NewClient(&redis.Options{
-		Addr: s.Addr(),
-		DB:   0,
-	})
-	defer cli.Close()
-
-	pool, _ := utils.NewPool(10000)
-
-	rediaron := &Rediaron{
-		cli:  cli,
-		pool: pool,
-	}
-
-	ctx := context.Background()
-	path := "/ident"
-	expiry, stop, err := rediaron.StartEphemeral(ctx, path, time.Millisecond)
-
-	assert.NoError(err)
-	assert.NotNil(stop)
-	assert.NotNil(expiry)
-
-	cli.Close()
-
-	select {
-	case <-expiry:
-	case <-time.After(time.Second * 8):
-		assert.FailNow("%s should had been removed", path)
-	}
 }

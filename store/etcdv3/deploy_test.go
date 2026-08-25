@@ -5,9 +5,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/projecteru2/core/types"
-
 	"github.com/stretchr/testify/assert"
+
+	"github.com/projecteru2/core/store/common"
+	"github.com/projecteru2/core/types"
 )
 
 func TestDeploy(t *testing.T) {
@@ -20,16 +21,14 @@ func TestDeploy(t *testing.T) {
 		NodeFilter:   &types.NodeFilter{},
 	}
 
-	// no workload deployed
 	nodeCount, err := m.GetDeployStatus(ctx, opts.Name, opts.Entrypoint.Name)
 	assert.NoError(t, err)
 	assert.Equal(t, len(nodeCount), 0)
-	// have workloads
-	key := filepath.Join(workloadDeployPrefix, opts.Name, opts.Entrypoint.Name, "node", "id1")
-	_, err = m.Put(ctx, key, "")
+	key := filepath.Join(common.WorkloadDeployPrefix, opts.Name, opts.Entrypoint.Name, "node", "id1")
+	_, err = m.kv.Put(ctx, key, "")
 	assert.NoError(t, err)
-	key = filepath.Join(workloadDeployPrefix, opts.Name, opts.Entrypoint.Name, "node", "id2")
-	_, err = m.Put(ctx, key, "")
+	key = filepath.Join(common.WorkloadDeployPrefix, opts.Name, opts.Entrypoint.Name, "node", "id2")
+	_, err = m.kv.Put(ctx, key, "")
 	assert.NoError(t, err)
 	nodeCount, err = m.GetDeployStatus(ctx, opts.Name, opts.Entrypoint.Name)
 	assert.NoError(t, err)

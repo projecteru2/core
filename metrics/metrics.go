@@ -9,17 +9,14 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/prometheus/client_golang/prometheus"
 	promClient "github.com/prometheus/client_model/go"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resource"
-	"github.com/projecteru2/core/resource/cobalt"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	statsdlib "github.com/CMGS/statsd"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 const (
@@ -32,20 +29,25 @@ const (
 	counterType = "counter"
 )
 
-// Metrics define metrics
+var (
+	Client = Metrics{}
+	once   sync.Once
+)
+
+// Metrics ships core metrics to Prometheus and statsd.
 type Metrics struct {
 	Config types.Config
 
 	StatsdAddr   string
 	Hostname     string
-	statsdClient *statsdlib.Client
+	statsdMu     sync.Mutex
+	statsdClient *utils.Statsd
 
 	Collectors map[string]prometheus.Collector
 
 	rmgr resource.Manager
 }
 
-// SendDeployCount update deploy counter
 func (m *Metrics) SendDeployCount(ctx context.Context, n int) {
 	metrics := &plugintypes.Metrics{
 		Name:   deployCountName,
@@ -69,53 +71,49 @@ func (m *Metrics) SendPodNodeStatus(ctx context.Context, node *types.Node) {
 	m.SendMetrics(ctx, metrics)
 }
 
-// SendMetrics update metrics
 func (m *Metrics) SendMetrics(ctx context.Context, metrics ...*plugintypes.Metrics) {
 	logger := log.WithFunc("metrics.SendMetrics")
 	for _, metric := range metrics {
 		collector, ok := m.Collectors[metric.Name]
 		if !ok {
-			logger.Warnf(ctx, "Collector not found: %s", metric.Name)
+			logger.Warnf(ctx, "collector not found: %s", metric.Name)
 			continue
 		}
-		switch collector.(type) { //nolint
+		switch c := collector.(type) {
 		case *prometheus.GaugeVec:
 			value, err := strconv.ParseFloat(metric.Value, 64)
 			if err != nil {
-				logger.Errorf(ctx, err, "Error occurred while parsing %+v value %+v", metric.Name, metric.Value)
+				logger.Errorf(ctx, err, "failed to parse %s value %s", metric.Name, metric.Value)
+				continue
 			}
-			collector.(*prometheus.GaugeVec).WithLabelValues(metric.Labels...).Set(value) //nolint
+			c.WithLabelValues(metric.Labels...).Set(value)
 			if err := m.gauge(ctx, metric.Key, value); err != nil {
-				logger.Errorf(ctx, err, "Error occurred while sending %+v data to statsd", metric.Name)
+				logger.Errorf(ctx, err, "failed to send %s to statsd", metric.Name)
 			}
 		case *prometheus.CounterVec:
-			value, err := strconv.ParseInt(metric.Value, 10, 32) //nolint
+			value, err := strconv.ParseInt(metric.Value, 10, 32)
 			if err != nil {
-				logger.Errorf(ctx, err, "Error occurred while parsing %+v value %+v", metric.Name, metric.Value)
+				logger.Errorf(ctx, err, "failed to parse %s value %s", metric.Name, metric.Value)
+				continue
 			}
-			collector.(*prometheus.CounterVec).WithLabelValues(metric.Labels...).Add(float64(value)) //nolint
+			c.WithLabelValues(metric.Labels...).Add(float64(value))
 			if err := m.count(ctx, metric.Key, int(value), 1.0); err != nil {
-				logger.Errorf(ctx, err, "Error occurred while sending %+v data to statsd", metric.Name)
+				logger.Errorf(ctx, err, "failed to send %s to statsd", metric.Name)
 			}
 		default:
-			logger.Errorf(ctx, types.ErrMetricsTypeNotSupport, "Unknown collector type: %T", collector)
+			logger.Errorf(ctx, types.ErrMetricsTypeNotSupport, "unknown collector type: %T", collector)
 		}
 	}
 }
 
-// RemoveInvalidNodes 清除多余的metric标签值
-func (m *Metrics) RemoveInvalidNodes(invalidNodes ...string) {
-	if len(invalidNodes) == 0 {
-		return
-	}
+// RemoveInvalidNodes drops Prometheus label sets for a node that no longer exists.
+func (m *Metrics) RemoveInvalidNodes(invalidNode string) {
+	metrics, _ := prometheus.DefaultGatherer.Gather()
 	for _, collector := range m.Collectors {
-		metrics, _ := prometheus.DefaultGatherer.Gather()
 		for _, metric := range metrics {
 			for _, mf := range metric.GetMetric() {
 				if !slices.ContainsFunc(mf.Label, func(label *promClient.LabelPair) bool {
-					return label.GetName() == "nodename" && slices.ContainsFunc(invalidNodes, func(nodename string) bool {
-						return label.GetValue() == nodename
-					})
+					return label.GetName() == "nodename" && label.GetValue() == invalidNode
 				}) {
 					continue
 				}
@@ -123,7 +121,6 @@ func (m *Metrics) RemoveInvalidNodes(invalidNodes ...string) {
 				for _, label := range mf.Label {
 					labels[label.GetName()] = label.GetValue()
 				}
-				// 删除符合条件的度量标签
 				switch c := collector.(type) {
 				case *prometheus.GaugeVec:
 					c.Delete(labels)
@@ -132,36 +129,33 @@ func (m *Metrics) RemoveInvalidNodes(invalidNodes ...string) {
 				}
 			}
 		}
-		// 添加更多的条件来处理其他类型的Collector
 	}
 }
 
-// Lazy connect
-func (m *Metrics) checkConn(ctx context.Context) error {
+func (m *Metrics) client(ctx context.Context) (*utils.Statsd, error) {
+	m.statsdMu.Lock()
+	defer m.statsdMu.Unlock()
 	if m.statsdClient != nil {
-		return nil
+		return m.statsdClient, nil
 	}
-	logger := log.WithFunc("metrics.checkConn")
 	var err error
-	// We needn't try to renew/reconnect because of only supporting UDP protocol now
-	// We should add an `errorCount` to reconnect when implementing TCP protocol
-	if m.statsdClient, err = statsdlib.New(m.StatsdAddr, statsdlib.WithErrorHandler(func(err error) {
-		logger.Error(ctx, err, "Sending statsd failed")
-	})); err != nil {
-		logger.Error(ctx, err, "Connect statsd failed")
-		return err
+	// UDP is connectionless, so a failed client never needs reconnecting
+	if m.statsdClient, err = utils.NewStatsd(m.StatsdAddr); err != nil {
+		log.WithFunc("metrics.client").Error(ctx, err, "failed to connect statsd")
+		return nil, err
 	}
-	return nil
+	return m.statsdClient, nil
 }
 
 func (m *Metrics) gauge(ctx context.Context, key string, value float64) error {
 	if m.StatsdAddr == "" {
 		return nil
 	}
-	if err := m.checkConn(ctx); err != nil {
+	c, err := m.client(ctx)
+	if err != nil {
 		return err
 	}
-	m.statsdClient.Gauge(key, value)
+	c.Gauge(key, value)
 	return nil
 }
 
@@ -169,69 +163,55 @@ func (m *Metrics) count(ctx context.Context, key string, n int, rate float32) er
 	if m.StatsdAddr == "" {
 		return nil
 	}
-	if err := m.checkConn(ctx); err != nil {
+	c, err := m.client(ctx)
+	if err != nil {
 		return err
 	}
-	m.statsdClient.Count(key, n, rate)
+	c.Count(key, n, rate)
 	return nil
 }
 
-// Client is a metrics obj
-var (
-	Client = Metrics{}
-	once   sync.Once
-)
-
-// InitMetrics new a metrics obj
-func InitMetrics(ctx context.Context, config types.Config, metricsDescriptions []*plugintypes.MetricsDescription) error {
+// InitMetrics builds the global metrics client and registers its collectors.
+func InitMetrics(config types.Config, rmgr resource.Manager, metricsDescriptions []*plugintypes.MetricsDescription) error {
 	hostname, err := os.Hostname()
 	if err != nil {
 		return err
 	}
-	rmgr, err := cobalt.New(config)
-	if err != nil {
-		return err
-	}
-	if err := rmgr.LoadPlugins(ctx, nil); err != nil {
-		return err
-	}
-
-	Client = Metrics{
-		Config:     config,
-		StatsdAddr: config.Statsd,
-		Hostname:   utils.CleanStatsdMetrics(hostname),
-		Collectors: map[string]prometheus.Collector{},
-		rmgr:       rmgr,
-	}
-
-	for _, desc := range metricsDescriptions {
-		switch desc.Type {
-		case gaugeType:
-			collector := prometheus.NewGaugeVec(prometheus.GaugeOpts{
-				Name: desc.Name,
-				Help: desc.Help,
-			}, desc.Labels)
-			Client.Collectors[desc.Name] = collector
-		case counterType:
-			collector := prometheus.NewCounterVec(prometheus.CounterOpts{
-				Name: desc.Name,
-				Help: desc.Help,
-			}, desc.Labels)
-			Client.Collectors[desc.Name] = collector
-		}
-	}
-
-	Client.Collectors[deployCountName] = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: deployCountName,
-		Help: "core deploy counter",
-	}, []string{"hostname"})
-
-	Client.Collectors[podNodeStatusName] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: podNodeStatusName,
-		Help: "node status",
-	}, []string{"hostname", "podname", "nodename"})
 
 	once.Do(func() {
+		Client = Metrics{
+			Config:     config,
+			StatsdAddr: config.Statsd,
+			Hostname:   utils.CleanStatsdMetrics(hostname),
+			Collectors: map[string]prometheus.Collector{},
+			rmgr:       rmgr,
+		}
+
+		for _, desc := range metricsDescriptions {
+			switch desc.Type {
+			case gaugeType:
+				Client.Collectors[desc.Name] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+					Name: desc.Name,
+					Help: desc.Help,
+				}, desc.Labels)
+			case counterType:
+				Client.Collectors[desc.Name] = prometheus.NewCounterVec(prometheus.CounterOpts{
+					Name: desc.Name,
+					Help: desc.Help,
+				}, desc.Labels)
+			}
+		}
+
+		Client.Collectors[deployCountName] = prometheus.NewCounterVec(prometheus.CounterOpts{
+			Name: deployCountName,
+			Help: "core deploy counter",
+		}, []string{"hostname"})
+
+		Client.Collectors[podNodeStatusName] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: podNodeStatusName,
+			Help: "node status",
+		}, []string{"hostname", "podname", "nodename"})
+
 		prometheus.MustRegister(slices.Collect(maps.Values(Client.Collectors))...)
 	})
 	return nil

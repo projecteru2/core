@@ -37,11 +37,11 @@ func TestMockedKV(t *testing.T) {
 	require.Equal(t, expValue, realValue)
 
 	require.NoError(t, m.Delete(b))
-	realValue, err = m.Get(b)
+	_, err = m.Get(b)
 	require.Error(t, err)
 
 	require.NoError(t, m.Close())
 
-	realValue, err = m.Get(a)
+	_, err = m.Get(a)
 	require.Error(t, err)
 }

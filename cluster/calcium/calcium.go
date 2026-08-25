@@ -23,7 +23,7 @@ import (
 	"github.com/projecteru2/core/wal"
 )
 
-// Calcium implement the cluster
+// Calcium implements the cluster.Cluster interface.
 type Calcium struct {
 	config     types.Config
 	store      store.Store
@@ -35,17 +35,15 @@ type Calcium struct {
 	identifier string
 }
 
-// New returns a new cluster config
+// New returns a Calcium cluster.
 func New(ctx context.Context, config types.Config, embeddedETCD *embedded.Cluster) (*Calcium, error) {
 	logger := log.WithFunc("calcium.New")
-	// set store
 	store, err := storefactory.NewStore(config, embeddedETCD)
 	if err != nil {
 		logger.Error(ctx, err)
 		return nil, err
 	}
 
-	// set scm
 	var scm source.Source
 	scmtype := strings.ToLower(config.Git.SCMType)
 	switch scmtype {
@@ -61,10 +59,8 @@ func New(ctx context.Context, config types.Config, embeddedETCD *embedded.Cluste
 		return nil, err
 	}
 
-	// set watcher
 	watcher := helium.New(ctx, config.GRPCConfig, store)
 
-	// set resource plugin manager
 	rmgr, err := cobalt.New(config)
 	if err != nil {
 		logger.Error(ctx, err)
@@ -75,7 +71,6 @@ func New(ctx context.Context, config types.Config, embeddedETCD *embedded.Cluste
 		return nil, err
 	}
 
-	// init pool
 	pool, err := utils.NewPool(config.MaxConcurrency)
 	if err != nil {
 		return nil, err
@@ -98,18 +93,19 @@ func New(ctx context.Context, config types.Config, embeddedETCD *embedded.Cluste
 	return cal, pool.Invoke(func() { cal.InitMetrics(ctx) })
 }
 
-// DisasterRecover .
+// DisasterRecover replays the WAL to finish interrupted writes.
 func (c *Calcium) DisasterRecover(ctx context.Context) {
 	c.wal.Recover(ctx)
 }
 
-// Finalizer use for defer
 func (c *Calcium) Finalizer() {
-	// TODO some resource recycle
+	ctx := context.Background()
+	if err := c.wal.Close(); err != nil {
+		log.WithFunc("calcium.Finalizer").Error(ctx, err, "close wal")
+	}
 	c.pool.Release()
 }
 
-// GetIdentifier returns the identifier of calcium
 func (c *Calcium) GetIdentifier() string {
 	return c.identifier
 }

@@ -2,7 +2,7 @@ package wal
 
 import (
 	"context"
-	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -12,32 +12,25 @@ import (
 )
 
 func TestRecover(t *testing.T) {
-	var checked bool
-	check := func(interface{}) (bool, error) {
-		checked = true
-		return true, nil
-	}
-
 	var handled bool
-	handle := func(interface{}) (err error) {
+	handle := func(any) (err error) {
 		handled = true
 		return err
 	}
 
 	var encoded bool
-	encode := func(interface{}) (bs []byte, err error) {
+	encode := func(any) (bs []byte, err error) {
 		encoded = true
 		return bs, err
 	}
 
 	var decoded bool
-	decode := func([]byte) (item interface{}, err error) {
+	decode := func([]byte) (item any, err error) {
 		decoded = true
 		return item, err
 	}
 
-	path := "/tmp/wal.unitest.wal"
-	os.Remove(path)
+	path := filepath.Join(t.TempDir(), "wal.wal")
 
 	var wal WAL
 	var err error
@@ -56,49 +49,36 @@ func TestRecover(t *testing.T) {
 		event:  eventype,
 		encode: encode,
 		decode: decode,
-		check:  check,
 		handle: handle,
 	})
 
 	wal.Log(eventype, struct{}{})
 
 	wal.Recover(context.Background())
-	assert.True(t, checked)
 	assert.True(t, handled)
 	assert.True(t, encoded)
 	assert.True(t, decoded)
 }
 
-// simpleEventHandler simply implements the EventHandler.
 type simpleEventHandler struct {
 	event  string
-	check  func(raw interface{}) (bool, error)
-	encode func(interface{}) ([]byte, error)
-	decode func([]byte) (interface{}, error)
-	handle func(interface{}) error
+	encode func(any) ([]byte, error)
+	decode func([]byte) (any, error)
+	handle func(any) error
 }
 
-// Event .
 func (h simpleEventHandler) Typ() string {
 	return h.event
 }
 
-// Check .
-func (h simpleEventHandler) Check(ctx context.Context, raw interface{}) (bool, error) {
-	return h.check(raw)
-}
-
-// Encode .
-func (h simpleEventHandler) Encode(raw interface{}) ([]byte, error) {
+func (h simpleEventHandler) Encode(raw any) ([]byte, error) {
 	return h.encode(raw)
 }
 
-// Decode .
-func (h simpleEventHandler) Decode(bs []byte) (interface{}, error) {
+func (h simpleEventHandler) Decode(bs []byte) (any, error) {
 	return h.decode(bs)
 }
 
-// Handle .
-func (h simpleEventHandler) Handle(ctx context.Context, raw interface{}) error {
+func (h simpleEventHandler) Handle(ctx context.Context, raw any) error {
 	return h.handle(raw)
 }

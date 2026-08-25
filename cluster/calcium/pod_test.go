@@ -4,12 +4,12 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+
 	lockmocks "github.com/projecteru2/core/lock/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestAddPod(t *testing.T) {
@@ -36,7 +36,6 @@ func TestRemovePod(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 
-	// failed by validating
 	assert.Error(t, c.RemovePod(ctx, ""))
 
 	store := c.store.(*storemocks.Store)
@@ -45,7 +44,7 @@ func TestRemovePod(t *testing.T) {
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	store.On("RemovePod", mock.Anything, mock.Anything).Return(nil)
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return(
 		[]*types.Node{{NodeMeta: types.NodeMeta{Name: "test"}}}, nil,
 	)
 

@@ -9,33 +9,26 @@ import (
 	coretypes "github.com/projecteru2/core/types"
 )
 
-// TCPPrefix is engine endpoint prefix
+// TCPPrefix is the endpoint prefix for a systemd-managed docker daemon.
 const TCPPrefix = "systemd://"
 
-// Engine is engine for systemd
+// Engine wraps the docker engine and forces the systemd runtime.
 type Engine struct {
 	engine.API
 	config coretypes.Config
 	ep     *enginetypes.Params
 }
 
-// MakeClient make systemd cli
+// MakeClient builds a systemd engine on top of the docker client.
 func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint, ca, cert, key string) (engine.API, error) {
 	api, err := docker.MakeClient(ctx, config, nodename, endpoint, ca, cert, key)
 	if err != nil {
 		return nil, err
 	}
-	ep := &enginetypes.Params{
-		Nodename: nodename,
-		Endpoint: endpoint,
-		CA:       ca,
-		Cert:     cert,
-		Key:      key,
-	}
 	return &Engine{
 		API:    api,
 		config: config,
-		ep:     ep,
+		ep:     enginetypes.NewParams(nodename, endpoint, ca, cert, key),
 	}, nil
 }
 

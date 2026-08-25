@@ -9,7 +9,7 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-// ResourceMiddleware to make sure update resource correct
+// ResourceMiddleware refreshes node metrics before the wrapped handler runs.
 func (m *Metrics) ResourceMiddleware(cluster cluster.Cluster) func(http.Handler) http.Handler {
 	logger := log.WithFunc("metrics.ResourceMiddleware")
 	return func(h http.Handler) http.Handler {
@@ -18,13 +18,15 @@ func (m *Metrics) ResourceMiddleware(cluster cluster.Cluster) func(http.Handler)
 			defer cancel()
 			nodes, err := cluster.ListPodNodes(ctx, &types.ListNodesOptions{All: true})
 			if err != nil {
-				logger.Error(ctx, err, "Get all nodes err")
+				logger.Error(ctx, err, "failed to list nodes")
+				h.ServeHTTP(w, r)
+				return
 			}
 			for node := range nodes {
 				m.SendPodNodeStatus(ctx, node)
 				metrics, err := m.rmgr.GetNodeMetrics(ctx, node)
 				if err != nil {
-					logger.Error(ctx, err, "Get metrics failed")
+					logger.Error(ctx, err, "failed to get node metrics")
 					continue
 				}
 				m.SendMetrics(ctx, metrics...)

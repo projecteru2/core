@@ -13,11 +13,10 @@ import (
 	"go.etcd.io/bbolt"
 )
 
-// Lithium .
+// Lithium is a bbolt backed KV.
 type Lithium struct {
 	sync.Mutex
 
-	// Name of the root bucket.
 	RootBucketKey []byte
 
 	bolt    *bbolt.DB
@@ -26,14 +25,13 @@ type Lithium struct {
 	timeout time.Duration
 }
 
-// NewLithium initializes a new Lithium instance.
 func NewLithium() *Lithium {
 	return &Lithium{
 		RootBucketKey: []byte("root"),
 	}
 }
 
-// Reopen re-open a kvdb file.
+// Reopen closes and reopens the kvdb file.
 func (l *Lithium) Reopen() error {
 	l.Lock()
 	defer l.Unlock()
@@ -45,7 +43,6 @@ func (l *Lithium) Reopen() error {
 	return l.open()
 }
 
-// Open opens a kvdb file.
 func (l *Lithium) Open(path string, mode os.FileMode, timeout time.Duration) (err error) {
 	l.Lock()
 	defer l.Unlock()
@@ -57,44 +54,35 @@ func (l *Lithium) Open(path string, mode os.FileMode, timeout time.Duration) (er
 	return l.open()
 }
 
-// Close closes the kvdb file.
 func (l *Lithium) Close() error {
 	l.Lock()
 	defer l.Unlock()
 	return l.close()
 }
 
-// Put creates/updates a key/value pair.
 func (l *Lithium) Put(key, value []byte) (err error) {
 	return l.update(func(bkt *bbolt.Bucket) error {
 		return bkt.Put(key, value)
 	})
 }
 
-// Get read a key's value.
 func (l *Lithium) Get(key []byte) (dst []byte, err error) {
-	err = l.view(func(bkt *bbolt.Bucket) error {
+	err = l.update(func(bkt *bbolt.Bucket) error {
 		src := bkt.Get(key)
 		dst = make([]byte, len(src))
-
-		for n := 0; n < len(dst); {
-			n += copy(dst, src)
-		}
-
+		copy(dst, src)
 		return nil
 	})
 
 	return dst, err
 }
 
-// Delete deletes a key.
 func (l *Lithium) Delete(key []byte) error {
 	return l.update(func(bkt *bbolt.Bucket) error {
 		return bkt.Delete(key)
 	})
 }
 
-// Scan scans all the key/value pairs.
 func (l *Lithium) Scan(prefix []byte) (<-chan ScanEntry, func()) {
 	ch := make(chan ScanEntry)
 
@@ -118,7 +106,7 @@ func (l *Lithium) Scan(prefix []byte) (<-chan ScanEntry, func()) {
 			return nil
 		}
 
-		if err := l.view(scan); err != nil {
+		if err := l.update(scan); err != nil {
 			select {
 			case <-exit:
 			case ch <- LithiumScanEntry{err: err}:
@@ -129,7 +117,6 @@ func (l *Lithium) Scan(prefix []byte) (<-chan ScanEntry, func()) {
 	return ch, abort
 }
 
-// NextSequence generates a new sequence.
 func (l *Lithium) NextSequence() (uint64, error) {
 	var seq uint64
 	err := l.update(func(bkt *bbolt.Bucket) (ue error) {
@@ -157,16 +144,6 @@ func (l *Lithium) close() error {
 	return l.bolt.Close()
 }
 
-func (l *Lithium) view(fn func(*bbolt.Bucket) error) error {
-	return l.bolt.Update(func(tx *bbolt.Tx) error {
-		bkt, err := l.getBucket(tx, l.RootBucketKey)
-		if err != nil {
-			return err
-		}
-		return fn(bkt)
-	})
-}
-
 func (l *Lithium) update(fn func(*bbolt.Bucket) error) error {
 	return l.bolt.Update(func(tx *bbolt.Tx) error {
 		bkt, err := l.getBucket(tx, l.RootBucketKey)
@@ -185,19 +162,17 @@ func (l *Lithium) getBucket(tx *bbolt.Tx, key []byte) (bkt *bbolt.Bucket, err er
 	return bkt, err
 }
 
-// LithiumScanEntry indicates an entry of scanning.
+// LithiumScanEntry is a key/value pair produced by Lithium.Scan.
 type LithiumScanEntry struct {
 	err   error
 	key   []byte
 	value []byte
 }
 
-// Pair means a pair of key/value.
 func (e LithiumScanEntry) Pair() ([]byte, []byte) {
 	return e.key, e.value
 }
 
-// Error .
 func (e LithiumScanEntry) Error() error {
 	return e.err
 }

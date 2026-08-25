@@ -10,7 +10,7 @@ import (
 	coreutils "github.com/projecteru2/core/utils"
 )
 
-// WorkloadResource indicate cpumem workload resource
+// WorkloadResource is the cpu and memory allocated to one workload.
 type WorkloadResource struct {
 	CPURequest    float64    `json:"cpu_request" mapstructure:"cpu_request"`
 	CPULimit      float64    `json:"cpu_limit" mapstructure:"cpu_limit"`
@@ -21,12 +21,10 @@ type WorkloadResource struct {
 	NUMANode      string     `json:"numa_node" mapstructure:"numa_node"`
 }
 
-// ParseFromRawParams .
 func (w *WorkloadResource) Parse(rawParams resourcetypes.RawParams) error {
 	return mapstructure.Decode(rawParams, w)
 }
 
-// DeepCopy .
 func (w *WorkloadResource) DeepCopy() *WorkloadResource {
 	res := &WorkloadResource{
 		CPURequest:    w.CPURequest,
@@ -44,7 +42,6 @@ func (w *WorkloadResource) DeepCopy() *WorkloadResource {
 	return res
 }
 
-// Add .
 func (w *WorkloadResource) Add(w1 *WorkloadResource) {
 	w.CPURequest = coreutils.Round(w.CPURequest + w1.CPURequest)
 	w.MemoryRequest += w1.MemoryRequest
@@ -57,11 +54,11 @@ func (w *WorkloadResource) Add(w1 *WorkloadResource) {
 	}
 }
 
-// Sub .
 func (w *WorkloadResource) Sub(w1 *WorkloadResource) {
 	w.CPURequest = coreutils.Round(w.CPURequest - w1.CPURequest)
 	w.CPULimit = coreutils.Round(w.CPULimit - w1.CPULimit)
 	w.MemoryRequest -= w1.MemoryRequest
+	w.MemoryLimit -= w1.MemoryLimit
 	w.CPUMap.Sub(w1.CPUMap)
 	if w.NUMAMemory == nil {
 		w.NUMAMemory = NUMAMemory{}
@@ -69,8 +66,7 @@ func (w *WorkloadResource) Sub(w1 *WorkloadResource) {
 	w.NUMAMemory.Sub(w1.NUMAMemory)
 }
 
-// WorkloadResourceRequest includes all possible fields passed by eru-core for editing workload
-// for request calculation
+// WorkloadResourceRequest carries every field eru-core may pass when editing a workload.
 type WorkloadResourceRequest struct {
 	CPUBind     bool
 	KeepCPUBind bool
@@ -80,7 +76,6 @@ type WorkloadResourceRequest struct {
 	MemLimit    int64
 }
 
-// Validate .
 func (w *WorkloadResourceRequest) Validate() error {
 	if w.CPURequest == 0 && w.CPULimit > 0 {
 		w.CPURequest = w.CPULimit
@@ -103,16 +98,14 @@ func (w *WorkloadResourceRequest) Validate() error {
 	if w.CPURequest > 0 && w.CPULimit > 0 && w.CPULimit < w.CPURequest {
 		w.CPULimit = w.CPURequest
 	}
-	// if CPUBind=true, set cpu request=limit to solve the dilemma
-	// only deal with cpu limit>request but not vice versa
+	// a cpu-bound workload gets request raised to limit, never the other way round
 	if w.CPUBind && w.CPURequest > 0 && w.CPULimit > 0 && w.CPULimit > w.CPURequest {
 		w.CPURequest = w.CPULimit
 	}
 	return nil
 }
 
-// Parse .
-func (w *WorkloadResourceRequest) Parse(rawParams resourcetypes.RawParams) (err error) {
+func (w *WorkloadResourceRequest) Parse(rawParams resourcetypes.RawParams) {
 	w.KeepCPUBind = rawParams.Bool("keep-cpu-bind")
 	w.CPUBind = rawParams.Bool("cpu-bind")
 
@@ -121,5 +114,4 @@ func (w *WorkloadResourceRequest) Parse(rawParams resourcetypes.RawParams) (err 
 
 	w.MemRequest = rawParams.Int64("memory-request")
 	w.MemLimit = rawParams.Int64("memory-limit")
-	return nil
 }
