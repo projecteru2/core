@@ -105,15 +105,6 @@ type AttachWorkloadMessage struct {
 	StdStreamType
 }
 
-// PullImageMessage carries CacheImage progress.
-type PullImageMessage struct {
-	BuildImageMessage
-}
-
-type ReallocResourceMessage struct {
-	WorkloadID string
-}
-
 type StdStreamMessage struct {
 	Data []byte
 	StdStreamType
