@@ -405,14 +405,12 @@ func (c *Calcium) doMakeWorkloadOptions(ctx context.Context, no int, msg *types.
 	createOpts.Image = opts.Image
 	createOpts.Stdin = opts.OpenStdin
 	createOpts.Hosts = opts.ExtraHosts
-	createOpts.Debug = opts.Debug
 	createOpts.Networks = opts.Networks
 
 	entry := opts.Entrypoint
 	createOpts.WorkingDir = entry.Dir
 	createOpts.Privileged = entry.Privileged
 	createOpts.Sysctl = entry.Sysctls
-	createOpts.Publish = entry.Publish
 	createOpts.Restart = entry.Restart
 	suffix := utils.RandomString(6)
 	createOpts.Name = utils.MakeWorkloadName(opts.Name, opts.Entrypoint.Name, suffix)

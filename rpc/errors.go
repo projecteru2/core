@@ -36,7 +36,6 @@ const (
 	RawEngineStatus    codes.Code = 1057
 
 	Copy          codes.Code = 1061
-	Send          codes.Code = 1062
 	SendLargeFile codes.Code = 1063
 
 	BuildImage  codes.Code = 1071

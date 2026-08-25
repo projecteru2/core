@@ -24,7 +24,6 @@ type Entrypoint struct {
 	Commands    []string          `yaml:"commands,omitempty"`
 	Privileged  bool              `yaml:"privileged,omitempty"`
 	Dir         string            `yaml:"dir,omitempty"`
-	Log         *LogConfig        `yaml:"log,omitempty"`
 	Publish     []string          `yaml:"publish,omitempty,flow"`
 	HealthCheck *HealthCheck      `yaml:"healthcheck,omitempty,flow"`
 	Hook        *Hook             `yaml:"hook,omitempty,flow"`

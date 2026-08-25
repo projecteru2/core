@@ -47,7 +47,6 @@ func allStatusCodes() map[string]codes.Code {
 		"SetWorkloadsStatus": SetWorkloadsStatus,
 		"RawEngineStatus":    RawEngineStatus,
 		"Copy":               Copy,
-		"Send":               Send,
 		"SendLargeFile":      SendLargeFile,
 		"BuildImage":         BuildImage,
 		"CacheImage":         CacheImage,

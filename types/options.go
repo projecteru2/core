@@ -31,7 +31,6 @@ type DeployOptions struct {
 	Podname        string
 	NodeFilter     *NodeFilter
 	Image          string
-	ExtraArgs      string // appended to the entrypoint command
 	Count          int
 	Env            []string
 	DNS            []string
