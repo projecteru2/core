@@ -1,12 +1,10 @@
 package common
 
 import (
-	"fmt"
 	"path/filepath"
 	"strings"
 
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 )
 
 const (
@@ -35,17 +33,4 @@ func ParseStatusKey(key string) (string, string, string, string) {
 
 func ProcessingKey(processing *types.Processing) string {
 	return filepath.Join(WorkloadProcessingPrefix, processing.Appname, processing.Entryname, processing.Nodename, processing.Ident)
-}
-
-func WorkloadKeys(workload *types.Workload) ([]string, error) {
-	appname, entrypoint, _, err := utils.ParseWorkloadName(workload.Name)
-	if err != nil {
-		return nil, err
-	}
-	return []string{
-		filepath.Join(WorkloadStatusPrefix, appname, entrypoint, workload.Nodename, workload.ID),
-		filepath.Join(WorkloadDeployPrefix, appname, entrypoint, workload.Nodename, workload.ID),
-		fmt.Sprintf(WorkloadInfoKey, workload.ID),
-		fmt.Sprintf(NodeWorkloadsKey, workload.Nodename, workload.ID),
-	}, nil
 }
