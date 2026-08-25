@@ -3,6 +3,9 @@ package calcium
 import (
 	"context"
 	"fmt"
+	"maps"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -50,9 +53,7 @@ func TestHandleWorkloadResourceAllocatedMultipleNodes(t *testing.T) {
 
 func TestHandleCreateWorkloadNoHandle(t *testing.T) {
 	c := NewTestCluster()
-	wal, err := enableWAL(c.config, c, c.store)
-	require.NoError(t, err)
-	c.wal = wal
+	enableTestWAL(t, c)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		resourcetypes.Resources{},
@@ -62,7 +63,7 @@ func TestHandleCreateWorkloadNoHandle(t *testing.T) {
 	)
 
 	wrkid := "workload-id"
-	_, err = c.wal.Log(eventWorkloadCreated, &types.Workload{ID: wrkid, Nodename: "nodename"})
+	_, err := c.wal.Log(eventWorkloadCreated, &types.Workload{ID: wrkid, Nodename: "nodename"})
 	require.NoError(t, err)
 
 	wrk := &types.Workload{
@@ -81,9 +82,7 @@ func TestHandleCreateWorkloadNoHandle(t *testing.T) {
 
 func TestHandleCreateWorkloadError(t *testing.T) {
 	c := NewTestCluster()
-	wal, err := enableWAL(c.config, c, c.store)
-	require.NoError(t, err)
-	c.wal = wal
+	enableTestWAL(t, c)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		resourcetypes.Resources{},
@@ -98,7 +97,7 @@ func TestHandleCreateWorkloadError(t *testing.T) {
 		Engine:   engine,
 	}
 	wrkid := "workload-id"
-	_, err = c.wal.Log(eventWorkloadCreated, &types.Workload{ID: wrkid, Nodename: node.Name})
+	_, err := c.wal.Log(eventWorkloadCreated, &types.Workload{ID: wrkid, Nodename: node.Name})
 	require.NoError(t, err)
 
 	wrk := &types.Workload{
@@ -147,9 +146,7 @@ func TestHandleCreateWorkloadError(t *testing.T) {
 
 func TestHandleCreateWorkloadHandled(t *testing.T) {
 	c := NewTestCluster()
-	wal, err := enableWAL(c.config, c, c.store)
-	require.NoError(t, err)
-	c.wal = wal
+	enableTestWAL(t, c)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		resourcetypes.Resources{},
@@ -164,7 +161,7 @@ func TestHandleCreateWorkloadHandled(t *testing.T) {
 	}
 
 	wrkid := "workload-id"
-	_, err = c.wal.Log(eventWorkloadCreated, &types.Workload{ID: wrkid, Nodename: node.Name})
+	_, err := c.wal.Log(eventWorkloadCreated, &types.Workload{ID: wrkid, Nodename: node.Name})
 	require.NoError(t, err)
 
 	wrk := &types.Workload{
@@ -194,12 +191,10 @@ func TestHandleCreateWorkloadHandled(t *testing.T) {
 
 func TestHandleCreateWorkloadByNameFromTheStore(t *testing.T) {
 	c := NewTestCluster()
-	wal, err := enableWAL(c.config, c, c.store)
-	require.NoError(t, err)
-	c.wal = wal
+	enableTestWAL(t, c)
 
 	name := "app_entry_abcdef"
-	_, err = c.wal.Log(eventWorkloadCreated, &types.Workload{Name: name, Nodename: "nodename"})
+	_, err := c.wal.Log(eventWorkloadCreated, &types.Workload{Name: name, Nodename: "nodename"})
 	require.NoError(t, err)
 
 	store := c.store.(*storemocks.Store)
@@ -216,12 +211,10 @@ func TestHandleCreateWorkloadByNameFromTheStore(t *testing.T) {
 
 func TestHandleCreateWorkloadByNameFromTheEngine(t *testing.T) {
 	c := NewTestCluster()
-	wal, err := enableWAL(c.config, c, c.store)
-	require.NoError(t, err)
-	c.wal = wal
+	enableTestWAL(t, c)
 
 	name := "app_entry_abcdef"
-	_, err = c.wal.Log(eventWorkloadCreated, &types.Workload{Name: name, Nodename: "nodename"})
+	_, err := c.wal.Log(eventWorkloadCreated, &types.Workload{Name: name, Nodename: "nodename"})
 	require.NoError(t, err)
 
 	rmgr := c.rmgr.(*resourcemocks.Manager)
@@ -246,12 +239,10 @@ func TestHandleCreateWorkloadByNameFromTheEngine(t *testing.T) {
 
 func TestHandleCreateWorkloadByNameUnknownToBoth(t *testing.T) {
 	c := NewTestCluster()
-	wal, err := enableWAL(c.config, c, c.store)
-	require.NoError(t, err)
-	c.wal = wal
+	enableTestWAL(t, c)
 
 	name := "app_entry_abcdef"
-	_, err = c.wal.Log(eventWorkloadCreated, &types.Workload{Name: name, Nodename: "nodename"})
+	_, err := c.wal.Log(eventWorkloadCreated, &types.Workload{Name: name, Nodename: "nodename"})
 	require.NoError(t, err)
 
 	rmgr := c.rmgr.(*resourcemocks.Manager)
@@ -275,11 +266,9 @@ func TestHandleCreateWorkloadByNameUnknownToBoth(t *testing.T) {
 
 func TestHandleReplaceWorkload(t *testing.T) {
 	c := NewTestCluster()
-	wal, err := enableWAL(c.config, c, c.store)
-	require.NoError(t, err)
-	c.wal = wal
+	enableTestWAL(t, c)
 
-	_, err = c.wal.Log(eventWorkloadReplaced, &workloadReplacement{OldID: "old", NewID: "new"})
+	_, err := c.wal.Log(eventWorkloadReplaced, &workloadReplacement{OldID: "old", NewID: "new"})
 	require.NoError(t, err)
 
 	engine := &enginemocks.API{}
@@ -299,11 +288,9 @@ func TestHandleReplaceWorkload(t *testing.T) {
 
 func TestHandleReplaceWorkloadKeepsTheOldOneWhenTheNewOneIsGone(t *testing.T) {
 	c := NewTestCluster()
-	wal, err := enableWAL(c.config, c, c.store)
-	require.NoError(t, err)
-	c.wal = wal
+	enableTestWAL(t, c)
 
-	_, err = c.wal.Log(eventWorkloadReplaced, &workloadReplacement{OldID: "old", NewID: "new"})
+	_, err := c.wal.Log(eventWorkloadReplaced, &workloadReplacement{OldID: "old", NewID: "new"})
 	require.NoError(t, err)
 
 	store := c.store.(*storemocks.Store)
@@ -316,11 +303,9 @@ func TestHandleReplaceWorkloadKeepsTheOldOneWhenTheNewOneIsGone(t *testing.T) {
 
 func TestHandleReallocWorkload(t *testing.T) {
 	c := NewTestCluster()
-	wal, err := enableWAL(c.config, c, c.store)
-	require.NoError(t, err)
-	c.wal = wal
+	enableTestWAL(t, c)
 
-	_, err = c.wal.Log(eventWorkloadReallocated, "workloadid")
+	_, err := c.wal.Log(eventWorkloadReallocated, "workloadid")
 	require.NoError(t, err)
 
 	engine := &enginemocks.API{}
@@ -340,9 +325,7 @@ func TestHandleReallocWorkload(t *testing.T) {
 
 func TestHandleCreateLambda(t *testing.T) {
 	c := NewTestCluster()
-	wal, err := enableWAL(c.config, c, c.store)
-	require.NoError(t, err)
-	c.wal = wal
+	enableTestWAL(t, c)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		resourcetypes.Resources{},
@@ -361,7 +344,7 @@ func TestHandleCreateLambda(t *testing.T) {
 		nil,
 	)
 
-	_, err = c.wal.Log(eventCreateLambda, "workloadid")
+	_, err := c.wal.Log(eventCreateLambda, "workloadid")
 	require.NoError(t, err)
 
 	node := &types.Node{
@@ -407,11 +390,9 @@ func TestHandleCreateLambda(t *testing.T) {
 
 func TestHandleCreateLambdaKeepsEntryUntilRemoved(t *testing.T) {
 	c := NewTestCluster()
-	wal, err := enableWAL(c.config, c, c.store)
-	require.NoError(t, err)
-	c.wal = wal
+	enableTestWAL(t, c)
 
-	_, err = c.wal.Log(eventCreateLambda, "workloadid")
+	_, err := c.wal.Log(eventCreateLambda, "workloadid")
 	require.NoError(t, err)
 
 	store := c.store.(*storemocks.Store)
@@ -423,4 +404,43 @@ func TestHandleCreateLambdaKeepsEntryUntilRemoved(t *testing.T) {
 	c.wal.Recover(context.Background())
 	time.Sleep(500 * time.Millisecond)
 	store.AssertExpectations(t)
+}
+
+func enableTestWAL(t *testing.T, c *Calcium) {
+	mockWALStore(c.store.(*storemocks.Store))
+	journal, err := enableWAL(context.Background(), c.config, c, c.store)
+	require.NoError(t, err)
+	c.wal = journal
+}
+
+// mockWALStore backs the journal's three store calls with one map, so entries survive a Log.
+func mockWALStore(store *storemocks.Store) {
+	mutex := &sync.Mutex{}
+	data := map[string]string{}
+
+	store.On("Put", mock.Anything, mock.Anything).Return(func(_ context.Context, kvs map[string]string) error {
+		mutex.Lock()
+		defer mutex.Unlock()
+		maps.Copy(data, kvs)
+		return nil
+	}).Maybe()
+	store.On("Delete", mock.Anything, mock.Anything).Return(func(_ context.Context, keys []string) error {
+		mutex.Lock()
+		defer mutex.Unlock()
+		for _, key := range keys {
+			delete(data, key)
+		}
+		return nil
+	}).Maybe()
+	store.On("GetPrefix", mock.Anything, mock.Anything, mock.Anything).Return(func(_ context.Context, prefix string, _ int64) (map[string]string, error) {
+		mutex.Lock()
+		defer mutex.Unlock()
+		logged := map[string]string{}
+		for key, value := range data {
+			if strings.HasPrefix(key, prefix) {
+				logged[key] = value
+			}
+		}
+		return logged, nil
+	}).Maybe()
 }

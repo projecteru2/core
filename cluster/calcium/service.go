@@ -9,7 +9,6 @@ import (
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 )
 
 func (c *Calcium) WatchServiceStatus(ctx context.Context) (<-chan types.ServiceStatus, error) {
@@ -23,19 +22,14 @@ func (c *Calcium) WatchServiceStatus(ctx context.Context) (<-chan types.ServiceS
 
 // RegisterService registers this core's service address in the store.
 func (c *Calcium) RegisterService(ctx context.Context) (unregister func(), err error) {
-	serviceAddress, err := utils.GetOutboundAddress(c.config.Bind, c.config.ProbeTarget)
 	logger := log.WithFunc("calcium.RegisterService")
-	if err != nil {
-		logger.Error(ctx, err, "failed to get outbound address")
-		return nil, err
-	}
 
 	var (
 		expiry            <-chan struct{}
 		unregisterService func()
 	)
 	for {
-		if expiry, unregisterService, err = c.registerService(ctx, serviceAddress); err == nil {
+		if expiry, unregisterService, err = c.registerService(ctx, c.serviceAddress); err == nil {
 			break
 		}
 		if errors.Is(err, types.ErrKeyExists) {
@@ -59,7 +53,7 @@ func (c *Calcium) RegisterService(ctx context.Context) (unregister func(), err e
 		for {
 			select {
 			case <-expiry:
-				if ne, us, err := c.registerService(ctx, serviceAddress); err != nil {
+				if ne, us, err := c.registerService(ctx, c.serviceAddress); err != nil {
 					logger.Error(ctx, err, "failed to re-register service")
 					time.Sleep(c.config.GRPCConfig.ServiceHeartbeatInterval)
 				} else {

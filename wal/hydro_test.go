@@ -3,17 +3,21 @@ package wal
 import (
 	"context"
 	"fmt"
-	"path"
+	"maps"
+	"slices"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
-	"github.com/projecteru2/core/wal/kv"
+	"github.com/projecteru2/core/store/etcdv3"
+	"github.com/projecteru2/core/store/etcdv3/embedded"
+	"github.com/projecteru2/core/types"
 )
 
 func TestLogFailedAsNoSuchHandler(t *testing.T) {
-	hydro, _ := NewHydro(path.Join(t.TempDir(), "1"), time.Second)
+	hydro := newTestHydro(t, newMemStore())
 	commit, err := hydro.Log("create", struct{}{})
 	assert.Error(t, err)
 	assert.Nil(t, commit)
@@ -25,8 +29,7 @@ func TestLogFailedAsEncodeError(t *testing.T) {
 	handler := newTestEventHandler(eventype, &handled, &encoded, &decoded)
 	handler.encode = func(any) ([]byte, error) { return nil, fmt.Errorf("encode error") }
 
-	hydro, _ := NewHydro(path.Join(t.TempDir(), "1"), time.Second)
-	hydro.store = kv.NewMockedKV()
+	hydro := newTestHydro(t, newMemStore())
 	hydro.Register(handler)
 
 	commit, err := hydro.Log(eventype, struct{}{})
@@ -37,20 +40,37 @@ func TestLogFailedAsEncodeError(t *testing.T) {
 	assert.False(t, handled)
 }
 
+func TestLogFailedAsStoreError(t *testing.T) {
+	var handled, encoded, decoded bool
+	eventype := "create"
+	handler := newTestEventHandler(eventype, &handled, &encoded, &decoded)
+
+	store := newMemStore()
+	hydro := newTestHydro(t, store)
+	hydro.Register(handler)
+	store.putErr = fmt.Errorf("put error")
+
+	commit, err := hydro.Log(eventype, struct{}{})
+	assert.Error(t, err)
+	assert.Nil(t, commit)
+}
+
 func TestLogWithCommitEvent(t *testing.T) {
 	var handled, encoded, decoded bool
 	eventype := "create"
 	handler := newTestEventHandler(eventype, &handled, &encoded, &decoded)
 
-	hydro, _ := NewHydro(path.Join(t.TempDir(), "1"), time.Second)
-	hydro.store = kv.NewMockedKV()
+	store := newMemStore()
+	hydro := newTestHydro(t, store)
 	hydro.Register(handler)
 
 	commit, err := hydro.Log(eventype, struct{}{})
-	assert.NoError(t, err)
-	assert.NotNil(t, commit)
+	require.NoError(t, err)
+	require.NotNil(t, commit)
+	assert.Len(t, store.data, 1)
 
 	assert.NoError(t, commit())
+	assert.Empty(t, store.data)
 	assert.True(t, encoded)
 	assert.False(t, decoded)
 	assert.False(t, handled)
@@ -61,47 +81,49 @@ func TestRecoverFailedAsNoSuchHandler(t *testing.T) {
 	eventype := "create"
 	handler := newTestEventHandler(eventype, &handled, &encoded, &decoded)
 
-	hydro, _ := NewHydro(path.Join(t.TempDir(), "1"), time.Second)
-	hydro.store = kv.NewMockedKV()
+	store := newMemStore()
+	hydro := newTestHydro(t, store)
 	hydro.Register(handler)
 
-	commit, err := hydro.Log(eventype, struct{}{})
-	assert.NoError(t, err)
-	assert.NotNil(t, commit)
-
+	_, err := hydro.Log(eventype, struct{}{})
+	require.NoError(t, err)
 	hydro.handlers.Delete(eventype)
 
 	hydro.Recover(context.Background())
 	assert.True(t, encoded)
 	assert.False(t, decoded)
 	assert.False(t, handled)
+	assert.Len(t, store.data, 1)
 }
 
-func TestDecodeEventFailedAsDecodeEntryError(t *testing.T) {
-	hydro, _ := NewHydro(path.Join(t.TempDir(), "1"), time.Second)
-	ent := kv.MockedScanEntry{Value: []byte("x")}
-	_, err := hydro.decodeEvent(ent)
-	assert.Error(t, err)
-}
-
-func TestDecodeEventFailedAsInvalidEventID(t *testing.T) {
-	hydro, _ := NewHydro(path.Join(t.TempDir(), "1"), time.Second)
-	ent := kv.MockedScanEntry{Key: "/events/x", Value: []byte("{}")}
-	_, err := hydro.decodeEvent(ent)
-	assert.Error(t, err)
-}
-
-func TestRecoverStopsOnScanError(t *testing.T) {
+func TestRecoverFailedAsDecodeEventError(t *testing.T) {
 	var handled, encoded, decoded bool
-	handler := newTestEventHandler("create", &handled, &encoded, &decoded)
+	eventype := "create"
+	handler := newTestEventHandler(eventype, &handled, &encoded, &decoded)
 
-	hydro, _ := NewHydro(path.Join(t.TempDir(), "1"), time.Second)
-	hydro.store = scanErrorKV{MockedKV: kv.NewMockedKV()}
+	store := newMemStore()
+	hydro := newTestHydro(t, store)
+	hydro.Register(handler)
+	store.data[fmt.Sprintf(eventKey, hydro.address, 1)] = "not an event"
+
+	hydro.Recover(context.Background())
+	assert.False(t, decoded)
+	assert.False(t, handled)
+	assert.Len(t, store.data, 1)
+}
+
+func TestRecoverFailedAsReadError(t *testing.T) {
+	var handled, encoded, decoded bool
+	eventype := "create"
+	handler := newTestEventHandler(eventype, &handled, &encoded, &decoded)
+
+	store := newMemStore()
+	hydro := newTestHydro(t, store)
 	hydro.Register(handler)
 
-	commit, err := hydro.Log("create", struct{}{})
-	assert.NoError(t, err)
-	assert.NotNil(t, commit)
+	_, err := hydro.Log(eventype, struct{}{})
+	require.NoError(t, err)
+	store.getErr = fmt.Errorf("read error")
 
 	hydro.Recover(context.Background())
 	assert.False(t, decoded)
@@ -117,18 +139,18 @@ func TestRecoverFailedAsDecodeLogError(t *testing.T) {
 		return nil, fmt.Errorf("decode error")
 	}
 
-	hydro, _ := NewHydro(path.Join(t.TempDir(), "1"), time.Second)
-	hydro.store = kv.NewMockedKV()
+	store := newMemStore()
+	hydro := newTestHydro(t, store)
 	hydro.Register(handler)
 
-	commit, err := hydro.Log(eventype, struct{}{})
-	assert.NoError(t, err)
-	assert.NotNil(t, commit)
+	_, err := hydro.Log(eventype, struct{}{})
+	require.NoError(t, err)
 
 	hydro.Recover(context.Background())
 	assert.True(t, encoded)
 	assert.True(t, decoded)
 	assert.False(t, handled)
+	assert.Len(t, store.data, 1)
 }
 
 func TestHydroRecover(t *testing.T) {
@@ -136,59 +158,99 @@ func TestHydroRecover(t *testing.T) {
 	eventype := "create"
 	handler := newTestEventHandler(eventype, &handled, &encoded, &decoded)
 
-	hydro, _ := NewHydro(path.Join(t.TempDir(), "1"), time.Second)
-	hydro.store = kv.NewMockedKV()
+	store := newMemStore()
+	hydro := newTestHydro(t, store)
 	hydro.Register(handler)
 
-	commit, err := hydro.Log(eventype, struct{}{})
-	assert.NoError(t, err)
-	assert.NotNil(t, commit)
+	_, err := hydro.Log(eventype, struct{}{})
+	require.NoError(t, err)
 
 	hydro.Recover(context.Background())
 	assert.True(t, encoded)
 	assert.True(t, decoded)
 	assert.True(t, handled)
-
-	ch, _ := hydro.store.Scan([]byte(eventPrefix))
-	for range ch {
-		assert.Fail(t, "the events should be deleted")
-	}
+	assert.Empty(t, store.data)
 }
 
-func TestHydroEventKeyMustPadZero(t *testing.T) {
-	event := HydroEvent{ID: 15}
-	assert.Equal(t, "/events/000000000000000f", string(event.Key()))
-}
+func TestHydroKeepsOtherAddressesAlone(t *testing.T) {
+	var handled, encoded, decoded bool
+	eventype := "create"
+	handler := newTestEventHandler(eventype, &handled, &encoded, &decoded)
 
-func TestHydroEventParseIDShouldRemovePadding(t *testing.T) {
-	id, err := parseHydroEventID([]byte("/events/00000000000000000000000000f"))
-	assert.NoError(t, err)
-	assert.Equal(t, uint64(15), id)
-}
-
-func TestHydroRecoverWithRealLithium(t *testing.T) {
-	p := path.Join(t.TempDir(), "temp.wal")
-	hydro, err := NewHydro(p, time.Second)
-	assert.NoError(t, err)
-
-	handler := simpleEventHandler{
-		event:  "create",
-		encode: func(any) ([]byte, error) { return []byte("{}"), nil },
-		decode: func([]byte) (any, error) { return struct{}{}, nil },
-		handle: func(any) error { return nil },
-	}
+	store := newMemStore()
+	hydro := newTestHydro(t, store)
 	hydro.Register(handler)
 
-	hydro.Log(handler.event, struct{}{})
-	hydro.Log(handler.event, struct{}{})
-	hydro.Log(handler.event, struct{}{})
+	_, err := hydro.Log(eventype, struct{}{})
+	require.NoError(t, err)
+	peer := fmt.Sprintf(eventKey, "10.0.0.2:5001", 1)
+	store.data[peer] = store.data[fmt.Sprintf(eventKey, hydro.address, 1)]
 
 	hydro.Recover(context.Background())
+	assert.True(t, handled)
+	assert.Equal(t, []string{peer}, keysOf(store))
+}
 
-	ch, _ := hydro.store.Scan([]byte(eventPrefix))
-	for range ch {
-		assert.FailNow(t, "expects no data")
+func TestHydroWithRealStore(t *testing.T) {
+	address := "10.0.0.1:5001"
+	ctx := context.Background()
+	store := newTestStore(t)
+
+	handled := []string{}
+	handler := simpleEventHandler{
+		event:  "create",
+		encode: func(raw any) ([]byte, error) { return []byte(raw.(string)), nil },
+		decode: func(bs []byte) (any, error) { return string(bs), nil },
+		handle: func(raw any) error { handled = append(handled, raw.(string)); return nil },
 	}
+
+	hydro, err := NewHydro(ctx, store, address, testConfig())
+	require.NoError(t, err)
+	hydro.Register(handler)
+	for _, name := range []string{"first", "second", "third"} {
+		_, err = hydro.Log(handler.event, name)
+		require.NoError(t, err)
+	}
+
+	logged, err := store.GetPrefix(ctx, fmt.Sprintf(eventPrefix, address), 0)
+	require.NoError(t, err)
+	require.Len(t, logged, 3)
+	require.Contains(t, logged, fmt.Sprintf(eventKey, address, 1))
+
+	restarted, err := NewHydro(ctx, store, address, testConfig())
+	require.NoError(t, err)
+	restarted.Register(handler)
+	_, err = restarted.Log(handler.event, "fourth")
+	require.NoError(t, err)
+
+	restarted.Recover(ctx)
+	assert.Equal(t, []string{"first", "second", "third", "fourth"}, handled)
+
+	left, err := store.GetPrefix(ctx, fmt.Sprintf(eventPrefix, address), 0)
+	require.NoError(t, err)
+	assert.Empty(t, left)
+}
+
+func newTestHydro(t *testing.T, store Store) *Hydro {
+	hydro, err := NewHydro(context.Background(), store, "10.0.0.1:5001", testConfig())
+	require.NoError(t, err)
+	return hydro
+}
+
+func testConfig() types.Config {
+	return types.Config{GlobalTimeout: time.Minute, LockTimeout: 10 * time.Second}
+}
+
+func newTestStore(t *testing.T) *etcdv3.Mercury {
+	cluster, err := embedded.New(t.TempDir())
+	require.NoError(t, err)
+	t.Cleanup(cluster.Close)
+
+	config := types.Config{MaxConcurrency: 10, LockTimeout: 10 * time.Second, GlobalTimeout: 30 * time.Second}
+	config.Etcd = types.EtcdConfig{Machines: []string{"127.0.0.1:2379"}, Prefix: "/eru-test", LockPrefix: "/eru-test-lock"}
+	store, err := etcdv3.New(config, cluster)
+	require.NoError(t, err)
+	return store
 }
 
 func newTestEventHandler(eventype string, handled, encoded, decoded *bool) simpleEventHandler {
@@ -215,22 +277,8 @@ func newTestEventHandler(eventype string, handled, encoded, decoded *bool) simpl
 	}
 }
 
-type scanErrorKV struct {
-	*kv.MockedKV
-}
-
-func (k scanErrorKV) Scan(prefix []byte) (<-chan kv.ScanEntry, func()) {
-	scanned, _ := k.MockedKV.Scan(prefix)
-	entries := []kv.ScanEntry{kv.MockedScanEntry{Err: fmt.Errorf("scan error")}}
-	for entry := range scanned {
-		entries = append(entries, entry)
-	}
-
-	ch := make(chan kv.ScanEntry, len(entries))
-	for _, entry := range entries {
-		ch <- entry
-	}
-	close(ch)
-
-	return ch, func() {}
+func keysOf(store *memStore) []string {
+	store.Lock()
+	defer store.Unlock()
+	return slices.Sorted(maps.Keys(store.data))
 }

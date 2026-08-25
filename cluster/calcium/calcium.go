@@ -33,6 +33,8 @@ type Calcium struct {
 	wal        wal.WAL
 	pool       *ants.PoolWithFunc
 	identifier string
+	// serviceAddress is both the key RegisterService publishes and the journal's own prefix
+	serviceAddress string
 }
 
 // New returns a Calcium cluster.
@@ -78,7 +80,13 @@ func New(ctx context.Context, config types.Config, embeddedETCD *embedded.Cluste
 
 	cal := &Calcium{store: store, config: config, source: scm, watcher: watcher, rmgr: rmgr, pool: pool}
 
-	cal.wal, err = enableWAL(config, cal, store)
+	cal.serviceAddress, err = utils.GetOutboundAddress(config.Bind, config.ProbeTarget)
+	if err != nil {
+		logger.Error(ctx, err, "failed to get outbound address")
+		return nil, err
+	}
+
+	cal.wal, err = enableWAL(ctx, config, cal, store)
 	if err != nil {
 		logger.Error(ctx, err)
 		return nil, err
