@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -26,12 +25,6 @@ const (
 	defaultStopTimeout = 10 * time.Second
 	metaDir            = "/run/eru/workloads"
 	hostNetwork        = "host"
-	kiB                = 1024
-	infoFields         = 4
-
-	infoScript = `mkdir -p "$1" 2>/dev/null || true
-printf '%s\n' "$(cat /etc/machine-id 2>/dev/null)" "$(nproc 2>/dev/null)" ` +
-		`"$(awk '/^MemTotal:/{print $2}' /proc/meminfo 2>/dev/null)" "$(df -Pk "$1" 2>/dev/null | awk 'NR==2{print $2}')"`
 )
 
 var metaScript = fmt.Sprintf(`dir=$1
@@ -74,24 +67,12 @@ func MakeClient(_ context.Context, config coretypes.Config, nodename, endpoint, 
 }
 
 func (e *Engine) Info(ctx context.Context) (*enginetypes.Info, error) {
-	res, err := e.run(ctx, sshrunner.Shell(infoScript, e.root)...)
+	info, err := sshrunner.NodeInfo(ctx, e.runner, e.root)
 	if err != nil {
 		return nil, err
 	}
-	fields := strings.Split(strings.TrimRight(res.Stdout, "\n"), "\n")
-	if len(fields) < infoFields {
-		return nil, errors.Wrapf(coretypes.ErrInvaildNodeEndpoint, "unexpected node info %q", res.Stdout)
-	}
-	ncpu, _ := strconv.Atoi(fields[1])
-	memory, _ := strconv.ParseInt(fields[2], 10, 64)
-	storage, _ := strconv.ParseInt(fields[3], 10, 64)
-	return &enginetypes.Info{
-		Type:         Type,
-		ID:           fields[0],
-		NCPU:         ncpu,
-		MemTotal:     memory * kiB,
-		StorageTotal: storage * kiB,
-	}, nil
+	info.Type = Type
+	return info, nil
 }
 
 func (e *Engine) Ping(ctx context.Context) error {

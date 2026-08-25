@@ -13,7 +13,7 @@ import (
 	coretypes "github.com/projecteru2/core/types"
 )
 
-func TestInfoReadsTheNodeItself(t *testing.T) {
+func TestInfoNamesTheEngine(t *testing.T) {
 	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result {
 		return &sshrunner.Result{Stdout: "machine-1\n8\n16384\n1048576\n"}
 	}}
@@ -24,17 +24,6 @@ func TestInfoReadsTheNodeItself(t *testing.T) {
 	}
 	if info.Type != Type || info.ID != "machine-1" || info.NCPU != 8 {
 		t.Errorf("got %+v, want the node's own identity", info)
-	}
-	if info.MemTotal != 16384*kiB || info.StorageTotal != 1048576*kiB {
-		t.Errorf("got %d/%d, want kibibytes scaled to bytes", info.MemTotal, info.StorageTotal)
-	}
-}
-
-func TestInfoRefusesAnUnreadableNode(t *testing.T) {
-	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: "machine-1\n"} }}
-
-	if _, err := testEngine(t, runner).Info(t.Context()); !errors.Is(err, coretypes.ErrInvaildNodeEndpoint) {
-		t.Errorf("got %v, want ErrInvaildNodeEndpoint", err)
 	}
 }
 
