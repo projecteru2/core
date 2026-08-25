@@ -267,7 +267,7 @@ the cocoon daemon's events on it. The eru name stays in the meta file and in cor
 | `ImagePull` | `image pull <ref>` for OCI VM images and cloud-image URLs, registry auth left to cocoon's own config; a split-qcow2 artifact (the Windows images) is `oras pull`ed and `image import`ed under the same ref, once |
 | `ImageList` / `ImageRemove` | `image list --format json` filtered by name prefix / `image rm` |
 | `ImageLocalDigests` / `ImageRemoteDigest` | `image inspect` / `oras manifest fetch --descriptor`; a cloud-image URL is its own digest, so it is pulled once. A node without `oras` (probed with `command -v`) reports no remote digest, so every deploy runs `image pull`, which cocoon answers from its cache. Only a node that answered yes is remembered — a probe an ssh failure lost is asked again, instead of pinning the node as oras-less for the engine's life |
-| `ImageBuildFromExist` | `ErrEngineNotImplemented`, and so is `ImagePush`: cocoon has no registry push, and core deletes the tag once a push fails, which would take the snapshot with it |
+| `ImageBuildFromExist` | `ErrEngineNotImplemented`, and so is `ImagePush`: cocoon has no registry push, so a build from an existing workload can never finish. Saving a snapshot first only left node state behind — core's build always goes on to push the refs and then runs `ImageRemove` over them — so the engine refuses before anything is written |
 | `NetworkList` | the CNI conf dir (`/etc/cni/net.d`); `NetworkConnect` / `Disconnect` are `ErrEngineNotImplemented` |
 | `ImageBuild`, `ImagesPrune`, `RawEngine` | `ErrEngineNotImplemented` |
 
