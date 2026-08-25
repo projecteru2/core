@@ -129,6 +129,21 @@ func TestImageListFiltersByName(t *testing.T) {
 	}
 }
 
+func TestImageListOnANodeWithNoImages(t *testing.T) {
+	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result {
+		return &sshrunner.Result{Stdout: "No images found.\n"}
+	}}
+	e := testEngine(t, runner)
+
+	images, err := e.ImageList(t.Context(), "ghcr.io/cocoonstack")
+	if err != nil {
+		t.Fatalf("cocoon answers an empty store in prose, not json: %v", err)
+	}
+	if len(images) != 0 {
+		t.Errorf("got %+v, want no images", images)
+	}
+}
+
 func TestImageLocalDigests(t *testing.T) {
 	tests := []struct {
 		name  string

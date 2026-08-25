@@ -30,6 +30,8 @@ oras pull "$ref" -o "$tmp" >/dev/null
 `
 
 	orasProbe = `command -v oras >/dev/null 2>&1`
+
+	noImages = "No images"
 )
 
 // cocoonImage is the part of cocoon's image JSON the engine reads.
@@ -55,11 +57,14 @@ func (e *Engine) ImageList(ctx context.Context, image string) ([]*enginetypes.Im
 	if err != nil {
 		return nil, err
 	}
+	images := []*enginetypes.Image{}
+	if strings.HasPrefix(strings.TrimSpace(res.Stdout), noImages) {
+		return images, nil
+	}
 	stored := []cocoonImage{}
 	if err = json.Unmarshal([]byte(res.Stdout), &stored); err != nil {
 		return nil, err
 	}
-	images := []*enginetypes.Image{}
 	for _, entry := range stored {
 		if strings.HasPrefix(entry.Name, image) {
 			images = append(images, &enginetypes.Image{ID: entry.ID, Tags: []string{entry.Name}})
