@@ -18,6 +18,7 @@ import (
 	"github.com/cockroachdb/errors"
 
 	"github.com/projecteru2/core/cluster"
+	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 )
@@ -134,6 +135,19 @@ func DecodeMetaInLabel(ctx context.Context, labels map[string]string) *types.Lab
 		}
 	}
 	return meta
+}
+
+// NewHealthCheck renders the label's health check the way a workload record carries it.
+func NewHealthCheck(check *types.HealthCheck) *enginetypes.HealthCheck {
+	if check == nil {
+		return nil
+	}
+	return &enginetypes.HealthCheck{
+		TCPPorts: check.TCPPorts,
+		HTTPPort: check.HTTPPort,
+		HTTPURL:  check.HTTPURL,
+		HTTPCode: check.HTTPCode,
+	}
 }
 
 // ShortID returns the last 7 characters of workloadID.
