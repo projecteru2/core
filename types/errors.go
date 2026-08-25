@@ -26,16 +26,12 @@ var (
 	ErrInvaildSCMType          = errors.New("scm type not supported yet")
 	ErrDownloadArtifactsFailed = errors.New("download artifacts failed")
 
-	ErrInvaildIPAddress     = errors.New("invalid IP address")
 	ErrInvaildIPWithPort    = errors.New("invalid IP with port")
 	ErrAllConnectionsFailed = errors.New("all connections failed")
 
 	ErrInvaildMemory         = errors.New("invalid memory value")
 	ErrNilEngine             = errors.New("engine is nil")
-	ErrInvaildRefs           = errors.New("invalid image refs")
 	ErrNoImage               = errors.New("no image")
-	ErrNoImageUser           = errors.New("no image user")
-	ErrInvaildRemoteDigest   = errors.New("got invalid digest")
 	ErrInvaildEngineEndpoint = errors.New("unsupported engine endpoint")
 	ErrEngineNotImplemented  = errors.New("not implemented")
 	ErrInvalidEngineArgs     = errors.New("invalid engine args")
@@ -46,7 +42,6 @@ var (
 	ErrInvalidWorkloadName   = errors.New("invalid workload name")
 	ErrWorkloadIgnored       = errors.New("ignore this workload")
 	ErrWorkloadNotExists     = errors.New("workload not exists")
-	ErrWorkloadRemoving      = errors.New("workload is being removed")
 
 	ErrPodHasNodes = errors.New("pod has nodes")
 	ErrPodNoNodes  = errors.New("pod has no nodes")
@@ -85,8 +80,6 @@ var (
 	ErrInvaildCount       = errors.New("bad `Count` value, entity count invalid")
 
 	ErrInvaildWALEventType = errors.New("invalid WAL event type")
-	ErrInvaildWALEvent     = errors.New("encode WAL event failed")
-	ErrInvalidWALBucket    = errors.New("invalid WAL bucket")
 	ErrInvalidWALDataType  = errors.New("invalid WAL data type")
 
 	ErrInvaildDeployCount    = errors.New("invalid deploy count")

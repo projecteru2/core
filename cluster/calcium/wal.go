@@ -53,10 +53,7 @@ func (h *CreateLambdaHandler) Decode(bs []byte) (any, error) {
 }
 
 func (h *CreateLambdaHandler) Handle(ctx context.Context, raw any) error {
-	workloadID, ok := raw.(string)
-	if !ok {
-		return errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
-	}
+	workloadID, _ := raw.(string)
 
 	commit, err := h.wal.Log(eventCreateLambda, workloadID)
 	if err != nil {
