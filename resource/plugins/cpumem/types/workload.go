@@ -105,7 +105,7 @@ func (w *WorkloadResourceRequest) Validate() error {
 	return nil
 }
 
-func (w *WorkloadResourceRequest) Parse(rawParams resourcetypes.RawParams) (err error) {
+func (w *WorkloadResourceRequest) Parse(rawParams resourcetypes.RawParams) {
 	w.KeepCPUBind = rawParams.Bool("keep-cpu-bind")
 	w.CPUBind = rawParams.Bool("cpu-bind")
 
@@ -114,5 +114,4 @@ func (w *WorkloadResourceRequest) Parse(rawParams resourcetypes.RawParams) (err 
 
 	w.MemRequest = rawParams.Int64("memory-request")
 	w.MemLimit = rawParams.Int64("memory-limit")
-	return nil
 }

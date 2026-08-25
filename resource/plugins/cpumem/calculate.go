@@ -17,9 +17,7 @@ import (
 func (p Plugin) CalculateDeploy(ctx context.Context, nodename string, deployCount int, resourceRequest plugintypes.WorkloadResourceRequest) (*plugintypes.CalculateDeployResponse, error) {
 	logger := log.WithFunc("resource.cpumem.CalculateDeploy").WithField("node", nodename)
 	req := &cpumemtypes.WorkloadResourceRequest{}
-	if err := req.Parse(resourceRequest); err != nil {
-		return nil, err
-	}
+	req.Parse(resourceRequest)
 	if err := req.Validate(); err != nil {
 		logger.Errorf(ctx, err, "invalid resource opts %+v", req)
 		return nil, err
@@ -52,9 +50,7 @@ func (p Plugin) CalculateDeploy(ctx context.Context, nodename string, deployCoun
 
 func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource plugintypes.WorkloadResource, resourceRequest plugintypes.WorkloadResourceRequest) (*plugintypes.CalculateReallocResponse, error) {
 	req := &cpumemtypes.WorkloadResourceRequest{}
-	if err := req.Parse(resourceRequest); err != nil {
-		return nil, err
-	}
+	req.Parse(resourceRequest)
 	originResource := &cpumemtypes.WorkloadResource{}
 	if err := originResource.Parse(resource); err != nil {
 		return nil, err

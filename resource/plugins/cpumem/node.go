@@ -114,9 +114,7 @@ func (p Plugin) RemoveNode(ctx context.Context, nodename string) (*plugintypes.R
 func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, resource plugintypes.WorkloadResourceRequest) (*plugintypes.GetNodesDeployCapacityResponse, error) {
 	logger := log.WithFunc("resource.cpumem.GetNodesDeployCapacity")
 	req := &cpumemtypes.WorkloadResourceRequest{}
-	if err := req.Parse(resource); err != nil {
-		return nil, err
-	}
+	req.Parse(resource)
 
 	if err := req.Validate(); err != nil {
 		logger.Errorf(ctx, err, "invalid resource opts %+v", req)

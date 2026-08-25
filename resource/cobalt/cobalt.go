@@ -68,8 +68,3 @@ func (m *Manager) LoadPlugins(ctx context.Context, embeddedETCD *embedded.Cluste
 func (m *Manager) AddPlugins(ps ...plugins.Plugin) {
 	m.plugins = append(m.plugins, ps...)
 }
-
-// GetPlugins is used for mock
-func (m Manager) GetPlugins() []plugins.Plugin {
-	return m.plugins
-}

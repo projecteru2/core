@@ -71,13 +71,6 @@ type NodeResourceInfo struct {
 	Usage    *NodeResource `json:"usage"`
 }
 
-func (n *NodeResourceInfo) DeepCopy() *NodeResourceInfo {
-	return &NodeResourceInfo{
-		Capacity: n.Capacity.DeepCopy(),
-		Usage:    n.Usage.DeepCopy(),
-	}
-}
-
 func (n *NodeResourceInfo) RemoveEmptyCores() {
 	for cpu := range n.Capacity.CPUMap {
 		if n.Capacity.CPUMap[cpu] == 0 && n.Usage.CPUMap[cpu] == 0 {
