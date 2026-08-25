@@ -96,7 +96,7 @@ func (v *vmRecord) tap() string {
 	return v.NICs[0].TAP
 }
 
-// networks keys the guest address by the conflist eru asked for.
+// networks keys the guest address by the conflist cocoon reports, which a deploy need not have named.
 func (v *vmRecord) networks() map[string]string {
 	addr := v.address()
 	if addr == nil {
