@@ -101,6 +101,7 @@ func NewTestCluster() *Calcium {
 	mwal := &walmocks.WAL{}
 	commit := wal.Commit(func() error { return nil })
 	mwal.On("Log", mock.Anything, mock.Anything).Return(commit, nil)
+	mwal.On("Close").Return(nil)
 
 	c.store = &storemocks.Store{}
 	c.source = &sourcemocks.Source{}
