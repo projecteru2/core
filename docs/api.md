@@ -107,7 +107,8 @@ plugin name. See [Resource plugins](resource-plugins.md).
 | `ListImage` ⇊ | `podname`, `nodenames`, `filter` | List images per node |
 
 Image references are built as `hub/namespace/appname:tag` from `docker.hub` and
-`docker.namespace`; with no tags, `latest` is used.
+`docker.namespace`; with no tags, `latest` is used. Registry credentials come from
+`registry.auths`.
 
 ## Networks
 
