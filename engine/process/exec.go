@@ -57,7 +57,7 @@ func scopeArgv(record *meta, config *enginetypes.ExecConfig) []string {
 		user, group, _ := strings.Cut(config.User, ":")
 		argv = append(argv, "setpriv", "--reuid="+user, "--regid="+cmp.Or(group, user), "--init-groups", "--")
 	}
-	if config.WorkingDir != "" {
+	if config.WorkingDir != "" && config.WorkingDir != "/" {
 		argv = append(argv, "env", "--chdir="+config.WorkingDir)
 	}
 	return append(argv, config.Cmd...)

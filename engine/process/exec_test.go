@@ -72,6 +72,12 @@ func TestScopeArgv(t *testing.T) {
 			[]string{"chroot", testRoot + "/w1/merged", "env", "--chdir=/srv", "sh"},
 		},
 		{
+			"the root working directory needs no env, which a minimal bundle may not carry",
+			overlay,
+			&enginetypes.ExecConfig{WorkingDir: "/", Cmd: []string{"sh"}},
+			[]string{"chroot", testRoot + "/w1/merged", "sh"},
+		},
+		{
 			"a raw workload drops privileges with setpriv",
 			raw,
 			&enginetypes.ExecConfig{User: "app:staff", Cmd: []string{"sh"}},

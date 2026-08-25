@@ -277,8 +277,10 @@ as stopped rather than missing.
 
 A scope unit has no exec context, so `Execute` cannot pass `RootDirectory=` or `--uid` as unit
 properties: it execs `chroot --userspec=<user> <merged>` for an overlay workload,
-`setpriv --reuid --regid --init-groups` for a raw one, and enters the working directory with
-`env --chdir`, which survives the chroot. `ImagePush` has nothing left to do — `ImageBuildFromExist` pushes the
+`setpriv --reuid --regid --init-groups` for a raw one, and enters a working directory other than
+`/` with `env --chdir`, which survives the chroot. `env` resolves *inside* the new root, so only
+an exec that names such a directory requires the image to carry it — the default lands where
+`chroot` already put it and needs nothing. `ImagePush` has nothing left to do — `ImageBuildFromExist` pushes the
 artifact as it builds it.
 
 Resources land on cgroup v2 unit properties: `AllowedCPUs`, `AllowedMemoryNodes` and `CPUWeight`
@@ -302,7 +304,7 @@ Two per-workload options ride in the deploy request's raw args:
 | `tasks_max` | int | `TasksMax=` for the unit |
 
 Node prerequisites: systemd ≥ 244 on cgroup v2, `sshd`, `oras`, `util-linux` for `setpriv`,
-coreutils ≥ 8.28 for `chroot` and `env --chdir`, and a writable `process.root`.
+coreutils for `chroot`, and a writable `process.root`.
 
 ### The bundle format
 
