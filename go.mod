@@ -3,7 +3,6 @@ module github.com/projecteru2/core
 go 1.27.0
 
 require (
-	github.com/CMGS/statsd v0.0.0-20160223095033-48c421b3c1ab
 	github.com/alicebob/miniredis/v2 v2.30.2
 	github.com/alphadose/haxmap v1.4.1
 	github.com/bsm/redislock v0.10.0
@@ -47,7 +46,6 @@ require (
 	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/ProtonMail/go-crypto v1.4.1 // indirect
-	github.com/alexcesaro/statsd v2.0.0+incompatible // indirect
 	github.com/alicebob/gopher-json v0.0.0-20230218143504-906a9b012302 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect

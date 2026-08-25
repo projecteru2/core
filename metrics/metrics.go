@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"sync"
 
-	statsdlib "github.com/CMGS/statsd"
 	"github.com/prometheus/client_golang/prometheus"
 	promClient "github.com/prometheus/client_model/go"
 
@@ -42,7 +41,7 @@ type Metrics struct {
 	StatsdAddr   string
 	Hostname     string
 	statsdMu     sync.Mutex
-	statsdClient *statsdlib.Client
+	statsdClient *utils.Statsd
 
 	Collectors map[string]prometheus.Collector
 
@@ -133,19 +132,16 @@ func (m *Metrics) RemoveInvalidNodes(invalidNode string) {
 	}
 }
 
-func (m *Metrics) client(ctx context.Context) (*statsdlib.Client, error) {
+func (m *Metrics) client(ctx context.Context) (*utils.Statsd, error) {
 	m.statsdMu.Lock()
 	defer m.statsdMu.Unlock()
 	if m.statsdClient != nil {
 		return m.statsdClient, nil
 	}
-	logger := log.WithFunc("metrics.client")
 	var err error
 	// UDP is connectionless, so a failed client never needs reconnecting
-	if m.statsdClient, err = statsdlib.New(m.StatsdAddr, statsdlib.WithErrorHandler(func(err error) {
-		logger.Error(ctx, err, "failed to send to statsd")
-	})); err != nil {
-		logger.Error(ctx, err, "failed to connect statsd")
+	if m.statsdClient, err = utils.NewStatsd(m.StatsdAddr); err != nil {
+		log.WithFunc("metrics.client").Error(ctx, err, "failed to connect statsd")
 		return nil, err
 	}
 	return m.statsdClient, nil
