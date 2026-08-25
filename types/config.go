@@ -129,7 +129,8 @@ type BuildConfig struct {
 
 // ProcessConfig is the node-side layout the process engine writes into.
 type ProcessConfig struct {
-	Root string `yaml:"root" default:"/var/lib/eru/process"`
+	Root        string        `yaml:"root" default:"/var/lib/eru/process"`
+	StopTimeout time.Duration `yaml:"stop_timeout" default:"10s"` // grace period before systemd kills the unit
 }
 
 type VirtConfig struct {

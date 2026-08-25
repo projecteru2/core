@@ -3,6 +3,7 @@ package process
 import (
 	"slices"
 	"testing"
+	"time"
 
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -10,12 +11,13 @@ import (
 
 func TestUnitArgvRendersABoundWorkload(t *testing.T) {
 	u := &unit{
-		ID:       "abcdef",
-		Podname:  "prod",
-		User:     "app",
-		Root:     testRoot + "/abcdef/merged",
-		Working:  "/home/app",
-		TasksMax: 512,
+		ID:          "abcdef",
+		Podname:     "prod",
+		User:        "app",
+		Root:        testRoot + "/abcdef/merged",
+		Working:     "/home/app",
+		TasksMax:    512,
+		StopTimeout: 10 * time.Second,
 		Opts: &enginetypes.VirtualizationCreateOptions{
 			Name:    "app_web_xyz",
 			Env:     []string{"FOO=bar baz"},
@@ -52,6 +54,7 @@ func TestUnitArgvRendersABoundWorkload(t *testing.T) {
 		"-p", "IOReadBandwidthMax=/dev/sda 1048576",
 		"-p", "IOWriteBandwidthMax=/dev/sda 2097152",
 		"-p", "Restart=on-failure",
+		"-p", "TimeoutStopSec=10",
 		"--", "/bin/server", "--port", "8080",
 	}
 	if got := u.argv(); !slices.Equal(got, want) {

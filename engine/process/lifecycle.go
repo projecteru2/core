@@ -29,7 +29,7 @@ exec sh "$dir/run.sh"
 `
 	stopScript = `set -e
 unit=$1; dir=$2; force=$3
-if [ "$force" = 1 ]; then systemctl kill --signal=SIGKILL "$unit" 2>/dev/null || true; fi
+if [ "$force" = 1 ]; then systemctl kill -s SIGKILL "$unit" 2>/dev/null || true; fi
 systemctl stop "$unit"
 if mountpoint -q "$dir/merged"; then umount "$dir/merged"; fi
 `

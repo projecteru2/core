@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/cockroachdb/errors"
 
@@ -20,12 +21,13 @@ const (
 	Prefix = "process://"
 	Type   = "process"
 
-	defaultRoot = "/var/lib/eru/process"
-	defaultPort = "22"
-	metaDir     = "/run/eru/workloads"
-	hostNetwork = "host"
-	kiB         = 1024
-	infoFields  = 4
+	defaultRoot        = "/var/lib/eru/process"
+	defaultStopTimeout = 10 * time.Second
+	defaultPort        = "22"
+	metaDir            = "/run/eru/workloads"
+	hostNetwork        = "host"
+	kiB                = 1024
+	infoFields         = 4
 
 	infoScript = `printf '%s\n' "$(cat /etc/machine-id 2>/dev/null)" "$(nproc 2>/dev/null)" ` +
 		`"$(awk '/^MemTotal:/{print $2}' /proc/meminfo 2>/dev/null)" "$(df -Pk "$1" 2>/dev/null | awk 'NR==2{print $2}')"`
@@ -35,11 +37,12 @@ var _ engine.API = (*Engine)(nil)
 
 // Engine runs bare processes as systemd transient units over SSH.
 type Engine struct {
-	config coretypes.Config
-	ep     *enginetypes.Params
-	runner runner
-	root   string
-	host   string
+	config      coretypes.Config
+	ep          *enginetypes.Params
+	runner      runner
+	root        string
+	host        string
+	stopTimeout time.Duration
 
 	mu    sync.Mutex
 	execs map[string]session
@@ -56,12 +59,13 @@ func MakeClient(_ context.Context, config coretypes.Config, nodename, endpoint, 
 		return nil, err
 	}
 	return &Engine{
-		config: config,
-		ep:     enginetypes.NewParams(nodename, endpoint, ca, cert, key),
-		runner: newSSHRunner(addr, clientConfig),
-		root:   cmp.Or(config.Process.Root, defaultRoot),
-		host:   host,
-		execs:  map[string]session{},
+		config:      config,
+		ep:          enginetypes.NewParams(nodename, endpoint, ca, cert, key),
+		runner:      newSSHRunner(addr, clientConfig),
+		root:        cmp.Or(config.Process.Root, defaultRoot),
+		host:        host,
+		stopTimeout: cmp.Or(config.Process.StopTimeout, defaultStopTimeout),
+		execs:       map[string]session{},
 	}, nil
 }
 

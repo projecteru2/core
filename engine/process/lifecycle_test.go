@@ -4,6 +4,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/cockroachdb/errors"
 
@@ -45,6 +46,7 @@ func TestVirtualizationCreateRecordsTheUnitAndTheMetaFile(t *testing.T) {
 		metaPath(created.ID),
 		"--unit=" + unitName(created.ID),
 		"--slice=eru-prod.slice",
+		"TimeoutStopSec=10",
 		`"podname":"prod"`,
 		`"root_directory":"` + workloadDir(testRoot, created.ID) + `/merged"`,
 	} {
@@ -111,6 +113,31 @@ func TestVirtualizationLifecycleCommandSequence(t *testing.T) {
 	}
 	if !slices.Equal(runner.lines, want) {
 		t.Errorf("got %q, want %q", runner.lines, want)
+	}
+}
+
+func TestVirtualizationStopOnlyKillsWhenForced(t *testing.T) {
+	tests := []struct {
+		name    string
+		timeout time.Duration
+		force   string
+	}{
+		{"the engine default stops gracefully", -1, "0"},
+		{"a zero timeout forces the stop", 0, "1"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			runner := &fakeRunner{}
+			e := testEngine(t, runner)
+
+			if err := e.VirtualizationStop(t.Context(), "w1", tt.timeout); err != nil {
+				t.Fatalf("stop: %v", err)
+			}
+			want := quote([]string{"sh", "-c", stopScript, "sh", "eru-w1.service", testRoot + "/w1", tt.force})
+			if len(runner.lines) != 1 || runner.lines[0] != want {
+				t.Errorf("got %q, want %q", runner.lines, want)
+			}
+		})
 	}
 }
 

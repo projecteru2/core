@@ -138,6 +138,7 @@ request. With nothing configured, every node is a candidate.
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
 | `process.root` | string | `/var/lib/eru/process` | Node directory holding the per-workload overlays and the artifact cache |
+| `process.stop_timeout` | duration | `10s` | Rendered as `TimeoutStopSec=` on every unit: how long systemd waits after `SIGTERM` before it kills the workload |
 
 ## Virt (yavirt)
 

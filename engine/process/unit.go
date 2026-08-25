@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -24,14 +25,15 @@ var throttleKeys = [...]string{"IOReadIOPSMax", "IOWriteIOPSMax", "IOReadBandwid
 
 // unit is the transient service that runs one workload.
 type unit struct {
-	ID       string
-	Podname  string
-	User     string
-	Root     string // RootDirectory, empty for a raw host process
-	Working  string
-	TasksMax int
-	Opts     *enginetypes.VirtualizationCreateOptions
-	Resource *engine.VirtualizationResource
+	ID          string
+	Podname     string
+	User        string
+	Root        string // RootDirectory, empty for a raw host process
+	Working     string
+	TasksMax    int
+	StopTimeout time.Duration
+	Opts        *enginetypes.VirtualizationCreateOptions
+	Resource    *engine.VirtualizationResource
 }
 
 // argv renders the systemd-run command that starts the unit.
@@ -60,6 +62,9 @@ func (u *unit) argv() []string {
 	}
 	if policy := restartPolicy(u.Opts.Restart); policy != "" {
 		argv = append(argv, "-p", "Restart="+policy)
+	}
+	if u.StopTimeout > 0 {
+		argv = append(argv, "-p", "TimeoutStopSec="+strconv.FormatInt(int64(u.StopTimeout.Seconds()), 10))
 	}
 	return append(append(argv, "--"), u.Opts.Cmd...)
 }

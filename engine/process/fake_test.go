@@ -74,10 +74,11 @@ func (s *fakeSession) Close() error {
 func testEngine(t *testing.T, runner *fakeRunner) *Engine {
 	t.Helper()
 	return &Engine{
-		ep:     enginetypes.NewParams("node1", Prefix+"10.0.0.1", "", "", ""),
-		runner: runner,
-		root:   testRoot,
-		host:   "10.0.0.1",
-		execs:  map[string]session{},
+		ep:          enginetypes.NewParams("node1", Prefix+"10.0.0.1", "", "", ""),
+		runner:      runner,
+		root:        testRoot,
+		host:        "10.0.0.1",
+		stopTimeout: defaultStopTimeout,
+		execs:       map[string]session{},
 	}
 }

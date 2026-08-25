@@ -74,6 +74,7 @@ build:                                                                  # option
 
 process:
     root: "/var/lib/eru/process"                                        # default /var/lib/eru/process
+    stop_timeout: 10s                                                   # default 10s, grace period before SIGKILL
 
 virt:
     version: "v1"

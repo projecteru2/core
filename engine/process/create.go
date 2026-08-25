@@ -53,13 +53,14 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	ID := newID()
 	dir := workloadDir(e.root, ID)
 	u := &unit{
-		ID:       ID,
-		Podname:  envValue(opts.Env, podEnvKey),
-		User:     opts.User,
-		Working:  opts.WorkingDir,
-		TasksMax: rArgs.TasksMax,
-		Opts:     opts,
-		Resource: resource,
+		ID:          ID,
+		Podname:     envValue(opts.Env, podEnvKey),
+		User:        opts.User,
+		Working:     opts.WorkingDir,
+		TasksMax:    rArgs.TasksMax,
+		StopTimeout: e.stopTimeout,
+		Opts:        opts,
+		Resource:    resource,
 	}
 	if rArgs.Raw {
 		u.Working = cmp.Or(opts.WorkingDir, filepath.Join(dir, "lower"))
