@@ -4,25 +4,37 @@ Running core: what recovers after a crash, what keeps node state honest, and wha
 
 ## WAL and disaster recovery
 
-Core journals to a local bbolt file at `wal_file`, opened with `wal_open_timeout`. The journal is
-*intent*, not state: an entry is written before the risky step and deleted once the step has
-reached a stable outcome. So whatever survives in the file after a crash is exactly the work that
-was in flight, and `DisasterRecover` replays it at startup, before the gRPC server starts serving.
+Core journals into the store, under `/wal/{service address}/{seq}` — the same address it registers
+itself under, so an instance's journal and its liveness key always agree. The journal is *intent*,
+not state: an entry is written before the risky step and deleted once the step has reached a
+stable outcome. So whatever survives under the prefix after a crash is exactly the work that was
+in flight, and `DisasterRecover` replays that prefix at startup, before the gRPC server starts
+serving. `seq` is an in-process counter, seeded on start from the highest key already there and
+zero-padded, so replaying the keys in order replays the entries in order.
 
 | Event | Written before | Replay does |
 | --- | --- | --- |
-| `allocate-workload` | resources are allocated on a set of nodes | re-derives each node's usage from its actual workloads (`NodeResource` with `fix`) |
-| `create-workload` | a workload's ID is known but its metadata is not yet stored | removes the workload — from the store if it is there, otherwise straight off the engine |
+| `allocate-workload` | resources are allocated on a set of nodes, a workload is removed, or a realloc starts | re-derives each node's usage from its actual workloads (`NodeResource` with `fix`) |
+| `create-workload` | the engine is asked to create a workload, and before one is removed | removes the workload — from the store if it is there, otherwise off the engine, found by name when the entry has no ID yet |
+| `replace-workload` | the old workload of a replace is removed | removes the old workload if the new one reached the store, releasing nothing, because the new one inherited its resources |
+| `realloc-workload` | a realloc mutates plugin usage, metadata and engine limits | re-applies the stored engine params to the workload |
 | `create-processing` | an in-flight deploy counter is written | deletes the stale counter, so it stops inflating deploy counts forever |
 | `create-lambda` | a `RunAndWait` workload starts | waits for it to exit, then removes it |
 
 Each replayed handler gets a 32-second deadline. Entries whose handler is unknown are logged and
 skipped; entries that fail are logged and left in place for the next start.
 
-Because the file is local, **the WAL belongs to one instance**. Two core instances must not share
-a `wal_file` path, and a replacement instance on a different host will not clean up its
-predecessor's in-flight work — bring the old host's core back, or reconcile with
-`GetNodeResource(fix: true)`.
+Because the journal is in the store, **any instance can finish another's work**. The active node
+status watcher keeps the live service addresses from the store's service stream and, every
+`grpc.service_heartbeat_interval`, replays the journal of every `/wal/` prefix whose address is no
+longer registered. It holds `/wal-replay/{address}` while it does, so two instances that disagree
+about who is dead still cannot replay one journal twice; the handlers are idempotent, so a second
+pass is harmless anyway.
+
+An instance whose service key merely flapped — a lost lease, not a dead process — can therefore
+have its in-flight entries replayed under it. Every handler is written to converge in that case,
+but it is the reason the takeover waits for the address to leave the registry rather than probing
+it directly. `GetNodeResource(fix: true)` remains the manual reconciler.
 
 The two `NodeResource`/`PodResource` calls are the manual counterpart: they list a node's
 workloads, ask the plugins for capacity and usage, inspect each workload on the engine, and report

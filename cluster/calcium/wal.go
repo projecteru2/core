@@ -336,8 +336,8 @@ func (walBase[T]) Decode(bs []byte) (any, error) {
 	return v, err
 }
 
-func enableWAL(config types.Config, calcium *Calcium, store store.Store) (wal.WAL, error) {
-	hydro, err := wal.NewHydro(config.WALFile, config.WALOpenTimeout)
+func enableWAL(ctx context.Context, config types.Config, calcium *Calcium, store store.Store) (wal.WAL, error) {
+	hydro, err := wal.NewHydro(ctx, store, calcium.serviceAddress, config)
 	if err != nil {
 		return nil, err
 	}

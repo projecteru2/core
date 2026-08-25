@@ -118,7 +118,7 @@ func serve(ctx context.Context, _ *cli.Command) error {
 	defer cancel()
 
 	utils.SentryGo(func() {
-		selfmon.RunNodeStatusWatcher(signalCtx, config, cluster, stor)
+		selfmon.RunNodeStatusWatcher(signalCtx, config, cluster, stor, cluster.GetWAL())
 	})
 
 	<-signalCtx.Done()

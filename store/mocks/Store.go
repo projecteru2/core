@@ -376,6 +376,63 @@ func (_c *Store_CreateProcessing_Call) RunAndReturn(run func(ctx context.Context
 	return _c
 }
 
+// Delete provides a mock function for the type Store
+func (_mock *Store) Delete(ctx context.Context, keys []string) error {
+	ret := _mock.Called(ctx, keys)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Delete")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []string) error); ok {
+		r0 = returnFunc(ctx, keys)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// Store_Delete_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Delete'
+type Store_Delete_Call struct {
+	*mock.Call
+}
+
+// Delete is a helper method to define mock.On call
+//   - ctx context.Context
+//   - keys []string
+func (_e *Store_Expecter) Delete(ctx any, keys any) *Store_Delete_Call {
+	return &Store_Delete_Call{Call: _e.mock.On("Delete", ctx, keys)}
+}
+
+func (_c *Store_Delete_Call) Run(run func(ctx context.Context, keys []string)) *Store_Delete_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 []string
+		if args[1] != nil {
+			arg1 = args[1].([]string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *Store_Delete_Call) Return(err error) *Store_Delete_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *Store_Delete_Call) RunAndReturn(run func(ctx context.Context, keys []string) error) *Store_Delete_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // DeleteProcessing provides a mock function for the type Store
 func (_mock *Store) DeleteProcessing(context1 context.Context, processing *types.Processing) error {
 	ret := _mock.Called(context1, processing)
@@ -915,6 +972,80 @@ func (_c *Store_GetPod_Call) RunAndReturn(run func(ctx context.Context, podname 
 	return _c
 }
 
+// GetPrefix provides a mock function for the type Store
+func (_mock *Store) GetPrefix(ctx context.Context, prefix string, limit int64) (map[string]string, error) {
+	ret := _mock.Called(ctx, prefix, limit)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetPrefix")
+	}
+
+	var r0 map[string]string
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, int64) (map[string]string, error)); ok {
+		return returnFunc(ctx, prefix, limit)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, int64) map[string]string); ok {
+		r0 = returnFunc(ctx, prefix, limit)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[string]string)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, int64) error); ok {
+		r1 = returnFunc(ctx, prefix, limit)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// Store_GetPrefix_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetPrefix'
+type Store_GetPrefix_Call struct {
+	*mock.Call
+}
+
+// GetPrefix is a helper method to define mock.On call
+//   - ctx context.Context
+//   - prefix string
+//   - limit int64
+func (_e *Store_Expecter) GetPrefix(ctx any, prefix any, limit any) *Store_GetPrefix_Call {
+	return &Store_GetPrefix_Call{Call: _e.mock.On("GetPrefix", ctx, prefix, limit)}
+}
+
+func (_c *Store_GetPrefix_Call) Run(run func(ctx context.Context, prefix string, limit int64)) *Store_GetPrefix_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 int64
+		if args[2] != nil {
+			arg2 = args[2].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *Store_GetPrefix_Call) Return(stringToString map[string]string, err error) *Store_GetPrefix_Call {
+	_c.Call.Return(stringToString, err)
+	return _c
+}
+
+func (_c *Store_GetPrefix_Call) RunAndReturn(run func(ctx context.Context, prefix string, limit int64) (map[string]string, error)) *Store_GetPrefix_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetWorkload provides a mock function for the type Store
 func (_mock *Store) GetWorkload(ctx context.Context, ID string) (*types.Workload, error) {
 	ret := _mock.Called(ctx, ID)
@@ -1193,6 +1324,74 @@ func (_c *Store_ListNodeWorkloads_Call) RunAndReturn(run func(ctx context.Contex
 	return _c
 }
 
+// ListPrefix provides a mock function for the type Store
+func (_mock *Store) ListPrefix(ctx context.Context, prefix string) ([]string, error) {
+	ret := _mock.Called(ctx, prefix)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListPrefix")
+	}
+
+	var r0 []string
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) ([]string, error)); ok {
+		return returnFunc(ctx, prefix)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) []string); ok {
+		r0 = returnFunc(ctx, prefix)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, prefix)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// Store_ListPrefix_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListPrefix'
+type Store_ListPrefix_Call struct {
+	*mock.Call
+}
+
+// ListPrefix is a helper method to define mock.On call
+//   - ctx context.Context
+//   - prefix string
+func (_e *Store_Expecter) ListPrefix(ctx any, prefix any) *Store_ListPrefix_Call {
+	return &Store_ListPrefix_Call{Call: _e.mock.On("ListPrefix", ctx, prefix)}
+}
+
+func (_c *Store_ListPrefix_Call) Run(run func(ctx context.Context, prefix string)) *Store_ListPrefix_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *Store_ListPrefix_Call) Return(strings []string, err error) *Store_ListPrefix_Call {
+	_c.Call.Return(strings, err)
+	return _c
+}
+
+func (_c *Store_ListPrefix_Call) RunAndReturn(run func(ctx context.Context, prefix string) ([]string, error)) *Store_ListPrefix_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListWorkloads provides a mock function for the type Store
 func (_mock *Store) ListWorkloads(ctx context.Context, appname string, entrypoint string, nodename string, limit int64, labels map[string]string) ([]*types.Workload, error) {
 	ret := _mock.Called(ctx, appname, entrypoint, nodename, limit, labels)
@@ -1385,6 +1584,63 @@ func (_c *Store_NotFound_Call) Return(b bool) *Store_NotFound_Call {
 }
 
 func (_c *Store_NotFound_Call) RunAndReturn(run func(err error) bool) *Store_NotFound_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Put provides a mock function for the type Store
+func (_mock *Store) Put(ctx context.Context, data map[string]string) error {
+	ret := _mock.Called(ctx, data)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Put")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, map[string]string) error); ok {
+		r0 = returnFunc(ctx, data)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// Store_Put_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Put'
+type Store_Put_Call struct {
+	*mock.Call
+}
+
+// Put is a helper method to define mock.On call
+//   - ctx context.Context
+//   - data map[string]string
+func (_e *Store_Expecter) Put(ctx any, data any) *Store_Put_Call {
+	return &Store_Put_Call{Call: _e.mock.On("Put", ctx, data)}
+}
+
+func (_c *Store_Put_Call) Run(run func(ctx context.Context, data map[string]string)) *Store_Put_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 map[string]string
+		if args[1] != nil {
+			arg1 = args[1].(map[string]string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *Store_Put_Call) Return(err error) *Store_Put_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *Store_Put_Call) RunAndReturn(run func(ctx context.Context, data map[string]string) error) *Store_Put_Call {
 	_c.Call.Return(run)
 	return _c
 }

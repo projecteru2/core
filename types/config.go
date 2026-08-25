@@ -27,9 +27,6 @@ type Config struct {
 	SentryDSN           string        `yaml:"sentry_dsn"`
 	ProbeTarget         string        `yaml:"probe_target" required:"false" default:"8.8.8.8:80"` // for getting outbound address
 
-	WALFile        string        `yaml:"wal_file" required:"true" default:"core.wal"`
-	WALOpenTimeout time.Duration `yaml:"wal_open_timeout" required:"true" default:"8s"`
-
 	Auth           AuthConfig           `yaml:"auth"` // grpc auth
 	GRPCConfig     GRPCConfig           `yaml:"grpc"`
 	Git            GitConfig            `yaml:"git"`

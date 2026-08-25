@@ -2,13 +2,19 @@ package wal
 
 import (
 	"context"
-	"path/filepath"
+	"maps"
+	"slices"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
-	"github.com/projecteru2/core/wal/kv"
+	"github.com/projecteru2/core/lock"
+	lockmocks "github.com/projecteru2/core/lock/mocks"
 )
 
 func TestRecover(t *testing.T) {
@@ -30,21 +36,11 @@ func TestRecover(t *testing.T) {
 		return item, err
 	}
 
-	path := filepath.Join(t.TempDir(), "wal.wal")
-
 	var wal WAL
-	var err error
-	wal, err = NewHydro(path, time.Second)
-	assert.NoError(t, err)
-	defer wal.Close()
-
-	hydro, ok := wal.(*Hydro)
-	assert.True(t, ok)
-	assert.NotNil(t, hydro)
-	hydro.store = kv.NewMockedKV()
+	wal, err := NewHydro(context.Background(), newMemStore(), "127.0.0.1:5001", testConfig())
+	require.NoError(t, err)
 
 	eventype := "create"
-
 	wal.Register(simpleEventHandler{
 		event:  eventype,
 		encode: encode,
@@ -52,7 +48,8 @@ func TestRecover(t *testing.T) {
 		handle: handle,
 	})
 
-	wal.Log(eventype, struct{}{})
+	_, err = wal.Log(eventype, struct{}{})
+	require.NoError(t, err)
 
 	wal.Recover(context.Background())
 	assert.True(t, handled)
@@ -81,4 +78,71 @@ func (h simpleEventHandler) Decode(bs []byte) (any, error) {
 
 func (h simpleEventHandler) Handle(ctx context.Context, raw any) error {
 	return h.handle(raw)
+}
+
+// memStore is an in-memory Store whose reads and writes can be made to fail.
+type memStore struct {
+	sync.Mutex
+
+	data    map[string]string
+	getErr  error
+	putErr  error
+	lockErr error
+}
+
+func newMemStore() *memStore {
+	return &memStore{data: map[string]string{}}
+}
+
+func (s *memStore) Put(_ context.Context, data map[string]string) error {
+	s.Lock()
+	defer s.Unlock()
+	if s.putErr != nil {
+		return s.putErr
+	}
+	maps.Copy(s.data, data)
+	return nil
+}
+
+func (s *memStore) Delete(_ context.Context, keys []string) error {
+	s.Lock()
+	defer s.Unlock()
+	for _, key := range keys {
+		delete(s.data, key)
+	}
+	return nil
+}
+
+func (s *memStore) ListPrefix(ctx context.Context, prefix string) ([]string, error) {
+	data, err := s.GetPrefix(ctx, prefix, 0)
+	if err != nil {
+		return nil, err
+	}
+	return slices.Sorted(maps.Keys(data)), nil
+}
+
+func (s *memStore) CreateLock(_ string, _ time.Duration) (lock.DistributedLock, error) {
+	if s.lockErr != nil {
+		return nil, s.lockErr
+	}
+	journalLock := &lockmocks.DistributedLock{}
+	journalLock.On("Lock", mock.Anything).Return(context.Background(), nil)
+	journalLock.On("Unlock", mock.Anything).Return(nil)
+	return journalLock, nil
+}
+
+func (s *memStore) GetPrefix(_ context.Context, prefix string, _ int64) (map[string]string, error) {
+	s.Lock()
+	defer s.Unlock()
+	if s.getErr != nil {
+		return nil, s.getErr
+	}
+
+	data := map[string]string{}
+	for key, value := range s.data {
+		if strings.HasPrefix(key, prefix) {
+			data[key] = value
+		}
+	}
+	return data, nil
 }

@@ -3,7 +3,6 @@ package calcium
 import (
 	"context"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -22,7 +21,7 @@ import (
 
 func TestNewCluster(t *testing.T) {
 	ctx := context.Background()
-	config := types.Config{WALFile: "/tmp/a", HAKeepaliveInterval: 16 * time.Second}
+	config := types.Config{Bind: ":5001", ProbeTarget: "8.8.8.8:80", HAKeepaliveInterval: 16 * time.Second}
 	_, err := New(ctx, config, nil)
 	assert.Error(t, err)
 
@@ -42,7 +41,8 @@ func TestNewCluster(t *testing.T) {
 	config.Git = types.GitConfig{PrivateKey: privFile.Name()}
 
 	config1 := types.Config{
-		WALFile: "/tmp/b",
+		Bind:        ":5001",
+		ProbeTarget: "8.8.8.8:80",
 		Git: types.GitConfig{
 			SCMType:    "gitlab",
 			PrivateKey: privFile.Name(),
@@ -54,7 +54,8 @@ func TestNewCluster(t *testing.T) {
 	c1.Finalizer()
 
 	config2 := types.Config{
-		WALFile: "/tmp/c",
+		Bind:        ":5001",
+		ProbeTarget: "8.8.8.8:80",
 		Git: types.GitConfig{
 			SCMType:    "github",
 			PrivateKey: privFile.Name(),
@@ -71,11 +72,6 @@ func TestFinalizer(t *testing.T) {
 }
 
 func NewTestCluster() *Calcium {
-	walDir, err := os.MkdirTemp(os.TempDir(), "core.wal.*")
-	if err != nil {
-		panic(err)
-	}
-
 	pool, _ := utils.NewPool(20)
 	c := &Calcium{pool: pool}
 	c.config = types.Config{
@@ -90,10 +86,10 @@ func NewTestCluster() *Calcium {
 		GRPCConfig: types.GRPCConfig{
 			ServiceDiscoveryPushInterval: 15 * time.Second,
 		},
-		WALFile:             filepath.Join(walDir, "core.wal.log"),
 		MaxConcurrency:      100000,
 		HAKeepaliveInterval: 16 * time.Second,
 		ProbeTarget:         "8.8.8.8:80",
+		Bind:                ":5001",
 	}
 	mwal := &walmocks.WAL{}
 	commit := wal.Commit(func() error { return nil })

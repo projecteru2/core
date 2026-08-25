@@ -38,50 +38,6 @@ func (_m *WAL) EXPECT() *WAL_Expecter {
 	return &WAL_Expecter{mock: &_m.Mock}
 }
 
-// Close provides a mock function for the type WAL
-func (_mock *WAL) Close() error {
-	ret := _mock.Called()
-
-	if len(ret) == 0 {
-		panic("no return value specified for Close")
-	}
-
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func() error); ok {
-		r0 = returnFunc()
-	} else {
-		r0 = ret.Error(0)
-	}
-	return r0
-}
-
-// WAL_Close_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Close'
-type WAL_Close_Call struct {
-	*mock.Call
-}
-
-// Close is a helper method to define mock.On call
-func (_e *WAL_Expecter) Close() *WAL_Close_Call {
-	return &WAL_Close_Call{Call: _e.mock.On("Close")}
-}
-
-func (_c *WAL_Close_Call) Run(run func()) *WAL_Close_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run()
-	})
-	return _c
-}
-
-func (_c *WAL_Close_Call) Return(err error) *WAL_Close_Call {
-	_c.Call.Return(err)
-	return _c
-}
-
-func (_c *WAL_Close_Call) RunAndReturn(run func() error) *WAL_Close_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // Log provides a mock function for the type WAL
 func (_mock *WAL) Log(s string, anyMoqParam any) (wal.Commit, error) {
 	ret := _mock.Called(s, anyMoqParam)
@@ -226,6 +182,52 @@ func (_c *WAL_Register_Call) Return() *WAL_Register_Call {
 }
 
 func (_c *WAL_Register_Call) RunAndReturn(run func(eventHandler wal.EventHandler)) *WAL_Register_Call {
+	_c.Run(run)
+	return _c
+}
+
+// Takeover provides a mock function for the type WAL
+func (_mock *WAL) Takeover(ctx context.Context, live []string) {
+	_mock.Called(ctx, live)
+	return
+}
+
+// WAL_Takeover_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Takeover'
+type WAL_Takeover_Call struct {
+	*mock.Call
+}
+
+// Takeover is a helper method to define mock.On call
+//   - ctx context.Context
+//   - live []string
+func (_e *WAL_Expecter) Takeover(ctx any, live any) *WAL_Takeover_Call {
+	return &WAL_Takeover_Call{Call: _e.mock.On("Takeover", ctx, live)}
+}
+
+func (_c *WAL_Takeover_Call) Run(run func(ctx context.Context, live []string)) *WAL_Takeover_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 []string
+		if args[1] != nil {
+			arg1 = args[1].([]string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *WAL_Takeover_Call) Return() *WAL_Takeover_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *WAL_Takeover_Call) RunAndReturn(run func(ctx context.Context, live []string)) *WAL_Takeover_Call {
 	_c.Run(run)
 	return _c
 }

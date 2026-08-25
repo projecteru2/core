@@ -23,6 +23,8 @@ keys. `{}` marks a substituted value.
 | `/processing/{appname}/{entrypoint}/{nodename}/{ident}` | In-flight deploy count for one deploy round |
 | `/services/{address}` | One live core instance, written with a lease |
 | `/selfmon/active` | The node-status-watcher election key, written with a lease |
+| `/wal/{address}/{seq}` | One journal entry of the core instance registered at `{address}`; see [Operations](operations.md) |
+| `/wal-replay/{address}` | Held by the instance replaying that journal after its owner disappeared |
 | `/resource/cpumem/{nodename}` | The built-in cpumem plugin's own bookkeeping |
 
 The deploy count a strategy sees is `/deploy/...` plus `/processing/...`, which is how two

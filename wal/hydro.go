@@ -2,35 +2,48 @@ package wal
 
 import (
 	"context"
-	"encoding/json"
+	"fmt"
+	"maps"
+	"slices"
+	"strconv"
+	"strings"
 	"sync"
-	"time"
+	"sync/atomic"
 
 	"github.com/cockroachdb/errors"
 
 	"github.com/projecteru2/core/log"
 	coretypes "github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/wal/kv"
+	"github.com/projecteru2/core/utils"
 )
 
-const fileMode = 0o600
+const (
+	journalPrefix = "/wal/"
+	addressPrefix = "/wal/%s/"
+	eventKey      = "/wal/%s/%016x"
+	replayLockKey = "/wal-replay/%s"
+)
 
-// Hydro is the simplest wal implementation.
+// Hydro journals events into the eru store, under the prefix of this instance's service address.
 type Hydro struct {
 	handlers sync.Map
-	store    kv.KV
+	seq      atomic.Uint64
+
+	store   Store
+	ctx     context.Context
+	config  coretypes.Config
+	address string
 }
 
-func NewHydro(path string, timeout time.Duration) (*Hydro, error) {
-	store := kv.NewLithium()
-	if err := store.Open(path, fileMode, timeout); err != nil {
+func NewHydro(ctx context.Context, store Store, address string, config coretypes.Config) (*Hydro, error) {
+	// the journal outlives every request that writes to it, so it keeps a context of its own
+	hydro := &Hydro{store: store, ctx: utils.NewInheritCtx(ctx), config: config, address: address}
+	seq, err := hydro.lastSeq(ctx)
+	if err != nil {
 		return nil, err
 	}
-	return &Hydro{store: store}, nil
-}
-
-func (h *Hydro) Close() error {
-	return h.store.Close()
+	hydro.seq.Store(seq)
+	return hydro, nil
 }
 
 func (h *Hydro) Register(handler EventHandler) {
@@ -38,34 +51,26 @@ func (h *Hydro) Register(handler EventHandler) {
 }
 
 func (h *Hydro) Recover(ctx context.Context) {
-	logger := log.WithFunc("wal.hydro.Recover")
-	ch, abort := h.store.Scan([]byte(eventPrefix))
-	defer abort()
+	h.recoverAddress(ctx, h.address)
+}
 
-	var events []HydroEvent
-	for scanEntry := range ch {
-		if err := scanEntry.Error(); err != nil {
-			logger.Error(ctx, err, "scan events")
-			return
-		}
-		event, err := h.decodeEvent(scanEntry)
-		if err != nil {
-			logger.Error(ctx, err, "decode event")
-			continue
-		}
-		events = append(events, event)
+// Takeover replays the journals of instances no longer registered as live; a nil live set means nothing is known yet.
+func (h *Hydro) Takeover(ctx context.Context, live []string) {
+	if live == nil {
+		return
 	}
 
-	for _, event := range events {
-		handler, ok := h.handler(event.Type)
-		if !ok {
-			logger.Warnf(ctx, "no such event handler for %s", event.Type)
-			continue
-		}
+	logger := log.WithFunc("wal.hydro.Takeover")
+	keys, err := h.store.ListPrefix(ctx, journalPrefix)
+	if err != nil {
+		logger.Error(ctx, err, "list journals")
+		return
+	}
 
-		if err := h.recover(ctx, handler, event); err != nil {
-			logger.Errorf(ctx, err, "handle event %d (%s) failed", event.ID, event.Type)
-			continue
+	for _, address := range h.deadAddresses(keys, live) {
+		logger.Infof(ctx, "replaying the journal of %s", address)
+		if err := h.takeoverAddress(ctx, address); err != nil {
+			logger.Errorf(ctx, err, "failed to replay the journal of %s", address)
 		}
 	}
 }
@@ -80,23 +85,96 @@ func (h *Hydro) Log(eventyp string, item any) (Commit, error) {
 	if err != nil {
 		return nil, err
 	}
+	value, err := NewHydroEvent(eventyp, bs).Encode()
+	if err != nil {
+		return nil, coretypes.ErrInvaildWALEvent
+	}
 
-	var key []byte
-	if err = h.store.PutNext(func(seq uint64) ([]byte, []byte, error) {
-		event := NewHydroEvent(seq, eventyp, bs)
-		value, encodeErr := event.Encode()
-		if encodeErr != nil {
-			return nil, nil, coretypes.ErrInvaildWALEvent
-		}
-		key = event.Key()
-		return key, value, nil
-	}); err != nil {
+	key := fmt.Sprintf(eventKey, h.address, h.seq.Add(1))
+	ctx, cancel := h.storeContext()
+	defer cancel()
+	if err = h.store.Put(ctx, map[string]string{key: string(value)}); err != nil {
 		return nil, err
 	}
 
 	return func() error {
-		return h.store.Delete(key)
+		ctx, cancel := h.storeContext()
+		defer cancel()
+		return h.store.Delete(ctx, []string{key})
 	}, nil
+}
+
+func (h *Hydro) takeoverAddress(ctx context.Context, address string) error {
+	journalLock, err := h.store.CreateLock(fmt.Sprintf(replayLockKey, address), h.config.LockTimeout)
+	if err != nil {
+		return err
+	}
+
+	lockCtx, err := journalLock.Lock(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		unlockCtx, cancel := context.WithTimeout(utils.NewInheritCtx(ctx), h.config.LockTimeout)
+		defer cancel()
+		if err := journalLock.Unlock(unlockCtx); err != nil {
+			log.WithFunc("wal.hydro.takeoverAddress").Errorf(ctx, err, "failed to unlock the journal of %s", address)
+		}
+	}()
+
+	h.recoverAddress(lockCtx, address)
+	return nil
+}
+
+func (h *Hydro) deadAddresses(keys, live []string) []string {
+	dead := map[string]struct{}{}
+	for _, key := range keys {
+		address, _, ok := strings.Cut(strings.TrimPrefix(key, journalPrefix), "/")
+		if !ok || address == h.address || slices.Contains(live, address) {
+			continue
+		}
+		dead[address] = struct{}{}
+	}
+	return slices.Sorted(maps.Keys(dead))
+}
+
+func (h *Hydro) recoverAddress(ctx context.Context, address string) {
+	logger := log.WithFunc("wal.hydro.recoverAddress").WithField("address", address)
+	events, err := h.store.GetPrefix(ctx, fmt.Sprintf(addressPrefix, address), 0)
+	if err != nil {
+		logger.Error(ctx, err, "read journal")
+		return
+	}
+
+	for _, key := range slices.Sorted(maps.Keys(events)) {
+		event, err := decodeHydroEvent(events[key])
+		if err != nil {
+			logger.Errorf(ctx, err, "decode event %s", key)
+			continue
+		}
+
+		handler, ok := h.handler(event.Type)
+		if !ok {
+			logger.Warnf(ctx, "no such event handler for %s", event.Type)
+			continue
+		}
+
+		if err := h.handle(ctx, handler, event, key); err != nil {
+			logger.Errorf(ctx, err, "handle event %s (%s) failed", key, event.Type)
+		}
+	}
+}
+
+func (h *Hydro) handle(ctx context.Context, handler EventHandler, event HydroEvent, key string) error {
+	item, err := handler.Decode(event.Item)
+	if err != nil {
+		return err
+	}
+
+	if err := handler.Handle(ctx, item); err != nil {
+		return err
+	}
+	return h.store.Delete(ctx, []string{key})
 }
 
 func (h *Hydro) handler(eventyp string) (EventHandler, bool) {
@@ -107,24 +185,23 @@ func (h *Hydro) handler(eventyp string) (EventHandler, bool) {
 	return v.(EventHandler), true
 }
 
-func (h *Hydro) recover(ctx context.Context, handler EventHandler, event HydroEvent) error {
-	item, err := handler.Decode(event.Item)
+func (h *Hydro) lastSeq(ctx context.Context) (uint64, error) {
+	events, err := h.store.GetPrefix(ctx, fmt.Sprintf(addressPrefix, h.address), 0)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	if err := handler.Handle(ctx, item); err != nil {
-		return err
+	var last uint64
+	for key := range events {
+		seq, err := strconv.ParseUint(utils.Tail(key), 16, 64)
+		if err != nil {
+			continue
+		}
+		last = max(last, seq)
 	}
-	return h.store.Delete(event.Key())
+	return last, nil
 }
 
-func (h *Hydro) decodeEvent(scanEntry kv.ScanEntry) (event HydroEvent, err error) {
-	key, value := scanEntry.Pair()
-	if err = json.Unmarshal(value, &event); err != nil {
-		return event, err
-	}
-
-	event.ID, err = parseHydroEventID(key)
-	return event, err
+func (h *Hydro) storeContext() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(h.ctx, h.config.GlobalTimeout)
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
+	"github.com/projecteru2/core/wal"
 )
 
 const ActiveKey = "/selfmon/active"
@@ -22,6 +23,7 @@ type NodeStatusWatcher struct {
 	config  types.Config
 	cluster cluster.Cluster
 	store   store.Store
+	wal     wal.WAL
 }
 
 func (n *NodeStatusWatcher) run(ctx context.Context) {
@@ -31,6 +33,7 @@ func (n *NodeStatusWatcher) run(ctx context.Context) {
 			return
 		default:
 			n.withActiveLock(ctx, func(ctx context.Context) {
+				go n.replayDeadJournals(ctx)
 				if err := n.monitor(ctx); err != nil {
 					log.WithFunc("selfmon.run").WithField("ID", n.ID).Error(ctx, err, "stops watching node status")
 				}
@@ -100,6 +103,37 @@ func (n *NodeStatusWatcher) withActiveLock(parentCtx context.Context, f func(ctx
 	}()
 
 	f(ctx)
+}
+
+// replayDeadJournals hands the journals of unregistered instances to this one, for as long as it stays active.
+func (n *NodeStatusWatcher) replayDeadJournals(ctx context.Context) {
+	logger := log.WithFunc("selfmon.replayDeadJournals").WithField("ID", n.ID)
+	services, err := n.store.ServiceStatusStream(ctx)
+	if err != nil {
+		logger.Error(ctx, err, "failed to watch service status")
+		return
+	}
+
+	ticker := time.NewTicker(n.config.GRPCConfig.ServiceHeartbeatInterval)
+	defer ticker.Stop()
+
+	var live []string
+	var known bool
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case addresses, ok := <-services:
+			if !ok {
+				return
+			}
+			live, known = addresses, true
+		case <-ticker.C:
+			if known {
+				n.wal.Takeover(ctx, live)
+			}
+		}
+	}
 }
 
 func (n *NodeStatusWatcher) initNodeStatus(ctx context.Context) {
@@ -186,12 +220,13 @@ func (n *NodeStatusWatcher) dealNodeStatusMessage(ctx context.Context, message *
 	logger.Infof(ctx, "set node %s workloads down", message.Nodename)
 }
 
-func RunNodeStatusWatcher(ctx context.Context, config types.Config, cluster cluster.Cluster, store store.Store) {
+func RunNodeStatusWatcher(ctx context.Context, config types.Config, cluster cluster.Cluster, store store.Store, journal wal.WAL) {
 	watcher := &NodeStatusWatcher{
 		ID:      rand.Int64N(10000), //nolint:gosec // a log-only instance tag, not a security token
 		config:  config,
 		store:   store,
 		cluster: cluster,
+		wal:     journal,
 	}
 	watcher.run(ctx)
 }
