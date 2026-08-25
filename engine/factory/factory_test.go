@@ -6,15 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cockroachdb/errors"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/engine/fake"
 	enginetypes "github.com/projecteru2/core/engine/types"
-	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 )
 
@@ -60,31 +57,6 @@ func TestGetReturnsNilForEveryDeletedKey(t *testing.T) {
 	for _, key := range keys {
 		e.Delete(key)
 		assert.Nil(t, e.Get(key), "deleted engine %s is still served from the cache", key)
-	}
-}
-
-func TestCheckOneNodeStatusSurvivesStoreFailure(t *testing.T) {
-	params := &enginetypes.Params{Nodename: "node", Endpoint: testPrefix + "host"}
-	for _, tt := range []struct {
-		name    string
-		status  *types.NodeStatus
-		err     error
-		dropped bool
-	}{
-		{"store failure keeps the entry", nil, errors.New("etcd unreachable"), false},
-		{"missing status drops the entry", nil, types.ErrInvaildCount, true},
-		{"dead node drops the entry", &types.NodeStatus{Alive: false}, nil, true},
-		{"alive node keeps the entry", &types.NodeStatus{Alive: true}, nil, false},
-	} {
-		t.Run(tt.name, func(t *testing.T) {
-			stor := storemocks.NewStore(t)
-			stor.On("GetNodeStatus", mock.Anything, "node").Return(tt.status, tt.err)
-
-			e := NewEngineCache(types.Config{MaxConcurrency: 1}, stor)
-			e.Set(params.CacheKey(), &fake.EngineWithErr{})
-			e.checkOneNodeStatus(t.Context(), params)
-			assert.Equal(t, tt.dropped, e.Get(params.CacheKey()) == nil)
-		})
 	}
 }
 

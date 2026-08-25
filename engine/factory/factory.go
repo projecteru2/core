@@ -100,7 +100,6 @@ func (e *EngineCache) checkAlive(ctx context.Context) {
 					if newClient, err := newEngine(ctx, e.config, params); err != nil {
 						logger.Errorf(ctx, err, "engine %+v is still unavailable", cacheKey)
 						e.Set(cacheKey, &fake.EngineWithErr{DefaultErr: err, EP: params})
-						e.checkOneNodeStatus(ctx, params)
 					} else {
 						e.Set(cacheKey, newClient)
 					}
@@ -160,25 +159,6 @@ func (e *EngineCache) checkNodeStatus(ctx context.Context) {
 			}
 		}
 	}
-}
-
-func (e *EngineCache) checkOneNodeStatus(ctx context.Context, params *enginetypes.Params) {
-	if e.stor == nil {
-		return
-	}
-	logger := log.WithFunc("engine.factory.checkOneNodeStatus")
-	nodename := params.Nodename
-	cacheKey := params.CacheKey()
-	ns, err := e.stor.GetNodeStatus(ctx, nodename)
-	if err != nil && !errors.Is(err, types.ErrInvaildCount) {
-		logger.Errorf(ctx, err, "get status of node %s", nodename)
-		return
-	}
-	if err == nil && ns.Alive {
-		return
-	}
-	logger.Warnf(ctx, "node %s is offline, the cache will be removed", nodename)
-	e.Delete(cacheKey)
 }
 
 // InitEngineCache builds the global engine cache and starts its checkers.
