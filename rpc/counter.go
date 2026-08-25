@@ -1,11 +1,11 @@
 package rpc
 
 import (
+	"context"
+
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	"golang.org/x/net/context"
 )
 
 type task struct {
@@ -48,6 +48,7 @@ func (t *task) done() {
 	if t.verbose {
 		log.WithFunc("vibranium.done").WithField("name", t.name).Debug(t.context, "task done")
 	}
+	t.cancel()
 	t.v.counter.Done()
 	t.v.TaskNum--
 }

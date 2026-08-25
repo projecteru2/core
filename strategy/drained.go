@@ -26,7 +26,7 @@ func DrainedPlan(_ context.Context, infos []Info, need, total, _ int) (map[strin
 		return infosCopy[i].Usage > infosCopy[j].Usage
 	})
 
-	for idx := 0; idx < len(infosCopy); idx++ {
+	for idx := range infosCopy {
 		info := &infosCopy[idx]
 		if need < info.Capacity {
 			deploy[info.Nodename] = need

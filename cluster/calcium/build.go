@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/cockroachdb/errors"
+
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
@@ -97,7 +98,9 @@ func (c *Calcium) buildFromSCM(ctx context.Context, node *types.Node, opts *type
 		Builds: opts.Builds,
 	}
 	path, content, err := node.Engine.BuildContent(ctx, c.source, buildContentOpts)
-	defer os.RemoveAll(path)
+	defer func() {
+		_ = os.RemoveAll(path)
+	}()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -134,7 +137,9 @@ func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, nod
 	logger := log.WithFunc("calcium.pushImageAndClean").WithField("node", node).WithField("tags", tags)
 	logger.Infof(ctx, "Pushing image at pod %s node %s", node.Podname, node.Name)
 	return c.withImageBuiltChannel(func(ch chan *types.BuildImageMessage) {
-		defer resp.Close()
+		defer func() {
+			_ = resp.Close()
+		}()
 		decoder := json.NewDecoder(resp)
 		lastMessage := &types.BuildImageMessage{}
 		for {
@@ -187,7 +192,6 @@ func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, nod
 			cleanupNodeImages(ctx, node, tags, c.config.GlobalTimeout)
 		})
 	}), nil
-
 }
 
 func (c *Calcium) getWorkloadNode(ctx context.Context, ID string) (*types.Node, error) {

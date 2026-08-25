@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/cockroachdb/errors"
+
 	"github.com/projecteru2/core/types"
 )
 

@@ -26,7 +26,6 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (chan *types.
 		wg.Add(len(nodes))
 		defer wg.Wait()
 		for _, node := range nodes {
-			node := node
 			_ = c.pool.Invoke(func() {
 				defer wg.Done()
 				nr, err := c.doGetNodeResource(ctx, node.Name, false, false)

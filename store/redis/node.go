@@ -202,7 +202,7 @@ func (r *Rediaron) NodeStatusStream(ctx context.Context) chan *types.NodeStatus 
 func (r *Rediaron) LoadNodeCert(ctx context.Context, node *types.Node) (err error) {
 	keyFormats := []string{nodeCaKey, nodeCertKey, nodeKeyKey}
 	data := []string{"", "", ""}
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		v, err := r.GetOne(ctx, fmt.Sprintf(keyFormats[i], node.Name))
 		if err != nil {
 			if !isRedisNoKeyError(err) {
@@ -224,12 +224,12 @@ func (r *Rediaron) makeClient(ctx context.Context, node *types.Node) (client eng
 	}
 	keyFormats := []string{nodeCaKey, nodeCertKey, nodeKeyKey}
 	data := []string{"", "", ""}
-	for i := 0; i < 3; i++ {
-		v, err := r.GetOne(ctx, fmt.Sprintf(keyFormats[i], node.Name))
-		if err != nil {
-			if !isRedisNoKeyError(err) {
-				log.WithFunc("store.redis.makeClient").Warnf(ctx, "Get key failed %+v", err)
-				return nil, err
+	for i := range 3 {
+		v, getErr := r.GetOne(ctx, fmt.Sprintf(keyFormats[i], node.Name))
+		if getErr != nil {
+			if !isRedisNoKeyError(getErr) {
+				log.WithFunc("store.redis.makeClient").Warnf(ctx, "Get key failed %+v", getErr)
+				return nil, getErr
 			}
 			continue
 		}
@@ -257,12 +257,10 @@ func (r *Rediaron) doAddNode(ctx context.Context, name, endpoint, podname, ca, c
 	}
 
 	node := &types.Node{
-		NodeMeta: types.NodeMeta{
-			Name:     name,
-			Endpoint: endpoint,
-			Podname:  podname,
-			Labels:   labels,
-		},
+		Name:      name,
+		Endpoint:  endpoint,
+		Podname:   podname,
+		Labels:    labels,
 		Available: true,
 		Bypass:    false,
 		Test:      test || strings.HasPrefix(endpoint, fakeengine.PrefixKey),
@@ -332,7 +330,6 @@ func (r *Rediaron) doGetNodes(
 	nodeChan := make(chan *types.Node, len(allNodes))
 
 	for _, node := range allNodes {
-		node := node
 		_ = r.pool.Invoke(func() {
 			defer wg.Done()
 			if node.Test {

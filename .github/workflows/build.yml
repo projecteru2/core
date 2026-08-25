@@ -1,0 +1,52 @@
+name: build
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: '0'
+        run: |
+          VERSION=$(git describe --tags $(git rev-list --tags --max-count=1) 2>/dev/null || echo dev)
+          REVISION=$(git rev-parse HEAD)
+          BUILTAT=$(date +%Y-%m-%dT%H:%M:%S)
+          LDFLAGS="-s -X github.com/projecteru2/core/version.VERSION=${VERSION} \
+                   -X github.com/projecteru2/core/version.REVISION=${REVISION} \
+                   -X github.com/projecteru2/core/version.BUILTAT=${BUILTAT}"
+          go build -ldflags "${LDFLAGS}" -o eru-core-${{ matrix.goos }}-${{ matrix.goarch }} .
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: eru-core-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: eru-core-${{ matrix.goos }}-${{ matrix.goarch }}
+          retention-days: 30

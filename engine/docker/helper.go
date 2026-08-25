@@ -16,21 +16,21 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/docker/distribution/reference"
+	"github.com/distribution/reference"
 	dockertypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/blkiodev"
 	dockercontainer "github.com/docker/docker/api/types/container"
 	dockerapi "github.com/docker/docker/client"
-	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/docker/registry"
 	"github.com/docker/go-units"
+	"github.com/moby/go-archive"
+	"github.com/moby/go-archive/compression"
 
 	corecluster "github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
-	"github.com/projecteru2/core/types"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -52,7 +52,9 @@ func mergeStream(stream io.ReadCloser) io.Reader {
 	outr, outw := io.Pipe()
 
 	go func() {
-		defer stream.Close()
+		defer func() {
+			_ = stream.Close()
+		}()
 		_, err := stdcopy.StdCopy(outw, outw, stream)
 		_ = outw.CloseWithError(err)
 	}()
@@ -74,7 +76,7 @@ func makeMountPaths(ctx context.Context, opts *enginetypes.VirtualizationCreateO
 	binds := []string{}
 	volumes := make(map[string]struct{})
 
-	var expandENV = func(env string) string {
+	expandENV := func(env string) string {
 		envMap := map[string]string{}
 		for _, env := range opts.Env {
 			parts := strings.Split(env, "=")
@@ -147,27 +149,21 @@ func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int64, num
 			for len(parts) < 4 {
 				parts = append(parts, "0")
 			}
-			var readIOPS, writeIOPS, readBPS, writeBPS int64
-			readIOPS, _ = utils.ParseRAMInHuman(parts[0])
-			writeIOPS, _ = utils.ParseRAMInHuman(parts[1])
-			readBPS, _ = utils.ParseRAMInHuman(parts[2])
-			writeBPS, _ = utils.ParseRAMInHuman(parts[3])
-
 			readIOPSDevices = append(readIOPSDevices, &blkiodev.ThrottleDevice{
 				Path: device,
-				Rate: uint64(readIOPS),
+				Rate: parseThrottleRate(parts[0]),
 			})
 			writeIOPSDevices = append(writeIOPSDevices, &blkiodev.ThrottleDevice{
 				Path: device,
-				Rate: uint64(writeIOPS),
+				Rate: parseThrottleRate(parts[1]),
 			})
 			readBPSDevices = append(readBPSDevices, &blkiodev.ThrottleDevice{
 				Path: device,
-				Rate: uint64(readBPS),
+				Rate: parseThrottleRate(parts[2]),
 			})
 			writeBPSDevices = append(writeBPSDevices, &blkiodev.ThrottleDevice{
 				Path: device,
-				Rate: uint64(writeBPS),
+				Rate: parseThrottleRate(parts[3]),
 			})
 		}
 		resource.BlkioDeviceReadIOps = readIOPSDevices
@@ -177,6 +173,14 @@ func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int64, num
 	}
 
 	return resource
+}
+
+func parseThrottleRate(s string) uint64 {
+	rate, err := utils.ParseRAMInHuman(s)
+	if err != nil || rate < 0 {
+		return 0
+	}
+	return uint64(rate)
 }
 
 // 只要一个image的前面, tag不要
@@ -205,10 +209,11 @@ func makeEncodedAuthConfigFromRemote(authConfigs map[string]coretypes.AuthConfig
 
 	serverAddress := repoInfo.Index.Name
 	if authConfig, exists := authConfigs[serverAddress]; exists {
-		if encodedAuth, err := encodeAuthToBase64(authConfig); err == nil {
-			return encodedAuth, nil
+		encodedAuth, encodeErr := encodeAuthToBase64(authConfig)
+		if encodeErr != nil {
+			return "", encodeErr
 		}
-		return "", err
+		return encodedAuth, nil
 	}
 	return "dummy", nil
 }
@@ -216,7 +221,7 @@ func makeEncodedAuthConfigFromRemote(authConfigs map[string]coretypes.AuthConfig
 // EncodeAuthToBase64 serializes the auth configuration as JSON base64 payload
 // See https://github.com/docker/cli/blob/master/cli/command/registry.go#L41
 func encodeAuthToBase64(authConfig coretypes.AuthConfig) (string, error) {
-	buf, err := json.Marshal(authConfig)
+	buf, err := json.Marshal(authConfig) //nolint:gosec // the registry X-Registry-Auth header is defined as this credential payload
 	if err != nil {
 		return "", err
 	}
@@ -225,7 +230,7 @@ func encodeAuthToBase64(authConfig coretypes.AuthConfig) (string, error) {
 
 // Image tag
 // 格式严格按照 Hub/HubPrefix/appname:tag 来
-func createImageTag(config types.DockerConfig, appname, tag string) string {
+func createImageTag(config coretypes.DockerConfig, appname, tag string) string {
 	prefix := strings.Trim(config.Namespace, "/")
 	if prefix == "" {
 		return fmt.Sprintf("%s/%s:%s", config.Hub, appname, tag)
@@ -267,13 +272,24 @@ func makeMainPart(_ *enginetypes.BuildContentOptions, build *enginetypes.Build, 
 	return strings.Join(buildTmpl, "\n"), nil
 }
 
+func recreateDir(path string) error {
+	if err := os.RemoveAll(path); err != nil {
+		return err
+	}
+	return os.MkdirAll(path, os.ModeDir)
+}
+
 // Dockerfile
-func createDockerfile(dockerfile, buildDir string) error {
-	f, err := os.Create(filepath.Join(buildDir, "Dockerfile"))
+func createDockerfile(dockerfile, buildDir string) (err error) {
+	f, err := os.Create(filepath.Clean(filepath.Join(buildDir, "Dockerfile")))
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() {
+		if closeErr := f.Close(); err == nil {
+			err = closeErr
+		}
+	}()
 	_, err = f.WriteString(dockerfile)
 	return err
 }
@@ -283,7 +299,7 @@ func CreateTarStream(path string) (io.ReadCloser, error) {
 	tarOpts := &archive.TarOptions{
 		ExcludePatterns: []string{},
 		IncludeFiles:    []string{"."},
-		Compression:     archive.Uncompressed,
+		Compression:     compression.None,
 		NoLchown:        true,
 	}
 	return archive.TarWithOptions(path, tarOpts)
@@ -300,10 +316,13 @@ func GetIP(ctx context.Context, daemonHost string) string {
 }
 
 func makeDockerClient(_ context.Context, config coretypes.Config, client *http.Client, endpoint string) (*Engine, error) {
+	// the docker client rewrites Transport on the *http.Client it is given, so the shared one is copied
+	own := *client
 	cli, err := dockerapi.NewClientWithOpts(
 		dockerapi.WithHost(endpoint),
 		dockerapi.WithVersion(config.Docker.APIVersion),
-		dockerapi.WithHTTPClient(client))
+		dockerapi.WithHTTPClient(&own),
+	)
 	if err != nil {
 		return nil, err
 	}

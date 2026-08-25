@@ -5,7 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/muroq/redislock"
+	"github.com/bsm/redislock"
+
 	"github.com/projecteru2/core/types"
 )
 
@@ -72,7 +73,7 @@ func (r *RedisLock) Unlock(ctx context.Context) error {
 }
 
 func (r *RedisLock) lock(ctx context.Context, opts *redislock.Options) (context.Context, error) {
-	l, err := r.lc.Obtain(ctx, r.key, r.timeout, r.ttl, opts)
+	l, err := r.lc.Obtain(ctx, r.key, r.ttl, opts)
 	if err != nil {
 		return nil, err
 	}

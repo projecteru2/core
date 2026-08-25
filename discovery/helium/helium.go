@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/cockroachdb/errors"
+
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
@@ -95,10 +96,10 @@ func (h *Helium) start(ctx context.Context) {
 				}
 
 			case ID := <-h.unsubChan:
-				if entry, ok := h.subs.Get(ID); ok {
-					entry.cancel()
+				if sub, ok := h.subs.Get(ID); ok {
+					sub.cancel()
 					h.subs.Del(ID)
-					close(entry.ch)
+					close(sub.ch)
 				}
 
 			case <-ticker.C:

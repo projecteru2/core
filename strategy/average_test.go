@@ -6,8 +6,9 @@ import (
 	"testing"
 
 	"github.com/cockroachdb/errors"
-	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/projecteru2/core/types"
 )
 
 func TestAveragePlan(t *testing.T) {

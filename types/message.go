@@ -26,7 +26,7 @@ type BuildImageMessage struct {
 	Progress    string      `json:"progress,omitempty"`
 	Error       string      `json:"error,omitempty"`
 	Stream      string      `json:"stream,omitempty"`
-	ErrorDetail errorDetail `json:"errorDetail,omitempty"`
+	ErrorDetail errorDetail `json:"errorDetail,omitzero"`
 }
 
 // CopyMessage for copy message

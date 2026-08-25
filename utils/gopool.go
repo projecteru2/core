@@ -2,6 +2,7 @@ package utils
 
 import (
 	"github.com/panjf2000/ants/v2"
+
 	"github.com/projecteru2/core/log"
 )
 

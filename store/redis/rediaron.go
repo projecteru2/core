@@ -4,16 +4,16 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"testing"
 	"time"
 
 	"github.com/panjf2000/ants/v2"
+
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 
 	"github.com/cockroachdb/errors"
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 )
 
 var (
@@ -69,7 +69,7 @@ type Rediaron struct {
 // Only redis address and db is used
 // db is used to separate data, by default db 0 will be used
 // TODO mock redis for testing
-func New(config types.Config, _ *testing.T) (*Rediaron, error) {
+func New(config types.Config) (*Rediaron, error) {
 	cli := redis.NewClient(&redis.Options{
 		Addr: config.Redis.Addr,
 		DB:   config.Redis.DB,
@@ -107,7 +107,7 @@ func (r *Rediaron) KNotify(ctx context.Context, pattern string) chan *KNotifyMes
 		for {
 			select {
 			case <-ctx.Done():
-				pubsub.Close()
+				_ = pubsub.Close()
 				return
 			case v := <-subC:
 				if v == nil {
@@ -271,7 +271,7 @@ func (r *Rediaron) BatchCreateAndDecr(ctx context.Context, data map[string]strin
 		return nil
 	}
 	_, err = r.cli.TxPipelined(ctx, batchCreateAndDecr)
-	return
+	return err
 }
 
 // BatchDelete is wrapper to adapt etcd batch delete

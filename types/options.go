@@ -115,7 +115,7 @@ func (f LinuxFile) String() string {
 
 // LitterDump for litter.Sdump
 func (f LinuxFile) LitterDump(w io.Writer) {
-	fmt.Fprintf(w, `{Content:{%d bytes},Filename:%s,UID:%d,GID:%d,Mode:%#o"}`, len(f.Content), f.Filename, f.UID, f.GID, f.Mode)
+	_, _ = fmt.Fprintf(w, `{Content:{%d bytes},Filename:%s,UID:%d,GID:%d,Mode:%#o"}`, len(f.Content), f.Filename, f.UID, f.GID, f.Mode)
 }
 
 // SendOptions for send files to multiple workload
@@ -135,7 +135,7 @@ func (o *SendOptions) Validate() error {
 	for i, file := range o.Files {
 		if file.UID == 0 && file.GID == 0 && file.Mode == 0 {
 			// we see it as requiring "default perm"
-			o.Files[i].Mode = 0755
+			o.Files[i].Mode = 0o755
 		}
 	}
 	return nil
@@ -163,10 +163,10 @@ type ReplaceOptions struct {
 // because in cluster/calcium//helper.go, pullImage will check this
 // to keep the original behavior, no check here.
 func (o *ReplaceOptions) Validate() error {
-	if o.DeployOptions.Name == "" {
+	if o.Name == "" {
 		return ErrEmptyAppName
 	}
-	return o.DeployOptions.Entrypoint.Validate()
+	return o.Entrypoint.Validate()
 }
 
 // Normalize checks count
@@ -289,7 +289,7 @@ func ParseTriOption(opt TriOptions, original bool) (res bool) {
 	case TriFalse:
 		res = false
 	}
-	return
+	return res
 }
 
 // RawArgs .
@@ -302,7 +302,7 @@ func (r RawArgs) String() string {
 
 // LitterDump from litter.Dumper
 func (r RawArgs) LitterDump(w io.Writer) {
-	w.Write(r) //nolint:errcheck
+	_, _ = w.Write(r)
 }
 
 const SendLargeFileChunkSize = 2 << 10
@@ -328,7 +328,7 @@ func (o *SendLargeFileOptions) Validate() error {
 	}
 	if o.UID == 0 && o.GID == 0 && o.Mode == 0 {
 		// we see it as requiring "default perm"
-		o.Mode = 0755
+		o.Mode = 0o755
 	}
 	return nil
 }

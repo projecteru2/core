@@ -119,7 +119,7 @@ func genNodesByCapCount(caps, counts []int) (infos []Info) {
 			Count:    counts[i],
 		})
 	}
-	return
+	return infos
 }
 
 func getFinalStatus(deploy map[string]int, infos []Info) (counts []int) {
@@ -127,5 +127,5 @@ func getFinalStatus(deploy map[string]int, infos []Info) (counts []int) {
 		counts = append(counts, info.Count+deploy[info.Nodename])
 	}
 	sort.Ints(counts)
-	return
+	return counts
 }

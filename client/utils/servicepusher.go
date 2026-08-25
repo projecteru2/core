@@ -3,15 +3,16 @@ package utils
 import (
 	"context"
 	"os"
+	"slices"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/alphadose/haxmap"
-	"github.com/go-ping/ping"
+	probing "github.com/prometheus-community/pro-bing"
+
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
-	"golang.org/x/exp/slices"
 )
 
 // EndpointPusher pushes endpoints to registered channels if the ep is L3 reachable
@@ -72,9 +73,9 @@ func (p *EndpointPusher) addCheck(ctx context.Context, endpoints []string) {
 			continue
 		}
 
-		ctx, cancel := context.WithCancel(ctx)
+		pollCtx, cancel := context.WithCancel(ctx)
 		p.pendingEndpoints.Set(endpoint, cancel)
-		go p.pollReachability(ctx, endpoint)
+		go p.pollReachability(pollCtx, endpoint)
 		log.WithFunc("utils.EndpointPusher.addCheck").Debugf(ctx, "pending endpoint added: %s", endpoint)
 	}
 }
@@ -110,10 +111,10 @@ func (p *EndpointPusher) pollReachability(ctx context.Context, endpoint string) 
 }
 
 func (p *EndpointPusher) checkReachability(ctx context.Context, host string) (err error) {
-	pinger, err := ping.NewPinger(host)
+	pinger, err := probing.NewPinger(host)
 	if err != nil {
 		log.WithFunc("utils.EndpointPusher.checkReachability").Error(ctx, err, "failed to create pinger")
-		return
+		return err
 	}
 	pinger.SetPrivileged(os.Getuid() == 0)
 	defer pinger.Stop()
@@ -121,12 +122,12 @@ func (p *EndpointPusher) checkReachability(ctx context.Context, host string) (er
 	pinger.Count = 1
 	pinger.Timeout = time.Second
 	if err = pinger.Run(); err != nil {
-		return
+		return err
 	}
 	if pinger.Statistics().PacketsRecv != 1 {
 		return types.ErrICMPLost
 	}
-	return
+	return err
 }
 
 func (p *EndpointPusher) pushEndpoints() {

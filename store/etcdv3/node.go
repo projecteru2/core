@@ -221,7 +221,7 @@ func (m *Mercury) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
 func (m *Mercury) LoadNodeCert(ctx context.Context, node *types.Node) (err error) {
 	keyFormats := []string{nodeCaKey, nodeCertKey, nodeKeyKey}
 	data := []string{"", "", ""}
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		ev, err := m.GetOne(ctx, fmt.Sprintf(keyFormats[i], node.Name))
 		if err != nil {
 			if !errors.Is(err, types.ErrInvaildCount) {
@@ -244,7 +244,7 @@ func (m *Mercury) makeClient(ctx context.Context, node *types.Node) (client engi
 
 	keyFormats := []string{nodeCaKey, nodeCertKey, nodeKeyKey}
 	data := []string{"", "", ""}
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		ev, err := m.GetOne(ctx, fmt.Sprintf(keyFormats[i], node.Name))
 		if err != nil {
 			if !errors.Is(err, types.ErrInvaildCount) {
@@ -273,12 +273,10 @@ func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, ce
 	}
 
 	node := &types.Node{
-		NodeMeta: types.NodeMeta{
-			Name:     name,
-			Endpoint: endpoint,
-			Podname:  podname,
-			Labels:   labels,
-		},
+		Name:      name,
+		Endpoint:  endpoint,
+		Podname:   podname,
+		Labels:    labels,
 		Available: true,
 		Bypass:    false,
 		Test:      test || strings.HasPrefix(endpoint, fakeengine.PrefixKey),
@@ -351,7 +349,6 @@ func (m *Mercury) doGetNodes(
 	nodesCh := make(chan *types.Node, len(allNodes))
 
 	for _, node := range allNodes {
-		node := node
 		_ = m.pool.Invoke(func() {
 			defer wg.Done()
 			if node.Test {

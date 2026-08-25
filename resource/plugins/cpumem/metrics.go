@@ -5,8 +5,24 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mitchellh/mapstructure"
+	"github.com/go-viper/mapstructure/v2"
+
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
+)
+
+const (
+	fieldName   = "name"
+	fieldHelp   = "help"
+	fieldType   = "type"
+	fieldLabels = "labels"
+	fieldValue  = "value"
+	fieldKey    = "key"
+
+	gaugeType = "gauge"
+
+	labelPodname  = "podname"
+	labelNodename = "nodename"
+	labelCPUID    = "cpuid"
 )
 
 // GetMetricsDescription .
@@ -14,28 +30,28 @@ func (p Plugin) GetMetricsDescription(context.Context) (*plugintypes.GetMetricsD
 	resp := &plugintypes.GetMetricsDescriptionResponse{}
 	return resp, mapstructure.Decode([]map[string]any{
 		{
-			"name":   "cpu_map",
-			"help":   "node available cpu.",
-			"type":   "gauge",
-			"labels": []string{"podname", "nodename", "cpuid"},
+			fieldName:   "cpu_map",
+			fieldHelp:   "node available cpu.",
+			fieldType:   gaugeType,
+			fieldLabels: []string{labelPodname, labelNodename, labelCPUID},
 		},
 		{
-			"name":   "cpu_used",
-			"help":   "node used cpu.",
-			"type":   "gauge",
-			"labels": []string{"podname", "nodename"},
+			fieldName:   "cpu_used",
+			fieldHelp:   "node used cpu.",
+			fieldType:   gaugeType,
+			fieldLabels: []string{labelPodname, labelNodename},
 		},
 		{
-			"name":   "memory_capacity",
-			"help":   "node available memory.",
-			"type":   "gauge",
-			"labels": []string{"podname", "nodename"},
+			fieldName:   "memory_capacity",
+			fieldHelp:   "node available memory.",
+			fieldType:   gaugeType,
+			fieldLabels: []string{labelPodname, labelNodename},
 		},
 		{
-			"name":   "memory_used",
-			"help":   "node used memory.",
-			"type":   "gauge",
-			"labels": []string{"podname", "nodename"},
+			fieldName:   "memory_used",
+			fieldHelp:   "node used memory.",
+			fieldType:   gaugeType,
+			fieldLabels: []string{labelPodname, labelNodename},
 		},
 	}, resp)
 }
@@ -49,31 +65,31 @@ func (p Plugin) GetMetrics(ctx context.Context, podname, nodename string) (*plug
 	safeNodename := strings.ReplaceAll(nodename, ".", "_")
 	metrics := []map[string]any{
 		{
-			"name":   "memory_capacity",
-			"labels": []string{podname, nodename},
-			"value":  fmt.Sprintf("%+v", nodeResourceInfo.Capacity.Memory),
-			"key":    fmt.Sprintf("core.node.%s.memory", safeNodename),
+			fieldName:   "memory_capacity",
+			fieldLabels: []string{podname, nodename},
+			fieldValue:  fmt.Sprintf("%+v", nodeResourceInfo.Capacity.Memory),
+			fieldKey:    fmt.Sprintf("core.node.%s.memory", safeNodename),
 		},
 		{
-			"name":   "memory_used",
-			"labels": []string{podname, nodename},
-			"value":  fmt.Sprintf("%+v", nodeResourceInfo.Usage.Memory),
-			"key":    fmt.Sprintf("core.node.%s.memory.used", safeNodename),
+			fieldName:   "memory_used",
+			fieldLabels: []string{podname, nodename},
+			fieldValue:  fmt.Sprintf("%+v", nodeResourceInfo.Usage.Memory),
+			fieldKey:    fmt.Sprintf("core.node.%s.memory.used", safeNodename),
 		},
 		{
-			"name":   "cpu_used",
-			"labels": []string{podname, nodename},
-			"value":  fmt.Sprintf("%+v", nodeResourceInfo.Usage.CPU),
-			"key":    fmt.Sprintf("core.node.%s.cpu.used", safeNodename),
+			fieldName:   "cpu_used",
+			fieldLabels: []string{podname, nodename},
+			fieldValue:  fmt.Sprintf("%+v", nodeResourceInfo.Usage.CPU),
+			fieldKey:    fmt.Sprintf("core.node.%s.cpu.used", safeNodename),
 		},
 	}
 
 	for cpuID, pieces := range nodeResourceInfo.Usage.CPUMap {
 		metrics = append(metrics, map[string]any{
-			"name":   "cpu_map",
-			"labels": []string{podname, nodename, cpuID},
-			"value":  fmt.Sprintf("%+v", pieces),
-			"key":    fmt.Sprintf("core.node.%s.cpu.%s", safeNodename, cpuID),
+			fieldName:   "cpu_map",
+			fieldLabels: []string{podname, nodename, cpuID},
+			fieldValue:  fmt.Sprintf("%+v", pieces),
+			fieldKey:    fmt.Sprintf("core.node.%s.cpu.%s", safeNodename, cpuID),
 		})
 	}
 

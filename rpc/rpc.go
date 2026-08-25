@@ -3,6 +3,7 @@ package rpc
 import (
 	"archive/tar"
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -17,7 +18,6 @@ import (
 	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/version"
 
-	"golang.org/x/net/context"
 	grpcstatus "google.golang.org/grpc/status"
 )
 
@@ -522,7 +522,11 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 				}()
 
 				tw := tar.NewWriter(w)
-				defer tw.Close()
+				defer func() {
+					if closeErr := tw.Close(); err == nil {
+						err = closeErr
+					}
+				}()
 				header := &tar.Header{
 					Name: filepath.Base(m.Filename),
 					Uid:  m.UID,
@@ -860,9 +864,9 @@ func (v *Vibranium) ExecuteWorkload(stream pb.CoreRPC_ExecuteWorkloadServer) err
 		defer close(inCh)
 		if opts.OpenStdin {
 			for {
-				execWorkloadOpt, err := stream.Recv()
-				if execWorkloadOpt == nil || err != nil {
-					log.WithFunc("vibranium.ExecuteWorkload").Error(task.context, err, "Recv command error")
+				execWorkloadOpt, recvErr := stream.Recv()
+				if execWorkloadOpt == nil || recvErr != nil {
+					log.WithFunc("vibranium.ExecuteWorkload").Error(task.context, recvErr, "Recv command error")
 					return
 				}
 				inCh <- execWorkloadOpt.ReplCmd
@@ -983,12 +987,12 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 			return
 		}
 		for {
-			RunAndWaitOptions, err := stream.Recv()
-			if RunAndWaitOptions == nil || err != nil {
-				logger.Error(ctx, err, "Recv command")
+			replOpts, recvErr := stream.Recv()
+			if replOpts == nil || recvErr != nil {
+				logger.Error(ctx, recvErr, "Recv command")
 				break
 			}
-			inCh <- RunAndWaitOptions.Cmd
+			inCh <- replOpts.Cmd
 		}
 	})
 
@@ -1032,7 +1036,9 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 		runAndWait(func(ch <-chan *types.AttachWorkloadMessage) {
 			r, w := io.Pipe()
 			utils.SentryGo(func() {
-				defer w.Close()
+				defer func() {
+					_ = w.Close()
+				}()
 				for m := range ch {
 					if _, err := w.Write(m.Data); err != nil {
 						logger.Error(ctx, err, "iterate and forward AttachWorkloadMessage")
@@ -1075,7 +1081,6 @@ func (v *Vibranium) RawEngine(ctx context.Context, opts *pb.RawEngineOptions) (*
 	}
 
 	msg, err := v.cluster.RawEngine(task.context, rawEngineOpts)
-
 	if err != nil {
 		return nil, grpcstatus.Error(RawEngineStatus, err.Error())
 	}

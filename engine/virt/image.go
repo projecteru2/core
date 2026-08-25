@@ -7,10 +7,11 @@ import (
 	"io"
 	"strings"
 
+	virttypes "github.com/projecteru2/libyavirt/types"
+
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
-	virttypes "github.com/projecteru2/libyavirt/types"
 )
 
 // ImageList lists images.
@@ -29,7 +30,7 @@ func (v *Virt) ImageList(ctx context.Context, imageName string) (imgs []*enginet
 		})
 	}
 
-	return
+	return imgs, err
 }
 
 // ImageRemove removes a specific image.
@@ -45,7 +46,7 @@ func (v *Virt) ImageRemove(ctx context.Context, tag string, force, prune bool) (
 // ImagesPrune prunes one.
 func (v *Virt) ImagesPrune(ctx context.Context) (err error) {
 	log.WithFunc("engine.virt.ImagesPrune").Warnf(ctx, "ImagesPrune does not implement")
-	return
+	return err
 }
 
 // ImagePull pulls an image to local virt-node.
@@ -61,10 +62,7 @@ func (v *Virt) ImagePull(ctx context.Context, ref string, all bool) (rc io.ReadC
 		return nil, err
 	}
 
-	rc = io.NopCloser(strings.NewReader(msg))
-	defer rc.Close()
-
-	return rc, err
+	return io.NopCloser(strings.NewReader(msg)), nil
 }
 
 // ImagePush pushes to central image registry.
@@ -84,16 +82,13 @@ func (v *Virt) ImagePush(ctx context.Context, ref string) (rc io.ReadCloser, err
 		return nil, err
 	}
 
-	rc = io.NopCloser(bytes.NewReader(reply))
-	defer rc.Close()
-
-	return rc, nil
+	return io.NopCloser(bytes.NewReader(reply)), nil
 }
 
 // ImageBuild captures from a guest.
 func (v *Virt) ImageBuild(ctx context.Context, _ io.Reader, _ []string, _ string) (rc io.ReadCloser, err error) {
 	log.WithFunc("engine.virt.ImageBuild").Warnf(ctx, "imageBuild does not implement")
-	return
+	return rc, err
 }
 
 // ImageBuildFromExist builds vm image from running vm
@@ -110,8 +105,7 @@ func (v *Virt) ImageBuildFromExist(ctx context.Context, ID string, refs []string
 		return "", err
 	}
 
-	req := virttypes.CaptureGuestReq{Name: imgName, User: user}
-	req.ID = ID
+	req := virttypes.CaptureGuestReq{Name: imgName, User: user, ID: ID}
 
 	uimg, err := v.client.CaptureGuest(ctx, req)
 	if err != nil {
@@ -124,7 +118,7 @@ func (v *Virt) ImageBuildFromExist(ctx context.Context, ID string, refs []string
 // ImageBuildCachePrune prunes cached one.
 func (v *Virt) ImageBuildCachePrune(ctx context.Context, _ bool) (reclaimed uint64, err error) {
 	log.WithFunc("engine.virt.ImageBuildCachePrune").Warnf(ctx, "ImageBuildCachePrune does not implement and not required by vm")
-	return
+	return reclaimed, err
 }
 
 // ImageLocalDigests shows local images' digests.

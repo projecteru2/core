@@ -4,7 +4,6 @@ import (
 	"context"
 	"hash/maphash"
 	"math/rand"
-	"testing"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -12,6 +11,7 @@ import (
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/store"
+	"github.com/projecteru2/core/store/etcdv3/embedded"
 	storefactory "github.com/projecteru2/core/store/factory"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -29,10 +29,10 @@ type NodeStatusWatcher struct {
 }
 
 // RunNodeStatusWatcher .
-func RunNodeStatusWatcher(ctx context.Context, config types.Config, cluster cluster.Cluster, t *testing.T) {
+func RunNodeStatusWatcher(ctx context.Context, config types.Config, cluster cluster.Cluster, embeddedETCD *embedded.Cluster) {
 	r := rand.New(rand.NewSource(int64(new(maphash.Hash).Sum64()))) //nolint
 	ID := r.Int63n(10000)                                           //nolint
-	store, err := storefactory.NewStore(config, t)
+	store, err := storefactory.NewStore(config, embeddedETCD)
 	if err != nil {
 		log.WithFunc("selfmon.RunNodeStatusWatcher").WithField("ID", ID).Error(ctx, err, "failed to create store")
 		return

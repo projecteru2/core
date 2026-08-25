@@ -1,0 +1,31 @@
+name: metadata
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - '.github/repo.yml'
+      - '.github/workflows/metadata.yml'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Sync description, homepage and topics from .github/repo.yml
+        env:
+          GH_TOKEN: ${{ secrets.REPO_METADATA_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "REPO_METADATA_TOKEN is not set; skipping"
+            exit 0
+          fi
+          description=$(yq -r '.description' .github/repo.yml)
+          homepage=$(yq -r '.homepage' .github/repo.yml)
+          topics=$(yq -r '.topics | join(",")' .github/repo.yml)
+          gh repo edit "$GITHUB_REPOSITORY" --description "$description" --homepage "$homepage"
+          gh api -X PUT "repos/$GITHUB_REPOSITORY/topics" -f "names[]=${topics//,/ -f names[]=}" >/dev/null

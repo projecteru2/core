@@ -8,7 +8,9 @@ import (
 	"strconv"
 
 	"github.com/cockroachdb/errors"
-	"github.com/mitchellh/mapstructure"
+	"github.com/go-viper/mapstructure/v2"
+	"github.com/sanity-io/litter"
+
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resource/plugins/cpumem/schedule"
@@ -16,7 +18,13 @@ import (
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-	"github.com/sanity-io/litter"
+)
+
+const (
+	fieldCapacity = "capacity"
+	fieldUsage    = "usage"
+	fieldNodename = "nodename"
+	fieldPriority = "priority"
 )
 
 // AddNode .
@@ -33,7 +41,7 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintyp
 	}
 
 	req := &cpumemtypes.NodeResourceRequest{}
-	if err := req.Parse(p.config, resource); err != nil {
+	if err = req.Parse(p.config, resource); err != nil {
 		return nil, err
 	}
 
@@ -41,7 +49,7 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintyp
 		// extract NodeResource from Resources
 		var nodeRes cpumemtypes.NodeResource
 		if b, ok := info.Resources[p.Name()]; ok {
-			if err := json.Unmarshal(b, &nodeRes); err != nil {
+			if err = json.Unmarshal(b, &nodeRes); err != nil {
 				return nil, err
 			}
 			// NodeResource has higher priority
@@ -77,7 +85,7 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintyp
 
 	// if NUMA is set but NUMAMemory is not set
 	// then divide memory equally according to the number of numa nodes
-	if len(req.NUMA) > 0 && (req.NUMAMemory == nil || len(req.NUMAMemory) == 0) {
+	if len(req.NUMA) > 0 && len(req.NUMAMemory) == 0 {
 		averageMemory := req.Memory / int64(len(req.NUMA))
 		nodeResourceInfo.Capacity.NUMAMemory = cpumemtypes.NUMAMemory{}
 		for _, ID := range req.NUMA {
@@ -91,8 +99,8 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintyp
 
 	resp := &plugintypes.AddNodeResponse{}
 	return resp, mapstructure.Decode(map[string]any{
-		"capacity": nodeResourceInfo.Capacity,
-		"usage":    nodeResourceInfo.Usage,
+		fieldCapacity: nodeResourceInfo.Capacity,
+		fieldUsage:    nodeResourceInfo.Usage,
 	}, resp)
 }
 
@@ -146,8 +154,8 @@ func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, 
 }
 
 // SetNodeResourceCapacity sets the amount of total resource info
-func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, resource plugintypes.NodeResource, resourceRequest plugintypes.NodeResourceRequest, delta bool, incr bool) (*plugintypes.SetNodeResourceCapacityResponse, error) {
-	logger := log.WithFunc("resource.cpumem.SetNodeResourceCapacity").WithField("node", "nodename")
+func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, resource plugintypes.NodeResource, resourceRequest plugintypes.NodeResourceRequest, delta, incr bool) (*plugintypes.SetNodeResourceCapacityResponse, error) {
+	logger := log.WithFunc("resource.cpumem.SetNodeResourceCapacity").WithField("node", nodename)
 	req, nodeResource, _, nodeResourceInfo, err := p.parseNodeResourceInfos(ctx, nodename, resource, resourceRequest, nil)
 	if err != nil {
 		return nil, err
@@ -190,14 +198,14 @@ func (p Plugin) GetNodeResourceInfo(ctx context.Context, nodename string, worklo
 
 	resp := &plugintypes.GetNodeResourceInfoResponse{}
 	return resp, mapstructure.Decode(map[string]any{
-		"capacity": nodeResourceInfo.Capacity,
-		"usage":    nodeResourceInfo.Usage,
-		"diffs":    diffs,
+		fieldCapacity: nodeResourceInfo.Capacity,
+		fieldUsage:    nodeResourceInfo.Usage,
+		"diffs":       diffs,
 	}, resp)
 }
 
 // SetNodeResourceInfo .
-func (p Plugin) SetNodeResourceInfo(ctx context.Context, nodename string, capacity plugintypes.NodeResource, usage plugintypes.NodeResource) (*plugintypes.SetNodeResourceInfoResponse, error) {
+func (p Plugin) SetNodeResourceInfo(ctx context.Context, nodename string, capacity, usage plugintypes.NodeResource) (*plugintypes.SetNodeResourceInfoResponse, error) {
 	capacityResource := &cpumemtypes.NodeResource{}
 	usageResource := &cpumemtypes.NodeResource{}
 	if err := capacityResource.Parse(capacity); err != nil {
@@ -215,8 +223,8 @@ func (p Plugin) SetNodeResourceInfo(ctx context.Context, nodename string, capaci
 }
 
 // SetNodeResourceUsage .
-func (p Plugin) SetNodeResourceUsage(ctx context.Context, nodename string, resource plugintypes.NodeResource, resourceRequest plugintypes.NodeResourceRequest, workloadsResource []plugintypes.WorkloadResource, delta bool, incr bool) (*plugintypes.SetNodeResourceUsageResponse, error) {
-	logger := log.WithFunc("resource.cpumem.SetNodeResourceUsage").WithField("node", "nodename")
+func (p Plugin) SetNodeResourceUsage(ctx context.Context, nodename string, resource plugintypes.NodeResource, resourceRequest plugintypes.NodeResourceRequest, workloadsResource []plugintypes.WorkloadResource, delta, incr bool) (*plugintypes.SetNodeResourceUsageResponse, error) {
+	logger := log.WithFunc("resource.cpumem.SetNodeResourceUsage").WithField("node", nodename)
 	req, nodeResource, wrksResource, nodeResourceInfo, err := p.parseNodeResourceInfos(ctx, nodename, resource, resourceRequest, workloadsResource)
 	if err != nil {
 		return nil, err
@@ -241,7 +249,7 @@ func (p Plugin) SetNodeResourceUsage(ctx context.Context, nodename string, resou
 // GetMostIdleNode .
 func (p Plugin) GetMostIdleNode(ctx context.Context, nodenames []string) (*plugintypes.GetMostIdleNodeResponse, error) {
 	var mostIdleNode string
-	var minIdle = math.MaxFloat64
+	minIdle := math.MaxFloat64
 
 	nodesResourceInfo, err := p.doGetNodesResourceInfo(ctx, nodenames)
 	if err != nil {
@@ -260,8 +268,8 @@ func (p Plugin) GetMostIdleNode(ctx context.Context, nodenames []string) (*plugi
 
 	resp := &plugintypes.GetMostIdleNodeResponse{}
 	return resp, mapstructure.Decode(map[string]any{
-		"nodename": mostIdleNode,
-		"priority": priority,
+		fieldNodename: mostIdleNode,
+		fieldPriority: priority,
 	}, resp)
 }
 
@@ -287,9 +295,9 @@ func (p Plugin) FixNodeResource(ctx context.Context, nodename string, workloadsR
 
 	resp := &plugintypes.GetNodeResourceInfoResponse{}
 	return resp, mapstructure.Decode(map[string]any{
-		"capacity": nodeResourceInfo.Capacity,
-		"usage":    nodeResourceInfo.Usage,
-		"diffs":    diffs,
+		fieldCapacity: nodeResourceInfo.Capacity,
+		fieldUsage:    nodeResourceInfo.Usage,
+		"diffs":       diffs,
 	}, resp)
 }
 
@@ -417,7 +425,7 @@ func (p Plugin) doGetNodeDeployCapacity(nodeResourceInfo *cpumemtypes.NodeResour
 }
 
 // calculateNodeResource priority: node resource request > node resource > workload resource args list
-func (p Plugin) calculateNodeResource(req *cpumemtypes.NodeResourceRequest, nodeResource *cpumemtypes.NodeResource, origin *cpumemtypes.NodeResource, workloadsResource []*cpumemtypes.WorkloadResource, delta bool, incr bool) *cpumemtypes.NodeResource {
+func (p Plugin) calculateNodeResource(req *cpumemtypes.NodeResourceRequest, nodeResource, origin *cpumemtypes.NodeResource, workloadsResource []*cpumemtypes.WorkloadResource, delta, incr bool) *cpumemtypes.NodeResource {
 	var resp *cpumemtypes.NodeResource
 	if origin == nil || !delta { // no delta means node resource rewrite with whole new data
 		resp = (&cpumemtypes.NodeResource{}).DeepCopy() // init nil pointer!

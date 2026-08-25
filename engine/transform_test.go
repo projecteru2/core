@@ -3,9 +3,10 @@ package engine
 import (
 	"testing"
 
-	"github.com/mitchellh/mapstructure"
-	resourcetypes "github.com/projecteru2/core/resource/types"
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/stretchr/testify/assert"
+
+	resourcetypes "github.com/projecteru2/core/resource/types"
 )
 
 type virtualizationResource struct {

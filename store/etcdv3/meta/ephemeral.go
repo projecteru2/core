@@ -34,9 +34,7 @@ func (e *ETCD) StartEphemeral(ctx context.Context, path string, heartbeat time.D
 	logger := log.WithFunc("store.etcdv3.meta.StartEphemeral")
 
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		defer close(expiry)
 
 		tick := time.NewTicker(heartbeat / 3)
@@ -45,10 +43,10 @@ func (e *ETCD) StartEphemeral(ctx context.Context, path string, heartbeat time.D
 		// Revokes the lease.
 		defer func() {
 			// It shouldn't be inheriting from the ctx.
-			ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
-			defer cancel()
-			if _, err := e.cliv3.Revoke(ctx, lease.ID); err != nil {
-				logger.Errorf(ctx, err, "revoke %d with %s failed", lease.ID, path)
+			revokeCtx, revokeCancel := context.WithTimeout(context.TODO(), time.Minute)
+			defer revokeCancel()
+			if _, err := e.cliv3.Revoke(revokeCtx, lease.ID); err != nil {
+				logger.Errorf(revokeCtx, err, "revoke %d with %s failed", lease.ID, path)
 			}
 		}()
 
@@ -63,7 +61,7 @@ func (e *ETCD) StartEphemeral(ctx context.Context, path string, heartbeat time.D
 				return
 			}
 		}
-	}()
+	})
 
 	return expiry, func() {
 		cancel()

@@ -13,8 +13,8 @@ func withTarfileDump(ctx context.Context, target string, content []byte, uid, gi
 	tarfile, err := tempTarFile(target, content, uid, gid, mode)
 
 	defer func(tarfile string) {
-		if err := os.RemoveAll(tarfile); err != nil {
-			log.WithFunc("engine.docker.withTarfileDump").Warnf(ctx, "clean dump files failed: %+v", err)
+		if removeErr := os.RemoveAll(tarfile); removeErr != nil {
+			log.WithFunc("engine.docker.withTarfileDump").Warnf(ctx, "clean dump files failed: %+v", removeErr)
 		}
 	}(tarfile)
 
@@ -24,17 +24,25 @@ func withTarfileDump(ctx context.Context, target string, content []byte, uid, gi
 	return f(target, tarfile)
 }
 
-func tempTarFile(path string, data []byte, uid, gid int, mode int64) (string, error) {
+func tempTarFile(path string, data []byte, uid, gid int, mode int64) (name string, err error) {
 	filename := filepath.Base(path)
 	f, err := os.CreateTemp(os.TempDir(), filename)
 	if err != nil {
 		return "", err
 	}
-	name := f.Name()
-	defer f.Close()
+	name = f.Name()
+	defer func() {
+		if closeErr := f.Close(); err == nil {
+			err = closeErr
+		}
+	}()
 
 	tw := tar.NewWriter(f)
-	defer tw.Close()
+	defer func() {
+		if closeErr := tw.Close(); err == nil {
+			err = closeErr
+		}
+	}()
 	hdr := &tar.Header{
 		Name: filename,
 		Size: int64(len(data)),
@@ -42,7 +50,7 @@ func tempTarFile(path string, data []byte, uid, gid int, mode int64) (string, er
 		Uid:  uid,
 		Gid:  gid,
 	}
-	if err := tw.WriteHeader(hdr); err != nil {
+	if err = tw.WriteHeader(hdr); err != nil {
 		return name, err
 	}
 	_, err = tw.Write(data)

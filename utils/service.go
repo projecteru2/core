@@ -6,11 +6,12 @@ import (
 	"strings"
 
 	"github.com/cockroachdb/errors"
+
 	"github.com/projecteru2/core/types"
 )
 
 // GetOutboundAddress finds out self-service address
-func GetOutboundAddress(bind string, probeTarget string) (string, error) {
+func GetOutboundAddress(bind, probeTarget string) (string, error) {
 	parts := strings.Split(bind, ":")
 	if len(parts) != 2 {
 		return "", errors.Wrap(types.ErrInvaildIPWithPort, bind)
@@ -26,12 +27,14 @@ func GetOutboundAddress(bind string, probeTarget string) (string, error) {
 	return bind, nil
 }
 
-func getOutboundAddress(port string, probeTarget string) (string, error) {
+func getOutboundAddress(port, probeTarget string) (string, error) {
 	conn, err := net.Dial("udp", probeTarget)
 	if err != nil {
 		return "", err
 	}
-	defer conn.Close()
+	defer func() {
+		_ = conn.Close()
+	}()
 
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
 	return fmt.Sprintf("%s:%s", localAddr.IP, port), nil

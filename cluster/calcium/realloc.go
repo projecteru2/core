@@ -17,7 +17,7 @@ func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOption
 	logger.Infof(ctx, "realloc workload %+v with options %+v", opts.ID, opts.Resources)
 	workload, err := c.GetWorkload(ctx, opts.ID)
 	if err != nil {
-		return
+		return err
 	}
 	// copy origin workload
 	originWorkload := *workload
@@ -61,8 +61,8 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 			if failureByCond {
 				return nil
 			}
-			if err := c.rmgr.RollbackRealloc(ctx, workload.Nodename, deltaResources); err != nil {
-				logger.Errorf(ctx, err, "failed to rollback workload %+v, resource args %+v, engine args %+v", workload.ID, litter.Sdump(resources), litter.Sdump(engineParams))
+			if rollbackErr := c.rmgr.RollbackRealloc(ctx, workload.Nodename, deltaResources); rollbackErr != nil {
+				logger.Errorf(ctx, rollbackErr, "failed to rollback workload %+v, resource args %+v, engine args %+v", workload.ID, litter.Sdump(resources), litter.Sdump(engineParams))
 				// don't return here, so the node resource can still be fixed
 			}
 			return c.store.UpdateWorkload(ctx, &originWorkload)

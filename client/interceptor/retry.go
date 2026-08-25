@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/cockroachdb/errors"
+
 	"github.com/projecteru2/core/log"
 
 	"github.com/cenkalti/backoff/v4"
@@ -15,7 +16,7 @@ func NewUnaryRetry(retryOpts RetryOptions) grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		return backoff.Retry(func() error {
 			return invoker(ctx, method, req, reply, cc, opts...)
-		}, backoff.WithMaxRetries(backoff.WithContext(backoff.NewExponentialBackOff(), ctx), uint64(retryOpts.Max)))
+		}, backoff.WithMaxRetries(backoff.WithContext(backoff.NewExponentialBackOff(), ctx), retryOpts.Max))
 	}
 }
 
@@ -54,7 +55,7 @@ func (s *retryStream) SendMsg(m any) error {
 
 func (s *retryStream) RecvMsg(m any) (err error) {
 	if err = s.ClientStream.RecvMsg(m); err == nil || errors.Is(err, context.Canceled) {
-		return
+		return err
 	}
 	logger := log.WithFunc("client.RecvMsg")
 
@@ -73,5 +74,5 @@ func (s *retryStream) RecvMsg(m any) (err error) {
 			return err
 		}
 		return s.getStream().RecvMsg(m)
-	}, backoff.WithMaxRetries(backoff.WithContext(backoff.NewExponentialBackOff(), s.ctx), uint64(s.retryOpts.Max)))
+	}, backoff.WithMaxRetries(backoff.WithContext(backoff.NewExponentialBackOff(), s.ctx), s.retryOpts.Max))
 }

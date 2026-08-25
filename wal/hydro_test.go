@@ -155,7 +155,7 @@ func TestHydroRecoverDiscardNoNeedEvent(t *testing.T) {
 	var checked, handled, encoded, decoded bool
 	check := func(interface{}) (need bool, err error) {
 		checked = true
-		return
+		return need, err
 	}
 
 	eventype := "create"
@@ -252,17 +252,17 @@ func newTestEventHandler(eventype string, checked, handled, encoded, decoded *bo
 
 	handle := func(interface{}) (err error) {
 		*handled = true
-		return
+		return err
 	}
 
 	encode := func(interface{}) (bs []byte, err error) {
 		*encoded = true
-		return
+		return bs, err
 	}
 
 	decode := func([]byte) (item interface{}, err error) {
 		*decoded = true
-		return
+		return item, err
 	}
 
 	return simpleEventHandler{

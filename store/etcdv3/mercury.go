@@ -1,9 +1,9 @@
 package etcdv3
 
 import (
-	"testing"
-
 	"github.com/panjf2000/ants/v2"
+
+	"github.com/projecteru2/core/store/etcdv3/embedded"
 	"github.com/projecteru2/core/store/etcdv3/meta"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -35,12 +35,12 @@ type Mercury struct {
 }
 
 // New for create a Mercury instance
-func New(config types.Config, t *testing.T) (m *Mercury, err error) {
+func New(config types.Config, embeddedETCD *embedded.Cluster) (m *Mercury, err error) {
 	pool, err := utils.NewPool(config.MaxConcurrency)
 	if err != nil {
 		return nil, err
 	}
 	m = &Mercury{config: config, pool: pool}
-	m.KV, err = meta.NewETCD(config.Etcd, t)
-	return
+	m.KV, err = meta.NewETCD(config.Etcd, embeddedETCD)
+	return m, err
 }

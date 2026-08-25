@@ -38,6 +38,6 @@ type OpenCloser interface {
 
 // ScanEntry is the interface that groups the basic Pair and Error methods.
 type ScanEntry interface {
-	Pair() (key []byte, value []byte)
+	Pair() (key, value []byte)
 	Error() error
 }

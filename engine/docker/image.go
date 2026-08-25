@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"io"
 
-	dockertypes "github.com/docker/docker/api/types"
+	dockerbuild "github.com/docker/docker/api/types/build"
+	dockercontainer "github.com/docker/docker/api/types/container"
 	dockerfilters "github.com/docker/docker/api/types/filters"
+	dockerimage "github.com/docker/docker/api/types/image"
 	registrytypes "github.com/docker/docker/api/types/registry"
+
 	enginetypes "github.com/projecteru2/core/engine/types"
 )
 
@@ -17,7 +20,7 @@ func (e *Engine) ImageList(ctx context.Context, image string) ([]*enginetypes.Im
 	imgListFilter := dockerfilters.NewArgs()
 	imgListFilter.Add("reference", image) // 相同 repo 的image
 
-	images, err := e.client.ImageList(ctx, dockertypes.ImageListOptions{Filters: imgListFilter})
+	images, err := e.client.ImageList(ctx, dockerimage.ListOptions{Filters: imgListFilter})
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +38,7 @@ func (e *Engine) ImageList(ctx context.Context, image string) ([]*enginetypes.Im
 
 // ImageRemove remove a image
 func (e *Engine) ImageRemove(ctx context.Context, image string, force, prune bool) ([]string, error) {
-	opts := dockertypes.ImageRemoveOptions{
+	opts := dockerimage.RemoveOptions{
 		Force:         force,
 		PruneChildren: prune,
 	}
@@ -70,7 +73,7 @@ func (e *Engine) ImagePull(ctx context.Context, ref string, all bool) (io.ReadCl
 	if err != nil {
 		return nil, err
 	}
-	pullOptions := dockertypes.ImagePullOptions{All: all, RegistryAuth: auth}
+	pullOptions := dockerimage.PullOptions{All: all, RegistryAuth: auth}
 	return e.client.ImagePull(ctx, ref, pullOptions)
 }
 
@@ -80,7 +83,7 @@ func (e *Engine) ImagePush(ctx context.Context, ref string) (io.ReadCloser, erro
 	if err != nil {
 		return nil, err
 	}
-	pushOptions := dockertypes.ImagePushOptions{RegistryAuth: auth}
+	pushOptions := dockerimage.PushOptions{RegistryAuth: auth}
 	return e.client.ImagePush(ctx, ref, pushOptions)
 }
 
@@ -100,7 +103,7 @@ func (e *Engine) ImageBuild(ctx context.Context, input io.Reader, refs []string,
 			}
 		}
 	}
-	buildOptions := dockertypes.ImageBuildOptions{
+	buildOptions := dockerbuild.ImageBuildOptions{
 		Tags:           refs,
 		SuppressOutput: false,
 		NoCache:        true,
@@ -119,7 +122,7 @@ func (e *Engine) ImageBuild(ctx context.Context, input io.Reader, refs []string,
 
 // ImageBuildFromExist commits image from running workload
 func (e *Engine) ImageBuildFromExist(ctx context.Context, ID string, refs []string, _ string) (imageID string, err error) {
-	opts := dockertypes.ContainerCommitOptions{
+	opts := dockercontainer.CommitOptions{
 		Reference: refs[0],
 		Author:    "eru-core",
 	}
@@ -128,7 +131,7 @@ func (e *Engine) ImageBuildFromExist(ctx context.Context, ID string, refs []stri
 		return "", err
 	}
 	for i := 1; i < len(refs); i++ {
-		if err := e.client.ImageTag(ctx, resp.ID, refs[i]); err != nil {
+		if err = e.client.ImageTag(ctx, resp.ID, refs[i]); err != nil {
 			return "", err
 		}
 	}
@@ -137,7 +140,7 @@ func (e *Engine) ImageBuildFromExist(ctx context.Context, ID string, refs []stri
 
 // ImageBuildCachePrune prune build cache
 func (e *Engine) ImageBuildCachePrune(ctx context.Context, all bool) (uint64, error) {
-	r, err := e.client.BuildCachePrune(ctx, dockertypes.BuildCachePruneOptions{All: all})
+	r, err := e.client.BuildCachePrune(ctx, dockerbuild.CachePruneOptions{All: all})
 	if err != nil {
 		return 0, err
 	}
@@ -146,7 +149,7 @@ func (e *Engine) ImageBuildCachePrune(ctx context.Context, all bool) (uint64, er
 
 // ImageLocalDigests return image digests
 func (e *Engine) ImageLocalDigests(ctx context.Context, image string) ([]string, error) {
-	inspect, _, err := e.client.ImageInspectWithRaw(ctx, image)
+	inspect, err := e.client.ImageInspect(ctx, image)
 	if err != nil {
 		return nil, err
 	}

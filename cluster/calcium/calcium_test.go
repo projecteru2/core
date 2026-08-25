@@ -12,6 +12,7 @@ import (
 
 	resourcemocks "github.com/projecteru2/core/resource/mocks"
 	sourcemocks "github.com/projecteru2/core/source/mocks"
+	"github.com/projecteru2/core/store/etcdv3/embedded"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -62,7 +63,10 @@ func TestNewCluster(t *testing.T) {
 	_, err := New(ctx, config, nil)
 	assert.Error(t, err)
 
-	c, err := New(ctx, config, t)
+	embeddedETCD, err := embedded.New(t.TempDir())
+	assert.NoError(t, err)
+	t.Cleanup(embeddedETCD.Close)
+	c, err := New(ctx, config, embeddedETCD)
 	assert.NoError(t, err)
 
 	c.Finalizer()
@@ -82,7 +86,7 @@ func TestNewCluster(t *testing.T) {
 		},
 		HAKeepaliveInterval: 16 * time.Second,
 	}
-	c1, err := New(ctx, config1, t)
+	c1, err := New(ctx, config1, embeddedETCD)
 	assert.NoError(t, err)
 	c1.Finalizer()
 
@@ -94,7 +98,7 @@ func TestNewCluster(t *testing.T) {
 		},
 		HAKeepaliveInterval: 16 * time.Second,
 	}
-	c2, err := New(ctx, config2, t)
+	c2, err := New(ctx, config2, embeddedETCD)
 	assert.NoError(t, err)
 	c2.Finalizer()
 }

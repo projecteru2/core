@@ -25,10 +25,10 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, IDs []string) (chan *t
 		defer close(ch)
 
 		for nodename, workloadIDs := range nodeWorkloadGroup {
-			if err := c.withNodePodLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
+			if nodeErr := c.withNodePodLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
 				for _, workloadID := range workloadIDs { //nolint:scopelint
 					msg := &types.DissociateWorkloadMessage{WorkloadID: workloadID} //nolint:scopelint
-					if err := c.withWorkloadLocked(ctx, workloadID, false, func(ctx context.Context, workload *types.Workload) error {
+					if workloadErr := c.withWorkloadLocked(ctx, workloadID, false, func(ctx context.Context, workload *types.Workload) error {
 						return utils.Txn(
 							ctx,
 							// if
@@ -41,7 +41,7 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, IDs []string) (chan *t
 								return c.store.RemoveWorkload(ctx, workload)
 							},
 							// rollback
-							func(ctx context.Context, failedByCond bool) error {
+							func(ctx context.Context, failedByCond bool) (err error) {
 								if failedByCond {
 									return nil
 								}
@@ -50,16 +50,16 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, IDs []string) (chan *t
 							},
 							c.config.GlobalTimeout,
 						)
-					}); err != nil {
-						logger.WithField("id", workloadID).Error(ctx, err, "failed to lock workload")
-						msg.Error = err
+					}); workloadErr != nil {
+						logger.WithField("id", workloadID).Error(ctx, workloadErr, "failed to lock workload")
+						msg.Error = workloadErr
 					}
 					ch <- msg
 				}
 				_ = c.pool.Invoke(func() { c.RemapResourceAndLog(ctx, logger, node) })
 				return nil
-			}); err != nil {
-				logger.WithField("node", nodename).Error(ctx, err, "failed to lock node")
+			}); nodeErr != nil {
+				logger.WithField("node", nodename).Error(ctx, nodeErr, "failed to lock node")
 			}
 		}
 	})

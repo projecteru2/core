@@ -8,11 +8,12 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/docker/go-units"
+	"github.com/stretchr/testify/assert"
+
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/resource/plugins/cpumem/types"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	coretypes "github.com/projecteru2/core/types"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestAddNode(t *testing.T) {

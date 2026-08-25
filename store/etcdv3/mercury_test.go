@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/projecteru2/core/engine/factory"
+	"github.com/projecteru2/core/store/etcdv3/embedded"
 	"github.com/projecteru2/core/types"
 
 	"github.com/stretchr/testify/assert"
@@ -28,7 +29,10 @@ func NewMercury(t *testing.T) *Mercury {
 	defer cancel()
 	factory.InitEngineCache(ctx, config, nil)
 
-	m, err := New(config, t)
+	cluster, err := embedded.New(t.TempDir())
+	assert.NoError(t, err)
+	t.Cleanup(cluster.Close)
+	m, err := New(config, cluster)
 	assert.NoError(t, err)
 	return m
 }

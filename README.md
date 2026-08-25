@@ -1,57 +1,53 @@
-Eru
-====
-![](https://github.com/projecteru2/core/workflows/test/badge.svg)
-![](https://github.com/projecteru2/core/workflows/golangci-lint/badge.svg)
-[![Codacy Badge](https://app.codacy.com/project/badge/Grade/69918e0a02ae45c5ae7dfc42bad5cfe5)](https://www.codacy.com/gh/projecteru2/core?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=projecteru2/core&amp;utm_campaign=Badge_Grade)
+# core
 
-Eru is a stateless, flexible, production-ready resource scheduler designed to easily integrate into existing systems. 
+Eru core is a stateless gRPC resource scheduler: it holds cluster metadata in etcd or redis, allocates
+resources through pluggable resource plugins, and deploys workloads onto Docker containers or
+yavirt virtual machines through a single `CoreRPC` API.
 
-Eru can use multiple engines to run anything for the long or short term. 
+**Documentation: [projecteru2.github.io/core](https://projecteru2.github.io/core/)** (source in [`docs/`](docs/)).
 
-This project is Eru Core. The Core use for resource allocation and manage resource's lifetime.
+[![test](https://github.com/projecteru2/core/actions/workflows/test.yml/badge.svg)](https://github.com/projecteru2/core/actions/workflows/test.yml)
+[![lint](https://github.com/projecteru2/core/actions/workflows/lint.yml/badge.svg)](https://github.com/projecteru2/core/actions/workflows/lint.yml)
 
-Suggest use go 1.20 and above.
+## Highlights
 
-### Testing
+- **One gRPC API** — the `CoreRPC` service covers pods, nodes, workloads, images, networks, files
+  and status streams; long-running calls (deploy, build, logs, exec) are server streams
+- **Stateless, multi-instance** — every instance keeps its state in etcd or redis and coordinates
+  through distributed locks, so instances can be added and removed freely
+- **Multiple engines** — Docker (`tcp://`, `unix://`), yavirt VMs (`virt-grpc://`), systemd-managed
+  containerd (`systemd://`) and a mock engine, selected per node by endpoint scheme
+- **Resource plugins** — `cpumem` is built in; external plugins are ordinary executables in
+  `resource_plugin.dir`, invoked with a subcommand and JSON on stdin
+  (see [resource-extend](https://github.com/projecteru2/resource-extend) for gpu and storage)
+- **Deployment strategies** — `AUTO`, `FILL`, `EACH`, `GLOBAL` and `DRAINED` decide how a deploy
+  count is spread over the candidate nodes
+- **WAL-based recovery** — allocations, workload creation and processing counters are journaled to a
+  local bbolt WAL and replayed on start, so a crash mid-deploy does not leak resources
+- **Service discovery + client library** — instances register themselves in the store and push the
+  live address list over `WatchServiceStatus`; the Go client in [`client/`](client/) consumes it
+- **Embedded etcd** — `--embedded-storage` runs a single-member in-process etcd for a dev instance
 
-Run ` make test `
-
-### Compile
-
-* Run ` make build ` if you want binary.
-* Run `./make-rpm ` if you want RPM for el7. However we use [FPM](https://github.com/jordansissel/fpm) for packing, so you have to prepare it first.
-
-### Developing
-
-Run `make deps` for generating vendor dir.
-
-You can use our [footstone](https://hub.docker.com/r/projecteru2/footstone/) image for testing and compiling.
-
-#### GRPC
-
-Generate golang grpc definitions.
-
-```shell
-go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-make grpc
-```
-
-#### Run it
+## Quick start
 
 ```shell
-$ eru-core --config /etc/eru/core.yaml.sample
+make build
+
+# with an external etcd
+./eru-core --config core.yaml.sample
+
+# or a self-contained dev instance (in-process etcd under $TMPDIR/eru-core-etcd)
+./eru-core --config core.yaml.sample --embedded-storage
 ```
-or
+
+The config path also comes from `ERU_CONFIG_PATH`:
 
 ```shell
-$ export ERU_CONFIG_PATH=/path/to/core.yaml
-$ eru-core
+export ERU_CONFIG_PATH=/path/to/core.yaml
+eru-core
 ```
 
-### Dockerized Core manually
-
-Image: [projecteru2/core](https://hub.docker.com/r/projecteru2/core/)
+Container image — `ghcr.io/projecteru2/core` (also published as `projecteru2/core`):
 
 ```shell
 docker run -d \
@@ -59,26 +55,34 @@ docker run -d \
   --net host \
   --restart always \
   -v <HOST_CONFIG_DIR_PATH>:/etc/eru \
-  projecteru2/core \
+  ghcr.io/projecteru2/core \
   /usr/bin/eru-core
 ```
 
-### Build and Deploy by Eru itself
+See [Installation](docs/installation.md) and [Configuration](docs/configuration.md) for the rest.
 
-After we implemented bootstrap in eru, now you can build and deploy eru with [cli](https://github.com/projecteru2/cli) tool.
+## Related projects
 
-1. Test source code and build image
+- [agent](https://github.com/projecteru2/agent) — per-node daemon that reports node and workload status back to core
+- [cli](https://github.com/projecteru2/cli) — command line client for the core API
+- [resource-extend](https://github.com/projecteru2/resource-extend) — external resource plugins (gpu, storage)
+- [yavirt](https://github.com/projecteru2/yavirt) — VM runtime driven by core's `virt` engine
+- [libyavirt](https://github.com/projecteru2/libyavirt) — yavirt client library used by that engine
 
-```shell
-<cli_execute_path> --name <image_name> http://bit.ly/EruCore
-```
-
-Make sure you can clone code. After the fresh image was named and tagged, it will be auto pushed to the remote registry which was defined in config file.
-
-2. Deploy core itself
+## Development
 
 ```shell
-<cli_execute_path> workloads deploy --pod <pod_name> [--node <node_name>] --entry core --network <network_name> --image <projecteru2/core>|<your_own_image> --file <core_config_yaml>:/core.yaml [--count <count_num>] [--cpu 0.3 | --mem 1024000000] http://bit.ly/EruCore
+make build    # build the eru-core binary (CGO_ENABLED=0)
+make test     # go vet on linux+darwin, then tests with -race and coverage
+make lint     # golangci-lint on linux+darwin
+make fmt      # gofumpt + goimports
+make mock     # regenerate mocks from .mockery.yml
+make grpc     # regenerate gRPC bindings from rpc/gen/core.proto
+make all      # deps, fmt, lint, test, build
 ```
 
-Now you will find core was started in nodes.
+`make help` lists every target.
+
+## License
+
+This project is licensed under the MIT License. See [`LICENSE`](./LICENSE).

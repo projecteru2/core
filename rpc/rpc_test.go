@@ -4,11 +4,11 @@ import (
 	"context"
 	"testing"
 
+	grpcmocks "github.com/projecteru2/core/3rdmocks"
 	clustermock "github.com/projecteru2/core/cluster/mocks"
 	enginemock "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	pb "github.com/projecteru2/core/rpc/gen"
-	rpcmocks "github.com/projecteru2/core/rpc/mocks"
 	"github.com/projecteru2/core/types"
 
 	"github.com/stretchr/testify/assert"
@@ -73,7 +73,7 @@ func TestSetNodeTranform(t *testing.T) {
 func TestRunAndWaitSync(t *testing.T) {
 	v := newVibranium()
 
-	stream := &rpcmocks.CoreRPC_RunAndWaitServer{}
+	stream := &grpcmocks.BidiStreamingServer[pb.RunAndWaitOptions, pb.AttachWorkloadMessage]{}
 	stream.On("Context").Return(context.Background())
 	stream.On("Recv").Return(&pb.RunAndWaitOptions{
 		DeployOptions: &pb.DeployOptions{
@@ -132,7 +132,7 @@ func TestRunAndWaitSync(t *testing.T) {
 func TestRunAndWaitAsync(t *testing.T) {
 	v := newVibranium()
 
-	stream := &rpcmocks.CoreRPC_RunAndWaitServer{}
+	stream := &grpcmocks.BidiStreamingServer[pb.RunAndWaitOptions, pb.AttachWorkloadMessage]{}
 	stream.On("Context").Return(context.Background())
 	stream.On("Recv").Return(&pb.RunAndWaitOptions{
 		DeployOptions: &pb.DeployOptions{

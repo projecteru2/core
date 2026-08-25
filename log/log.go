@@ -9,8 +9,9 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/getsentry/sentry-go"
-	"github.com/projecteru2/core/types"
 	"gopkg.in/natefinch/lumberjack.v2"
+
+	"github.com/projecteru2/core/types"
 
 	"github.com/rs/zerolog"
 )

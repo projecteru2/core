@@ -7,13 +7,14 @@ import (
 
 	"github.com/alphadose/haxmap"
 	"github.com/cockroachdb/errors"
+
 	"github.com/projecteru2/core/log"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/wal/kv"
 )
 
 const (
-	fileMode = 0600
+	fileMode = 0o600
 )
 
 // Hydro is the simplest wal implementation.
@@ -41,7 +42,7 @@ func (h *Hydro) Close() error {
 
 // Register registers a new event handler.
 func (h *Hydro) Register(handler EventHandler) {
-	h.Map.Set(handler.Typ(), handler)
+	h.Set(handler.Typ(), handler)
 }
 
 // Recover starts a disaster recovery, which will replay all the events.
@@ -134,7 +135,7 @@ func (h *Hydro) recover(ctx context.Context, handler EventHandler, event HydroEv
 }
 
 func (h *Hydro) getEventHandler(eventyp string) (EventHandler, bool) {
-	handler, ok := h.Map.Get(eventyp)
+	handler, ok := h.Get(eventyp)
 	if !ok {
 		return nil, ok
 	}
@@ -143,14 +144,14 @@ func (h *Hydro) getEventHandler(eventyp string) (EventHandler, bool) {
 
 func (h *Hydro) decodeEvent(scanEntry kv.ScanEntry) (event HydroEvent, err error) {
 	if err = scanEntry.Error(); err != nil {
-		return
+		return event, err
 	}
 
 	key, value := scanEntry.Pair()
 	if err = json.Unmarshal(value, &event); err != nil {
-		return
+		return event, err
 	}
 
 	event.ID, err = parseHydroEventID(key)
-	return
+	return event, err
 }

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/cockroachdb/errors"
+
 	"github.com/projecteru2/core/types"
 
 	"go.etcd.io/bbolt"
@@ -64,7 +65,7 @@ func (l *Lithium) Close() error {
 }
 
 // Put creates/updates a key/value pair.
-func (l *Lithium) Put(key []byte, value []byte) (err error) {
+func (l *Lithium) Put(key, value []byte) (err error) {
 	return l.update(func(bkt *bbolt.Bucket) error {
 		return bkt.Put(key, value)
 	})
@@ -83,7 +84,7 @@ func (l *Lithium) Get(key []byte) (dst []byte, err error) {
 		return nil
 	})
 
-	return
+	return dst, err
 }
 
 // Delete deletes a key.
@@ -133,7 +134,7 @@ func (l *Lithium) NextSequence() (uint64, error) {
 	var seq uint64
 	err := l.update(func(bkt *bbolt.Bucket) (ue error) {
 		seq, ue = bkt.NextSequence()
-		return
+		return ue
 	})
 
 	return seq, err
@@ -141,7 +142,7 @@ func (l *Lithium) NextSequence() (uint64, error) {
 
 func (l *Lithium) open() (err error) {
 	if l.bolt, err = bbolt.Open(l.path, l.mode, &bbolt.Options{Timeout: l.timeout}); err != nil {
-		return
+		return err
 	}
 
 	err = l.bolt.Update(func(tx *bbolt.Tx) error {
@@ -149,7 +150,7 @@ func (l *Lithium) open() (err error) {
 		return ce
 	})
 
-	return
+	return err
 }
 
 func (l *Lithium) close() error {
@@ -181,7 +182,7 @@ func (l *Lithium) getBucket(tx *bbolt.Tx, key []byte) (bkt *bbolt.Bucket, err er
 	if bkt == nil {
 		err = errors.Wrapf(types.ErrInvalidWALBucket, "%+v", key)
 	}
-	return
+	return bkt, err
 }
 
 // LithiumScanEntry indicates an entry of scanning.

@@ -6,9 +6,10 @@ import (
 	"time"
 
 	"github.com/alicebob/miniredis/v2"
-	"github.com/go-redis/redis/v8"
-	"github.com/projecteru2/core/utils"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/projecteru2/core/utils"
 )
 
 func (s *RediaronTestSuite) TestEphemeralDeregister() {

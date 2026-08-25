@@ -81,7 +81,7 @@ func TestWatchServiceStatus(t *testing.T) {
 	c := NewTestCluster()
 	c.config.GRPCConfig.ServiceDiscoveryPushInterval = 500 * time.Millisecond
 	store := c.store.(*storemocks.Store)
-	store.On("ServiceStatusStream", mock.AnythingOfType("*context.emptyCtx")).Return(
+	store.On("ServiceStatusStream", mock.Anything).Return(
 		func(_ context.Context) chan []string {
 			ch := make(chan []string)
 			go func() {

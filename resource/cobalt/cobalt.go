@@ -2,13 +2,13 @@ package cobalt
 
 import (
 	"context"
-	"testing"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resource/plugins"
 	"github.com/projecteru2/core/resource/plugins/binary"
 	"github.com/projecteru2/core/resource/plugins/cpumem"
 	"github.com/projecteru2/core/resource/plugins/goplugin"
+	"github.com/projecteru2/core/store/etcdv3/embedded"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -30,10 +30,10 @@ func New(config types.Config) (*Manager, error) {
 }
 
 // LoadPlugins .
-func (m *Manager) LoadPlugins(ctx context.Context, t *testing.T) error {
+func (m *Manager) LoadPlugins(ctx context.Context, embeddedETCD *embedded.Cluster) error {
 	logger := log.WithFunc("resource.cobalt.LoadPlugins")
 	// Load internal
-	cm, err := cpumem.NewPlugin(ctx, m.config, t)
+	cm, err := cpumem.NewPlugin(ctx, m.config, embeddedETCD)
 	if err != nil {
 		return err
 	}
@@ -56,9 +56,9 @@ func (m *Manager) LoadPlugins(ctx context.Context, t *testing.T) error {
 
 	for _, file := range sharedLibFiles {
 		logger.Infof(ctx, "load go plugin: %+v", file)
-		b, err := goplugin.NewPlugin(ctx, file, m.config)
-		if err != nil {
-			return err
+		b, pluginErr := goplugin.NewPlugin(ctx, file, m.config)
+		if pluginErr != nil {
+			return pluginErr
 		}
 		if _, ok := cache[b.Name()]; ok {
 			continue

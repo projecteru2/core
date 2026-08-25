@@ -3,6 +3,7 @@ package calcium
 import (
 	"context"
 	"fmt"
+	"maps"
 	"sync"
 	"time"
 
@@ -150,7 +151,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 			// rollback: give back resources
 			func(ctx context.Context, failedOnCond bool) (err error) {
 				if failedOnCond {
-					return
+					return err
 				}
 				for nodename, rollbackIndices := range rollbackMap {
 					if e := c.withNodePodLocked(ctx, nodename, func(ctx context.Context, _ *types.Node) error {
@@ -178,8 +179,8 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context,
 	opts *types.DeployOptions,
 	engineParamsMap map[string][]resourcetypes.Resources,
 	workloadResourcesMap map[string][]resourcetypes.Resources,
-	deployMap map[string]int) (_ map[string][]int, err error) {
-
+	deployMap map[string]int,
+) (_ map[string][]int, err error) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(deployMap))
 	syncRollbackMap := haxmap.New[string, []int]()
@@ -196,7 +197,7 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context,
 		_ = c.pool.Invoke(func(nodename string, deploy, seq int) func() {
 			return func() {
 				defer wg.Done()
-				if indices, err := c.doDeployWorkloadsOnNode(ctx, ch, nodename, opts, deploy, engineParamsMap[nodename], workloadResourcesMap[nodename], seq); err != nil {
+				if indices, deployErr := c.doDeployWorkloadsOnNode(ctx, ch, nodename, opts, deploy, engineParamsMap[nodename], workloadResourcesMap[nodename], seq); deployErr != nil {
 					syncRollbackMap.Set(nodename, indices)
 				}
 			}
@@ -225,12 +226,12 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
 	deploy int,
 	engineParams []resourcetypes.Resources,
 	workloadResources []resourcetypes.Resources,
-	seq int) (indices []int, err error) {
-
+	seq int,
+) (indices []int, err error) {
 	logger := log.WithFunc("calcium.doDeployWorkloadsOnNode").WithField("node", nodename).WithField("ident", opts.ProcessIdent).WithField("deploy", deploy).WithField("seq", seq)
 	node, err := c.doGetAndPrepareNode(ctx, nodename, opts.Image, opts.IgnorePull)
 	if err != nil {
-		for i := 0; i < deploy; i++ {
+		for range deploy {
 			logger.Error(ctx, err)
 			ch <- &types.CreateWorkloadMessage{Error: err}
 		}
@@ -240,8 +241,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
 	appendLock := sync.Mutex{}
 	wg := &sync.WaitGroup{}
 	wg.Add(deploy)
-	for idx := 0; idx < deploy; idx++ {
-		idx := idx
+	for idx := range deploy {
 		createMsg := &types.CreateWorkloadMessage{
 			Podname:  opts.Podname,
 			Nodename: nodename,
@@ -336,9 +336,7 @@ func (c *Calcium) doDeployOneWorkload(
 			}
 			workload.ID = created.ID
 
-			for key, value := range created.Labels { // add Labels
-				workload.Labels[key] = value
-			}
+			maps.Copy(workload.Labels, created.Labels)
 
 			// We couldn't WAL the workload ID above VirtualizationCreate temporarily,
 			// so there's a time gap window, once the core process crashes between
@@ -357,7 +355,7 @@ func (c *Calcium) doDeployOneWorkload(
 				processing = nil
 			}
 			// add workload metadata first
-			if err := c.store.AddWorkload(ctx, workload, processing); err != nil {
+			if err = c.store.AddWorkload(ctx, workload, processing); err != nil {
 				return err
 			}
 			logger.Infof(ctx, "workload %s metadata created", workload.ID)
@@ -466,9 +464,7 @@ func (c *Calcium) doMakeWorkloadOptions(ctx context.Context, no int, msg *types.
 	if entry.Log != nil {
 		createOpts.LogType = entry.Log.Type
 		createOpts.LogConfig = map[string]string{}
-		for k, v := range entry.Log.Config {
-			createOpts.LogConfig[k] = v
-		}
+		maps.Copy(createOpts.LogConfig, entry.Log.Config)
 	}
 	// name
 	suffix := utils.RandomString(6)
@@ -493,9 +489,7 @@ func (c *Calcium) doMakeWorkloadOptions(ctx context.Context, no int, msg *types.
 		cluster.LabelNodeName: node.Name,
 		cluster.LabelCoreID:   c.identifier,
 	}
-	for key, value := range opts.Labels {
-		createOpts.Labels[key] = value
-	}
+	maps.Copy(createOpts.Labels, opts.Labels)
 
 	return createOpts
 }

@@ -2,14 +2,17 @@ package calcium
 
 import (
 	"context"
+	"maps"
+	"slices"
+
+	"github.com/sanity-io/litter"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
-	"github.com/sanity-io/litter"
-	"golang.org/x/exp/maps"
 
 	"github.com/cockroachdb/errors"
+
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 )
 
@@ -24,7 +27,7 @@ func (c *Calcium) CalculateCapacity(ctx context.Context, opts *types.DeployOptio
 	}
 
 	return msg, c.withNodesPodLocked(ctx, opts.NodeFilter, func(ctx context.Context, nodeMap map[string]*types.Node) error {
-		nodenames := maps.Keys(nodeMap)
+		nodenames := slices.Collect(maps.Keys(nodeMap))
 
 		if opts.DeployStrategy != strategy.Dummy {
 			if msg.NodeCapacities, err = c.doGetDeployStrategy(ctx, nodenames, opts); err != nil {

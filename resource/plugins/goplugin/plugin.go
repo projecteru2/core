@@ -8,11 +8,14 @@ import (
 	goplugin "plugin"
 
 	"github.com/pkg/errors"
+
 	"github.com/projecteru2/core/resource/plugins"
 	coretypes "github.com/projecteru2/core/types"
 )
 
 // NewPlugin .
+//
+//nolint:staticcheck // the plugin package is a stub that always fails when cgo is disabled
 func NewPlugin(ctx context.Context, path string, config coretypes.Config) (plugins.Plugin, error) {
 	pFname, err := filepath.Abs(path)
 	if err != nil {

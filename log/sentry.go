@@ -9,8 +9,9 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/getsentry/sentry-go"
-	"github.com/projecteru2/core/types"
 	"google.golang.org/grpc/peer"
+
+	"github.com/projecteru2/core/types"
 )
 
 // SentryDefer .
@@ -41,7 +42,7 @@ func genGRPCTracingInfo(ctx context.Context) (tracingInfo string) {
 		}
 	}
 	tracingInfo = strings.Join(tracing, "-")
-	return
+	return tracingInfo
 }
 
 func reportToSentry(ctx context.Context, level sentry.Level, err error, format string, args ...any) { //nolint
@@ -50,8 +51,8 @@ func reportToSentry(ctx context.Context, level sentry.Level, err error, format s
 	}
 	defer sentry.Flush(2 * time.Second)
 	event, extraDetails := errors.BuildSentryReport(err)
-	for k, v := range extraDetails {
-		event.Extra[k] = v
+	if len(extraDetails) > 0 {
+		event.Contexts["extra"] = extraDetails
 	}
 	event.Level = level
 

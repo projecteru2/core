@@ -237,7 +237,7 @@ func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nodes, nil)
 	store.On("GetNode",
-		mock.AnythingOfType("*context.emptyCtx"),
+		mock.Anything,
 		mock.AnythingOfType("string"),
 	).Return(
 		func(_ context.Context, name string) (node *types.Node) {
@@ -245,8 +245,9 @@ func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {
 			if name == "n2" {
 				node = node2
 			}
-			return
-		}, nil)
+			return node
+		}, nil,
+	)
 
 	store.On("GetDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(map[string]int{}, nil)
 	old := strategy.Plans[strategy.Auto]
@@ -270,8 +271,9 @@ func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {
 			if name == "n2" {
 				node = node2
 			}
-			return
-		}, nil)
+			return node
+		}, nil,
+	)
 	engine := node1.Engine.(*enginemocks.API)
 
 	// doDeployOneWorkload fails: VirtualizationCreate

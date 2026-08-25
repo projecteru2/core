@@ -14,9 +14,9 @@ import (
 	"os"
 	"strings"
 	"time"
-	"unsafe"
 
 	"github.com/cockroachdb/errors"
+
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
@@ -32,7 +32,7 @@ const (
 // RandomString random a string
 func RandomString(n int) string {
 	r := make([]byte, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		n, err := rand.Int(rand.Reader, big.NewInt(int64(len(letters))))
 		// 没那么惨吧
 		if err != nil {
@@ -50,7 +50,7 @@ func Tail(path string) string {
 
 // GetGitRepoName return git repo name
 func GetGitRepoName(url string) (string, error) {
-	if !(strings.Contains(url, "git@") || strings.Contains(url, "gitlab@") || strings.Contains(url, "https://")) || !strings.HasSuffix(url, ".git") {
+	if (!strings.Contains(url, "git@") && !strings.Contains(url, "gitlab@") && !strings.Contains(url, "https://")) || !strings.HasSuffix(url, ".git") {
 		return "", errors.Wrap(types.ErrInvalidGitURL, url)
 	}
 
@@ -166,7 +166,7 @@ func ShortID(workloadID string) string {
 }
 
 // LabelsFilter filter workload by labels
-func LabelsFilter(extend map[string]string, labels map[string]string) bool {
+func LabelsFilter(extend, labels map[string]string) bool {
 	for k, v := range labels {
 		if n, ok := extend[k]; !ok || n != v {
 			return false
@@ -181,13 +181,17 @@ func CleanStatsdMetrics(k string) string {
 }
 
 // TempFile store a temp file
-func TempFile(stream io.ReadCloser) (string, error) {
+func TempFile(stream io.ReadCloser) (name string, err error) {
 	f, err := os.CreateTemp(os.TempDir(), "")
 	if err != nil {
 		return "", err
 	}
-	defer f.Close()
-	defer stream.Close()
+	defer func() {
+		_ = stream.Close()
+		if closeErr := f.Close(); err == nil {
+			err = closeErr
+		}
+	}()
 
 	_, err = io.Copy(f, stream)
 	return f.Name(), err
@@ -221,10 +225,10 @@ func EnsureReaderClosed(ctx context.Context, stream io.ReadCloser) {
 
 // Range .
 func Range(n int) (res []int) {
-	for i := 0; i < n; i++ {
+	for i := range n {
 		res = append(res, i)
 	}
-	return
+	return res
 }
 
 // WithTimeout runs a function with given timeout
@@ -273,5 +277,8 @@ func safeSplit(s string) []string {
 }
 
 func Bool2Int(a bool) int {
-	return *(*int)(unsafe.Pointer(&a)) & 1
+	if a {
+		return 1
+	}
+	return 0
 }

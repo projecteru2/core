@@ -9,12 +9,33 @@ on:
   pull_request:
 
 jobs:
-  unittests:
+  test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v4
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
         with:
           go-version-file: 'go.mod'
-      - name: unit tests
-        run: make test
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test with coverage
+        run: go test -race -timeout 600s -count=1 -cover -coverprofile=coverage.out ./...
+
+      - name: Upload coverage artifact
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage
+          path: coverage.out
+          retention-days: 7
+
+      - name: Build binary
+        run: CGO_ENABLED=0 go build -o eru-core .

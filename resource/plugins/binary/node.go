@@ -39,7 +39,7 @@ func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, 
 }
 
 // SetNodeResourceCapacity .
-func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, resource plugintypes.NodeResource, resourceRequest plugintypes.NodeResourceRequest, delta bool, incr bool) (*plugintypes.SetNodeResourceCapacityResponse, error) {
+func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, resource plugintypes.NodeResource, resourceRequest plugintypes.NodeResourceRequest, delta, incr bool) (*plugintypes.SetNodeResourceCapacityResponse, error) {
 	req := &binarytypes.SetNodeResourceCapacityRequest{
 		Nodename:        nodename,
 		Resource:        resource,
@@ -58,7 +58,7 @@ func (p Plugin) GetNodeResourceInfo(ctx context.Context, nodename string, worklo
 }
 
 // SetNodeResourceInfo .
-func (p Plugin) SetNodeResourceInfo(ctx context.Context, nodename string, capacity plugintypes.NodeResource, usage plugintypes.NodeResource) (*plugintypes.SetNodeResourceInfoResponse, error) {
+func (p Plugin) SetNodeResourceInfo(ctx context.Context, nodename string, capacity, usage plugintypes.NodeResource) (*plugintypes.SetNodeResourceInfoResponse, error) {
 	req := &binarytypes.SetNodeResourceInfoRequest{
 		Nodename: nodename,
 		Capacity: capacity,
@@ -66,11 +66,10 @@ func (p Plugin) SetNodeResourceInfo(ctx context.Context, nodename string, capaci
 	}
 	resp := &plugintypes.SetNodeResourceInfoResponse{}
 	return resp, p.call(ctx, SetNodeResourceInfoCommand, req, resp)
-
 }
 
 // SetNodeResourceUsage .
-func (p Plugin) SetNodeResourceUsage(ctx context.Context, nodename string, resource plugintypes.NodeResource, resourceRequest plugintypes.NodeResourceRequest, workloadsResource []plugintypes.WorkloadResource, delta bool, incr bool) (*plugintypes.SetNodeResourceUsageResponse, error) {
+func (p Plugin) SetNodeResourceUsage(ctx context.Context, nodename string, resource plugintypes.NodeResource, resourceRequest plugintypes.NodeResourceRequest, workloadsResource []plugintypes.WorkloadResource, delta, incr bool) (*plugintypes.SetNodeResourceUsageResponse, error) {
 	req := &binarytypes.SetNodeResourceUsageRequest{
 		Nodename:          nodename,
 		WorkloadsResource: workloadsResource,

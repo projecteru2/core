@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 )
 
-const executablePerm = 0111
+const executablePerm = 0o111
 
 // ListAllExecutableFiles returns all the executable files in the given path
 func ListAllExecutableFiles(basedir string) ([]string, error) {

@@ -45,7 +45,7 @@ type Cluster interface {
 	// meta service
 	WatchServiceStatus(context.Context) (<-chan types.ServiceStatus, error)
 	// meta networks
-	ListNetworks(ctx context.Context, podname string, driver string) ([]*enginetypes.Network, error)
+	ListNetworks(ctx context.Context, podname, driver string) ([]*enginetypes.Network, error)
 	ConnectNetwork(ctx context.Context, network, target, ipv4, ipv6 string) ([]string, error)
 	DisconnectNetwork(ctx context.Context, network, target string, force bool) error
 	// meta pod

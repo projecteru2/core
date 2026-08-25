@@ -24,7 +24,6 @@ func TestGetWorkload(t *testing.T) {
 
 	_, err = c.GetWorkload(ctx, ID)
 	assert.NoError(t, err)
-
 }
 
 func TestGetWorkloads(t *testing.T) {

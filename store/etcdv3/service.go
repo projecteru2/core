@@ -19,7 +19,7 @@ func (e *endpoints) Add(endpoint string) (changed bool) {
 		(*e)[endpoint] = struct{}{}
 		changed = true
 	}
-	return
+	return changed
 }
 
 func (e *endpoints) Remove(endpoint string) (changed bool) {
@@ -27,14 +27,14 @@ func (e *endpoints) Remove(endpoint string) (changed bool) {
 		delete(*e, endpoint)
 		changed = true
 	}
-	return
+	return changed
 }
 
 func (e endpoints) ToSlice() (eps []string) {
 	for ep := range e {
 		eps = append(eps, ep)
 	}
-	return
+	return eps
 }
 
 // ServiceStatusStream watches /services/ --prefix

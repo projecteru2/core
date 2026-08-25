@@ -3,13 +3,14 @@ package cobalt
 import (
 	"context"
 	"math"
+	"slices"
 
 	"github.com/cockroachdb/errors"
+	"github.com/sanity-io/litter"
+
 	enginetypes "github.com/projecteru2/core/engine/types"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	resourcetypes "github.com/projecteru2/core/resource/types"
-	"github.com/sanity-io/litter"
-	"golang.org/x/exp/slices"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resource/plugins"
@@ -43,7 +44,6 @@ func (m Manager) AddNode(ctx context.Context, nodename string, opts resourcetype
 				}
 				return resp, err
 			})
-
 			if err != nil {
 				for plugin := range resps {
 					rollbackPlugins = append(rollbackPlugins, plugin)
@@ -65,7 +65,6 @@ func (m Manager) AddNode(ctx context.Context, nodename string, opts resourcetype
 				}
 				return resp, err
 			})
-
 			if err != nil {
 				logger.Error(ctx, err, "failed to rollback")
 			}
@@ -102,7 +101,6 @@ func (m Manager) RemoveNode(ctx context.Context, nodename string) error {
 				}
 				return resp, err
 			})
-
 			if err != nil {
 				for plugin := range resps {
 					rollbackPlugins = append(rollbackPlugins, plugin)
@@ -125,7 +123,6 @@ func (m Manager) RemoveNode(ctx context.Context, nodename string) error {
 				}
 				return resp, err
 			})
-
 			if err != nil {
 				logger.Error(ctx, err, "failed to rollback")
 			}
@@ -201,7 +198,6 @@ func (m Manager) GetNodeResourceInfo(ctx context.Context, nodename string, workl
 		}
 		return resp, err
 	})
-
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -216,7 +212,7 @@ func (m Manager) GetNodeResourceInfo(ctx context.Context, nodename string, workl
 }
 
 // SetNodeResourceUsage .
-func (m Manager) SetNodeResourceUsage(ctx context.Context, nodename string, nodeResource resourcetypes.Resources, nodeResourceRequest resourcetypes.Resources, workloadsResource []resourcetypes.Resources, delta bool, incr bool) (resourcetypes.Resources, resourcetypes.Resources, error) {
+func (m Manager) SetNodeResourceUsage(ctx context.Context, nodename string, nodeResource, nodeResourceRequest resourcetypes.Resources, workloadsResource []resourcetypes.Resources, delta, incr bool) (resourcetypes.Resources, resourcetypes.Resources, error) {
 	logger := log.WithFunc("resource.cobalt.SetNodeResourceUsage").WithField("node", nodename)
 	wrksResource := map[string][]resourcetypes.RawParams{}
 	rollbackPlugins := []plugins.Plugin{}
@@ -245,7 +241,6 @@ func (m Manager) SetNodeResourceUsage(ctx context.Context, nodename string, node
 			resps, err := call(ctx, m.plugins, func(plugin plugins.Plugin) (*plugintypes.SetNodeResourceUsageResponse, error) {
 				return plugin.SetNodeResourceUsage(ctx, nodename, nodeResource[plugin.Name()], nodeResourceRequest[plugin.Name()], wrksResource[plugin.Name()], delta, incr)
 			})
-
 			if err != nil {
 				for plugin, resp := range resps {
 					rollbackPlugins = append(rollbackPlugins, plugin)
@@ -311,7 +306,7 @@ func (m Manager) GetNodesDeployCapacity(ctx context.Context, nodenames []string,
 
 // SetNodeResourceCapacity updates node resource capacity
 // receives resource options instead of resource args
-func (m Manager) SetNodeResourceCapacity(ctx context.Context, nodename string, nodeResource resourcetypes.Resources, nodeResourceRequest resourcetypes.Resources, delta bool, incr bool) (resourcetypes.Resources, resourcetypes.Resources, error) {
+func (m Manager) SetNodeResourceCapacity(ctx context.Context, nodename string, nodeResource, nodeResourceRequest resourcetypes.Resources, delta, incr bool) (resourcetypes.Resources, resourcetypes.Resources, error) {
 	logger := log.WithFunc("resource.cobalt.SetNodeResourceCapacity").WithField("node", nodename)
 
 	rollbackPlugins := []plugins.Plugin{}
@@ -337,7 +332,6 @@ func (m Manager) SetNodeResourceCapacity(ctx context.Context, nodename string, n
 				}
 				return resp, err
 			})
-
 			if err != nil {
 				for plugin, resp := range resps {
 					if resp == nil {
@@ -367,7 +361,7 @@ func (m Manager) SetNodeResourceCapacity(ctx context.Context, nodename string, n
 	)
 }
 
-func (m Manager) mergeCapacity(m1 map[string]*plugintypes.NodeDeployCapacity, m2 map[string]*plugintypes.NodeDeployCapacity) map[string]*plugintypes.NodeDeployCapacity {
+func (m Manager) mergeCapacity(m1, m2 map[string]*plugintypes.NodeDeployCapacity) map[string]*plugintypes.NodeDeployCapacity {
 	if m1 == nil {
 		return m2
 	}
