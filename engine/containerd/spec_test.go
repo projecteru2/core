@@ -105,15 +105,14 @@ func TestThrottlesAddressDevicesByNumber(t *testing.T) {
 	}
 }
 
-func TestWithImageConfigTakesTheResolvedUser(t *testing.T) {
+func TestWithImageConfigLeavesANamedUserToTheSnapshot(t *testing.T) {
 	spec := newTestSpec()
 
-	resolved := &specs.User{UID: 101, GID: 101, AdditionalGids: []uint32{27}}
-	if err := withImageConfig(&ocispec.ImageConfig{User: "nginx"}, resolved)(t.Context(), nil, nil, spec); err != nil {
+	if err := withImageConfig(&ocispec.ImageConfig{User: "nginx"})(t.Context(), nil, nil, spec); err != nil {
 		t.Fatalf("spec: %v", err)
 	}
-	if spec.Process.User.UID != 101 || !slices.Equal(spec.Process.User.AdditionalGids, []uint32{27}) {
-		t.Errorf("got %+v, want the ids read off the image's passwd", spec.Process.User)
+	if spec.Process.User.UID != 0 || spec.Process.User.GID != 0 {
+		t.Errorf("got %+v, want root until the snapshot's own passwd is read", spec.Process.User)
 	}
 }
 
@@ -152,7 +151,7 @@ func TestWithImageConfigTakesTheImagesEntrypointAndUser(t *testing.T) {
 		WorkingDir: "/srv",
 		User:       "101:101",
 	}
-	if err := withImageConfig(config, &specs.User{UID: 101, GID: 101})(t.Context(), nil, nil, spec); err != nil {
+	if err := withImageConfig(config)(t.Context(), nil, nil, spec); err != nil {
 		t.Fatalf("spec: %v", err)
 	}
 
@@ -176,7 +175,7 @@ func TestWithImageConfigLeavesTheSpecAloneWhenTheImageDeclaresNothing(t *testing
 	spec.Process.Args = []string{"/sbin/init"}
 	spec.Process.Cwd = "/"
 
-	if err := withImageConfig(&ocispec.ImageConfig{}, nil)(t.Context(), nil, nil, spec); err != nil {
+	if err := withImageConfig(&ocispec.ImageConfig{})(t.Context(), nil, nil, spec); err != nil {
 		t.Fatalf("spec: %v", err)
 	}
 	if !slices.Equal(spec.Process.Args, []string{"/sbin/init"}) {
@@ -266,7 +265,7 @@ func TestWithProcessKeepsTheImageEntrypoint(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			spec := newTestSpec()
 			config := &ocispec.ImageConfig{Entrypoint: tt.entrypoint, Cmd: []string{"nginx"}}
-			if err := withImageConfig(config, nil)(t.Context(), nil, nil, spec); err != nil {
+			if err := withImageConfig(config)(t.Context(), nil, nil, spec); err != nil {
 				t.Fatalf("image config: %v", err)
 			}
 			opts := &enginetypes.VirtualizationCreateOptions{Cmd: tt.cmd}

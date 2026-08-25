@@ -298,11 +298,7 @@ func containerSpec(info containers.Container) (*oci.Spec, error) {
 }
 
 func withSpecResources(limits *specs.LinuxResources) client.UpdateContainerOpts {
-	return func(_ context.Context, _ *client.Client, c *containers.Container) error {
-		spec := &oci.Spec{}
-		if err := json.Unmarshal(c.Spec.GetValue(), spec); err != nil {
-			return err
-		}
+	return withSpecUpdate(func(spec *oci.Spec) {
 		if spec.Linux == nil {
 			spec.Linux = &specs.Linux{}
 		}
@@ -312,6 +308,20 @@ func withSpecResources(limits *specs.LinuxResources) client.UpdateContainerOpts 
 		spec.Linux.Resources.CPU = limits.CPU
 		spec.Linux.Resources.Memory = limits.Memory
 		spec.Linux.Resources.BlockIO = limits.BlockIO
+	})
+}
+
+func withSpecUser(user specs.User) client.UpdateContainerOpts {
+	return withSpecUpdate(func(spec *oci.Spec) { spec.Process.User = user })
+}
+
+func withSpecUpdate(apply func(*oci.Spec)) client.UpdateContainerOpts {
+	return func(_ context.Context, _ *client.Client, c *containers.Container) error {
+		spec := &oci.Spec{}
+		if err := json.Unmarshal(c.Spec.GetValue(), spec); err != nil {
+			return err
+		}
+		apply(spec)
 		updated, err := typeurl.MarshalAny(spec)
 		if err != nil {
 			return err

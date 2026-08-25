@@ -1,17 +1,26 @@
 package containerd
 
 import (
+	"context"
+	"slices"
 	"strings"
 	"syscall"
 	"testing"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/containerd/containerd/v2/client"
+	"github.com/containerd/containerd/v2/core/containers"
 	"github.com/containerd/containerd/v2/core/runtime/restart"
+	"github.com/containerd/containerd/v2/pkg/oci"
+	"github.com/containerd/typeurl/v2"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
+	specs "github.com/opencontainers/runtime-spec/specs-go"
 
+	"github.com/projecteru2/core/engine/sshrunner"
 	"github.com/projecteru2/core/engine/sshrunner/sshrunnertest"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	coretypes "github.com/projecteru2/core/types"
 )
 
 func TestContainerLabelsCarryTheRestartPolicy(t *testing.T) {
@@ -175,4 +184,94 @@ func TestResolverFilesAlwaysResolveTheWorkloadsOwnHostname(t *testing.T) {
 	if !strings.Contains(hosts, "127.0.0.1\tlocalhost\n") {
 		t.Errorf("got %q, want the localhost preamble", hosts)
 	}
+}
+
+func TestANamedImageUserIsReadOffTheWorkloadsOwnSnapshot(t *testing.T) {
+	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result {
+		return &sshrunner.Result{Stdout: "root:x:0:0::/root:/bin/sh\nmemcache:x:11211:11211::/home/memcache:/bin/sh\n" +
+			"---\nmemcache:x:11211:\nadm:x:27:memcache\n"}
+	}}
+	container := &fakeContainer{spec: &oci.Spec{Process: &specs.Process{}}}
+
+	if err := testEngine(t, runner).applyImageUser(t.Context(), container, "app_web_abc123", "memcache"); err != nil {
+		t.Fatalf("user: %v", err)
+	}
+
+	user := container.spec.Process.User
+	if user.UID != 11211 || user.GID != 11211 {
+		t.Errorf("got %d:%d, want 11211:11211", user.UID, user.GID)
+	}
+	if !slices.Equal(user.AdditionalGids, []uint32{27}) {
+		t.Errorf("got %v, want the groups the image lists memcache in", user.AdditionalGids)
+	}
+	want := "'app_web_abc123' '" + workloadRoot + "/app_web_abc123/" + snapshotMount + "'"
+	if line := runner.Lines()[0]; !strings.HasSuffix(line, want) {
+		t.Errorf("got %q, want the lookup to mount the snapshot the container owns", line)
+	}
+}
+
+func TestANumericImageUserNeedsNoSnapshot(t *testing.T) {
+	for _, user := range []string{"", "root", "11211", "11211:11211"} {
+		t.Run(user, func(t *testing.T) {
+			runner := &sshrunnertest.Fake{}
+			container := &fakeContainer{}
+
+			if err := testEngine(t, runner).applyImageUser(t.Context(), container, "app_web_abc123", user); err != nil {
+				t.Fatalf("user: %v", err)
+			}
+			if lines := runner.Lines(); len(lines) != 0 {
+				t.Errorf("got %q, want the create's own spec to carry a numeric user", lines)
+			}
+			if container.updates != 0 {
+				t.Error("a numeric user costs no second round trip")
+			}
+		})
+	}
+}
+
+func TestAnImageUserTheSnapshotDoesNotHaveFailsTheCreate(t *testing.T) {
+	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result {
+		return &sshrunner.Result{Stdout: "root:x:0:0::/root:/bin/sh\n---\n"}
+	}}
+	container := &fakeContainer{}
+
+	err := testEngine(t, runner).applyImageUser(t.Context(), container, "app_web_abc123", "memcache")
+
+	if !errors.Is(err, coretypes.ErrInvalidEngineArgs) {
+		t.Errorf("got %v, want ErrInvalidEngineArgs", err)
+	}
+	if container.updates != 0 {
+		t.Error("a workload must not silently keep root when the image named a user")
+	}
+}
+
+func TestTheUserLookupScriptFailsLoudly(t *testing.T) {
+	if !strings.Contains(userLookupScript, "mounts=$(") {
+		t.Error("a command substitution inside eval hides the mount's exit status")
+	}
+	for _, read := range []string{"\ncat \"$dir/etc/passwd\"\n", "\ncat \"$dir/etc/group\"\n"} {
+		if !strings.Contains(userLookupScript, read) {
+			t.Errorf("%q must fail the script, not hand back an empty passwd", read)
+		}
+	}
+}
+
+type fakeContainer struct {
+	spec    *oci.Spec
+	updates int
+}
+
+func (f *fakeContainer) Update(ctx context.Context, opts ...client.UpdateContainerOpts) error {
+	f.updates++
+	stored, err := typeurl.MarshalAny(f.spec)
+	if err != nil {
+		return err
+	}
+	record := containers.Container{Spec: stored}
+	for _, opt := range opts {
+		if err = opt(ctx, nil, &record); err != nil {
+			return err
+		}
+	}
+	return typeurl.UnmarshalTo(record.Spec, f.spec)
 }

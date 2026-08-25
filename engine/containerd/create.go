@@ -1,6 +1,7 @@
 package containerd
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"maps"
@@ -17,7 +18,6 @@ import (
 	"github.com/containerd/platforms"
 	"github.com/docker/go-units"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
-	specs "github.com/opencontainers/runtime-spec/specs-go"
 
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/engine/sshrunner"
@@ -41,10 +41,11 @@ umount "$dir" >/dev/null 2>&1 || true
 rmdir "$dir" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
-eval "$("$ctr" --address "$address" --namespace "$namespace" snapshots mounts "$dir" "$key")"
-cat "$dir/etc/passwd" 2>/dev/null || true
+mounts=$("$ctr" --address "$address" --namespace "$namespace" snapshots mounts "$dir" "$key")
+eval "$mounts"
+cat "$dir/etc/passwd"
 printf '%s\n' ---
-cat "$dir/etc/group" 2>/dev/null || true
+cat "$dir/etc/group"
 `
 	mountMark    = "mount:"
 	deviceMark   = "device:"
@@ -73,6 +74,10 @@ type RawArgs struct {
 	Ulimits []*units.Ulimit `json:"ulimits"`
 	Runtime string          `json:"runtime"`
 	PidsMax int64           `json:"pids_max"` // cgroup v2 pids.max
+}
+
+type containerUpdater interface {
+	Update(ctx context.Context, opts ...client.UpdateContainerOpts) error
 }
 
 func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error) {
@@ -119,12 +124,6 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		return nil, err
 	}
 
-	user, err := e.resolveImageUser(ctx, ID, imageConfig.User)
-	if err != nil {
-		e.discard(ctx, dir)
-		return nil, err
-	}
-
 	created, err := e.client.NewContainer(ctx, ID, slices.Concat([]client.NewContainerOpts{
 		client.WithImage(image),
 		client.WithImageName(ref),
@@ -133,7 +132,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		client.WithNewSpec(
 			oci.WithDefaultSpecForPlatform(platforms.Format(e.platform)),
 			oci.WithHostname(ID),
-			withImageConfig(imageConfig, user),
+			withImageConfig(imageConfig),
 			oci.WithEnv(opts.Env),
 			withProcess(opts, imageConfig.Entrypoint),
 			withCapabilities(rArgs),
@@ -147,6 +146,11 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	}, runtimeOpts(rArgs))...)
 	if err != nil {
 		e.discard(ctx, dir)
+		return nil, err
+	}
+	runAs := cmp.Or(deployUser(opts), imageConfig.User)
+	if err = e.applyImageUser(ctx, created, ID, runAs); err != nil {
+		e.discardWorkload(ctx, created, dir)
 		return nil, err
 	}
 	return &enginetypes.VirtualizationCreated{ID: created.ID(), Name: opts.Name, Labels: opts.Labels}, nil
@@ -187,23 +191,20 @@ func (e *Engine) prepareNode(ctx context.Context, opts *enginetypes.Virtualizati
 	return throttled, devices, nil
 }
 
-func (e *Engine) resolveImageUser(ctx context.Context, ID, user string) (*specs.User, error) {
-	if user == "" {
-		return nil, nil
-	}
-	if uid, gid, ok := numericUser(user); ok {
-		return &specs.User{UID: uid, GID: gid}, nil
+func (e *Engine) applyImageUser(ctx context.Context, container containerUpdater, ID, user string) error {
+	if _, _, numeric := numericUser(user); user == "" || numeric {
+		return nil
 	}
 	argv := sshrunner.Shell(userLookupScript, ctrBinary, e.socket, e.namespace, ID, filepath.Join(workloadDir(ID), snapshotMount))
 	res, err := e.run(ctx, argv...)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	resolved, err := lookupUser(res.Stdout, user)
 	if err != nil {
-		return nil, errors.Wrapf(err, "image user %q", user)
+		return errors.Wrapf(err, "image user %q", user)
 	}
-	return resolved, nil
+	return container.Update(ctx, withSpecUser(*resolved))
 }
 
 func (e *Engine) resolveThrottles(ctx context.Context, options map[string]string) ([]blockDevice, error) {
@@ -230,6 +231,13 @@ func (e *Engine) discard(ctx context.Context, dir string) {
 	if _, err := e.run(ctx, "rm", "-rf", dir); err != nil {
 		log.WithFunc("engine.containerd.discard").Errorf(ctx, err, "clean %s", dir)
 	}
+}
+
+func (e *Engine) discardWorkload(ctx context.Context, container client.Container, dir string) {
+	if err := container.Delete(ctx, client.WithSnapshotCleanup); err != nil {
+		log.WithFunc("engine.containerd.discardWorkload").Errorf(ctx, err, "remove workload %s", container.ID())
+	}
+	e.discard(ctx, dir)
 }
 
 func containerLabels(opts *enginetypes.VirtualizationCreateOptions, config *ocispec.ImageConfig) (map[string]string, error) {

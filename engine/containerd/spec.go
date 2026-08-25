@@ -112,8 +112,8 @@ func (d deviceStat) Perm() os.FileMode {
 	return os.FileMode(d.Mode & modePermMask)
 }
 
-// withImageConfig applies what the image declares, with the user already resolved.
-func withImageConfig(config *ocispec.ImageConfig, user *specs.User) oci.SpecOpts {
+// withImageConfig applies what the image declares; a named user waits for its own snapshot.
+func withImageConfig(config *ocispec.ImageConfig) oci.SpecOpts {
 	return func(ctx context.Context, client oci.Client, container *containers.Container, spec *specs.Spec) error {
 		if err := oci.WithEnv(config.Env)(ctx, client, container, spec); err != nil {
 			return err
@@ -124,8 +124,8 @@ func withImageConfig(config *ocispec.ImageConfig, user *specs.User) oci.SpecOpts
 		if config.WorkingDir != "" {
 			spec.Process.Cwd = config.WorkingDir
 		}
-		if user != nil {
-			spec.Process.User = *user
+		if uid, gid, ok := numericUser(config.User); ok {
+			spec.Process.User = specs.User{UID: uid, GID: gid}
 		}
 		return nil
 	}
@@ -141,11 +141,7 @@ func withProcess(opts *enginetypes.VirtualizationCreateOptions, entrypoint []str
 			spec.Process.Cwd = opts.WorkingDir
 		}
 		spec.Process.Terminal = opts.Stdin
-		user := opts.User
-		if opts.Privileged {
-			user = "0"
-		}
-		return applyUser(spec, user)
+		return applyUser(spec, deployUser(opts))
 	}
 }
 
@@ -373,6 +369,13 @@ func hookArgs(networks map[string]string, socket string) []string {
 	return args
 }
 
+func deployUser(opts *enginetypes.VirtualizationCreateOptions) string {
+	if opts.Privileged {
+		return rootUser
+	}
+	return opts.User
+}
+
 // applyUser takes uid[:gid]; only the node can turn a name into an id.
 func applyUser(spec *specs.Spec, user string) error {
 	if user == "" {
@@ -386,7 +389,6 @@ func applyUser(spec *specs.Spec, user string) error {
 	return nil
 }
 
-// numericUser parses uid[:gid]; an unnamed group is root, the image owns the passwd entry.
 func lookupUser(out, user string) (*specs.User, error) {
 	passwd, group, _ := strings.Cut(out, "\n---\n")
 	entry, ok := passwdEntry(passwd, user)

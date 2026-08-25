@@ -65,4 +65,7 @@ func TestCopyIntoAWorkloadWithNoTaskMountsItsSnapshot(t *testing.T) {
 			t.Errorf("the script must %s", step)
 		}
 	}
+	if !strings.Contains(snapshotScript, "mounts=$(") {
+		t.Error("a command substitution inside eval hides the mount's exit status, and tar would unpack onto the node")
+	}
 }

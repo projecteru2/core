@@ -30,7 +30,8 @@ umount "$dir" >/dev/null 2>&1 || true
 rmdir "$dir" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
-eval "$("$ctr" --address "$address" --namespace "$namespace" snapshots mounts "$dir" "$key")"
+mounts=$("$ctr" --address "$address" --namespace "$namespace" snapshots mounts "$dir" "$key")
+eval "$mounts"
 mkdir -p "$dir/$target"
 tar -x -C "$dir/$target"
 `
