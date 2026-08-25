@@ -17,6 +17,7 @@ import (
 	"github.com/containerd/platforms"
 	"github.com/docker/go-units"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
+	specs "github.com/opencontainers/runtime-spec/specs-go"
 
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/engine/sshrunner"
@@ -31,10 +32,24 @@ const (
 
 	hostNameMax   = 64
 	snapshotMount = "rootfs"
-	mountMark     = "mount:"
-	deviceMark    = "device:"
-	deviceBase    = 16
-	deviceFields  = 3
+
+	userLookupScript = `set -e
+ctr=$1; address=$2; namespace=$3; key=$4; dir=$5
+mkdir -p "$dir"
+cleanup() {
+umount "$dir" >/dev/null 2>&1 || true
+rmdir "$dir" >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
+eval "$("$ctr" --address "$address" --namespace "$namespace" snapshots mounts "$dir" "$key")"
+cat "$dir/etc/passwd" 2>/dev/null || true
+printf '%s\n' ---
+cat "$dir/etc/group" 2>/dev/null || true
+`
+	mountMark    = "mount:"
+	deviceMark   = "device:"
+	deviceBase   = 16
+	deviceFields = 3
 
 	prepareScript = `set -e
 dir=$1; resolv=$2; hosts=$3; shift 3
@@ -104,6 +119,12 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		return nil, err
 	}
 
+	user, err := e.resolveImageUser(ctx, ID, imageConfig.User)
+	if err != nil {
+		e.discard(ctx, dir)
+		return nil, err
+	}
+
 	created, err := e.client.NewContainer(ctx, ID, slices.Concat([]client.NewContainerOpts{
 		client.WithImage(image),
 		client.WithImageName(ref),
@@ -112,7 +133,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		client.WithNewSpec(
 			oci.WithDefaultSpecForPlatform(platforms.Format(e.platform)),
 			oci.WithHostname(ID),
-			withImageConfig(imageConfig),
+			withImageConfig(imageConfig, user),
 			oci.WithEnv(opts.Env),
 			withProcess(opts, imageConfig.Entrypoint),
 			withCapabilities(rArgs),
@@ -164,6 +185,25 @@ func (e *Engine) prepareNode(ctx context.Context, opts *enginetypes.Virtualizati
 		devices[i].Major, devices[i].Minor, devices[i].Mode = stat.Major, stat.Minor, stat.Perm()
 	}
 	return throttled, devices, nil
+}
+
+func (e *Engine) resolveImageUser(ctx context.Context, ID, user string) (*specs.User, error) {
+	if user == "" {
+		return nil, nil
+	}
+	if uid, gid, ok := numericUser(user); ok {
+		return &specs.User{UID: uid, GID: gid}, nil
+	}
+	argv := sshrunner.Shell(userLookupScript, ctrBinary, e.socket, e.namespace, ID, filepath.Join(workloadDir(ID), snapshotMount))
+	res, err := e.run(ctx, argv...)
+	if err != nil {
+		return nil, err
+	}
+	resolved, err := lookupUser(res.Stdout, user)
+	if err != nil {
+		return nil, errors.Wrapf(err, "image user %q", user)
+	}
+	return resolved, nil
 }
 
 func (e *Engine) resolveThrottles(ctx context.Context, options map[string]string) ([]blockDevice, error) {

@@ -105,6 +105,42 @@ func TestThrottlesAddressDevicesByNumber(t *testing.T) {
 	}
 }
 
+func TestWithImageConfigTakesTheResolvedUser(t *testing.T) {
+	spec := newTestSpec()
+
+	resolved := &specs.User{UID: 101, GID: 101, AdditionalGids: []uint32{27}}
+	if err := withImageConfig(&ocispec.ImageConfig{User: "nginx"}, resolved)(t.Context(), nil, nil, spec); err != nil {
+		t.Fatalf("spec: %v", err)
+	}
+	if spec.Process.User.UID != 101 || !slices.Equal(spec.Process.User.AdditionalGids, []uint32{27}) {
+		t.Errorf("got %+v, want the ids read off the image's passwd", spec.Process.User)
+	}
+}
+
+func TestLookupUserReadsTheImagesPasswdAndGroups(t *testing.T) {
+	out := "root:x:0:0:root:/root:/bin/sh\nnginx:x:101:101:nginx:/var/cache/nginx:/sbin/nologin\n" +
+		"---\nroot:x:0:root\nnginx:x:101:\ntty:x:5:nginx\nadm:x:27:nginx,root\n"
+
+	user, err := lookupUser(out, "nginx")
+	if err != nil {
+		t.Fatalf("lookup: %v", err)
+	}
+	if user.UID != 101 || user.GID != 101 {
+		t.Errorf("got %d:%d, want 101:101", user.UID, user.GID)
+	}
+	if !slices.Equal(user.AdditionalGids, []uint32{5, 27}) {
+		t.Errorf("got %v, want the groups the image lists nginx in", user.AdditionalGids)
+	}
+}
+
+func TestLookupUserRefusesAUserTheImageDoesNotHave(t *testing.T) {
+	_, err := lookupUser("root:x:0:0::/root:/bin/sh\n---\n", "nginx")
+
+	if !errors.Is(err, coretypes.ErrInvalidEngineArgs) {
+		t.Errorf("got %v, want ErrInvalidEngineArgs", err)
+	}
+}
+
 func TestWithImageConfigTakesTheImagesEntrypointAndUser(t *testing.T) {
 	spec := newTestSpec()
 	spec.Process.Env = []string{"PATH=/usr/bin"}
@@ -116,7 +152,7 @@ func TestWithImageConfigTakesTheImagesEntrypointAndUser(t *testing.T) {
 		WorkingDir: "/srv",
 		User:       "101:101",
 	}
-	if err := withImageConfig(config)(t.Context(), nil, nil, spec); err != nil {
+	if err := withImageConfig(config, &specs.User{UID: 101, GID: 101})(t.Context(), nil, nil, spec); err != nil {
 		t.Fatalf("spec: %v", err)
 	}
 
@@ -140,7 +176,7 @@ func TestWithImageConfigLeavesTheSpecAloneWhenTheImageDeclaresNothing(t *testing
 	spec.Process.Args = []string{"/sbin/init"}
 	spec.Process.Cwd = "/"
 
-	if err := withImageConfig(&ocispec.ImageConfig{})(t.Context(), nil, nil, spec); err != nil {
+	if err := withImageConfig(&ocispec.ImageConfig{}, nil)(t.Context(), nil, nil, spec); err != nil {
 		t.Fatalf("spec: %v", err)
 	}
 	if !slices.Equal(spec.Process.Args, []string{"/sbin/init"}) {
@@ -148,18 +184,6 @@ func TestWithImageConfigLeavesTheSpecAloneWhenTheImageDeclaresNothing(t *testing
 	}
 	if spec.Process.Cwd != "/" || spec.Process.User.UID != 0 {
 		t.Errorf("got %q %d, want the default spec untouched", spec.Process.Cwd, spec.Process.User.UID)
-	}
-}
-
-func TestWithImageConfigKeepsTheDefaultUserForANamedOne(t *testing.T) {
-	spec := newTestSpec()
-
-	// only the node can read the image's /etc/passwd, so a named user cannot be applied
-	if err := withImageConfig(&ocispec.ImageConfig{User: "nginx"})(t.Context(), nil, nil, spec); err != nil {
-		t.Fatalf("spec: %v", err)
-	}
-	if spec.Process.User.UID != 0 {
-		t.Errorf("got %d, want the spec default", spec.Process.User.UID)
 	}
 }
 
@@ -242,7 +266,7 @@ func TestWithProcessKeepsTheImageEntrypoint(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			spec := newTestSpec()
 			config := &ocispec.ImageConfig{Entrypoint: tt.entrypoint, Cmd: []string{"nginx"}}
-			if err := withImageConfig(config)(t.Context(), nil, nil, spec); err != nil {
+			if err := withImageConfig(config, nil)(t.Context(), nil, nil, spec); err != nil {
 				t.Fatalf("image config: %v", err)
 			}
 			opts := &enginetypes.VirtualizationCreateOptions{Cmd: tt.cmd}

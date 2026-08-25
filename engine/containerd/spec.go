@@ -20,7 +20,6 @@ import (
 	corecluster "github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
-	"github.com/projecteru2/core/log"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -41,6 +40,11 @@ const (
 	modeChar            = 0x2000
 	modeBlock           = 0x6000
 	modePermMask        = 0o777
+
+	passwdUID    = 2
+	passwdGID    = 3
+	groupGID     = 2
+	groupMembers = 3
 
 	// hookBinary runs CNI in the node's netns; core has none.
 	hookBinary  = "/usr/local/bin/eru-agent"
@@ -108,8 +112,8 @@ func (d deviceStat) Perm() os.FileMode {
 	return os.FileMode(d.Mode & modePermMask)
 }
 
-// withImageConfig applies what the image declares; oci.WithImageConfig would mount the rootfs on core.
-func withImageConfig(config *ocispec.ImageConfig) oci.SpecOpts {
+// withImageConfig applies what the image declares, with the user already resolved.
+func withImageConfig(config *ocispec.ImageConfig, user *specs.User) oci.SpecOpts {
 	return func(ctx context.Context, client oci.Client, container *containers.Container, spec *specs.Spec) error {
 		if err := oci.WithEnv(config.Env)(ctx, client, container, spec); err != nil {
 			return err
@@ -120,13 +124,8 @@ func withImageConfig(config *ocispec.ImageConfig) oci.SpecOpts {
 		if config.WorkingDir != "" {
 			spec.Process.Cwd = config.WorkingDir
 		}
-		uid, gid, numeric := numericUser(config.User)
-		switch {
-		case numeric:
-			spec.Process.User = specs.User{UID: uid, GID: gid}
-		case config.User != "":
-			log.WithFunc("engine.containerd.withImageConfig").
-				Warnf(ctx, "image user %q is not numeric and only the node can resolve it, the workload keeps the spec default", config.User)
+		if user != nil {
+			spec.Process.User = *user
 		}
 		return nil
 	}
@@ -388,6 +387,56 @@ func applyUser(spec *specs.Spec, user string) error {
 }
 
 // numericUser parses uid[:gid]; an unnamed group is root, the image owns the passwd entry.
+func lookupUser(out, user string) (*specs.User, error) {
+	passwd, group, _ := strings.Cut(out, "\n---\n")
+	entry, ok := passwdEntry(passwd, user)
+	if !ok {
+		return nil, errors.Wrap(coretypes.ErrInvalidEngineArgs, "no passwd entry")
+	}
+	uid, err := strconv.ParseUint(entry[passwdUID], 10, 32)
+	if err != nil {
+		return nil, errors.Wrap(coretypes.ErrInvalidEngineArgs, "unreadable uid")
+	}
+	gid, err := strconv.ParseUint(entry[passwdGID], 10, 32)
+	if err != nil {
+		return nil, errors.Wrap(coretypes.ErrInvalidEngineArgs, "unreadable gid")
+	}
+	return &specs.User{
+		UID:            uint32(uid),
+		GID:            uint32(gid),
+		AdditionalGids: additionalGids(group, user, uint32(gid)),
+	}, nil
+}
+
+func passwdEntry(passwd, user string) ([]string, bool) {
+	for line := range strings.Lines(passwd) {
+		fields := strings.Split(strings.TrimRight(line, "\n"), ":")
+		if len(fields) > passwdGID && fields[0] == user {
+			return fields, true
+		}
+	}
+	return nil, false
+}
+
+func additionalGids(group, user string, primary uint32) []uint32 {
+	gids := []uint32{}
+	for line := range strings.Lines(group) {
+		fields := strings.Split(strings.TrimRight(line, "\n"), ":")
+		if len(fields) <= groupMembers || !slices.Contains(strings.Split(fields[groupMembers], ","), user) {
+			continue
+		}
+		gid, err := strconv.ParseUint(fields[groupGID], 10, 32)
+		if err != nil || uint32(gid) == primary {
+			continue
+		}
+		gids = append(gids, uint32(gid))
+	}
+	if len(gids) == 0 {
+		return nil
+	}
+	return gids
+}
+
 func numericUser(user string) (uid, gid uint32, ok bool) {
 	switch user {
 	case "":

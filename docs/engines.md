@@ -113,7 +113,8 @@ Core applies what the image declares — env, `Entrypoint`+`Cmd`, `WorkingDir`, 
 `oci.WithImageConfig` cannot be used: it ends in `WithAdditionalGIDs` (and `WithUser` when the
 image names one), which temp-mounts the rootfs *on the client* to read `/etc/group` and
 `/etc/passwd`. Over a forwarded socket that mount is a node path opened on core's side, and the
-create fails with `no such file or directory` under the snapshotter's directory.
+create fails with `no such file or directory` under the snapshotter's directory. Core does the
+same lookup, but on the node.
 
 The image's env comes first and the deploy's env is merged over it. Process args follow docker:
 the image's `ENTRYPOINT` always leads, a deploy command replaces the image's `CMD` after it, and
@@ -121,11 +122,13 @@ with no deploy command the image's `ENTRYPOINT`+`CMD` stand. `StopSignal` is sto
 containerd's `io.containerd.image.config.stop-signal` label and is the signal
 `VirtualizationStop` sends.
 
-`user` must be numeric (`uid` or `uid:gid`, an unnamed group being root) or `root`, whose ids the
-passwd contract fixes: resolving any other name needs the image's `/etc/passwd`, which only the
-node can read. Such a user on the deploy is refused with `ErrInvalidEngineArgs` rather than
-silently running as root; in the *image* config it is logged as a warning and the spec's default
-stands. The workload's own name is its hostname.
+A deploy's `user` must be numeric (`uid` or `uid:gid`, an unnamed group being root) or `root`,
+whose ids the passwd contract fixes; any other name is refused with `ErrInvalidEngineArgs` rather
+than silently running as root. A name in the *image* config is resolved instead of refused: the
+snapshot the container will run on already exists at that point, so the node mounts it once, reads
+`etc/passwd` and `etc/group`, and the spec gets the uid, the gid and the supplementary groups.
+An image whose passwd has no such entry fails the create. The workload's own name is its
+hostname.
 
 ### Networking
 
