@@ -91,10 +91,8 @@ func (c *Calcium) rawProcessVirtualizationInStream(
 	inStream io.WriteCloser,
 	inCh <-chan []byte,
 	specialPrefixCallback map[string]prefixHandler,
-) <-chan struct{} {
-	done := make(chan struct{})
+) {
 	_ = c.pool.Invoke(func() {
-		defer close(done)
 		defer func() {
 			_ = inStream.Close()
 		}()
@@ -109,12 +107,9 @@ func (c *Calcium) rawProcessVirtualizationInStream(
 			}
 			if _, err := inStream.Write(cmd); err != nil {
 				log.WithFunc("calcium.rawProcessVirtualizationInStream").Error(ctx, err, "failed to write virtual input stream")
-				continue
 			}
 		}
 	})
-
-	return done
 }
 
 func (c *Calcium) processVirtualizationOutStream(

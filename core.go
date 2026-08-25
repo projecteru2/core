@@ -45,7 +45,7 @@ func serve(ctx context.Context, _ *cli.Command) error {
 		zerolog.Fatal().Err(err).Send()
 	}
 	defer log.SentryDefer()
-	logger := log.WithFunc("main")
+	logger := log.WithFunc("main.serve")
 
 	var embeddedETCD *embedded.Cluster
 	if embeddedStorage {

@@ -14,9 +14,6 @@ func (r RawParams) IsSet(key string) bool {
 }
 
 func (r RawParams) Float64(key string) float64 {
-	if !r.IsSet(key) {
-		return float64(0.0)
-	}
 	res, _ := strconv.ParseFloat(fmt.Sprintf("%+v", r[key]), 64)
 	return res
 }
@@ -30,13 +27,8 @@ func (r RawParams) Int(key string) int {
 }
 
 func (r RawParams) String(key string) string {
-	if !r.IsSet(key) {
-		return ""
-	}
-	if str, ok := r[key].(string); ok {
-		return str
-	}
-	return ""
+	str, _ := r[key].(string)
+	return str
 }
 
 func (r RawParams) StringSlice(key string) []string {
@@ -53,20 +45,16 @@ func (r RawParams) OneOfStringSlice(keys ...string) []string {
 }
 
 func (r RawParams) Bool(key string) bool {
-	s := r.IsSet(key)
 	b, ok := r[key].(bool)
-	return (!ok && s) || (ok && s && b)
+	return r.IsSet(key) && (!ok || b)
 }
 
 func (r RawParams) RawParams(key string) RawParams {
-	var n RawParams
-	if r.IsSet(key) {
-		if m, ok := r[key].(map[string]any); ok {
-			n = RawParams{}
-			maps.Copy(n, m)
-		}
+	m, ok := r[key].(map[string]any)
+	if !ok {
+		return nil
 	}
-	return n
+	return maps.Clone(RawParams(m))
 }
 
 func (r RawParams) SliceRawParams(key string) []RawParams {
@@ -85,9 +73,6 @@ func (r RawParams) SliceRawParams(key string) []RawParams {
 type Resources map[string]RawParams
 
 func sliceHelper[T any](r RawParams, key string) []T {
-	if !r.IsSet(key) {
-		return nil
-	}
 	if s, ok := r[key].([]T); ok {
 		return s
 	}
@@ -95,8 +80,8 @@ func sliceHelper[T any](r RawParams, key string) []T {
 	if s, ok := r[key].([]any); ok {
 		res = []T{}
 		for _, v := range s {
-			if r, ok := v.(T); ok {
-				res = append(res, r)
+			if item, ok := v.(T); ok {
+				res = append(res, item)
 			}
 		}
 	}
@@ -106,9 +91,6 @@ func sliceHelper[T any](r RawParams, key string) []T {
 type integer interface{ int | int64 }
 
 func intHelper[T integer](r RawParams, key string) T {
-	if !r.IsSet(key) {
-		return T(0)
-	}
 	var str string
 	if f, ok := r[key].(float64); ok {
 		str = fmt.Sprintf("%.0f", f)

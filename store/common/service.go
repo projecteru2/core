@@ -18,7 +18,6 @@ func (s *Store) ServiceStatusStream(ctx context.Context) (chan []string, error) 
 	if err := s.Pool.Invoke(func() {
 		defer close(ch)
 
-		// must watch prior to get
 		watch := s.Watch(ctx, prefix)
 
 		data, err := s.GetPrefix(ctx, prefix, 0)

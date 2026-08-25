@@ -60,7 +60,7 @@ archives:
       {{- else }}{{ .Arch }}{{ end }}_debug
       {{- if .Arm }}v{{ .Arm }}{{ end -}}
 
-  # Unversioned alias so releases/latest/download/eru-core_Linux_x86_64.tar.gz resolves.
+  # Unversioned alias so releases/latest/download/core_Linux_x86_64.tar.gz resolves.
   - id: release-latest
     ids:
       - eru-core-release

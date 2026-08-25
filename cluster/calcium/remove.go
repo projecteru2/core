@@ -63,7 +63,6 @@ func (c *Calcium) RemoveWorkloadSync(ctx context.Context, IDs []string) error {
 	return c.doRemoveWorkloadSync(ctx, IDs)
 }
 
-// removes the instance on nil error; leaves it in place otherwise
 func (c *Calcium) doRemoveWorkload(ctx context.Context, workload *types.Workload, force bool) error {
 	return utils.Txn(
 		ctx,

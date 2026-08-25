@@ -130,7 +130,6 @@ func (o *SendOptions) Validate() error {
 	}
 	for i, file := range o.Files {
 		if file.UID == 0 && file.GID == 0 && file.Mode == 0 {
-			// all-zero ownership means "default perm"
 			o.Files[i].Mode = 0o755
 		}
 	}
@@ -282,7 +281,6 @@ func (o *SendLargeFileOptions) Validate() error {
 		return ErrNoFilesToSend
 	}
 	if o.UID == 0 && o.GID == 0 && o.Mode == 0 {
-		// all-zero ownership means "default perm"
 		o.Mode = 0o755
 	}
 	return nil
@@ -292,7 +290,7 @@ type RawEngineOptions struct {
 	ID         string
 	Op         string
 	Params     []byte
-	IgnoreLock bool // skip the workload lock
+	IgnoreLock bool
 }
 
 func (o *RawEngineOptions) Validate() error {

@@ -15,7 +15,7 @@ The scheme prefix of `AddNode`'s `endpoint` selects the implementation:
 | --- | --- | --- |
 | `tcp://` | `engine/docker` | Docker daemon over TCP, optionally TLS |
 | `unix://` | `engine/docker` | Docker daemon over a local socket |
-| `virt-grpc://` | `engine/virt` | yavirt, over the libyavirt gRPC client |
+| `virt-grpc://` | `engine/virt` | yavirt (archived), over the libyavirt gRPC client |
 | `systemd://` | `engine/systemd` | Docker client wrapped to force a containerd runtime |
 | `mock://` | `engine/mocks/fakeengine` | Fully mocked engine, for tests and dry runs |
 
@@ -23,7 +23,8 @@ An endpoint with any other prefix is rejected with `ErrInvaildNodeEndpoint`.
 
 ## docker
 
-The default. Uses the Docker Go client with `docker.version` as the negotiated API version.
+The default. Uses the moby client (`github.com/moby/moby/client`), pinning `docker.version` as the API
+version, which disables API-version negotiation.
 
 - Network mode comes from the deploy request, falling back to `docker.network_mode`.
 - If a deploy specifies no DNS and `docker.use_local_dns` is on, the node's own IP is injected as
@@ -47,8 +48,9 @@ the metadata store, under `/node/<nodename>:ca`, `:cert` and `:key`.
 
 ## virt (yavirt)
 
-Talks to [yavirt](https://github.com/projecteru2/yavirt) through
-[libyavirt](https://github.com/projecteru2/libyavirt); `virt-grpc://host:port` is rewritten to
+[yavirt](https://github.com/projecteru2/yavirt) is archived and no longer developed; the engine and
+its [libyavirt](https://github.com/projecteru2/libyavirt) dependency still ship and still resolve,
+so existing VM nodes keep working. `virt-grpc://host:port` is rewritten to
 `grpc://host:port` for the client. `virt.version` selects the yavirtd API version. Only the `ca`
 field is used, written to a temp file under `cert_path`.
 

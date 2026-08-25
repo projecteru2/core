@@ -67,10 +67,7 @@ func TestNewCluster(t *testing.T) {
 }
 
 func TestFinalizer(t *testing.T) {
-	c := NewTestCluster()
-	store := c.store.(*storemocks.Store)
-	store.On("TerminateEmbededStorage").Return(nil)
-	c.Finalizer()
+	NewTestCluster().Finalizer()
 }
 
 func NewTestCluster() *Calcium {

@@ -26,7 +26,7 @@ func SentryDefer() {
 	}
 }
 
-func genGRPCTracingInfo(ctx context.Context) (tracingInfo string) {
+func genGRPCTracingInfo(ctx context.Context) string {
 	if ctx == nil {
 		return ""
 	}
@@ -36,13 +36,10 @@ func genGRPCTracingInfo(ctx context.Context) (tracingInfo string) {
 		tracing = append(tracing, p.Addr.String())
 	}
 
-	if traceID := ctx.Value(types.TracingID); traceID != nil {
-		if tid, ok := traceID.(string); ok {
-			tracing = append(tracing, tid)
-		}
+	if tid, ok := ctx.Value(types.TracingID).(string); ok {
+		tracing = append(tracing, tid)
 	}
-	tracingInfo = strings.Join(tracing, "-")
-	return tracingInfo
+	return strings.Join(tracing, "-")
 }
 
 func reportToSentry(ctx context.Context, level sentry.Level, err error, format string, args ...any) { //nolint

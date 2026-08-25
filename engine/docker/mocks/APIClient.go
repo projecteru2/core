@@ -8,22 +8,8 @@ import (
 	"context"
 	"io"
 	"net"
-	"net/http"
 
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/build"
-	"github.com/docker/docker/api/types/checkpoint"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/events"
-	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/api/types/image"
-	"github.com/docker/docker/api/types/network"
-	"github.com/docker/docker/api/types/registry"
-	"github.com/docker/docker/api/types/swarm"
-	"github.com/docker/docker/api/types/system"
-	"github.com/docker/docker/api/types/volume"
-	"github.com/docker/docker/client"
-	"github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/moby/moby/client"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -55,26 +41,24 @@ func (_m *APIClient) EXPECT() *APIClient_Expecter {
 }
 
 // BuildCachePrune provides a mock function for the type APIClient
-func (_mock *APIClient) BuildCachePrune(ctx context.Context, opts build.CachePruneOptions) (*build.CachePruneReport, error) {
+func (_mock *APIClient) BuildCachePrune(ctx context.Context, opts client.BuildCachePruneOptions) (client.BuildCachePruneResult, error) {
 	ret := _mock.Called(ctx, opts)
 
 	if len(ret) == 0 {
 		panic("no return value specified for BuildCachePrune")
 	}
 
-	var r0 *build.CachePruneReport
+	var r0 client.BuildCachePruneResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, build.CachePruneOptions) (*build.CachePruneReport, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.BuildCachePruneOptions) (client.BuildCachePruneResult, error)); ok {
 		return returnFunc(ctx, opts)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, build.CachePruneOptions) *build.CachePruneReport); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.BuildCachePruneOptions) client.BuildCachePruneResult); ok {
 		r0 = returnFunc(ctx, opts)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*build.CachePruneReport)
-		}
+		r0 = ret.Get(0).(client.BuildCachePruneResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, build.CachePruneOptions) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.BuildCachePruneOptions) error); ok {
 		r1 = returnFunc(ctx, opts)
 	} else {
 		r1 = ret.Error(1)
@@ -89,20 +73,20 @@ type APIClient_BuildCachePrune_Call struct {
 
 // BuildCachePrune is a helper method to define mock.On call
 //   - ctx context.Context
-//   - opts build.CachePruneOptions
+//   - opts client.BuildCachePruneOptions
 func (_e *APIClient_Expecter) BuildCachePrune(ctx any, opts any) *APIClient_BuildCachePrune_Call {
 	return &APIClient_BuildCachePrune_Call{Call: _e.mock.On("BuildCachePrune", ctx, opts)}
 }
 
-func (_c *APIClient_BuildCachePrune_Call) Run(run func(ctx context.Context, opts build.CachePruneOptions)) *APIClient_BuildCachePrune_Call {
+func (_c *APIClient_BuildCachePrune_Call) Run(run func(ctx context.Context, opts client.BuildCachePruneOptions)) *APIClient_BuildCachePrune_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 build.CachePruneOptions
+		var arg1 client.BuildCachePruneOptions
 		if args[1] != nil {
-			arg1 = args[1].(build.CachePruneOptions)
+			arg1 = args[1].(client.BuildCachePruneOptions)
 		}
 		run(
 			arg0,
@@ -112,31 +96,40 @@ func (_c *APIClient_BuildCachePrune_Call) Run(run func(ctx context.Context, opts
 	return _c
 }
 
-func (_c *APIClient_BuildCachePrune_Call) Return(cachePruneReport *build.CachePruneReport, err error) *APIClient_BuildCachePrune_Call {
-	_c.Call.Return(cachePruneReport, err)
+func (_c *APIClient_BuildCachePrune_Call) Return(buildCachePruneResult client.BuildCachePruneResult, err error) *APIClient_BuildCachePrune_Call {
+	_c.Call.Return(buildCachePruneResult, err)
 	return _c
 }
 
-func (_c *APIClient_BuildCachePrune_Call) RunAndReturn(run func(ctx context.Context, opts build.CachePruneOptions) (*build.CachePruneReport, error)) *APIClient_BuildCachePrune_Call {
+func (_c *APIClient_BuildCachePrune_Call) RunAndReturn(run func(ctx context.Context, opts client.BuildCachePruneOptions) (client.BuildCachePruneResult, error)) *APIClient_BuildCachePrune_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // BuildCancel provides a mock function for the type APIClient
-func (_mock *APIClient) BuildCancel(ctx context.Context, id string) error {
-	ret := _mock.Called(ctx, id)
+func (_mock *APIClient) BuildCancel(ctx context.Context, id string, opts client.BuildCancelOptions) (client.BuildCancelResult, error) {
+	ret := _mock.Called(ctx, id, opts)
 
 	if len(ret) == 0 {
 		panic("no return value specified for BuildCancel")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) error); ok {
-		r0 = returnFunc(ctx, id)
-	} else {
-		r0 = ret.Error(0)
+	var r0 client.BuildCancelResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.BuildCancelOptions) (client.BuildCancelResult, error)); ok {
+		return returnFunc(ctx, id, opts)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.BuildCancelOptions) client.BuildCancelResult); ok {
+		r0 = returnFunc(ctx, id, opts)
+	} else {
+		r0 = ret.Get(0).(client.BuildCancelResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.BuildCancelOptions) error); ok {
+		r1 = returnFunc(ctx, id, opts)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_BuildCancel_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BuildCancel'
@@ -147,11 +140,12 @@ type APIClient_BuildCancel_Call struct {
 // BuildCancel is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id string
-func (_e *APIClient_Expecter) BuildCancel(ctx any, id any) *APIClient_BuildCancel_Call {
-	return &APIClient_BuildCancel_Call{Call: _e.mock.On("BuildCancel", ctx, id)}
+//   - opts client.BuildCancelOptions
+func (_e *APIClient_Expecter) BuildCancel(ctx any, id any, opts any) *APIClient_BuildCancel_Call {
+	return &APIClient_BuildCancel_Call{Call: _e.mock.On("BuildCancel", ctx, id, opts)}
 }
 
-func (_c *APIClient_BuildCancel_Call) Run(run func(ctx context.Context, id string)) *APIClient_BuildCancel_Call {
+func (_c *APIClient_BuildCancel_Call) Run(run func(ctx context.Context, id string, opts client.BuildCancelOptions)) *APIClient_BuildCancel_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -161,39 +155,53 @@ func (_c *APIClient_BuildCancel_Call) Run(run func(ctx context.Context, id strin
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
+		var arg2 client.BuildCancelOptions
+		if args[2] != nil {
+			arg2 = args[2].(client.BuildCancelOptions)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
 }
 
-func (_c *APIClient_BuildCancel_Call) Return(err error) *APIClient_BuildCancel_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_BuildCancel_Call) Return(buildCancelResult client.BuildCancelResult, err error) *APIClient_BuildCancel_Call {
+	_c.Call.Return(buildCancelResult, err)
 	return _c
 }
 
-func (_c *APIClient_BuildCancel_Call) RunAndReturn(run func(ctx context.Context, id string) error) *APIClient_BuildCancel_Call {
+func (_c *APIClient_BuildCancel_Call) RunAndReturn(run func(ctx context.Context, id string, opts client.BuildCancelOptions) (client.BuildCancelResult, error)) *APIClient_BuildCancel_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // CheckpointCreate provides a mock function for the type APIClient
-func (_mock *APIClient) CheckpointCreate(ctx context.Context, container string, options checkpoint.CreateOptions) error {
+func (_mock *APIClient) CheckpointCreate(ctx context.Context, container string, options client.CheckpointCreateOptions) (client.CheckpointCreateResult, error) {
 	ret := _mock.Called(ctx, container, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CheckpointCreate")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, checkpoint.CreateOptions) error); ok {
+	var r0 client.CheckpointCreateResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.CheckpointCreateOptions) (client.CheckpointCreateResult, error)); ok {
+		return returnFunc(ctx, container, options)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.CheckpointCreateOptions) client.CheckpointCreateResult); ok {
 		r0 = returnFunc(ctx, container, options)
 	} else {
-		r0 = ret.Error(0)
+		r0 = ret.Get(0).(client.CheckpointCreateResult)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.CheckpointCreateOptions) error); ok {
+		r1 = returnFunc(ctx, container, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_CheckpointCreate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CheckpointCreate'
@@ -204,12 +212,12 @@ type APIClient_CheckpointCreate_Call struct {
 // CheckpointCreate is a helper method to define mock.On call
 //   - ctx context.Context
 //   - container string
-//   - options checkpoint.CreateOptions
+//   - options client.CheckpointCreateOptions
 func (_e *APIClient_Expecter) CheckpointCreate(ctx any, container any, options any) *APIClient_CheckpointCreate_Call {
 	return &APIClient_CheckpointCreate_Call{Call: _e.mock.On("CheckpointCreate", ctx, container, options)}
 }
 
-func (_c *APIClient_CheckpointCreate_Call) Run(run func(ctx context.Context, container string, options checkpoint.CreateOptions)) *APIClient_CheckpointCreate_Call {
+func (_c *APIClient_CheckpointCreate_Call) Run(run func(ctx context.Context, container string, options client.CheckpointCreateOptions)) *APIClient_CheckpointCreate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -219,9 +227,9 @@ func (_c *APIClient_CheckpointCreate_Call) Run(run func(ctx context.Context, con
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 checkpoint.CreateOptions
+		var arg2 client.CheckpointCreateOptions
 		if args[2] != nil {
-			arg2 = args[2].(checkpoint.CreateOptions)
+			arg2 = args[2].(client.CheckpointCreateOptions)
 		}
 		run(
 			arg0,
@@ -232,100 +240,35 @@ func (_c *APIClient_CheckpointCreate_Call) Run(run func(ctx context.Context, con
 	return _c
 }
 
-func (_c *APIClient_CheckpointCreate_Call) Return(err error) *APIClient_CheckpointCreate_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_CheckpointCreate_Call) Return(checkpointCreateResult client.CheckpointCreateResult, err error) *APIClient_CheckpointCreate_Call {
+	_c.Call.Return(checkpointCreateResult, err)
 	return _c
 }
 
-func (_c *APIClient_CheckpointCreate_Call) RunAndReturn(run func(ctx context.Context, container string, options checkpoint.CreateOptions) error) *APIClient_CheckpointCreate_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// CheckpointDelete provides a mock function for the type APIClient
-func (_mock *APIClient) CheckpointDelete(ctx context.Context, container string, options checkpoint.DeleteOptions) error {
-	ret := _mock.Called(ctx, container, options)
-
-	if len(ret) == 0 {
-		panic("no return value specified for CheckpointDelete")
-	}
-
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, checkpoint.DeleteOptions) error); ok {
-		r0 = returnFunc(ctx, container, options)
-	} else {
-		r0 = ret.Error(0)
-	}
-	return r0
-}
-
-// APIClient_CheckpointDelete_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CheckpointDelete'
-type APIClient_CheckpointDelete_Call struct {
-	*mock.Call
-}
-
-// CheckpointDelete is a helper method to define mock.On call
-//   - ctx context.Context
-//   - container string
-//   - options checkpoint.DeleteOptions
-func (_e *APIClient_Expecter) CheckpointDelete(ctx any, container any, options any) *APIClient_CheckpointDelete_Call {
-	return &APIClient_CheckpointDelete_Call{Call: _e.mock.On("CheckpointDelete", ctx, container, options)}
-}
-
-func (_c *APIClient_CheckpointDelete_Call) Run(run func(ctx context.Context, container string, options checkpoint.DeleteOptions)) *APIClient_CheckpointDelete_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 string
-		if args[1] != nil {
-			arg1 = args[1].(string)
-		}
-		var arg2 checkpoint.DeleteOptions
-		if args[2] != nil {
-			arg2 = args[2].(checkpoint.DeleteOptions)
-		}
-		run(
-			arg0,
-			arg1,
-			arg2,
-		)
-	})
-	return _c
-}
-
-func (_c *APIClient_CheckpointDelete_Call) Return(err error) *APIClient_CheckpointDelete_Call {
-	_c.Call.Return(err)
-	return _c
-}
-
-func (_c *APIClient_CheckpointDelete_Call) RunAndReturn(run func(ctx context.Context, container string, options checkpoint.DeleteOptions) error) *APIClient_CheckpointDelete_Call {
+func (_c *APIClient_CheckpointCreate_Call) RunAndReturn(run func(ctx context.Context, container string, options client.CheckpointCreateOptions) (client.CheckpointCreateResult, error)) *APIClient_CheckpointCreate_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // CheckpointList provides a mock function for the type APIClient
-func (_mock *APIClient) CheckpointList(ctx context.Context, container string, options checkpoint.ListOptions) ([]checkpoint.Summary, error) {
+func (_mock *APIClient) CheckpointList(ctx context.Context, container string, options client.CheckpointListOptions) (client.CheckpointListResult, error) {
 	ret := _mock.Called(ctx, container, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CheckpointList")
 	}
 
-	var r0 []checkpoint.Summary
+	var r0 client.CheckpointListResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, checkpoint.ListOptions) ([]checkpoint.Summary, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.CheckpointListOptions) (client.CheckpointListResult, error)); ok {
 		return returnFunc(ctx, container, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, checkpoint.ListOptions) []checkpoint.Summary); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.CheckpointListOptions) client.CheckpointListResult); ok {
 		r0 = returnFunc(ctx, container, options)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]checkpoint.Summary)
-		}
+		r0 = ret.Get(0).(client.CheckpointListResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, checkpoint.ListOptions) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.CheckpointListOptions) error); ok {
 		r1 = returnFunc(ctx, container, options)
 	} else {
 		r1 = ret.Error(1)
@@ -341,12 +284,12 @@ type APIClient_CheckpointList_Call struct {
 // CheckpointList is a helper method to define mock.On call
 //   - ctx context.Context
 //   - container string
-//   - options checkpoint.ListOptions
+//   - options client.CheckpointListOptions
 func (_e *APIClient_Expecter) CheckpointList(ctx any, container any, options any) *APIClient_CheckpointList_Call {
 	return &APIClient_CheckpointList_Call{Call: _e.mock.On("CheckpointList", ctx, container, options)}
 }
 
-func (_c *APIClient_CheckpointList_Call) Run(run func(ctx context.Context, container string, options checkpoint.ListOptions)) *APIClient_CheckpointList_Call {
+func (_c *APIClient_CheckpointList_Call) Run(run func(ctx context.Context, container string, options client.CheckpointListOptions)) *APIClient_CheckpointList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -356,9 +299,9 @@ func (_c *APIClient_CheckpointList_Call) Run(run func(ctx context.Context, conta
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 checkpoint.ListOptions
+		var arg2 client.CheckpointListOptions
 		if args[2] != nil {
-			arg2 = args[2].(checkpoint.ListOptions)
+			arg2 = args[2].(client.CheckpointListOptions)
 		}
 		run(
 			arg0,
@@ -369,12 +312,84 @@ func (_c *APIClient_CheckpointList_Call) Run(run func(ctx context.Context, conta
 	return _c
 }
 
-func (_c *APIClient_CheckpointList_Call) Return(summarys []checkpoint.Summary, err error) *APIClient_CheckpointList_Call {
-	_c.Call.Return(summarys, err)
+func (_c *APIClient_CheckpointList_Call) Return(checkpointListResult client.CheckpointListResult, err error) *APIClient_CheckpointList_Call {
+	_c.Call.Return(checkpointListResult, err)
 	return _c
 }
 
-func (_c *APIClient_CheckpointList_Call) RunAndReturn(run func(ctx context.Context, container string, options checkpoint.ListOptions) ([]checkpoint.Summary, error)) *APIClient_CheckpointList_Call {
+func (_c *APIClient_CheckpointList_Call) RunAndReturn(run func(ctx context.Context, container string, options client.CheckpointListOptions) (client.CheckpointListResult, error)) *APIClient_CheckpointList_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CheckpointRemove provides a mock function for the type APIClient
+func (_mock *APIClient) CheckpointRemove(ctx context.Context, container string, options client.CheckpointRemoveOptions) (client.CheckpointRemoveResult, error) {
+	ret := _mock.Called(ctx, container, options)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CheckpointRemove")
+	}
+
+	var r0 client.CheckpointRemoveResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.CheckpointRemoveOptions) (client.CheckpointRemoveResult, error)); ok {
+		return returnFunc(ctx, container, options)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.CheckpointRemoveOptions) client.CheckpointRemoveResult); ok {
+		r0 = returnFunc(ctx, container, options)
+	} else {
+		r0 = ret.Get(0).(client.CheckpointRemoveResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.CheckpointRemoveOptions) error); ok {
+		r1 = returnFunc(ctx, container, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// APIClient_CheckpointRemove_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CheckpointRemove'
+type APIClient_CheckpointRemove_Call struct {
+	*mock.Call
+}
+
+// CheckpointRemove is a helper method to define mock.On call
+//   - ctx context.Context
+//   - container string
+//   - options client.CheckpointRemoveOptions
+func (_e *APIClient_Expecter) CheckpointRemove(ctx any, container any, options any) *APIClient_CheckpointRemove_Call {
+	return &APIClient_CheckpointRemove_Call{Call: _e.mock.On("CheckpointRemove", ctx, container, options)}
+}
+
+func (_c *APIClient_CheckpointRemove_Call) Run(run func(ctx context.Context, container string, options client.CheckpointRemoveOptions)) *APIClient_CheckpointRemove_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 client.CheckpointRemoveOptions
+		if args[2] != nil {
+			arg2 = args[2].(client.CheckpointRemoveOptions)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *APIClient_CheckpointRemove_Call) Return(checkpointRemoveResult client.CheckpointRemoveResult, err error) *APIClient_CheckpointRemove_Call {
+	_c.Call.Return(checkpointRemoveResult, err)
+	return _c
+}
+
+func (_c *APIClient_CheckpointRemove_Call) RunAndReturn(run func(ctx context.Context, container string, options client.CheckpointRemoveOptions) (client.CheckpointRemoveResult, error)) *APIClient_CheckpointRemove_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -468,25 +483,25 @@ func (_c *APIClient_Close_Call) RunAndReturn(run func() error) *APIClient_Close_
 }
 
 // ConfigCreate provides a mock function for the type APIClient
-func (_mock *APIClient) ConfigCreate(ctx context.Context, config swarm.ConfigSpec) (swarm.ConfigCreateResponse, error) {
-	ret := _mock.Called(ctx, config)
+func (_mock *APIClient) ConfigCreate(ctx context.Context, options client.ConfigCreateOptions) (client.ConfigCreateResult, error) {
+	ret := _mock.Called(ctx, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ConfigCreate")
 	}
 
-	var r0 swarm.ConfigCreateResponse
+	var r0 client.ConfigCreateResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, swarm.ConfigSpec) (swarm.ConfigCreateResponse, error)); ok {
-		return returnFunc(ctx, config)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.ConfigCreateOptions) (client.ConfigCreateResult, error)); ok {
+		return returnFunc(ctx, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, swarm.ConfigSpec) swarm.ConfigCreateResponse); ok {
-		r0 = returnFunc(ctx, config)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.ConfigCreateOptions) client.ConfigCreateResult); ok {
+		r0 = returnFunc(ctx, options)
 	} else {
-		r0 = ret.Get(0).(swarm.ConfigCreateResponse)
+		r0 = ret.Get(0).(client.ConfigCreateResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, swarm.ConfigSpec) error); ok {
-		r1 = returnFunc(ctx, config)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.ConfigCreateOptions) error); ok {
+		r1 = returnFunc(ctx, options)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -500,20 +515,20 @@ type APIClient_ConfigCreate_Call struct {
 
 // ConfigCreate is a helper method to define mock.On call
 //   - ctx context.Context
-//   - config swarm.ConfigSpec
-func (_e *APIClient_Expecter) ConfigCreate(ctx any, config any) *APIClient_ConfigCreate_Call {
-	return &APIClient_ConfigCreate_Call{Call: _e.mock.On("ConfigCreate", ctx, config)}
+//   - options client.ConfigCreateOptions
+func (_e *APIClient_Expecter) ConfigCreate(ctx any, options any) *APIClient_ConfigCreate_Call {
+	return &APIClient_ConfigCreate_Call{Call: _e.mock.On("ConfigCreate", ctx, options)}
 }
 
-func (_c *APIClient_ConfigCreate_Call) Run(run func(ctx context.Context, config swarm.ConfigSpec)) *APIClient_ConfigCreate_Call {
+func (_c *APIClient_ConfigCreate_Call) Run(run func(ctx context.Context, options client.ConfigCreateOptions)) *APIClient_ConfigCreate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 swarm.ConfigSpec
+		var arg1 client.ConfigCreateOptions
 		if args[1] != nil {
-			arg1 = args[1].(swarm.ConfigSpec)
+			arg1 = args[1].(client.ConfigCreateOptions)
 		}
 		run(
 			arg0,
@@ -523,63 +538,56 @@ func (_c *APIClient_ConfigCreate_Call) Run(run func(ctx context.Context, config 
 	return _c
 }
 
-func (_c *APIClient_ConfigCreate_Call) Return(configCreateResponse swarm.ConfigCreateResponse, err error) *APIClient_ConfigCreate_Call {
-	_c.Call.Return(configCreateResponse, err)
+func (_c *APIClient_ConfigCreate_Call) Return(configCreateResult client.ConfigCreateResult, err error) *APIClient_ConfigCreate_Call {
+	_c.Call.Return(configCreateResult, err)
 	return _c
 }
 
-func (_c *APIClient_ConfigCreate_Call) RunAndReturn(run func(ctx context.Context, config swarm.ConfigSpec) (swarm.ConfigCreateResponse, error)) *APIClient_ConfigCreate_Call {
+func (_c *APIClient_ConfigCreate_Call) RunAndReturn(run func(ctx context.Context, options client.ConfigCreateOptions) (client.ConfigCreateResult, error)) *APIClient_ConfigCreate_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// ConfigInspectWithRaw provides a mock function for the type APIClient
-func (_mock *APIClient) ConfigInspectWithRaw(ctx context.Context, name string) (swarm.Config, []byte, error) {
-	ret := _mock.Called(ctx, name)
+// ConfigInspect provides a mock function for the type APIClient
+func (_mock *APIClient) ConfigInspect(ctx context.Context, id string, options client.ConfigInspectOptions) (client.ConfigInspectResult, error) {
+	ret := _mock.Called(ctx, id, options)
 
 	if len(ret) == 0 {
-		panic("no return value specified for ConfigInspectWithRaw")
+		panic("no return value specified for ConfigInspect")
 	}
 
-	var r0 swarm.Config
-	var r1 []byte
-	var r2 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (swarm.Config, []byte, error)); ok {
-		return returnFunc(ctx, name)
+	var r0 client.ConfigInspectResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ConfigInspectOptions) (client.ConfigInspectResult, error)); ok {
+		return returnFunc(ctx, id, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) swarm.Config); ok {
-		r0 = returnFunc(ctx, name)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ConfigInspectOptions) client.ConfigInspectResult); ok {
+		r0 = returnFunc(ctx, id, options)
 	} else {
-		r0 = ret.Get(0).(swarm.Config)
+		r0 = ret.Get(0).(client.ConfigInspectResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string) []byte); ok {
-		r1 = returnFunc(ctx, name)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ConfigInspectOptions) error); ok {
+		r1 = returnFunc(ctx, id, options)
 	} else {
-		if ret.Get(1) != nil {
-			r1 = ret.Get(1).([]byte)
-		}
+		r1 = ret.Error(1)
 	}
-	if returnFunc, ok := ret.Get(2).(func(context.Context, string) error); ok {
-		r2 = returnFunc(ctx, name)
-	} else {
-		r2 = ret.Error(2)
-	}
-	return r0, r1, r2
+	return r0, r1
 }
 
-// APIClient_ConfigInspectWithRaw_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ConfigInspectWithRaw'
-type APIClient_ConfigInspectWithRaw_Call struct {
+// APIClient_ConfigInspect_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ConfigInspect'
+type APIClient_ConfigInspect_Call struct {
 	*mock.Call
 }
 
-// ConfigInspectWithRaw is a helper method to define mock.On call
+// ConfigInspect is a helper method to define mock.On call
 //   - ctx context.Context
-//   - name string
-func (_e *APIClient_Expecter) ConfigInspectWithRaw(ctx any, name any) *APIClient_ConfigInspectWithRaw_Call {
-	return &APIClient_ConfigInspectWithRaw_Call{Call: _e.mock.On("ConfigInspectWithRaw", ctx, name)}
+//   - id string
+//   - options client.ConfigInspectOptions
+func (_e *APIClient_Expecter) ConfigInspect(ctx any, id any, options any) *APIClient_ConfigInspect_Call {
+	return &APIClient_ConfigInspect_Call{Call: _e.mock.On("ConfigInspect", ctx, id, options)}
 }
 
-func (_c *APIClient_ConfigInspectWithRaw_Call) Run(run func(ctx context.Context, name string)) *APIClient_ConfigInspectWithRaw_Call {
+func (_c *APIClient_ConfigInspect_Call) Run(run func(ctx context.Context, id string, options client.ConfigInspectOptions)) *APIClient_ConfigInspect_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -589,45 +597,48 @@ func (_c *APIClient_ConfigInspectWithRaw_Call) Run(run func(ctx context.Context,
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
+		var arg2 client.ConfigInspectOptions
+		if args[2] != nil {
+			arg2 = args[2].(client.ConfigInspectOptions)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
 }
 
-func (_c *APIClient_ConfigInspectWithRaw_Call) Return(config swarm.Config, bytes []byte, err error) *APIClient_ConfigInspectWithRaw_Call {
-	_c.Call.Return(config, bytes, err)
+func (_c *APIClient_ConfigInspect_Call) Return(configInspectResult client.ConfigInspectResult, err error) *APIClient_ConfigInspect_Call {
+	_c.Call.Return(configInspectResult, err)
 	return _c
 }
 
-func (_c *APIClient_ConfigInspectWithRaw_Call) RunAndReturn(run func(ctx context.Context, name string) (swarm.Config, []byte, error)) *APIClient_ConfigInspectWithRaw_Call {
+func (_c *APIClient_ConfigInspect_Call) RunAndReturn(run func(ctx context.Context, id string, options client.ConfigInspectOptions) (client.ConfigInspectResult, error)) *APIClient_ConfigInspect_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ConfigList provides a mock function for the type APIClient
-func (_mock *APIClient) ConfigList(ctx context.Context, options swarm.ConfigListOptions) ([]swarm.Config, error) {
+func (_mock *APIClient) ConfigList(ctx context.Context, options client.ConfigListOptions) (client.ConfigListResult, error) {
 	ret := _mock.Called(ctx, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ConfigList")
 	}
 
-	var r0 []swarm.Config
+	var r0 client.ConfigListResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, swarm.ConfigListOptions) ([]swarm.Config, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.ConfigListOptions) (client.ConfigListResult, error)); ok {
 		return returnFunc(ctx, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, swarm.ConfigListOptions) []swarm.Config); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.ConfigListOptions) client.ConfigListResult); ok {
 		r0 = returnFunc(ctx, options)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]swarm.Config)
-		}
+		r0 = ret.Get(0).(client.ConfigListResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, swarm.ConfigListOptions) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.ConfigListOptions) error); ok {
 		r1 = returnFunc(ctx, options)
 	} else {
 		r1 = ret.Error(1)
@@ -642,20 +653,20 @@ type APIClient_ConfigList_Call struct {
 
 // ConfigList is a helper method to define mock.On call
 //   - ctx context.Context
-//   - options swarm.ConfigListOptions
+//   - options client.ConfigListOptions
 func (_e *APIClient_Expecter) ConfigList(ctx any, options any) *APIClient_ConfigList_Call {
 	return &APIClient_ConfigList_Call{Call: _e.mock.On("ConfigList", ctx, options)}
 }
 
-func (_c *APIClient_ConfigList_Call) Run(run func(ctx context.Context, options swarm.ConfigListOptions)) *APIClient_ConfigList_Call {
+func (_c *APIClient_ConfigList_Call) Run(run func(ctx context.Context, options client.ConfigListOptions)) *APIClient_ConfigList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 swarm.ConfigListOptions
+		var arg1 client.ConfigListOptions
 		if args[1] != nil {
-			arg1 = args[1].(swarm.ConfigListOptions)
+			arg1 = args[1].(client.ConfigListOptions)
 		}
 		run(
 			arg0,
@@ -665,31 +676,40 @@ func (_c *APIClient_ConfigList_Call) Run(run func(ctx context.Context, options s
 	return _c
 }
 
-func (_c *APIClient_ConfigList_Call) Return(configs []swarm.Config, err error) *APIClient_ConfigList_Call {
-	_c.Call.Return(configs, err)
+func (_c *APIClient_ConfigList_Call) Return(configListResult client.ConfigListResult, err error) *APIClient_ConfigList_Call {
+	_c.Call.Return(configListResult, err)
 	return _c
 }
 
-func (_c *APIClient_ConfigList_Call) RunAndReturn(run func(ctx context.Context, options swarm.ConfigListOptions) ([]swarm.Config, error)) *APIClient_ConfigList_Call {
+func (_c *APIClient_ConfigList_Call) RunAndReturn(run func(ctx context.Context, options client.ConfigListOptions) (client.ConfigListResult, error)) *APIClient_ConfigList_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ConfigRemove provides a mock function for the type APIClient
-func (_mock *APIClient) ConfigRemove(ctx context.Context, id string) error {
-	ret := _mock.Called(ctx, id)
+func (_mock *APIClient) ConfigRemove(ctx context.Context, id string, options client.ConfigRemoveOptions) (client.ConfigRemoveResult, error) {
+	ret := _mock.Called(ctx, id, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ConfigRemove")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) error); ok {
-		r0 = returnFunc(ctx, id)
-	} else {
-		r0 = ret.Error(0)
+	var r0 client.ConfigRemoveResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ConfigRemoveOptions) (client.ConfigRemoveResult, error)); ok {
+		return returnFunc(ctx, id, options)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ConfigRemoveOptions) client.ConfigRemoveResult); ok {
+		r0 = returnFunc(ctx, id, options)
+	} else {
+		r0 = ret.Get(0).(client.ConfigRemoveResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ConfigRemoveOptions) error); ok {
+		r1 = returnFunc(ctx, id, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_ConfigRemove_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ConfigRemove'
@@ -700,11 +720,12 @@ type APIClient_ConfigRemove_Call struct {
 // ConfigRemove is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id string
-func (_e *APIClient_Expecter) ConfigRemove(ctx any, id any) *APIClient_ConfigRemove_Call {
-	return &APIClient_ConfigRemove_Call{Call: _e.mock.On("ConfigRemove", ctx, id)}
+//   - options client.ConfigRemoveOptions
+func (_e *APIClient_Expecter) ConfigRemove(ctx any, id any, options any) *APIClient_ConfigRemove_Call {
+	return &APIClient_ConfigRemove_Call{Call: _e.mock.On("ConfigRemove", ctx, id, options)}
 }
 
-func (_c *APIClient_ConfigRemove_Call) Run(run func(ctx context.Context, id string)) *APIClient_ConfigRemove_Call {
+func (_c *APIClient_ConfigRemove_Call) Run(run func(ctx context.Context, id string, options client.ConfigRemoveOptions)) *APIClient_ConfigRemove_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -714,39 +735,53 @@ func (_c *APIClient_ConfigRemove_Call) Run(run func(ctx context.Context, id stri
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
+		var arg2 client.ConfigRemoveOptions
+		if args[2] != nil {
+			arg2 = args[2].(client.ConfigRemoveOptions)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
 }
 
-func (_c *APIClient_ConfigRemove_Call) Return(err error) *APIClient_ConfigRemove_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_ConfigRemove_Call) Return(configRemoveResult client.ConfigRemoveResult, err error) *APIClient_ConfigRemove_Call {
+	_c.Call.Return(configRemoveResult, err)
 	return _c
 }
 
-func (_c *APIClient_ConfigRemove_Call) RunAndReturn(run func(ctx context.Context, id string) error) *APIClient_ConfigRemove_Call {
+func (_c *APIClient_ConfigRemove_Call) RunAndReturn(run func(ctx context.Context, id string, options client.ConfigRemoveOptions) (client.ConfigRemoveResult, error)) *APIClient_ConfigRemove_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ConfigUpdate provides a mock function for the type APIClient
-func (_mock *APIClient) ConfigUpdate(ctx context.Context, id string, version swarm.Version, config swarm.ConfigSpec) error {
-	ret := _mock.Called(ctx, id, version, config)
+func (_mock *APIClient) ConfigUpdate(ctx context.Context, id string, options client.ConfigUpdateOptions) (client.ConfigUpdateResult, error) {
+	ret := _mock.Called(ctx, id, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ConfigUpdate")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, swarm.Version, swarm.ConfigSpec) error); ok {
-		r0 = returnFunc(ctx, id, version, config)
-	} else {
-		r0 = ret.Error(0)
+	var r0 client.ConfigUpdateResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ConfigUpdateOptions) (client.ConfigUpdateResult, error)); ok {
+		return returnFunc(ctx, id, options)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ConfigUpdateOptions) client.ConfigUpdateResult); ok {
+		r0 = returnFunc(ctx, id, options)
+	} else {
+		r0 = ret.Get(0).(client.ConfigUpdateResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ConfigUpdateOptions) error); ok {
+		r1 = returnFunc(ctx, id, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_ConfigUpdate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ConfigUpdate'
@@ -757,13 +792,12 @@ type APIClient_ConfigUpdate_Call struct {
 // ConfigUpdate is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id string
-//   - version swarm.Version
-//   - config swarm.ConfigSpec
-func (_e *APIClient_Expecter) ConfigUpdate(ctx any, id any, version any, config any) *APIClient_ConfigUpdate_Call {
-	return &APIClient_ConfigUpdate_Call{Call: _e.mock.On("ConfigUpdate", ctx, id, version, config)}
+//   - options client.ConfigUpdateOptions
+func (_e *APIClient_Expecter) ConfigUpdate(ctx any, id any, options any) *APIClient_ConfigUpdate_Call {
+	return &APIClient_ConfigUpdate_Call{Call: _e.mock.On("ConfigUpdate", ctx, id, options)}
 }
 
-func (_c *APIClient_ConfigUpdate_Call) Run(run func(ctx context.Context, id string, version swarm.Version, config swarm.ConfigSpec)) *APIClient_ConfigUpdate_Call {
+func (_c *APIClient_ConfigUpdate_Call) Run(run func(ctx context.Context, id string, options client.ConfigUpdateOptions)) *APIClient_ConfigUpdate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -773,54 +807,49 @@ func (_c *APIClient_ConfigUpdate_Call) Run(run func(ctx context.Context, id stri
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 swarm.Version
+		var arg2 client.ConfigUpdateOptions
 		if args[2] != nil {
-			arg2 = args[2].(swarm.Version)
-		}
-		var arg3 swarm.ConfigSpec
-		if args[3] != nil {
-			arg3 = args[3].(swarm.ConfigSpec)
+			arg2 = args[2].(client.ConfigUpdateOptions)
 		}
 		run(
 			arg0,
 			arg1,
 			arg2,
-			arg3,
 		)
 	})
 	return _c
 }
 
-func (_c *APIClient_ConfigUpdate_Call) Return(err error) *APIClient_ConfigUpdate_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_ConfigUpdate_Call) Return(configUpdateResult client.ConfigUpdateResult, err error) *APIClient_ConfigUpdate_Call {
+	_c.Call.Return(configUpdateResult, err)
 	return _c
 }
 
-func (_c *APIClient_ConfigUpdate_Call) RunAndReturn(run func(ctx context.Context, id string, version swarm.Version, config swarm.ConfigSpec) error) *APIClient_ConfigUpdate_Call {
+func (_c *APIClient_ConfigUpdate_Call) RunAndReturn(run func(ctx context.Context, id string, options client.ConfigUpdateOptions) (client.ConfigUpdateResult, error)) *APIClient_ConfigUpdate_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ContainerAttach provides a mock function for the type APIClient
-func (_mock *APIClient) ContainerAttach(ctx context.Context, container1 string, options container.AttachOptions) (types.HijackedResponse, error) {
-	ret := _mock.Called(ctx, container1, options)
+func (_mock *APIClient) ContainerAttach(ctx context.Context, container string, options client.ContainerAttachOptions) (client.ContainerAttachResult, error) {
+	ret := _mock.Called(ctx, container, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ContainerAttach")
 	}
 
-	var r0 types.HijackedResponse
+	var r0 client.ContainerAttachResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, container.AttachOptions) (types.HijackedResponse, error)); ok {
-		return returnFunc(ctx, container1, options)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerAttachOptions) (client.ContainerAttachResult, error)); ok {
+		return returnFunc(ctx, container, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, container.AttachOptions) types.HijackedResponse); ok {
-		r0 = returnFunc(ctx, container1, options)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerAttachOptions) client.ContainerAttachResult); ok {
+		r0 = returnFunc(ctx, container, options)
 	} else {
-		r0 = ret.Get(0).(types.HijackedResponse)
+		r0 = ret.Get(0).(client.ContainerAttachResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, container.AttachOptions) error); ok {
-		r1 = returnFunc(ctx, container1, options)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ContainerAttachOptions) error); ok {
+		r1 = returnFunc(ctx, container, options)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -834,13 +863,13 @@ type APIClient_ContainerAttach_Call struct {
 
 // ContainerAttach is a helper method to define mock.On call
 //   - ctx context.Context
-//   - container1 string
-//   - options container.AttachOptions
-func (_e *APIClient_Expecter) ContainerAttach(ctx any, container1 any, options any) *APIClient_ContainerAttach_Call {
-	return &APIClient_ContainerAttach_Call{Call: _e.mock.On("ContainerAttach", ctx, container1, options)}
+//   - container string
+//   - options client.ContainerAttachOptions
+func (_e *APIClient_Expecter) ContainerAttach(ctx any, container any, options any) *APIClient_ContainerAttach_Call {
+	return &APIClient_ContainerAttach_Call{Call: _e.mock.On("ContainerAttach", ctx, container, options)}
 }
 
-func (_c *APIClient_ContainerAttach_Call) Run(run func(ctx context.Context, container1 string, options container.AttachOptions)) *APIClient_ContainerAttach_Call {
+func (_c *APIClient_ContainerAttach_Call) Run(run func(ctx context.Context, container string, options client.ContainerAttachOptions)) *APIClient_ContainerAttach_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -850,9 +879,9 @@ func (_c *APIClient_ContainerAttach_Call) Run(run func(ctx context.Context, cont
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 container.AttachOptions
+		var arg2 client.ContainerAttachOptions
 		if args[2] != nil {
-			arg2 = args[2].(container.AttachOptions)
+			arg2 = args[2].(client.ContainerAttachOptions)
 		}
 		run(
 			arg0,
@@ -863,36 +892,36 @@ func (_c *APIClient_ContainerAttach_Call) Run(run func(ctx context.Context, cont
 	return _c
 }
 
-func (_c *APIClient_ContainerAttach_Call) Return(hijackedResponse types.HijackedResponse, err error) *APIClient_ContainerAttach_Call {
-	_c.Call.Return(hijackedResponse, err)
+func (_c *APIClient_ContainerAttach_Call) Return(containerAttachResult client.ContainerAttachResult, err error) *APIClient_ContainerAttach_Call {
+	_c.Call.Return(containerAttachResult, err)
 	return _c
 }
 
-func (_c *APIClient_ContainerAttach_Call) RunAndReturn(run func(ctx context.Context, container1 string, options container.AttachOptions) (types.HijackedResponse, error)) *APIClient_ContainerAttach_Call {
+func (_c *APIClient_ContainerAttach_Call) RunAndReturn(run func(ctx context.Context, container string, options client.ContainerAttachOptions) (client.ContainerAttachResult, error)) *APIClient_ContainerAttach_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ContainerCommit provides a mock function for the type APIClient
-func (_mock *APIClient) ContainerCommit(ctx context.Context, container1 string, options container.CommitOptions) (container.CommitResponse, error) {
-	ret := _mock.Called(ctx, container1, options)
+func (_mock *APIClient) ContainerCommit(ctx context.Context, container string, options client.ContainerCommitOptions) (client.ContainerCommitResult, error) {
+	ret := _mock.Called(ctx, container, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ContainerCommit")
 	}
 
-	var r0 container.CommitResponse
+	var r0 client.ContainerCommitResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, container.CommitOptions) (container.CommitResponse, error)); ok {
-		return returnFunc(ctx, container1, options)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerCommitOptions) (client.ContainerCommitResult, error)); ok {
+		return returnFunc(ctx, container, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, container.CommitOptions) container.CommitResponse); ok {
-		r0 = returnFunc(ctx, container1, options)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerCommitOptions) client.ContainerCommitResult); ok {
+		r0 = returnFunc(ctx, container, options)
 	} else {
-		r0 = ret.Get(0).(container.CommitResponse)
+		r0 = ret.Get(0).(client.ContainerCommitResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, container.CommitOptions) error); ok {
-		r1 = returnFunc(ctx, container1, options)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ContainerCommitOptions) error); ok {
+		r1 = returnFunc(ctx, container, options)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -906,13 +935,13 @@ type APIClient_ContainerCommit_Call struct {
 
 // ContainerCommit is a helper method to define mock.On call
 //   - ctx context.Context
-//   - container1 string
-//   - options container.CommitOptions
-func (_e *APIClient_Expecter) ContainerCommit(ctx any, container1 any, options any) *APIClient_ContainerCommit_Call {
-	return &APIClient_ContainerCommit_Call{Call: _e.mock.On("ContainerCommit", ctx, container1, options)}
+//   - container string
+//   - options client.ContainerCommitOptions
+func (_e *APIClient_Expecter) ContainerCommit(ctx any, container any, options any) *APIClient_ContainerCommit_Call {
+	return &APIClient_ContainerCommit_Call{Call: _e.mock.On("ContainerCommit", ctx, container, options)}
 }
 
-func (_c *APIClient_ContainerCommit_Call) Run(run func(ctx context.Context, container1 string, options container.CommitOptions)) *APIClient_ContainerCommit_Call {
+func (_c *APIClient_ContainerCommit_Call) Run(run func(ctx context.Context, container string, options client.ContainerCommitOptions)) *APIClient_ContainerCommit_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -922,9 +951,9 @@ func (_c *APIClient_ContainerCommit_Call) Run(run func(ctx context.Context, cont
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 container.CommitOptions
+		var arg2 client.ContainerCommitOptions
 		if args[2] != nil {
-			arg2 = args[2].(container.CommitOptions)
+			arg2 = args[2].(client.ContainerCommitOptions)
 		}
 		run(
 			arg0,
@@ -935,36 +964,36 @@ func (_c *APIClient_ContainerCommit_Call) Run(run func(ctx context.Context, cont
 	return _c
 }
 
-func (_c *APIClient_ContainerCommit_Call) Return(commitResponse container.CommitResponse, err error) *APIClient_ContainerCommit_Call {
-	_c.Call.Return(commitResponse, err)
+func (_c *APIClient_ContainerCommit_Call) Return(containerCommitResult client.ContainerCommitResult, err error) *APIClient_ContainerCommit_Call {
+	_c.Call.Return(containerCommitResult, err)
 	return _c
 }
 
-func (_c *APIClient_ContainerCommit_Call) RunAndReturn(run func(ctx context.Context, container1 string, options container.CommitOptions) (container.CommitResponse, error)) *APIClient_ContainerCommit_Call {
+func (_c *APIClient_ContainerCommit_Call) RunAndReturn(run func(ctx context.Context, container string, options client.ContainerCommitOptions) (client.ContainerCommitResult, error)) *APIClient_ContainerCommit_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ContainerCreate provides a mock function for the type APIClient
-func (_mock *APIClient) ContainerCreate(ctx context.Context, config *container.Config, hostConfig *container.HostConfig, networkingConfig *network.NetworkingConfig, platform *v1.Platform, containerName string) (container.CreateResponse, error) {
-	ret := _mock.Called(ctx, config, hostConfig, networkingConfig, platform, containerName)
+func (_mock *APIClient) ContainerCreate(ctx context.Context, options client.ContainerCreateOptions) (client.ContainerCreateResult, error) {
+	ret := _mock.Called(ctx, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ContainerCreate")
 	}
 
-	var r0 container.CreateResponse
+	var r0 client.ContainerCreateResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *container.Config, *container.HostConfig, *network.NetworkingConfig, *v1.Platform, string) (container.CreateResponse, error)); ok {
-		return returnFunc(ctx, config, hostConfig, networkingConfig, platform, containerName)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.ContainerCreateOptions) (client.ContainerCreateResult, error)); ok {
+		return returnFunc(ctx, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *container.Config, *container.HostConfig, *network.NetworkingConfig, *v1.Platform, string) container.CreateResponse); ok {
-		r0 = returnFunc(ctx, config, hostConfig, networkingConfig, platform, containerName)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.ContainerCreateOptions) client.ContainerCreateResult); ok {
+		r0 = returnFunc(ctx, options)
 	} else {
-		r0 = ret.Get(0).(container.CreateResponse)
+		r0 = ret.Get(0).(client.ContainerCreateResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, *container.Config, *container.HostConfig, *network.NetworkingConfig, *v1.Platform, string) error); ok {
-		r1 = returnFunc(ctx, config, hostConfig, networkingConfig, platform, containerName)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.ContainerCreateOptions) error); ok {
+		r1 = returnFunc(ctx, options)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -978,85 +1007,59 @@ type APIClient_ContainerCreate_Call struct {
 
 // ContainerCreate is a helper method to define mock.On call
 //   - ctx context.Context
-//   - config *container.Config
-//   - hostConfig *container.HostConfig
-//   - networkingConfig *network.NetworkingConfig
-//   - platform *v1.Platform
-//   - containerName string
-func (_e *APIClient_Expecter) ContainerCreate(ctx any, config any, hostConfig any, networkingConfig any, platform any, containerName any) *APIClient_ContainerCreate_Call {
-	return &APIClient_ContainerCreate_Call{Call: _e.mock.On("ContainerCreate", ctx, config, hostConfig, networkingConfig, platform, containerName)}
+//   - options client.ContainerCreateOptions
+func (_e *APIClient_Expecter) ContainerCreate(ctx any, options any) *APIClient_ContainerCreate_Call {
+	return &APIClient_ContainerCreate_Call{Call: _e.mock.On("ContainerCreate", ctx, options)}
 }
 
-func (_c *APIClient_ContainerCreate_Call) Run(run func(ctx context.Context, config *container.Config, hostConfig *container.HostConfig, networkingConfig *network.NetworkingConfig, platform *v1.Platform, containerName string)) *APIClient_ContainerCreate_Call {
+func (_c *APIClient_ContainerCreate_Call) Run(run func(ctx context.Context, options client.ContainerCreateOptions)) *APIClient_ContainerCreate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 *container.Config
+		var arg1 client.ContainerCreateOptions
 		if args[1] != nil {
-			arg1 = args[1].(*container.Config)
-		}
-		var arg2 *container.HostConfig
-		if args[2] != nil {
-			arg2 = args[2].(*container.HostConfig)
-		}
-		var arg3 *network.NetworkingConfig
-		if args[3] != nil {
-			arg3 = args[3].(*network.NetworkingConfig)
-		}
-		var arg4 *v1.Platform
-		if args[4] != nil {
-			arg4 = args[4].(*v1.Platform)
-		}
-		var arg5 string
-		if args[5] != nil {
-			arg5 = args[5].(string)
+			arg1 = args[1].(client.ContainerCreateOptions)
 		}
 		run(
 			arg0,
 			arg1,
-			arg2,
-			arg3,
-			arg4,
-			arg5,
 		)
 	})
 	return _c
 }
 
-func (_c *APIClient_ContainerCreate_Call) Return(createResponse container.CreateResponse, err error) *APIClient_ContainerCreate_Call {
-	_c.Call.Return(createResponse, err)
+func (_c *APIClient_ContainerCreate_Call) Return(containerCreateResult client.ContainerCreateResult, err error) *APIClient_ContainerCreate_Call {
+	_c.Call.Return(containerCreateResult, err)
 	return _c
 }
 
-func (_c *APIClient_ContainerCreate_Call) RunAndReturn(run func(ctx context.Context, config *container.Config, hostConfig *container.HostConfig, networkingConfig *network.NetworkingConfig, platform *v1.Platform, containerName string) (container.CreateResponse, error)) *APIClient_ContainerCreate_Call {
+func (_c *APIClient_ContainerCreate_Call) RunAndReturn(run func(ctx context.Context, options client.ContainerCreateOptions) (client.ContainerCreateResult, error)) *APIClient_ContainerCreate_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ContainerDiff provides a mock function for the type APIClient
-func (_mock *APIClient) ContainerDiff(ctx context.Context, container1 string) ([]container.FilesystemChange, error) {
-	ret := _mock.Called(ctx, container1)
+func (_mock *APIClient) ContainerDiff(ctx context.Context, container string, options client.ContainerDiffOptions) (client.ContainerDiffResult, error) {
+	ret := _mock.Called(ctx, container, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ContainerDiff")
 	}
 
-	var r0 []container.FilesystemChange
+	var r0 client.ContainerDiffResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) ([]container.FilesystemChange, error)); ok {
-		return returnFunc(ctx, container1)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerDiffOptions) (client.ContainerDiffResult, error)); ok {
+		return returnFunc(ctx, container, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) []container.FilesystemChange); ok {
-		r0 = returnFunc(ctx, container1)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerDiffOptions) client.ContainerDiffResult); ok {
+		r0 = returnFunc(ctx, container, options)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]container.FilesystemChange)
-		}
+		r0 = ret.Get(0).(client.ContainerDiffResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = returnFunc(ctx, container1)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ContainerDiffOptions) error); ok {
+		r1 = returnFunc(ctx, container, options)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -1070,12 +1073,13 @@ type APIClient_ContainerDiff_Call struct {
 
 // ContainerDiff is a helper method to define mock.On call
 //   - ctx context.Context
-//   - container1 string
-func (_e *APIClient_Expecter) ContainerDiff(ctx any, container1 any) *APIClient_ContainerDiff_Call {
-	return &APIClient_ContainerDiff_Call{Call: _e.mock.On("ContainerDiff", ctx, container1)}
+//   - container string
+//   - options client.ContainerDiffOptions
+func (_e *APIClient_Expecter) ContainerDiff(ctx any, container any, options any) *APIClient_ContainerDiff_Call {
+	return &APIClient_ContainerDiff_Call{Call: _e.mock.On("ContainerDiff", ctx, container, options)}
 }
 
-func (_c *APIClient_ContainerDiff_Call) Run(run func(ctx context.Context, container1 string)) *APIClient_ContainerDiff_Call {
+func (_c *APIClient_ContainerDiff_Call) Run(run func(ctx context.Context, container string, options client.ContainerDiffOptions)) *APIClient_ContainerDiff_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -1085,76 +1089,9 @@ func (_c *APIClient_ContainerDiff_Call) Run(run func(ctx context.Context, contai
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		run(
-			arg0,
-			arg1,
-		)
-	})
-	return _c
-}
-
-func (_c *APIClient_ContainerDiff_Call) Return(filesystemChanges []container.FilesystemChange, err error) *APIClient_ContainerDiff_Call {
-	_c.Call.Return(filesystemChanges, err)
-	return _c
-}
-
-func (_c *APIClient_ContainerDiff_Call) RunAndReturn(run func(ctx context.Context, container1 string) ([]container.FilesystemChange, error)) *APIClient_ContainerDiff_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// ContainerExecAttach provides a mock function for the type APIClient
-func (_mock *APIClient) ContainerExecAttach(ctx context.Context, execID string, options container.ExecAttachOptions) (types.HijackedResponse, error) {
-	ret := _mock.Called(ctx, execID, options)
-
-	if len(ret) == 0 {
-		panic("no return value specified for ContainerExecAttach")
-	}
-
-	var r0 types.HijackedResponse
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, container.ExecAttachOptions) (types.HijackedResponse, error)); ok {
-		return returnFunc(ctx, execID, options)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, container.ExecAttachOptions) types.HijackedResponse); ok {
-		r0 = returnFunc(ctx, execID, options)
-	} else {
-		r0 = ret.Get(0).(types.HijackedResponse)
-	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, container.ExecAttachOptions) error); ok {
-		r1 = returnFunc(ctx, execID, options)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
-}
-
-// APIClient_ContainerExecAttach_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ContainerExecAttach'
-type APIClient_ContainerExecAttach_Call struct {
-	*mock.Call
-}
-
-// ContainerExecAttach is a helper method to define mock.On call
-//   - ctx context.Context
-//   - execID string
-//   - options container.ExecAttachOptions
-func (_e *APIClient_Expecter) ContainerExecAttach(ctx any, execID any, options any) *APIClient_ContainerExecAttach_Call {
-	return &APIClient_ContainerExecAttach_Call{Call: _e.mock.On("ContainerExecAttach", ctx, execID, options)}
-}
-
-func (_c *APIClient_ContainerExecAttach_Call) Run(run func(ctx context.Context, execID string, options container.ExecAttachOptions)) *APIClient_ContainerExecAttach_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 string
-		if args[1] != nil {
-			arg1 = args[1].(string)
-		}
-		var arg2 container.ExecAttachOptions
+		var arg2 client.ContainerDiffOptions
 		if args[2] != nil {
-			arg2 = args[2].(container.ExecAttachOptions)
+			arg2 = args[2].(client.ContainerDiffOptions)
 		}
 		run(
 			arg0,
@@ -1165,302 +1102,38 @@ func (_c *APIClient_ContainerExecAttach_Call) Run(run func(ctx context.Context, 
 	return _c
 }
 
-func (_c *APIClient_ContainerExecAttach_Call) Return(hijackedResponse types.HijackedResponse, err error) *APIClient_ContainerExecAttach_Call {
-	_c.Call.Return(hijackedResponse, err)
+func (_c *APIClient_ContainerDiff_Call) Return(containerDiffResult client.ContainerDiffResult, err error) *APIClient_ContainerDiff_Call {
+	_c.Call.Return(containerDiffResult, err)
 	return _c
 }
 
-func (_c *APIClient_ContainerExecAttach_Call) RunAndReturn(run func(ctx context.Context, execID string, options container.ExecAttachOptions) (types.HijackedResponse, error)) *APIClient_ContainerExecAttach_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// ContainerExecCreate provides a mock function for the type APIClient
-func (_mock *APIClient) ContainerExecCreate(ctx context.Context, container1 string, options container.ExecOptions) (container.ExecCreateResponse, error) {
-	ret := _mock.Called(ctx, container1, options)
-
-	if len(ret) == 0 {
-		panic("no return value specified for ContainerExecCreate")
-	}
-
-	var r0 container.ExecCreateResponse
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, container.ExecOptions) (container.ExecCreateResponse, error)); ok {
-		return returnFunc(ctx, container1, options)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, container.ExecOptions) container.ExecCreateResponse); ok {
-		r0 = returnFunc(ctx, container1, options)
-	} else {
-		r0 = ret.Get(0).(container.ExecCreateResponse)
-	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, container.ExecOptions) error); ok {
-		r1 = returnFunc(ctx, container1, options)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
-}
-
-// APIClient_ContainerExecCreate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ContainerExecCreate'
-type APIClient_ContainerExecCreate_Call struct {
-	*mock.Call
-}
-
-// ContainerExecCreate is a helper method to define mock.On call
-//   - ctx context.Context
-//   - container1 string
-//   - options container.ExecOptions
-func (_e *APIClient_Expecter) ContainerExecCreate(ctx any, container1 any, options any) *APIClient_ContainerExecCreate_Call {
-	return &APIClient_ContainerExecCreate_Call{Call: _e.mock.On("ContainerExecCreate", ctx, container1, options)}
-}
-
-func (_c *APIClient_ContainerExecCreate_Call) Run(run func(ctx context.Context, container1 string, options container.ExecOptions)) *APIClient_ContainerExecCreate_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 string
-		if args[1] != nil {
-			arg1 = args[1].(string)
-		}
-		var arg2 container.ExecOptions
-		if args[2] != nil {
-			arg2 = args[2].(container.ExecOptions)
-		}
-		run(
-			arg0,
-			arg1,
-			arg2,
-		)
-	})
-	return _c
-}
-
-func (_c *APIClient_ContainerExecCreate_Call) Return(execCreateResponse container.ExecCreateResponse, err error) *APIClient_ContainerExecCreate_Call {
-	_c.Call.Return(execCreateResponse, err)
-	return _c
-}
-
-func (_c *APIClient_ContainerExecCreate_Call) RunAndReturn(run func(ctx context.Context, container1 string, options container.ExecOptions) (container.ExecCreateResponse, error)) *APIClient_ContainerExecCreate_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// ContainerExecInspect provides a mock function for the type APIClient
-func (_mock *APIClient) ContainerExecInspect(ctx context.Context, execID string) (container.ExecInspect, error) {
-	ret := _mock.Called(ctx, execID)
-
-	if len(ret) == 0 {
-		panic("no return value specified for ContainerExecInspect")
-	}
-
-	var r0 container.ExecInspect
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (container.ExecInspect, error)); ok {
-		return returnFunc(ctx, execID)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) container.ExecInspect); ok {
-		r0 = returnFunc(ctx, execID)
-	} else {
-		r0 = ret.Get(0).(container.ExecInspect)
-	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = returnFunc(ctx, execID)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
-}
-
-// APIClient_ContainerExecInspect_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ContainerExecInspect'
-type APIClient_ContainerExecInspect_Call struct {
-	*mock.Call
-}
-
-// ContainerExecInspect is a helper method to define mock.On call
-//   - ctx context.Context
-//   - execID string
-func (_e *APIClient_Expecter) ContainerExecInspect(ctx any, execID any) *APIClient_ContainerExecInspect_Call {
-	return &APIClient_ContainerExecInspect_Call{Call: _e.mock.On("ContainerExecInspect", ctx, execID)}
-}
-
-func (_c *APIClient_ContainerExecInspect_Call) Run(run func(ctx context.Context, execID string)) *APIClient_ContainerExecInspect_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 string
-		if args[1] != nil {
-			arg1 = args[1].(string)
-		}
-		run(
-			arg0,
-			arg1,
-		)
-	})
-	return _c
-}
-
-func (_c *APIClient_ContainerExecInspect_Call) Return(execInspect container.ExecInspect, err error) *APIClient_ContainerExecInspect_Call {
-	_c.Call.Return(execInspect, err)
-	return _c
-}
-
-func (_c *APIClient_ContainerExecInspect_Call) RunAndReturn(run func(ctx context.Context, execID string) (container.ExecInspect, error)) *APIClient_ContainerExecInspect_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// ContainerExecResize provides a mock function for the type APIClient
-func (_mock *APIClient) ContainerExecResize(ctx context.Context, execID string, options container.ResizeOptions) error {
-	ret := _mock.Called(ctx, execID, options)
-
-	if len(ret) == 0 {
-		panic("no return value specified for ContainerExecResize")
-	}
-
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, container.ResizeOptions) error); ok {
-		r0 = returnFunc(ctx, execID, options)
-	} else {
-		r0 = ret.Error(0)
-	}
-	return r0
-}
-
-// APIClient_ContainerExecResize_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ContainerExecResize'
-type APIClient_ContainerExecResize_Call struct {
-	*mock.Call
-}
-
-// ContainerExecResize is a helper method to define mock.On call
-//   - ctx context.Context
-//   - execID string
-//   - options container.ResizeOptions
-func (_e *APIClient_Expecter) ContainerExecResize(ctx any, execID any, options any) *APIClient_ContainerExecResize_Call {
-	return &APIClient_ContainerExecResize_Call{Call: _e.mock.On("ContainerExecResize", ctx, execID, options)}
-}
-
-func (_c *APIClient_ContainerExecResize_Call) Run(run func(ctx context.Context, execID string, options container.ResizeOptions)) *APIClient_ContainerExecResize_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 string
-		if args[1] != nil {
-			arg1 = args[1].(string)
-		}
-		var arg2 container.ResizeOptions
-		if args[2] != nil {
-			arg2 = args[2].(container.ResizeOptions)
-		}
-		run(
-			arg0,
-			arg1,
-			arg2,
-		)
-	})
-	return _c
-}
-
-func (_c *APIClient_ContainerExecResize_Call) Return(err error) *APIClient_ContainerExecResize_Call {
-	_c.Call.Return(err)
-	return _c
-}
-
-func (_c *APIClient_ContainerExecResize_Call) RunAndReturn(run func(ctx context.Context, execID string, options container.ResizeOptions) error) *APIClient_ContainerExecResize_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// ContainerExecStart provides a mock function for the type APIClient
-func (_mock *APIClient) ContainerExecStart(ctx context.Context, execID string, options container.ExecStartOptions) error {
-	ret := _mock.Called(ctx, execID, options)
-
-	if len(ret) == 0 {
-		panic("no return value specified for ContainerExecStart")
-	}
-
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, container.ExecStartOptions) error); ok {
-		r0 = returnFunc(ctx, execID, options)
-	} else {
-		r0 = ret.Error(0)
-	}
-	return r0
-}
-
-// APIClient_ContainerExecStart_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ContainerExecStart'
-type APIClient_ContainerExecStart_Call struct {
-	*mock.Call
-}
-
-// ContainerExecStart is a helper method to define mock.On call
-//   - ctx context.Context
-//   - execID string
-//   - options container.ExecStartOptions
-func (_e *APIClient_Expecter) ContainerExecStart(ctx any, execID any, options any) *APIClient_ContainerExecStart_Call {
-	return &APIClient_ContainerExecStart_Call{Call: _e.mock.On("ContainerExecStart", ctx, execID, options)}
-}
-
-func (_c *APIClient_ContainerExecStart_Call) Run(run func(ctx context.Context, execID string, options container.ExecStartOptions)) *APIClient_ContainerExecStart_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 string
-		if args[1] != nil {
-			arg1 = args[1].(string)
-		}
-		var arg2 container.ExecStartOptions
-		if args[2] != nil {
-			arg2 = args[2].(container.ExecStartOptions)
-		}
-		run(
-			arg0,
-			arg1,
-			arg2,
-		)
-	})
-	return _c
-}
-
-func (_c *APIClient_ContainerExecStart_Call) Return(err error) *APIClient_ContainerExecStart_Call {
-	_c.Call.Return(err)
-	return _c
-}
-
-func (_c *APIClient_ContainerExecStart_Call) RunAndReturn(run func(ctx context.Context, execID string, options container.ExecStartOptions) error) *APIClient_ContainerExecStart_Call {
+func (_c *APIClient_ContainerDiff_Call) RunAndReturn(run func(ctx context.Context, container string, options client.ContainerDiffOptions) (client.ContainerDiffResult, error)) *APIClient_ContainerDiff_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ContainerExport provides a mock function for the type APIClient
-func (_mock *APIClient) ContainerExport(ctx context.Context, container1 string) (io.ReadCloser, error) {
-	ret := _mock.Called(ctx, container1)
+func (_mock *APIClient) ContainerExport(ctx context.Context, container string, options client.ContainerExportOptions) (client.ContainerExportResult, error) {
+	ret := _mock.Called(ctx, container, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ContainerExport")
 	}
 
-	var r0 io.ReadCloser
+	var r0 client.ContainerExportResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (io.ReadCloser, error)); ok {
-		return returnFunc(ctx, container1)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerExportOptions) (client.ContainerExportResult, error)); ok {
+		return returnFunc(ctx, container, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) io.ReadCloser); ok {
-		r0 = returnFunc(ctx, container1)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerExportOptions) client.ContainerExportResult); ok {
+		r0 = returnFunc(ctx, container, options)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(io.ReadCloser)
+			r0 = ret.Get(0).(client.ContainerExportResult)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = returnFunc(ctx, container1)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ContainerExportOptions) error); ok {
+		r1 = returnFunc(ctx, container, options)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -1474,12 +1147,13 @@ type APIClient_ContainerExport_Call struct {
 
 // ContainerExport is a helper method to define mock.On call
 //   - ctx context.Context
-//   - container1 string
-func (_e *APIClient_Expecter) ContainerExport(ctx any, container1 any) *APIClient_ContainerExport_Call {
-	return &APIClient_ContainerExport_Call{Call: _e.mock.On("ContainerExport", ctx, container1)}
+//   - container string
+//   - options client.ContainerExportOptions
+func (_e *APIClient_Expecter) ContainerExport(ctx any, container any, options any) *APIClient_ContainerExport_Call {
+	return &APIClient_ContainerExport_Call{Call: _e.mock.On("ContainerExport", ctx, container, options)}
 }
 
-func (_c *APIClient_ContainerExport_Call) Run(run func(ctx context.Context, container1 string)) *APIClient_ContainerExport_Call {
+func (_c *APIClient_ContainerExport_Call) Run(run func(ctx context.Context, container string, options client.ContainerExportOptions)) *APIClient_ContainerExport_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -1489,44 +1163,49 @@ func (_c *APIClient_ContainerExport_Call) Run(run func(ctx context.Context, cont
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
+		var arg2 client.ContainerExportOptions
+		if args[2] != nil {
+			arg2 = args[2].(client.ContainerExportOptions)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
 }
 
-func (_c *APIClient_ContainerExport_Call) Return(readCloser io.ReadCloser, err error) *APIClient_ContainerExport_Call {
-	_c.Call.Return(readCloser, err)
+func (_c *APIClient_ContainerExport_Call) Return(containerExportResult client.ContainerExportResult, err error) *APIClient_ContainerExport_Call {
+	_c.Call.Return(containerExportResult, err)
 	return _c
 }
 
-func (_c *APIClient_ContainerExport_Call) RunAndReturn(run func(ctx context.Context, container1 string) (io.ReadCloser, error)) *APIClient_ContainerExport_Call {
+func (_c *APIClient_ContainerExport_Call) RunAndReturn(run func(ctx context.Context, container string, options client.ContainerExportOptions) (client.ContainerExportResult, error)) *APIClient_ContainerExport_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ContainerInspect provides a mock function for the type APIClient
-func (_mock *APIClient) ContainerInspect(ctx context.Context, container1 string) (container.InspectResponse, error) {
-	ret := _mock.Called(ctx, container1)
+func (_mock *APIClient) ContainerInspect(ctx context.Context, container string, options client.ContainerInspectOptions) (client.ContainerInspectResult, error) {
+	ret := _mock.Called(ctx, container, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ContainerInspect")
 	}
 
-	var r0 container.InspectResponse
+	var r0 client.ContainerInspectResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (container.InspectResponse, error)); ok {
-		return returnFunc(ctx, container1)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerInspectOptions) (client.ContainerInspectResult, error)); ok {
+		return returnFunc(ctx, container, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) container.InspectResponse); ok {
-		r0 = returnFunc(ctx, container1)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerInspectOptions) client.ContainerInspectResult); ok {
+		r0 = returnFunc(ctx, container, options)
 	} else {
-		r0 = ret.Get(0).(container.InspectResponse)
+		r0 = ret.Get(0).(client.ContainerInspectResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = returnFunc(ctx, container1)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ContainerInspectOptions) error); ok {
+		r1 = returnFunc(ctx, container, options)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -1540,12 +1219,13 @@ type APIClient_ContainerInspect_Call struct {
 
 // ContainerInspect is a helper method to define mock.On call
 //   - ctx context.Context
-//   - container1 string
-func (_e *APIClient_Expecter) ContainerInspect(ctx any, container1 any) *APIClient_ContainerInspect_Call {
-	return &APIClient_ContainerInspect_Call{Call: _e.mock.On("ContainerInspect", ctx, container1)}
+//   - container string
+//   - options client.ContainerInspectOptions
+func (_e *APIClient_Expecter) ContainerInspect(ctx any, container any, options any) *APIClient_ContainerInspect_Call {
+	return &APIClient_ContainerInspect_Call{Call: _e.mock.On("ContainerInspect", ctx, container, options)}
 }
 
-func (_c *APIClient_ContainerInspect_Call) Run(run func(ctx context.Context, container1 string)) *APIClient_ContainerInspect_Call {
+func (_c *APIClient_ContainerInspect_Call) Run(run func(ctx context.Context, container string, options client.ContainerInspectOptions)) *APIClient_ContainerInspect_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -1555,84 +1235,9 @@ func (_c *APIClient_ContainerInspect_Call) Run(run func(ctx context.Context, con
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		run(
-			arg0,
-			arg1,
-		)
-	})
-	return _c
-}
-
-func (_c *APIClient_ContainerInspect_Call) Return(inspectResponse container.InspectResponse, err error) *APIClient_ContainerInspect_Call {
-	_c.Call.Return(inspectResponse, err)
-	return _c
-}
-
-func (_c *APIClient_ContainerInspect_Call) RunAndReturn(run func(ctx context.Context, container1 string) (container.InspectResponse, error)) *APIClient_ContainerInspect_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// ContainerInspectWithRaw provides a mock function for the type APIClient
-func (_mock *APIClient) ContainerInspectWithRaw(ctx context.Context, container1 string, getSize bool) (container.InspectResponse, []byte, error) {
-	ret := _mock.Called(ctx, container1, getSize)
-
-	if len(ret) == 0 {
-		panic("no return value specified for ContainerInspectWithRaw")
-	}
-
-	var r0 container.InspectResponse
-	var r1 []byte
-	var r2 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, bool) (container.InspectResponse, []byte, error)); ok {
-		return returnFunc(ctx, container1, getSize)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, bool) container.InspectResponse); ok {
-		r0 = returnFunc(ctx, container1, getSize)
-	} else {
-		r0 = ret.Get(0).(container.InspectResponse)
-	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, bool) []byte); ok {
-		r1 = returnFunc(ctx, container1, getSize)
-	} else {
-		if ret.Get(1) != nil {
-			r1 = ret.Get(1).([]byte)
-		}
-	}
-	if returnFunc, ok := ret.Get(2).(func(context.Context, string, bool) error); ok {
-		r2 = returnFunc(ctx, container1, getSize)
-	} else {
-		r2 = ret.Error(2)
-	}
-	return r0, r1, r2
-}
-
-// APIClient_ContainerInspectWithRaw_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ContainerInspectWithRaw'
-type APIClient_ContainerInspectWithRaw_Call struct {
-	*mock.Call
-}
-
-// ContainerInspectWithRaw is a helper method to define mock.On call
-//   - ctx context.Context
-//   - container1 string
-//   - getSize bool
-func (_e *APIClient_Expecter) ContainerInspectWithRaw(ctx any, container1 any, getSize any) *APIClient_ContainerInspectWithRaw_Call {
-	return &APIClient_ContainerInspectWithRaw_Call{Call: _e.mock.On("ContainerInspectWithRaw", ctx, container1, getSize)}
-}
-
-func (_c *APIClient_ContainerInspectWithRaw_Call) Run(run func(ctx context.Context, container1 string, getSize bool)) *APIClient_ContainerInspectWithRaw_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 string
-		if args[1] != nil {
-			arg1 = args[1].(string)
-		}
-		var arg2 bool
+		var arg2 client.ContainerInspectOptions
 		if args[2] != nil {
-			arg2 = args[2].(bool)
+			arg2 = args[2].(client.ContainerInspectOptions)
 		}
 		run(
 			arg0,
@@ -1643,31 +1248,40 @@ func (_c *APIClient_ContainerInspectWithRaw_Call) Run(run func(ctx context.Conte
 	return _c
 }
 
-func (_c *APIClient_ContainerInspectWithRaw_Call) Return(inspectResponse container.InspectResponse, bytes []byte, err error) *APIClient_ContainerInspectWithRaw_Call {
-	_c.Call.Return(inspectResponse, bytes, err)
+func (_c *APIClient_ContainerInspect_Call) Return(containerInspectResult client.ContainerInspectResult, err error) *APIClient_ContainerInspect_Call {
+	_c.Call.Return(containerInspectResult, err)
 	return _c
 }
 
-func (_c *APIClient_ContainerInspectWithRaw_Call) RunAndReturn(run func(ctx context.Context, container1 string, getSize bool) (container.InspectResponse, []byte, error)) *APIClient_ContainerInspectWithRaw_Call {
+func (_c *APIClient_ContainerInspect_Call) RunAndReturn(run func(ctx context.Context, container string, options client.ContainerInspectOptions) (client.ContainerInspectResult, error)) *APIClient_ContainerInspect_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ContainerKill provides a mock function for the type APIClient
-func (_mock *APIClient) ContainerKill(ctx context.Context, container1 string, signal string) error {
-	ret := _mock.Called(ctx, container1, signal)
+func (_mock *APIClient) ContainerKill(ctx context.Context, container string, options client.ContainerKillOptions) (client.ContainerKillResult, error) {
+	ret := _mock.Called(ctx, container, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ContainerKill")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
-		r0 = returnFunc(ctx, container1, signal)
-	} else {
-		r0 = ret.Error(0)
+	var r0 client.ContainerKillResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerKillOptions) (client.ContainerKillResult, error)); ok {
+		return returnFunc(ctx, container, options)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerKillOptions) client.ContainerKillResult); ok {
+		r0 = returnFunc(ctx, container, options)
+	} else {
+		r0 = ret.Get(0).(client.ContainerKillResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ContainerKillOptions) error); ok {
+		r1 = returnFunc(ctx, container, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_ContainerKill_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ContainerKill'
@@ -1677,13 +1291,13 @@ type APIClient_ContainerKill_Call struct {
 
 // ContainerKill is a helper method to define mock.On call
 //   - ctx context.Context
-//   - container1 string
-//   - signal string
-func (_e *APIClient_Expecter) ContainerKill(ctx any, container1 any, signal any) *APIClient_ContainerKill_Call {
-	return &APIClient_ContainerKill_Call{Call: _e.mock.On("ContainerKill", ctx, container1, signal)}
+//   - container string
+//   - options client.ContainerKillOptions
+func (_e *APIClient_Expecter) ContainerKill(ctx any, container any, options any) *APIClient_ContainerKill_Call {
+	return &APIClient_ContainerKill_Call{Call: _e.mock.On("ContainerKill", ctx, container, options)}
 }
 
-func (_c *APIClient_ContainerKill_Call) Run(run func(ctx context.Context, container1 string, signal string)) *APIClient_ContainerKill_Call {
+func (_c *APIClient_ContainerKill_Call) Run(run func(ctx context.Context, container string, options client.ContainerKillOptions)) *APIClient_ContainerKill_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -1693,9 +1307,9 @@ func (_c *APIClient_ContainerKill_Call) Run(run func(ctx context.Context, contai
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 string
+		var arg2 client.ContainerKillOptions
 		if args[2] != nil {
-			arg2 = args[2].(string)
+			arg2 = args[2].(client.ContainerKillOptions)
 		}
 		run(
 			arg0,
@@ -1706,37 +1320,35 @@ func (_c *APIClient_ContainerKill_Call) Run(run func(ctx context.Context, contai
 	return _c
 }
 
-func (_c *APIClient_ContainerKill_Call) Return(err error) *APIClient_ContainerKill_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_ContainerKill_Call) Return(containerKillResult client.ContainerKillResult, err error) *APIClient_ContainerKill_Call {
+	_c.Call.Return(containerKillResult, err)
 	return _c
 }
 
-func (_c *APIClient_ContainerKill_Call) RunAndReturn(run func(ctx context.Context, container1 string, signal string) error) *APIClient_ContainerKill_Call {
+func (_c *APIClient_ContainerKill_Call) RunAndReturn(run func(ctx context.Context, container string, options client.ContainerKillOptions) (client.ContainerKillResult, error)) *APIClient_ContainerKill_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ContainerList provides a mock function for the type APIClient
-func (_mock *APIClient) ContainerList(ctx context.Context, options container.ListOptions) ([]container.Summary, error) {
+func (_mock *APIClient) ContainerList(ctx context.Context, options client.ContainerListOptions) (client.ContainerListResult, error) {
 	ret := _mock.Called(ctx, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ContainerList")
 	}
 
-	var r0 []container.Summary
+	var r0 client.ContainerListResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, container.ListOptions) ([]container.Summary, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.ContainerListOptions) (client.ContainerListResult, error)); ok {
 		return returnFunc(ctx, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, container.ListOptions) []container.Summary); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.ContainerListOptions) client.ContainerListResult); ok {
 		r0 = returnFunc(ctx, options)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]container.Summary)
-		}
+		r0 = ret.Get(0).(client.ContainerListResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, container.ListOptions) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.ContainerListOptions) error); ok {
 		r1 = returnFunc(ctx, options)
 	} else {
 		r1 = ret.Error(1)
@@ -1751,20 +1363,20 @@ type APIClient_ContainerList_Call struct {
 
 // ContainerList is a helper method to define mock.On call
 //   - ctx context.Context
-//   - options container.ListOptions
+//   - options client.ContainerListOptions
 func (_e *APIClient_Expecter) ContainerList(ctx any, options any) *APIClient_ContainerList_Call {
 	return &APIClient_ContainerList_Call{Call: _e.mock.On("ContainerList", ctx, options)}
 }
 
-func (_c *APIClient_ContainerList_Call) Run(run func(ctx context.Context, options container.ListOptions)) *APIClient_ContainerList_Call {
+func (_c *APIClient_ContainerList_Call) Run(run func(ctx context.Context, options client.ContainerListOptions)) *APIClient_ContainerList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 container.ListOptions
+		var arg1 client.ContainerListOptions
 		if args[1] != nil {
-			arg1 = args[1].(container.ListOptions)
+			arg1 = args[1].(client.ContainerListOptions)
 		}
 		run(
 			arg0,
@@ -1774,38 +1386,38 @@ func (_c *APIClient_ContainerList_Call) Run(run func(ctx context.Context, option
 	return _c
 }
 
-func (_c *APIClient_ContainerList_Call) Return(summarys []container.Summary, err error) *APIClient_ContainerList_Call {
-	_c.Call.Return(summarys, err)
+func (_c *APIClient_ContainerList_Call) Return(containerListResult client.ContainerListResult, err error) *APIClient_ContainerList_Call {
+	_c.Call.Return(containerListResult, err)
 	return _c
 }
 
-func (_c *APIClient_ContainerList_Call) RunAndReturn(run func(ctx context.Context, options container.ListOptions) ([]container.Summary, error)) *APIClient_ContainerList_Call {
+func (_c *APIClient_ContainerList_Call) RunAndReturn(run func(ctx context.Context, options client.ContainerListOptions) (client.ContainerListResult, error)) *APIClient_ContainerList_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ContainerLogs provides a mock function for the type APIClient
-func (_mock *APIClient) ContainerLogs(ctx context.Context, container1 string, options container.LogsOptions) (io.ReadCloser, error) {
-	ret := _mock.Called(ctx, container1, options)
+func (_mock *APIClient) ContainerLogs(ctx context.Context, container string, options client.ContainerLogsOptions) (client.ContainerLogsResult, error) {
+	ret := _mock.Called(ctx, container, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ContainerLogs")
 	}
 
-	var r0 io.ReadCloser
+	var r0 client.ContainerLogsResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, container.LogsOptions) (io.ReadCloser, error)); ok {
-		return returnFunc(ctx, container1, options)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerLogsOptions) (client.ContainerLogsResult, error)); ok {
+		return returnFunc(ctx, container, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, container.LogsOptions) io.ReadCloser); ok {
-		r0 = returnFunc(ctx, container1, options)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerLogsOptions) client.ContainerLogsResult); ok {
+		r0 = returnFunc(ctx, container, options)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(io.ReadCloser)
+			r0 = ret.Get(0).(client.ContainerLogsResult)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, container.LogsOptions) error); ok {
-		r1 = returnFunc(ctx, container1, options)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ContainerLogsOptions) error); ok {
+		r1 = returnFunc(ctx, container, options)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -1819,13 +1431,13 @@ type APIClient_ContainerLogs_Call struct {
 
 // ContainerLogs is a helper method to define mock.On call
 //   - ctx context.Context
-//   - container1 string
-//   - options container.LogsOptions
-func (_e *APIClient_Expecter) ContainerLogs(ctx any, container1 any, options any) *APIClient_ContainerLogs_Call {
-	return &APIClient_ContainerLogs_Call{Call: _e.mock.On("ContainerLogs", ctx, container1, options)}
+//   - container string
+//   - options client.ContainerLogsOptions
+func (_e *APIClient_Expecter) ContainerLogs(ctx any, container any, options any) *APIClient_ContainerLogs_Call {
+	return &APIClient_ContainerLogs_Call{Call: _e.mock.On("ContainerLogs", ctx, container, options)}
 }
 
-func (_c *APIClient_ContainerLogs_Call) Run(run func(ctx context.Context, container1 string, options container.LogsOptions)) *APIClient_ContainerLogs_Call {
+func (_c *APIClient_ContainerLogs_Call) Run(run func(ctx context.Context, container string, options client.ContainerLogsOptions)) *APIClient_ContainerLogs_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -1835,9 +1447,9 @@ func (_c *APIClient_ContainerLogs_Call) Run(run func(ctx context.Context, contai
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 container.LogsOptions
+		var arg2 client.ContainerLogsOptions
 		if args[2] != nil {
-			arg2 = args[2].(container.LogsOptions)
+			arg2 = args[2].(client.ContainerLogsOptions)
 		}
 		run(
 			arg0,
@@ -1848,31 +1460,40 @@ func (_c *APIClient_ContainerLogs_Call) Run(run func(ctx context.Context, contai
 	return _c
 }
 
-func (_c *APIClient_ContainerLogs_Call) Return(readCloser io.ReadCloser, err error) *APIClient_ContainerLogs_Call {
-	_c.Call.Return(readCloser, err)
+func (_c *APIClient_ContainerLogs_Call) Return(containerLogsResult client.ContainerLogsResult, err error) *APIClient_ContainerLogs_Call {
+	_c.Call.Return(containerLogsResult, err)
 	return _c
 }
 
-func (_c *APIClient_ContainerLogs_Call) RunAndReturn(run func(ctx context.Context, container1 string, options container.LogsOptions) (io.ReadCloser, error)) *APIClient_ContainerLogs_Call {
+func (_c *APIClient_ContainerLogs_Call) RunAndReturn(run func(ctx context.Context, container string, options client.ContainerLogsOptions) (client.ContainerLogsResult, error)) *APIClient_ContainerLogs_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ContainerPause provides a mock function for the type APIClient
-func (_mock *APIClient) ContainerPause(ctx context.Context, container1 string) error {
-	ret := _mock.Called(ctx, container1)
+func (_mock *APIClient) ContainerPause(ctx context.Context, container string, options client.ContainerPauseOptions) (client.ContainerPauseResult, error) {
+	ret := _mock.Called(ctx, container, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ContainerPause")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) error); ok {
-		r0 = returnFunc(ctx, container1)
-	} else {
-		r0 = ret.Error(0)
+	var r0 client.ContainerPauseResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerPauseOptions) (client.ContainerPauseResult, error)); ok {
+		return returnFunc(ctx, container, options)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerPauseOptions) client.ContainerPauseResult); ok {
+		r0 = returnFunc(ctx, container, options)
+	} else {
+		r0 = ret.Get(0).(client.ContainerPauseResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ContainerPauseOptions) error); ok {
+		r1 = returnFunc(ctx, container, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_ContainerPause_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ContainerPause'
@@ -1882,12 +1503,13 @@ type APIClient_ContainerPause_Call struct {
 
 // ContainerPause is a helper method to define mock.On call
 //   - ctx context.Context
-//   - container1 string
-func (_e *APIClient_Expecter) ContainerPause(ctx any, container1 any) *APIClient_ContainerPause_Call {
-	return &APIClient_ContainerPause_Call{Call: _e.mock.On("ContainerPause", ctx, container1)}
+//   - container string
+//   - options client.ContainerPauseOptions
+func (_e *APIClient_Expecter) ContainerPause(ctx any, container any, options any) *APIClient_ContainerPause_Call {
+	return &APIClient_ContainerPause_Call{Call: _e.mock.On("ContainerPause", ctx, container, options)}
 }
 
-func (_c *APIClient_ContainerPause_Call) Run(run func(ctx context.Context, container1 string)) *APIClient_ContainerPause_Call {
+func (_c *APIClient_ContainerPause_Call) Run(run func(ctx context.Context, container string, options client.ContainerPauseOptions)) *APIClient_ContainerPause_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -1897,6 +1519,77 @@ func (_c *APIClient_ContainerPause_Call) Run(run func(ctx context.Context, conta
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
+		var arg2 client.ContainerPauseOptions
+		if args[2] != nil {
+			arg2 = args[2].(client.ContainerPauseOptions)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *APIClient_ContainerPause_Call) Return(containerPauseResult client.ContainerPauseResult, err error) *APIClient_ContainerPause_Call {
+	_c.Call.Return(containerPauseResult, err)
+	return _c
+}
+
+func (_c *APIClient_ContainerPause_Call) RunAndReturn(run func(ctx context.Context, container string, options client.ContainerPauseOptions) (client.ContainerPauseResult, error)) *APIClient_ContainerPause_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ContainerPrune provides a mock function for the type APIClient
+func (_mock *APIClient) ContainerPrune(ctx context.Context, opts client.ContainerPruneOptions) (client.ContainerPruneResult, error) {
+	ret := _mock.Called(ctx, opts)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ContainerPrune")
+	}
+
+	var r0 client.ContainerPruneResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.ContainerPruneOptions) (client.ContainerPruneResult, error)); ok {
+		return returnFunc(ctx, opts)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.ContainerPruneOptions) client.ContainerPruneResult); ok {
+		r0 = returnFunc(ctx, opts)
+	} else {
+		r0 = ret.Get(0).(client.ContainerPruneResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.ContainerPruneOptions) error); ok {
+		r1 = returnFunc(ctx, opts)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// APIClient_ContainerPrune_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ContainerPrune'
+type APIClient_ContainerPrune_Call struct {
+	*mock.Call
+}
+
+// ContainerPrune is a helper method to define mock.On call
+//   - ctx context.Context
+//   - opts client.ContainerPruneOptions
+func (_e *APIClient_Expecter) ContainerPrune(ctx any, opts any) *APIClient_ContainerPrune_Call {
+	return &APIClient_ContainerPrune_Call{Call: _e.mock.On("ContainerPrune", ctx, opts)}
+}
+
+func (_c *APIClient_ContainerPrune_Call) Run(run func(ctx context.Context, opts client.ContainerPruneOptions)) *APIClient_ContainerPrune_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 client.ContainerPruneOptions
+		if args[1] != nil {
+			arg1 = args[1].(client.ContainerPruneOptions)
+		}
 		run(
 			arg0,
 			arg1,
@@ -1905,31 +1598,40 @@ func (_c *APIClient_ContainerPause_Call) Run(run func(ctx context.Context, conta
 	return _c
 }
 
-func (_c *APIClient_ContainerPause_Call) Return(err error) *APIClient_ContainerPause_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_ContainerPrune_Call) Return(containerPruneResult client.ContainerPruneResult, err error) *APIClient_ContainerPrune_Call {
+	_c.Call.Return(containerPruneResult, err)
 	return _c
 }
 
-func (_c *APIClient_ContainerPause_Call) RunAndReturn(run func(ctx context.Context, container1 string) error) *APIClient_ContainerPause_Call {
+func (_c *APIClient_ContainerPrune_Call) RunAndReturn(run func(ctx context.Context, opts client.ContainerPruneOptions) (client.ContainerPruneResult, error)) *APIClient_ContainerPrune_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ContainerRemove provides a mock function for the type APIClient
-func (_mock *APIClient) ContainerRemove(ctx context.Context, container1 string, options container.RemoveOptions) error {
-	ret := _mock.Called(ctx, container1, options)
+func (_mock *APIClient) ContainerRemove(ctx context.Context, container string, options client.ContainerRemoveOptions) (client.ContainerRemoveResult, error) {
+	ret := _mock.Called(ctx, container, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ContainerRemove")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, container.RemoveOptions) error); ok {
-		r0 = returnFunc(ctx, container1, options)
-	} else {
-		r0 = ret.Error(0)
+	var r0 client.ContainerRemoveResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerRemoveOptions) (client.ContainerRemoveResult, error)); ok {
+		return returnFunc(ctx, container, options)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerRemoveOptions) client.ContainerRemoveResult); ok {
+		r0 = returnFunc(ctx, container, options)
+	} else {
+		r0 = ret.Get(0).(client.ContainerRemoveResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ContainerRemoveOptions) error); ok {
+		r1 = returnFunc(ctx, container, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_ContainerRemove_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ContainerRemove'
@@ -1939,13 +1641,13 @@ type APIClient_ContainerRemove_Call struct {
 
 // ContainerRemove is a helper method to define mock.On call
 //   - ctx context.Context
-//   - container1 string
-//   - options container.RemoveOptions
-func (_e *APIClient_Expecter) ContainerRemove(ctx any, container1 any, options any) *APIClient_ContainerRemove_Call {
-	return &APIClient_ContainerRemove_Call{Call: _e.mock.On("ContainerRemove", ctx, container1, options)}
+//   - container string
+//   - options client.ContainerRemoveOptions
+func (_e *APIClient_Expecter) ContainerRemove(ctx any, container any, options any) *APIClient_ContainerRemove_Call {
+	return &APIClient_ContainerRemove_Call{Call: _e.mock.On("ContainerRemove", ctx, container, options)}
 }
 
-func (_c *APIClient_ContainerRemove_Call) Run(run func(ctx context.Context, container1 string, options container.RemoveOptions)) *APIClient_ContainerRemove_Call {
+func (_c *APIClient_ContainerRemove_Call) Run(run func(ctx context.Context, container string, options client.ContainerRemoveOptions)) *APIClient_ContainerRemove_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -1955,9 +1657,9 @@ func (_c *APIClient_ContainerRemove_Call) Run(run func(ctx context.Context, cont
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 container.RemoveOptions
+		var arg2 client.ContainerRemoveOptions
 		if args[2] != nil {
-			arg2 = args[2].(container.RemoveOptions)
+			arg2 = args[2].(client.ContainerRemoveOptions)
 		}
 		run(
 			arg0,
@@ -1968,31 +1670,40 @@ func (_c *APIClient_ContainerRemove_Call) Run(run func(ctx context.Context, cont
 	return _c
 }
 
-func (_c *APIClient_ContainerRemove_Call) Return(err error) *APIClient_ContainerRemove_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_ContainerRemove_Call) Return(containerRemoveResult client.ContainerRemoveResult, err error) *APIClient_ContainerRemove_Call {
+	_c.Call.Return(containerRemoveResult, err)
 	return _c
 }
 
-func (_c *APIClient_ContainerRemove_Call) RunAndReturn(run func(ctx context.Context, container1 string, options container.RemoveOptions) error) *APIClient_ContainerRemove_Call {
+func (_c *APIClient_ContainerRemove_Call) RunAndReturn(run func(ctx context.Context, container string, options client.ContainerRemoveOptions) (client.ContainerRemoveResult, error)) *APIClient_ContainerRemove_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ContainerRename provides a mock function for the type APIClient
-func (_mock *APIClient) ContainerRename(ctx context.Context, container1 string, newContainerName string) error {
-	ret := _mock.Called(ctx, container1, newContainerName)
+func (_mock *APIClient) ContainerRename(ctx context.Context, container string, options client.ContainerRenameOptions) (client.ContainerRenameResult, error) {
+	ret := _mock.Called(ctx, container, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ContainerRename")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
-		r0 = returnFunc(ctx, container1, newContainerName)
-	} else {
-		r0 = ret.Error(0)
+	var r0 client.ContainerRenameResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerRenameOptions) (client.ContainerRenameResult, error)); ok {
+		return returnFunc(ctx, container, options)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerRenameOptions) client.ContainerRenameResult); ok {
+		r0 = returnFunc(ctx, container, options)
+	} else {
+		r0 = ret.Get(0).(client.ContainerRenameResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ContainerRenameOptions) error); ok {
+		r1 = returnFunc(ctx, container, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_ContainerRename_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ContainerRename'
@@ -2002,13 +1713,13 @@ type APIClient_ContainerRename_Call struct {
 
 // ContainerRename is a helper method to define mock.On call
 //   - ctx context.Context
-//   - container1 string
-//   - newContainerName string
-func (_e *APIClient_Expecter) ContainerRename(ctx any, container1 any, newContainerName any) *APIClient_ContainerRename_Call {
-	return &APIClient_ContainerRename_Call{Call: _e.mock.On("ContainerRename", ctx, container1, newContainerName)}
+//   - container string
+//   - options client.ContainerRenameOptions
+func (_e *APIClient_Expecter) ContainerRename(ctx any, container any, options any) *APIClient_ContainerRename_Call {
+	return &APIClient_ContainerRename_Call{Call: _e.mock.On("ContainerRename", ctx, container, options)}
 }
 
-func (_c *APIClient_ContainerRename_Call) Run(run func(ctx context.Context, container1 string, newContainerName string)) *APIClient_ContainerRename_Call {
+func (_c *APIClient_ContainerRename_Call) Run(run func(ctx context.Context, container string, options client.ContainerRenameOptions)) *APIClient_ContainerRename_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -2018,9 +1729,9 @@ func (_c *APIClient_ContainerRename_Call) Run(run func(ctx context.Context, cont
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 string
+		var arg2 client.ContainerRenameOptions
 		if args[2] != nil {
-			arg2 = args[2].(string)
+			arg2 = args[2].(client.ContainerRenameOptions)
 		}
 		run(
 			arg0,
@@ -2031,31 +1742,40 @@ func (_c *APIClient_ContainerRename_Call) Run(run func(ctx context.Context, cont
 	return _c
 }
 
-func (_c *APIClient_ContainerRename_Call) Return(err error) *APIClient_ContainerRename_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_ContainerRename_Call) Return(containerRenameResult client.ContainerRenameResult, err error) *APIClient_ContainerRename_Call {
+	_c.Call.Return(containerRenameResult, err)
 	return _c
 }
 
-func (_c *APIClient_ContainerRename_Call) RunAndReturn(run func(ctx context.Context, container1 string, newContainerName string) error) *APIClient_ContainerRename_Call {
+func (_c *APIClient_ContainerRename_Call) RunAndReturn(run func(ctx context.Context, container string, options client.ContainerRenameOptions) (client.ContainerRenameResult, error)) *APIClient_ContainerRename_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ContainerResize provides a mock function for the type APIClient
-func (_mock *APIClient) ContainerResize(ctx context.Context, container1 string, options container.ResizeOptions) error {
-	ret := _mock.Called(ctx, container1, options)
+func (_mock *APIClient) ContainerResize(ctx context.Context, container string, options client.ContainerResizeOptions) (client.ContainerResizeResult, error) {
+	ret := _mock.Called(ctx, container, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ContainerResize")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, container.ResizeOptions) error); ok {
-		r0 = returnFunc(ctx, container1, options)
-	} else {
-		r0 = ret.Error(0)
+	var r0 client.ContainerResizeResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerResizeOptions) (client.ContainerResizeResult, error)); ok {
+		return returnFunc(ctx, container, options)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerResizeOptions) client.ContainerResizeResult); ok {
+		r0 = returnFunc(ctx, container, options)
+	} else {
+		r0 = ret.Get(0).(client.ContainerResizeResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ContainerResizeOptions) error); ok {
+		r1 = returnFunc(ctx, container, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_ContainerResize_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ContainerResize'
@@ -2065,13 +1785,13 @@ type APIClient_ContainerResize_Call struct {
 
 // ContainerResize is a helper method to define mock.On call
 //   - ctx context.Context
-//   - container1 string
-//   - options container.ResizeOptions
-func (_e *APIClient_Expecter) ContainerResize(ctx any, container1 any, options any) *APIClient_ContainerResize_Call {
-	return &APIClient_ContainerResize_Call{Call: _e.mock.On("ContainerResize", ctx, container1, options)}
+//   - container string
+//   - options client.ContainerResizeOptions
+func (_e *APIClient_Expecter) ContainerResize(ctx any, container any, options any) *APIClient_ContainerResize_Call {
+	return &APIClient_ContainerResize_Call{Call: _e.mock.On("ContainerResize", ctx, container, options)}
 }
 
-func (_c *APIClient_ContainerResize_Call) Run(run func(ctx context.Context, container1 string, options container.ResizeOptions)) *APIClient_ContainerResize_Call {
+func (_c *APIClient_ContainerResize_Call) Run(run func(ctx context.Context, container string, options client.ContainerResizeOptions)) *APIClient_ContainerResize_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -2081,9 +1801,9 @@ func (_c *APIClient_ContainerResize_Call) Run(run func(ctx context.Context, cont
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 container.ResizeOptions
+		var arg2 client.ContainerResizeOptions
 		if args[2] != nil {
-			arg2 = args[2].(container.ResizeOptions)
+			arg2 = args[2].(client.ContainerResizeOptions)
 		}
 		run(
 			arg0,
@@ -2094,31 +1814,40 @@ func (_c *APIClient_ContainerResize_Call) Run(run func(ctx context.Context, cont
 	return _c
 }
 
-func (_c *APIClient_ContainerResize_Call) Return(err error) *APIClient_ContainerResize_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_ContainerResize_Call) Return(containerResizeResult client.ContainerResizeResult, err error) *APIClient_ContainerResize_Call {
+	_c.Call.Return(containerResizeResult, err)
 	return _c
 }
 
-func (_c *APIClient_ContainerResize_Call) RunAndReturn(run func(ctx context.Context, container1 string, options container.ResizeOptions) error) *APIClient_ContainerResize_Call {
+func (_c *APIClient_ContainerResize_Call) RunAndReturn(run func(ctx context.Context, container string, options client.ContainerResizeOptions) (client.ContainerResizeResult, error)) *APIClient_ContainerResize_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ContainerRestart provides a mock function for the type APIClient
-func (_mock *APIClient) ContainerRestart(ctx context.Context, container1 string, options container.StopOptions) error {
-	ret := _mock.Called(ctx, container1, options)
+func (_mock *APIClient) ContainerRestart(ctx context.Context, container string, options client.ContainerRestartOptions) (client.ContainerRestartResult, error) {
+	ret := _mock.Called(ctx, container, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ContainerRestart")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, container.StopOptions) error); ok {
-		r0 = returnFunc(ctx, container1, options)
-	} else {
-		r0 = ret.Error(0)
+	var r0 client.ContainerRestartResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerRestartOptions) (client.ContainerRestartResult, error)); ok {
+		return returnFunc(ctx, container, options)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerRestartOptions) client.ContainerRestartResult); ok {
+		r0 = returnFunc(ctx, container, options)
+	} else {
+		r0 = ret.Get(0).(client.ContainerRestartResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ContainerRestartOptions) error); ok {
+		r1 = returnFunc(ctx, container, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_ContainerRestart_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ContainerRestart'
@@ -2128,13 +1857,13 @@ type APIClient_ContainerRestart_Call struct {
 
 // ContainerRestart is a helper method to define mock.On call
 //   - ctx context.Context
-//   - container1 string
-//   - options container.StopOptions
-func (_e *APIClient_Expecter) ContainerRestart(ctx any, container1 any, options any) *APIClient_ContainerRestart_Call {
-	return &APIClient_ContainerRestart_Call{Call: _e.mock.On("ContainerRestart", ctx, container1, options)}
+//   - container string
+//   - options client.ContainerRestartOptions
+func (_e *APIClient_Expecter) ContainerRestart(ctx any, container any, options any) *APIClient_ContainerRestart_Call {
+	return &APIClient_ContainerRestart_Call{Call: _e.mock.On("ContainerRestart", ctx, container, options)}
 }
 
-func (_c *APIClient_ContainerRestart_Call) Run(run func(ctx context.Context, container1 string, options container.StopOptions)) *APIClient_ContainerRestart_Call {
+func (_c *APIClient_ContainerRestart_Call) Run(run func(ctx context.Context, container string, options client.ContainerRestartOptions)) *APIClient_ContainerRestart_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -2144,9 +1873,9 @@ func (_c *APIClient_ContainerRestart_Call) Run(run func(ctx context.Context, con
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 container.StopOptions
+		var arg2 client.ContainerRestartOptions
 		if args[2] != nil {
-			arg2 = args[2].(container.StopOptions)
+			arg2 = args[2].(client.ContainerRestartOptions)
 		}
 		run(
 			arg0,
@@ -2157,31 +1886,40 @@ func (_c *APIClient_ContainerRestart_Call) Run(run func(ctx context.Context, con
 	return _c
 }
 
-func (_c *APIClient_ContainerRestart_Call) Return(err error) *APIClient_ContainerRestart_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_ContainerRestart_Call) Return(containerRestartResult client.ContainerRestartResult, err error) *APIClient_ContainerRestart_Call {
+	_c.Call.Return(containerRestartResult, err)
 	return _c
 }
 
-func (_c *APIClient_ContainerRestart_Call) RunAndReturn(run func(ctx context.Context, container1 string, options container.StopOptions) error) *APIClient_ContainerRestart_Call {
+func (_c *APIClient_ContainerRestart_Call) RunAndReturn(run func(ctx context.Context, container string, options client.ContainerRestartOptions) (client.ContainerRestartResult, error)) *APIClient_ContainerRestart_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ContainerStart provides a mock function for the type APIClient
-func (_mock *APIClient) ContainerStart(ctx context.Context, container1 string, options container.StartOptions) error {
-	ret := _mock.Called(ctx, container1, options)
+func (_mock *APIClient) ContainerStart(ctx context.Context, container string, options client.ContainerStartOptions) (client.ContainerStartResult, error) {
+	ret := _mock.Called(ctx, container, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ContainerStart")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, container.StartOptions) error); ok {
-		r0 = returnFunc(ctx, container1, options)
-	} else {
-		r0 = ret.Error(0)
+	var r0 client.ContainerStartResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerStartOptions) (client.ContainerStartResult, error)); ok {
+		return returnFunc(ctx, container, options)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerStartOptions) client.ContainerStartResult); ok {
+		r0 = returnFunc(ctx, container, options)
+	} else {
+		r0 = ret.Get(0).(client.ContainerStartResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ContainerStartOptions) error); ok {
+		r1 = returnFunc(ctx, container, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_ContainerStart_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ContainerStart'
@@ -2191,13 +1929,13 @@ type APIClient_ContainerStart_Call struct {
 
 // ContainerStart is a helper method to define mock.On call
 //   - ctx context.Context
-//   - container1 string
-//   - options container.StartOptions
-func (_e *APIClient_Expecter) ContainerStart(ctx any, container1 any, options any) *APIClient_ContainerStart_Call {
-	return &APIClient_ContainerStart_Call{Call: _e.mock.On("ContainerStart", ctx, container1, options)}
+//   - container string
+//   - options client.ContainerStartOptions
+func (_e *APIClient_Expecter) ContainerStart(ctx any, container any, options any) *APIClient_ContainerStart_Call {
+	return &APIClient_ContainerStart_Call{Call: _e.mock.On("ContainerStart", ctx, container, options)}
 }
 
-func (_c *APIClient_ContainerStart_Call) Run(run func(ctx context.Context, container1 string, options container.StartOptions)) *APIClient_ContainerStart_Call {
+func (_c *APIClient_ContainerStart_Call) Run(run func(ctx context.Context, container string, options client.ContainerStartOptions)) *APIClient_ContainerStart_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -2207,9 +1945,9 @@ func (_c *APIClient_ContainerStart_Call) Run(run func(ctx context.Context, conta
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 container.StartOptions
+		var arg2 client.ContainerStartOptions
 		if args[2] != nil {
-			arg2 = args[2].(container.StartOptions)
+			arg2 = args[2].(client.ContainerStartOptions)
 		}
 		run(
 			arg0,
@@ -2220,36 +1958,36 @@ func (_c *APIClient_ContainerStart_Call) Run(run func(ctx context.Context, conta
 	return _c
 }
 
-func (_c *APIClient_ContainerStart_Call) Return(err error) *APIClient_ContainerStart_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_ContainerStart_Call) Return(containerStartResult client.ContainerStartResult, err error) *APIClient_ContainerStart_Call {
+	_c.Call.Return(containerStartResult, err)
 	return _c
 }
 
-func (_c *APIClient_ContainerStart_Call) RunAndReturn(run func(ctx context.Context, container1 string, options container.StartOptions) error) *APIClient_ContainerStart_Call {
+func (_c *APIClient_ContainerStart_Call) RunAndReturn(run func(ctx context.Context, container string, options client.ContainerStartOptions) (client.ContainerStartResult, error)) *APIClient_ContainerStart_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ContainerStatPath provides a mock function for the type APIClient
-func (_mock *APIClient) ContainerStatPath(ctx context.Context, container1 string, path string) (container.PathStat, error) {
-	ret := _mock.Called(ctx, container1, path)
+func (_mock *APIClient) ContainerStatPath(ctx context.Context, container string, options client.ContainerStatPathOptions) (client.ContainerStatPathResult, error) {
+	ret := _mock.Called(ctx, container, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ContainerStatPath")
 	}
 
-	var r0 container.PathStat
+	var r0 client.ContainerStatPathResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (container.PathStat, error)); ok {
-		return returnFunc(ctx, container1, path)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerStatPathOptions) (client.ContainerStatPathResult, error)); ok {
+		return returnFunc(ctx, container, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) container.PathStat); ok {
-		r0 = returnFunc(ctx, container1, path)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerStatPathOptions) client.ContainerStatPathResult); ok {
+		r0 = returnFunc(ctx, container, options)
 	} else {
-		r0 = ret.Get(0).(container.PathStat)
+		r0 = ret.Get(0).(client.ContainerStatPathResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = returnFunc(ctx, container1, path)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ContainerStatPathOptions) error); ok {
+		r1 = returnFunc(ctx, container, options)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -2263,13 +2001,13 @@ type APIClient_ContainerStatPath_Call struct {
 
 // ContainerStatPath is a helper method to define mock.On call
 //   - ctx context.Context
-//   - container1 string
-//   - path string
-func (_e *APIClient_Expecter) ContainerStatPath(ctx any, container1 any, path any) *APIClient_ContainerStatPath_Call {
-	return &APIClient_ContainerStatPath_Call{Call: _e.mock.On("ContainerStatPath", ctx, container1, path)}
+//   - container string
+//   - options client.ContainerStatPathOptions
+func (_e *APIClient_Expecter) ContainerStatPath(ctx any, container any, options any) *APIClient_ContainerStatPath_Call {
+	return &APIClient_ContainerStatPath_Call{Call: _e.mock.On("ContainerStatPath", ctx, container, options)}
 }
 
-func (_c *APIClient_ContainerStatPath_Call) Run(run func(ctx context.Context, container1 string, path string)) *APIClient_ContainerStatPath_Call {
+func (_c *APIClient_ContainerStatPath_Call) Run(run func(ctx context.Context, container string, options client.ContainerStatPathOptions)) *APIClient_ContainerStatPath_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -2279,9 +2017,9 @@ func (_c *APIClient_ContainerStatPath_Call) Run(run func(ctx context.Context, co
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 string
+		var arg2 client.ContainerStatPathOptions
 		if args[2] != nil {
-			arg2 = args[2].(string)
+			arg2 = args[2].(client.ContainerStatPathOptions)
 		}
 		run(
 			arg0,
@@ -2292,36 +2030,36 @@ func (_c *APIClient_ContainerStatPath_Call) Run(run func(ctx context.Context, co
 	return _c
 }
 
-func (_c *APIClient_ContainerStatPath_Call) Return(pathStat container.PathStat, err error) *APIClient_ContainerStatPath_Call {
-	_c.Call.Return(pathStat, err)
+func (_c *APIClient_ContainerStatPath_Call) Return(containerStatPathResult client.ContainerStatPathResult, err error) *APIClient_ContainerStatPath_Call {
+	_c.Call.Return(containerStatPathResult, err)
 	return _c
 }
 
-func (_c *APIClient_ContainerStatPath_Call) RunAndReturn(run func(ctx context.Context, container1 string, path string) (container.PathStat, error)) *APIClient_ContainerStatPath_Call {
+func (_c *APIClient_ContainerStatPath_Call) RunAndReturn(run func(ctx context.Context, container string, options client.ContainerStatPathOptions) (client.ContainerStatPathResult, error)) *APIClient_ContainerStatPath_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ContainerStats provides a mock function for the type APIClient
-func (_mock *APIClient) ContainerStats(ctx context.Context, container1 string, stream bool) (container.StatsResponseReader, error) {
-	ret := _mock.Called(ctx, container1, stream)
+func (_mock *APIClient) ContainerStats(ctx context.Context, container string, options client.ContainerStatsOptions) (client.ContainerStatsResult, error) {
+	ret := _mock.Called(ctx, container, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ContainerStats")
 	}
 
-	var r0 container.StatsResponseReader
+	var r0 client.ContainerStatsResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, bool) (container.StatsResponseReader, error)); ok {
-		return returnFunc(ctx, container1, stream)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerStatsOptions) (client.ContainerStatsResult, error)); ok {
+		return returnFunc(ctx, container, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, bool) container.StatsResponseReader); ok {
-		r0 = returnFunc(ctx, container1, stream)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerStatsOptions) client.ContainerStatsResult); ok {
+		r0 = returnFunc(ctx, container, options)
 	} else {
-		r0 = ret.Get(0).(container.StatsResponseReader)
+		r0 = ret.Get(0).(client.ContainerStatsResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, bool) error); ok {
-		r1 = returnFunc(ctx, container1, stream)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ContainerStatsOptions) error); ok {
+		r1 = returnFunc(ctx, container, options)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -2335,13 +2073,13 @@ type APIClient_ContainerStats_Call struct {
 
 // ContainerStats is a helper method to define mock.On call
 //   - ctx context.Context
-//   - container1 string
-//   - stream bool
-func (_e *APIClient_Expecter) ContainerStats(ctx any, container1 any, stream any) *APIClient_ContainerStats_Call {
-	return &APIClient_ContainerStats_Call{Call: _e.mock.On("ContainerStats", ctx, container1, stream)}
+//   - container string
+//   - options client.ContainerStatsOptions
+func (_e *APIClient_Expecter) ContainerStats(ctx any, container any, options any) *APIClient_ContainerStats_Call {
+	return &APIClient_ContainerStats_Call{Call: _e.mock.On("ContainerStats", ctx, container, options)}
 }
 
-func (_c *APIClient_ContainerStats_Call) Run(run func(ctx context.Context, container1 string, stream bool)) *APIClient_ContainerStats_Call {
+func (_c *APIClient_ContainerStats_Call) Run(run func(ctx context.Context, container string, options client.ContainerStatsOptions)) *APIClient_ContainerStats_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -2351,9 +2089,9 @@ func (_c *APIClient_ContainerStats_Call) Run(run func(ctx context.Context, conta
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 bool
+		var arg2 client.ContainerStatsOptions
 		if args[2] != nil {
-			arg2 = args[2].(bool)
+			arg2 = args[2].(client.ContainerStatsOptions)
 		}
 		run(
 			arg0,
@@ -2364,97 +2102,40 @@ func (_c *APIClient_ContainerStats_Call) Run(run func(ctx context.Context, conta
 	return _c
 }
 
-func (_c *APIClient_ContainerStats_Call) Return(statsResponseReader container.StatsResponseReader, err error) *APIClient_ContainerStats_Call {
-	_c.Call.Return(statsResponseReader, err)
+func (_c *APIClient_ContainerStats_Call) Return(containerStatsResult client.ContainerStatsResult, err error) *APIClient_ContainerStats_Call {
+	_c.Call.Return(containerStatsResult, err)
 	return _c
 }
 
-func (_c *APIClient_ContainerStats_Call) RunAndReturn(run func(ctx context.Context, container1 string, stream bool) (container.StatsResponseReader, error)) *APIClient_ContainerStats_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// ContainerStatsOneShot provides a mock function for the type APIClient
-func (_mock *APIClient) ContainerStatsOneShot(ctx context.Context, container1 string) (container.StatsResponseReader, error) {
-	ret := _mock.Called(ctx, container1)
-
-	if len(ret) == 0 {
-		panic("no return value specified for ContainerStatsOneShot")
-	}
-
-	var r0 container.StatsResponseReader
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (container.StatsResponseReader, error)); ok {
-		return returnFunc(ctx, container1)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) container.StatsResponseReader); ok {
-		r0 = returnFunc(ctx, container1)
-	} else {
-		r0 = ret.Get(0).(container.StatsResponseReader)
-	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = returnFunc(ctx, container1)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
-}
-
-// APIClient_ContainerStatsOneShot_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ContainerStatsOneShot'
-type APIClient_ContainerStatsOneShot_Call struct {
-	*mock.Call
-}
-
-// ContainerStatsOneShot is a helper method to define mock.On call
-//   - ctx context.Context
-//   - container1 string
-func (_e *APIClient_Expecter) ContainerStatsOneShot(ctx any, container1 any) *APIClient_ContainerStatsOneShot_Call {
-	return &APIClient_ContainerStatsOneShot_Call{Call: _e.mock.On("ContainerStatsOneShot", ctx, container1)}
-}
-
-func (_c *APIClient_ContainerStatsOneShot_Call) Run(run func(ctx context.Context, container1 string)) *APIClient_ContainerStatsOneShot_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 string
-		if args[1] != nil {
-			arg1 = args[1].(string)
-		}
-		run(
-			arg0,
-			arg1,
-		)
-	})
-	return _c
-}
-
-func (_c *APIClient_ContainerStatsOneShot_Call) Return(statsResponseReader container.StatsResponseReader, err error) *APIClient_ContainerStatsOneShot_Call {
-	_c.Call.Return(statsResponseReader, err)
-	return _c
-}
-
-func (_c *APIClient_ContainerStatsOneShot_Call) RunAndReturn(run func(ctx context.Context, container1 string) (container.StatsResponseReader, error)) *APIClient_ContainerStatsOneShot_Call {
+func (_c *APIClient_ContainerStats_Call) RunAndReturn(run func(ctx context.Context, container string, options client.ContainerStatsOptions) (client.ContainerStatsResult, error)) *APIClient_ContainerStats_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ContainerStop provides a mock function for the type APIClient
-func (_mock *APIClient) ContainerStop(ctx context.Context, container1 string, options container.StopOptions) error {
-	ret := _mock.Called(ctx, container1, options)
+func (_mock *APIClient) ContainerStop(ctx context.Context, container string, options client.ContainerStopOptions) (client.ContainerStopResult, error) {
+	ret := _mock.Called(ctx, container, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ContainerStop")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, container.StopOptions) error); ok {
-		r0 = returnFunc(ctx, container1, options)
-	} else {
-		r0 = ret.Error(0)
+	var r0 client.ContainerStopResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerStopOptions) (client.ContainerStopResult, error)); ok {
+		return returnFunc(ctx, container, options)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerStopOptions) client.ContainerStopResult); ok {
+		r0 = returnFunc(ctx, container, options)
+	} else {
+		r0 = ret.Get(0).(client.ContainerStopResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ContainerStopOptions) error); ok {
+		r1 = returnFunc(ctx, container, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_ContainerStop_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ContainerStop'
@@ -2464,13 +2145,13 @@ type APIClient_ContainerStop_Call struct {
 
 // ContainerStop is a helper method to define mock.On call
 //   - ctx context.Context
-//   - container1 string
-//   - options container.StopOptions
-func (_e *APIClient_Expecter) ContainerStop(ctx any, container1 any, options any) *APIClient_ContainerStop_Call {
-	return &APIClient_ContainerStop_Call{Call: _e.mock.On("ContainerStop", ctx, container1, options)}
+//   - container string
+//   - options client.ContainerStopOptions
+func (_e *APIClient_Expecter) ContainerStop(ctx any, container any, options any) *APIClient_ContainerStop_Call {
+	return &APIClient_ContainerStop_Call{Call: _e.mock.On("ContainerStop", ctx, container, options)}
 }
 
-func (_c *APIClient_ContainerStop_Call) Run(run func(ctx context.Context, container1 string, options container.StopOptions)) *APIClient_ContainerStop_Call {
+func (_c *APIClient_ContainerStop_Call) Run(run func(ctx context.Context, container string, options client.ContainerStopOptions)) *APIClient_ContainerStop_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -2480,9 +2161,9 @@ func (_c *APIClient_ContainerStop_Call) Run(run func(ctx context.Context, contai
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 container.StopOptions
+		var arg2 client.ContainerStopOptions
 		if args[2] != nil {
-			arg2 = args[2].(container.StopOptions)
+			arg2 = args[2].(client.ContainerStopOptions)
 		}
 		run(
 			arg0,
@@ -2493,36 +2174,36 @@ func (_c *APIClient_ContainerStop_Call) Run(run func(ctx context.Context, contai
 	return _c
 }
 
-func (_c *APIClient_ContainerStop_Call) Return(err error) *APIClient_ContainerStop_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_ContainerStop_Call) Return(containerStopResult client.ContainerStopResult, err error) *APIClient_ContainerStop_Call {
+	_c.Call.Return(containerStopResult, err)
 	return _c
 }
 
-func (_c *APIClient_ContainerStop_Call) RunAndReturn(run func(ctx context.Context, container1 string, options container.StopOptions) error) *APIClient_ContainerStop_Call {
+func (_c *APIClient_ContainerStop_Call) RunAndReturn(run func(ctx context.Context, container string, options client.ContainerStopOptions) (client.ContainerStopResult, error)) *APIClient_ContainerStop_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ContainerTop provides a mock function for the type APIClient
-func (_mock *APIClient) ContainerTop(ctx context.Context, container1 string, arguments []string) (container.TopResponse, error) {
-	ret := _mock.Called(ctx, container1, arguments)
+func (_mock *APIClient) ContainerTop(ctx context.Context, container string, options client.ContainerTopOptions) (client.ContainerTopResult, error) {
+	ret := _mock.Called(ctx, container, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ContainerTop")
 	}
 
-	var r0 container.TopResponse
+	var r0 client.ContainerTopResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, []string) (container.TopResponse, error)); ok {
-		return returnFunc(ctx, container1, arguments)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerTopOptions) (client.ContainerTopResult, error)); ok {
+		return returnFunc(ctx, container, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, []string) container.TopResponse); ok {
-		r0 = returnFunc(ctx, container1, arguments)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerTopOptions) client.ContainerTopResult); ok {
+		r0 = returnFunc(ctx, container, options)
 	} else {
-		r0 = ret.Get(0).(container.TopResponse)
+		r0 = ret.Get(0).(client.ContainerTopResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, []string) error); ok {
-		r1 = returnFunc(ctx, container1, arguments)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ContainerTopOptions) error); ok {
+		r1 = returnFunc(ctx, container, options)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -2536,13 +2217,13 @@ type APIClient_ContainerTop_Call struct {
 
 // ContainerTop is a helper method to define mock.On call
 //   - ctx context.Context
-//   - container1 string
-//   - arguments []string
-func (_e *APIClient_Expecter) ContainerTop(ctx any, container1 any, arguments any) *APIClient_ContainerTop_Call {
-	return &APIClient_ContainerTop_Call{Call: _e.mock.On("ContainerTop", ctx, container1, arguments)}
+//   - container string
+//   - options client.ContainerTopOptions
+func (_e *APIClient_Expecter) ContainerTop(ctx any, container any, options any) *APIClient_ContainerTop_Call {
+	return &APIClient_ContainerTop_Call{Call: _e.mock.On("ContainerTop", ctx, container, options)}
 }
 
-func (_c *APIClient_ContainerTop_Call) Run(run func(ctx context.Context, container1 string, arguments []string)) *APIClient_ContainerTop_Call {
+func (_c *APIClient_ContainerTop_Call) Run(run func(ctx context.Context, container string, options client.ContainerTopOptions)) *APIClient_ContainerTop_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -2552,9 +2233,9 @@ func (_c *APIClient_ContainerTop_Call) Run(run func(ctx context.Context, contain
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 []string
+		var arg2 client.ContainerTopOptions
 		if args[2] != nil {
-			arg2 = args[2].([]string)
+			arg2 = args[2].(client.ContainerTopOptions)
 		}
 		run(
 			arg0,
@@ -2565,31 +2246,40 @@ func (_c *APIClient_ContainerTop_Call) Run(run func(ctx context.Context, contain
 	return _c
 }
 
-func (_c *APIClient_ContainerTop_Call) Return(topResponse container.TopResponse, err error) *APIClient_ContainerTop_Call {
-	_c.Call.Return(topResponse, err)
+func (_c *APIClient_ContainerTop_Call) Return(containerTopResult client.ContainerTopResult, err error) *APIClient_ContainerTop_Call {
+	_c.Call.Return(containerTopResult, err)
 	return _c
 }
 
-func (_c *APIClient_ContainerTop_Call) RunAndReturn(run func(ctx context.Context, container1 string, arguments []string) (container.TopResponse, error)) *APIClient_ContainerTop_Call {
+func (_c *APIClient_ContainerTop_Call) RunAndReturn(run func(ctx context.Context, container string, options client.ContainerTopOptions) (client.ContainerTopResult, error)) *APIClient_ContainerTop_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ContainerUnpause provides a mock function for the type APIClient
-func (_mock *APIClient) ContainerUnpause(ctx context.Context, container1 string) error {
-	ret := _mock.Called(ctx, container1)
+func (_mock *APIClient) ContainerUnpause(ctx context.Context, container string, options client.ContainerUnpauseOptions) (client.ContainerUnpauseResult, error) {
+	ret := _mock.Called(ctx, container, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ContainerUnpause")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) error); ok {
-		r0 = returnFunc(ctx, container1)
-	} else {
-		r0 = ret.Error(0)
+	var r0 client.ContainerUnpauseResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerUnpauseOptions) (client.ContainerUnpauseResult, error)); ok {
+		return returnFunc(ctx, container, options)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerUnpauseOptions) client.ContainerUnpauseResult); ok {
+		r0 = returnFunc(ctx, container, options)
+	} else {
+		r0 = ret.Get(0).(client.ContainerUnpauseResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ContainerUnpauseOptions) error); ok {
+		r1 = returnFunc(ctx, container, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_ContainerUnpause_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ContainerUnpause'
@@ -2599,12 +2289,13 @@ type APIClient_ContainerUnpause_Call struct {
 
 // ContainerUnpause is a helper method to define mock.On call
 //   - ctx context.Context
-//   - container1 string
-func (_e *APIClient_Expecter) ContainerUnpause(ctx any, container1 any) *APIClient_ContainerUnpause_Call {
-	return &APIClient_ContainerUnpause_Call{Call: _e.mock.On("ContainerUnpause", ctx, container1)}
+//   - container string
+//   - options client.ContainerUnpauseOptions
+func (_e *APIClient_Expecter) ContainerUnpause(ctx any, container any, options any) *APIClient_ContainerUnpause_Call {
+	return &APIClient_ContainerUnpause_Call{Call: _e.mock.On("ContainerUnpause", ctx, container, options)}
 }
 
-func (_c *APIClient_ContainerUnpause_Call) Run(run func(ctx context.Context, container1 string)) *APIClient_ContainerUnpause_Call {
+func (_c *APIClient_ContainerUnpause_Call) Run(run func(ctx context.Context, container string, options client.ContainerUnpauseOptions)) *APIClient_ContainerUnpause_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -2614,44 +2305,49 @@ func (_c *APIClient_ContainerUnpause_Call) Run(run func(ctx context.Context, con
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
+		var arg2 client.ContainerUnpauseOptions
+		if args[2] != nil {
+			arg2 = args[2].(client.ContainerUnpauseOptions)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
 }
 
-func (_c *APIClient_ContainerUnpause_Call) Return(err error) *APIClient_ContainerUnpause_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_ContainerUnpause_Call) Return(containerUnpauseResult client.ContainerUnpauseResult, err error) *APIClient_ContainerUnpause_Call {
+	_c.Call.Return(containerUnpauseResult, err)
 	return _c
 }
 
-func (_c *APIClient_ContainerUnpause_Call) RunAndReturn(run func(ctx context.Context, container1 string) error) *APIClient_ContainerUnpause_Call {
+func (_c *APIClient_ContainerUnpause_Call) RunAndReturn(run func(ctx context.Context, container string, options client.ContainerUnpauseOptions) (client.ContainerUnpauseResult, error)) *APIClient_ContainerUnpause_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ContainerUpdate provides a mock function for the type APIClient
-func (_mock *APIClient) ContainerUpdate(ctx context.Context, container1 string, updateConfig container.UpdateConfig) (container.UpdateResponse, error) {
-	ret := _mock.Called(ctx, container1, updateConfig)
+func (_mock *APIClient) ContainerUpdate(ctx context.Context, container string, updateConfig client.ContainerUpdateOptions) (client.ContainerUpdateResult, error) {
+	ret := _mock.Called(ctx, container, updateConfig)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ContainerUpdate")
 	}
 
-	var r0 container.UpdateResponse
+	var r0 client.ContainerUpdateResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, container.UpdateConfig) (container.UpdateResponse, error)); ok {
-		return returnFunc(ctx, container1, updateConfig)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerUpdateOptions) (client.ContainerUpdateResult, error)); ok {
+		return returnFunc(ctx, container, updateConfig)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, container.UpdateConfig) container.UpdateResponse); ok {
-		r0 = returnFunc(ctx, container1, updateConfig)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerUpdateOptions) client.ContainerUpdateResult); ok {
+		r0 = returnFunc(ctx, container, updateConfig)
 	} else {
-		r0 = ret.Get(0).(container.UpdateResponse)
+		r0 = ret.Get(0).(client.ContainerUpdateResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, container.UpdateConfig) error); ok {
-		r1 = returnFunc(ctx, container1, updateConfig)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ContainerUpdateOptions) error); ok {
+		r1 = returnFunc(ctx, container, updateConfig)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -2665,13 +2361,13 @@ type APIClient_ContainerUpdate_Call struct {
 
 // ContainerUpdate is a helper method to define mock.On call
 //   - ctx context.Context
-//   - container1 string
-//   - updateConfig container.UpdateConfig
-func (_e *APIClient_Expecter) ContainerUpdate(ctx any, container1 any, updateConfig any) *APIClient_ContainerUpdate_Call {
-	return &APIClient_ContainerUpdate_Call{Call: _e.mock.On("ContainerUpdate", ctx, container1, updateConfig)}
+//   - container string
+//   - updateConfig client.ContainerUpdateOptions
+func (_e *APIClient_Expecter) ContainerUpdate(ctx any, container any, updateConfig any) *APIClient_ContainerUpdate_Call {
+	return &APIClient_ContainerUpdate_Call{Call: _e.mock.On("ContainerUpdate", ctx, container, updateConfig)}
 }
 
-func (_c *APIClient_ContainerUpdate_Call) Run(run func(ctx context.Context, container1 string, updateConfig container.UpdateConfig)) *APIClient_ContainerUpdate_Call {
+func (_c *APIClient_ContainerUpdate_Call) Run(run func(ctx context.Context, container string, updateConfig client.ContainerUpdateOptions)) *APIClient_ContainerUpdate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -2681,9 +2377,9 @@ func (_c *APIClient_ContainerUpdate_Call) Run(run func(ctx context.Context, cont
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 container.UpdateConfig
+		var arg2 client.ContainerUpdateOptions
 		if args[2] != nil {
-			arg2 = args[2].(container.UpdateConfig)
+			arg2 = args[2].(client.ContainerUpdateOptions)
 		}
 		run(
 			arg0,
@@ -2694,44 +2390,31 @@ func (_c *APIClient_ContainerUpdate_Call) Run(run func(ctx context.Context, cont
 	return _c
 }
 
-func (_c *APIClient_ContainerUpdate_Call) Return(updateResponse container.UpdateResponse, err error) *APIClient_ContainerUpdate_Call {
-	_c.Call.Return(updateResponse, err)
+func (_c *APIClient_ContainerUpdate_Call) Return(containerUpdateResult client.ContainerUpdateResult, err error) *APIClient_ContainerUpdate_Call {
+	_c.Call.Return(containerUpdateResult, err)
 	return _c
 }
 
-func (_c *APIClient_ContainerUpdate_Call) RunAndReturn(run func(ctx context.Context, container1 string, updateConfig container.UpdateConfig) (container.UpdateResponse, error)) *APIClient_ContainerUpdate_Call {
+func (_c *APIClient_ContainerUpdate_Call) RunAndReturn(run func(ctx context.Context, container string, updateConfig client.ContainerUpdateOptions) (client.ContainerUpdateResult, error)) *APIClient_ContainerUpdate_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ContainerWait provides a mock function for the type APIClient
-func (_mock *APIClient) ContainerWait(ctx context.Context, container1 string, condition container.WaitCondition) (<-chan container.WaitResponse, <-chan error) {
-	ret := _mock.Called(ctx, container1, condition)
+func (_mock *APIClient) ContainerWait(ctx context.Context, container string, options client.ContainerWaitOptions) client.ContainerWaitResult {
+	ret := _mock.Called(ctx, container, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ContainerWait")
 	}
 
-	var r0 <-chan container.WaitResponse
-	var r1 <-chan error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, container.WaitCondition) (<-chan container.WaitResponse, <-chan error)); ok {
-		return returnFunc(ctx, container1, condition)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, container.WaitCondition) <-chan container.WaitResponse); ok {
-		r0 = returnFunc(ctx, container1, condition)
+	var r0 client.ContainerWaitResult
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ContainerWaitOptions) client.ContainerWaitResult); ok {
+		r0 = returnFunc(ctx, container, options)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(<-chan container.WaitResponse)
-		}
+		r0 = ret.Get(0).(client.ContainerWaitResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, container.WaitCondition) <-chan error); ok {
-		r1 = returnFunc(ctx, container1, condition)
-	} else {
-		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(<-chan error)
-		}
-	}
-	return r0, r1
+	return r0
 }
 
 // APIClient_ContainerWait_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ContainerWait'
@@ -2741,13 +2424,13 @@ type APIClient_ContainerWait_Call struct {
 
 // ContainerWait is a helper method to define mock.On call
 //   - ctx context.Context
-//   - container1 string
-//   - condition container.WaitCondition
-func (_e *APIClient_Expecter) ContainerWait(ctx any, container1 any, condition any) *APIClient_ContainerWait_Call {
-	return &APIClient_ContainerWait_Call{Call: _e.mock.On("ContainerWait", ctx, container1, condition)}
+//   - container string
+//   - options client.ContainerWaitOptions
+func (_e *APIClient_Expecter) ContainerWait(ctx any, container any, options any) *APIClient_ContainerWait_Call {
+	return &APIClient_ContainerWait_Call{Call: _e.mock.On("ContainerWait", ctx, container, options)}
 }
 
-func (_c *APIClient_ContainerWait_Call) Run(run func(ctx context.Context, container1 string, condition container.WaitCondition)) *APIClient_ContainerWait_Call {
+func (_c *APIClient_ContainerWait_Call) Run(run func(ctx context.Context, container string, options client.ContainerWaitOptions)) *APIClient_ContainerWait_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -2757,9 +2440,9 @@ func (_c *APIClient_ContainerWait_Call) Run(run func(ctx context.Context, contai
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 container.WaitCondition
+		var arg2 client.ContainerWaitOptions
 		if args[2] != nil {
-			arg2 = args[2].(container.WaitCondition)
+			arg2 = args[2].(client.ContainerWaitOptions)
 		}
 		run(
 			arg0,
@@ -2770,114 +2453,40 @@ func (_c *APIClient_ContainerWait_Call) Run(run func(ctx context.Context, contai
 	return _c
 }
 
-func (_c *APIClient_ContainerWait_Call) Return(waitResponseCh <-chan container.WaitResponse, errCh <-chan error) *APIClient_ContainerWait_Call {
-	_c.Call.Return(waitResponseCh, errCh)
+func (_c *APIClient_ContainerWait_Call) Return(containerWaitResult client.ContainerWaitResult) *APIClient_ContainerWait_Call {
+	_c.Call.Return(containerWaitResult)
 	return _c
 }
 
-func (_c *APIClient_ContainerWait_Call) RunAndReturn(run func(ctx context.Context, container1 string, condition container.WaitCondition) (<-chan container.WaitResponse, <-chan error)) *APIClient_ContainerWait_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// ContainersPrune provides a mock function for the type APIClient
-func (_mock *APIClient) ContainersPrune(ctx context.Context, pruneFilters filters.Args) (container.PruneReport, error) {
-	ret := _mock.Called(ctx, pruneFilters)
-
-	if len(ret) == 0 {
-		panic("no return value specified for ContainersPrune")
-	}
-
-	var r0 container.PruneReport
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, filters.Args) (container.PruneReport, error)); ok {
-		return returnFunc(ctx, pruneFilters)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, filters.Args) container.PruneReport); ok {
-		r0 = returnFunc(ctx, pruneFilters)
-	} else {
-		r0 = ret.Get(0).(container.PruneReport)
-	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, filters.Args) error); ok {
-		r1 = returnFunc(ctx, pruneFilters)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
-}
-
-// APIClient_ContainersPrune_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ContainersPrune'
-type APIClient_ContainersPrune_Call struct {
-	*mock.Call
-}
-
-// ContainersPrune is a helper method to define mock.On call
-//   - ctx context.Context
-//   - pruneFilters filters.Args
-func (_e *APIClient_Expecter) ContainersPrune(ctx any, pruneFilters any) *APIClient_ContainersPrune_Call {
-	return &APIClient_ContainersPrune_Call{Call: _e.mock.On("ContainersPrune", ctx, pruneFilters)}
-}
-
-func (_c *APIClient_ContainersPrune_Call) Run(run func(ctx context.Context, pruneFilters filters.Args)) *APIClient_ContainersPrune_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 filters.Args
-		if args[1] != nil {
-			arg1 = args[1].(filters.Args)
-		}
-		run(
-			arg0,
-			arg1,
-		)
-	})
-	return _c
-}
-
-func (_c *APIClient_ContainersPrune_Call) Return(pruneReport container.PruneReport, err error) *APIClient_ContainersPrune_Call {
-	_c.Call.Return(pruneReport, err)
-	return _c
-}
-
-func (_c *APIClient_ContainersPrune_Call) RunAndReturn(run func(ctx context.Context, pruneFilters filters.Args) (container.PruneReport, error)) *APIClient_ContainersPrune_Call {
+func (_c *APIClient_ContainerWait_Call) RunAndReturn(run func(ctx context.Context, container string, options client.ContainerWaitOptions) client.ContainerWaitResult) *APIClient_ContainerWait_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // CopyFromContainer provides a mock function for the type APIClient
-func (_mock *APIClient) CopyFromContainer(ctx context.Context, container1 string, srcPath string) (io.ReadCloser, container.PathStat, error) {
-	ret := _mock.Called(ctx, container1, srcPath)
+func (_mock *APIClient) CopyFromContainer(ctx context.Context, container string, options client.CopyFromContainerOptions) (client.CopyFromContainerResult, error) {
+	ret := _mock.Called(ctx, container, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CopyFromContainer")
 	}
 
-	var r0 io.ReadCloser
-	var r1 container.PathStat
-	var r2 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (io.ReadCloser, container.PathStat, error)); ok {
-		return returnFunc(ctx, container1, srcPath)
+	var r0 client.CopyFromContainerResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.CopyFromContainerOptions) (client.CopyFromContainerResult, error)); ok {
+		return returnFunc(ctx, container, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) io.ReadCloser); ok {
-		r0 = returnFunc(ctx, container1, srcPath)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.CopyFromContainerOptions) client.CopyFromContainerResult); ok {
+		r0 = returnFunc(ctx, container, options)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(io.ReadCloser)
-		}
+		r0 = ret.Get(0).(client.CopyFromContainerResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) container.PathStat); ok {
-		r1 = returnFunc(ctx, container1, srcPath)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.CopyFromContainerOptions) error); ok {
+		r1 = returnFunc(ctx, container, options)
 	} else {
-		r1 = ret.Get(1).(container.PathStat)
+		r1 = ret.Error(1)
 	}
-	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string) error); ok {
-		r2 = returnFunc(ctx, container1, srcPath)
-	} else {
-		r2 = ret.Error(2)
-	}
-	return r0, r1, r2
+	return r0, r1
 }
 
 // APIClient_CopyFromContainer_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CopyFromContainer'
@@ -2887,13 +2496,13 @@ type APIClient_CopyFromContainer_Call struct {
 
 // CopyFromContainer is a helper method to define mock.On call
 //   - ctx context.Context
-//   - container1 string
-//   - srcPath string
-func (_e *APIClient_Expecter) CopyFromContainer(ctx any, container1 any, srcPath any) *APIClient_CopyFromContainer_Call {
-	return &APIClient_CopyFromContainer_Call{Call: _e.mock.On("CopyFromContainer", ctx, container1, srcPath)}
+//   - container string
+//   - options client.CopyFromContainerOptions
+func (_e *APIClient_Expecter) CopyFromContainer(ctx any, container any, options any) *APIClient_CopyFromContainer_Call {
+	return &APIClient_CopyFromContainer_Call{Call: _e.mock.On("CopyFromContainer", ctx, container, options)}
 }
 
-func (_c *APIClient_CopyFromContainer_Call) Run(run func(ctx context.Context, container1 string, srcPath string)) *APIClient_CopyFromContainer_Call {
+func (_c *APIClient_CopyFromContainer_Call) Run(run func(ctx context.Context, container string, options client.CopyFromContainerOptions)) *APIClient_CopyFromContainer_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -2903,9 +2512,9 @@ func (_c *APIClient_CopyFromContainer_Call) Run(run func(ctx context.Context, co
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 string
+		var arg2 client.CopyFromContainerOptions
 		if args[2] != nil {
-			arg2 = args[2].(string)
+			arg2 = args[2].(client.CopyFromContainerOptions)
 		}
 		run(
 			arg0,
@@ -2916,31 +2525,40 @@ func (_c *APIClient_CopyFromContainer_Call) Run(run func(ctx context.Context, co
 	return _c
 }
 
-func (_c *APIClient_CopyFromContainer_Call) Return(readCloser io.ReadCloser, pathStat container.PathStat, err error) *APIClient_CopyFromContainer_Call {
-	_c.Call.Return(readCloser, pathStat, err)
+func (_c *APIClient_CopyFromContainer_Call) Return(copyFromContainerResult client.CopyFromContainerResult, err error) *APIClient_CopyFromContainer_Call {
+	_c.Call.Return(copyFromContainerResult, err)
 	return _c
 }
 
-func (_c *APIClient_CopyFromContainer_Call) RunAndReturn(run func(ctx context.Context, container1 string, srcPath string) (io.ReadCloser, container.PathStat, error)) *APIClient_CopyFromContainer_Call {
+func (_c *APIClient_CopyFromContainer_Call) RunAndReturn(run func(ctx context.Context, container string, options client.CopyFromContainerOptions) (client.CopyFromContainerResult, error)) *APIClient_CopyFromContainer_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // CopyToContainer provides a mock function for the type APIClient
-func (_mock *APIClient) CopyToContainer(ctx context.Context, container1 string, path string, content io.Reader, options container.CopyToContainerOptions) error {
-	ret := _mock.Called(ctx, container1, path, content, options)
+func (_mock *APIClient) CopyToContainer(ctx context.Context, container string, options client.CopyToContainerOptions) (client.CopyToContainerResult, error) {
+	ret := _mock.Called(ctx, container, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CopyToContainer")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, io.Reader, container.CopyToContainerOptions) error); ok {
-		r0 = returnFunc(ctx, container1, path, content, options)
-	} else {
-		r0 = ret.Error(0)
+	var r0 client.CopyToContainerResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.CopyToContainerOptions) (client.CopyToContainerResult, error)); ok {
+		return returnFunc(ctx, container, options)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.CopyToContainerOptions) client.CopyToContainerResult); ok {
+		r0 = returnFunc(ctx, container, options)
+	} else {
+		r0 = ret.Get(0).(client.CopyToContainerResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.CopyToContainerOptions) error); ok {
+		r1 = returnFunc(ctx, container, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_CopyToContainer_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CopyToContainer'
@@ -2950,15 +2568,13 @@ type APIClient_CopyToContainer_Call struct {
 
 // CopyToContainer is a helper method to define mock.On call
 //   - ctx context.Context
-//   - container1 string
-//   - path string
-//   - content io.Reader
-//   - options container.CopyToContainerOptions
-func (_e *APIClient_Expecter) CopyToContainer(ctx any, container1 any, path any, content any, options any) *APIClient_CopyToContainer_Call {
-	return &APIClient_CopyToContainer_Call{Call: _e.mock.On("CopyToContainer", ctx, container1, path, content, options)}
+//   - container string
+//   - options client.CopyToContainerOptions
+func (_e *APIClient_Expecter) CopyToContainer(ctx any, container any, options any) *APIClient_CopyToContainer_Call {
+	return &APIClient_CopyToContainer_Call{Call: _e.mock.On("CopyToContainer", ctx, container, options)}
 }
 
-func (_c *APIClient_CopyToContainer_Call) Run(run func(ctx context.Context, container1 string, path string, content io.Reader, options container.CopyToContainerOptions)) *APIClient_CopyToContainer_Call {
+func (_c *APIClient_CopyToContainer_Call) Run(run func(ctx context.Context, container string, options client.CopyToContainerOptions)) *APIClient_CopyToContainer_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -2968,35 +2584,25 @@ func (_c *APIClient_CopyToContainer_Call) Run(run func(ctx context.Context, cont
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 string
+		var arg2 client.CopyToContainerOptions
 		if args[2] != nil {
-			arg2 = args[2].(string)
-		}
-		var arg3 io.Reader
-		if args[3] != nil {
-			arg3 = args[3].(io.Reader)
-		}
-		var arg4 container.CopyToContainerOptions
-		if args[4] != nil {
-			arg4 = args[4].(container.CopyToContainerOptions)
+			arg2 = args[2].(client.CopyToContainerOptions)
 		}
 		run(
 			arg0,
 			arg1,
 			arg2,
-			arg3,
-			arg4,
 		)
 	})
 	return _c
 }
 
-func (_c *APIClient_CopyToContainer_Call) Return(err error) *APIClient_CopyToContainer_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_CopyToContainer_Call) Return(copyToContainerResult client.CopyToContainerResult, err error) *APIClient_CopyToContainer_Call {
+	_c.Call.Return(copyToContainerResult, err)
 	return _c
 }
 
-func (_c *APIClient_CopyToContainer_Call) RunAndReturn(run func(ctx context.Context, container1 string, path string, content io.Reader, options container.CopyToContainerOptions) error) *APIClient_CopyToContainer_Call {
+func (_c *APIClient_CopyToContainer_Call) RunAndReturn(run func(ctx context.Context, container string, options client.CopyToContainerOptions) (client.CopyToContainerResult, error)) *APIClient_CopyToContainer_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -3172,24 +2778,24 @@ func (_c *APIClient_Dialer_Call) RunAndReturn(run func() func(context.Context) (
 }
 
 // DiskUsage provides a mock function for the type APIClient
-func (_mock *APIClient) DiskUsage(ctx context.Context, options types.DiskUsageOptions) (types.DiskUsage, error) {
+func (_mock *APIClient) DiskUsage(ctx context.Context, options client.DiskUsageOptions) (client.DiskUsageResult, error) {
 	ret := _mock.Called(ctx, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for DiskUsage")
 	}
 
-	var r0 types.DiskUsage
+	var r0 client.DiskUsageResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, types.DiskUsageOptions) (types.DiskUsage, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.DiskUsageOptions) (client.DiskUsageResult, error)); ok {
 		return returnFunc(ctx, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, types.DiskUsageOptions) types.DiskUsage); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.DiskUsageOptions) client.DiskUsageResult); ok {
 		r0 = returnFunc(ctx, options)
 	} else {
-		r0 = ret.Get(0).(types.DiskUsage)
+		r0 = ret.Get(0).(client.DiskUsageResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, types.DiskUsageOptions) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.DiskUsageOptions) error); ok {
 		r1 = returnFunc(ctx, options)
 	} else {
 		r1 = ret.Error(1)
@@ -3204,20 +2810,20 @@ type APIClient_DiskUsage_Call struct {
 
 // DiskUsage is a helper method to define mock.On call
 //   - ctx context.Context
-//   - options types.DiskUsageOptions
+//   - options client.DiskUsageOptions
 func (_e *APIClient_Expecter) DiskUsage(ctx any, options any) *APIClient_DiskUsage_Call {
 	return &APIClient_DiskUsage_Call{Call: _e.mock.On("DiskUsage", ctx, options)}
 }
 
-func (_c *APIClient_DiskUsage_Call) Run(run func(ctx context.Context, options types.DiskUsageOptions)) *APIClient_DiskUsage_Call {
+func (_c *APIClient_DiskUsage_Call) Run(run func(ctx context.Context, options client.DiskUsageOptions)) *APIClient_DiskUsage_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 types.DiskUsageOptions
+		var arg1 client.DiskUsageOptions
 		if args[1] != nil {
-			arg1 = args[1].(types.DiskUsageOptions)
+			arg1 = args[1].(client.DiskUsageOptions)
 		}
 		run(
 			arg0,
@@ -3227,36 +2833,36 @@ func (_c *APIClient_DiskUsage_Call) Run(run func(ctx context.Context, options ty
 	return _c
 }
 
-func (_c *APIClient_DiskUsage_Call) Return(diskUsage types.DiskUsage, err error) *APIClient_DiskUsage_Call {
-	_c.Call.Return(diskUsage, err)
+func (_c *APIClient_DiskUsage_Call) Return(diskUsageResult client.DiskUsageResult, err error) *APIClient_DiskUsage_Call {
+	_c.Call.Return(diskUsageResult, err)
 	return _c
 }
 
-func (_c *APIClient_DiskUsage_Call) RunAndReturn(run func(ctx context.Context, options types.DiskUsageOptions) (types.DiskUsage, error)) *APIClient_DiskUsage_Call {
+func (_c *APIClient_DiskUsage_Call) RunAndReturn(run func(ctx context.Context, options client.DiskUsageOptions) (client.DiskUsageResult, error)) *APIClient_DiskUsage_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // DistributionInspect provides a mock function for the type APIClient
-func (_mock *APIClient) DistributionInspect(ctx context.Context, image string, encodedRegistryAuth string) (registry.DistributionInspect, error) {
-	ret := _mock.Called(ctx, image, encodedRegistryAuth)
+func (_mock *APIClient) DistributionInspect(ctx context.Context, image string, options client.DistributionInspectOptions) (client.DistributionInspectResult, error) {
+	ret := _mock.Called(ctx, image, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for DistributionInspect")
 	}
 
-	var r0 registry.DistributionInspect
+	var r0 client.DistributionInspectResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (registry.DistributionInspect, error)); ok {
-		return returnFunc(ctx, image, encodedRegistryAuth)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.DistributionInspectOptions) (client.DistributionInspectResult, error)); ok {
+		return returnFunc(ctx, image, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) registry.DistributionInspect); ok {
-		r0 = returnFunc(ctx, image, encodedRegistryAuth)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.DistributionInspectOptions) client.DistributionInspectResult); ok {
+		r0 = returnFunc(ctx, image, options)
 	} else {
-		r0 = ret.Get(0).(registry.DistributionInspect)
+		r0 = ret.Get(0).(client.DistributionInspectResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = returnFunc(ctx, image, encodedRegistryAuth)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.DistributionInspectOptions) error); ok {
+		r1 = returnFunc(ctx, image, options)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -3271,12 +2877,12 @@ type APIClient_DistributionInspect_Call struct {
 // DistributionInspect is a helper method to define mock.On call
 //   - ctx context.Context
 //   - image string
-//   - encodedRegistryAuth string
-func (_e *APIClient_Expecter) DistributionInspect(ctx any, image any, encodedRegistryAuth any) *APIClient_DistributionInspect_Call {
-	return &APIClient_DistributionInspect_Call{Call: _e.mock.On("DistributionInspect", ctx, image, encodedRegistryAuth)}
+//   - options client.DistributionInspectOptions
+func (_e *APIClient_Expecter) DistributionInspect(ctx any, image any, options any) *APIClient_DistributionInspect_Call {
+	return &APIClient_DistributionInspect_Call{Call: _e.mock.On("DistributionInspect", ctx, image, options)}
 }
 
-func (_c *APIClient_DistributionInspect_Call) Run(run func(ctx context.Context, image string, encodedRegistryAuth string)) *APIClient_DistributionInspect_Call {
+func (_c *APIClient_DistributionInspect_Call) Run(run func(ctx context.Context, image string, options client.DistributionInspectOptions)) *APIClient_DistributionInspect_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -3286,9 +2892,9 @@ func (_c *APIClient_DistributionInspect_Call) Run(run func(ctx context.Context, 
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 string
+		var arg2 client.DistributionInspectOptions
 		if args[2] != nil {
-			arg2 = args[2].(string)
+			arg2 = args[2].(client.DistributionInspectOptions)
 		}
 		run(
 			arg0,
@@ -3299,44 +2905,31 @@ func (_c *APIClient_DistributionInspect_Call) Run(run func(ctx context.Context, 
 	return _c
 }
 
-func (_c *APIClient_DistributionInspect_Call) Return(distributionInspect registry.DistributionInspect, err error) *APIClient_DistributionInspect_Call {
-	_c.Call.Return(distributionInspect, err)
+func (_c *APIClient_DistributionInspect_Call) Return(distributionInspectResult client.DistributionInspectResult, err error) *APIClient_DistributionInspect_Call {
+	_c.Call.Return(distributionInspectResult, err)
 	return _c
 }
 
-func (_c *APIClient_DistributionInspect_Call) RunAndReturn(run func(ctx context.Context, image string, encodedRegistryAuth string) (registry.DistributionInspect, error)) *APIClient_DistributionInspect_Call {
+func (_c *APIClient_DistributionInspect_Call) RunAndReturn(run func(ctx context.Context, image string, options client.DistributionInspectOptions) (client.DistributionInspectResult, error)) *APIClient_DistributionInspect_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // Events provides a mock function for the type APIClient
-func (_mock *APIClient) Events(ctx context.Context, options events.ListOptions) (<-chan events.Message, <-chan error) {
+func (_mock *APIClient) Events(ctx context.Context, options client.EventsListOptions) client.EventsResult {
 	ret := _mock.Called(ctx, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Events")
 	}
 
-	var r0 <-chan events.Message
-	var r1 <-chan error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, events.ListOptions) (<-chan events.Message, <-chan error)); ok {
-		return returnFunc(ctx, options)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, events.ListOptions) <-chan events.Message); ok {
+	var r0 client.EventsResult
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.EventsListOptions) client.EventsResult); ok {
 		r0 = returnFunc(ctx, options)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(<-chan events.Message)
-		}
+		r0 = ret.Get(0).(client.EventsResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, events.ListOptions) <-chan error); ok {
-		r1 = returnFunc(ctx, options)
-	} else {
-		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(<-chan error)
-		}
-	}
-	return r0, r1
+	return r0
 }
 
 // APIClient_Events_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Events'
@@ -3346,20 +2939,20 @@ type APIClient_Events_Call struct {
 
 // Events is a helper method to define mock.On call
 //   - ctx context.Context
-//   - options events.ListOptions
+//   - options client.EventsListOptions
 func (_e *APIClient_Expecter) Events(ctx any, options any) *APIClient_Events_Call {
 	return &APIClient_Events_Call{Call: _e.mock.On("Events", ctx, options)}
 }
 
-func (_c *APIClient_Events_Call) Run(run func(ctx context.Context, options events.ListOptions)) *APIClient_Events_Call {
+func (_c *APIClient_Events_Call) Run(run func(ctx context.Context, options client.EventsListOptions)) *APIClient_Events_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 events.ListOptions
+		var arg1 client.EventsListOptions
 		if args[1] != nil {
-			arg1 = args[1].(events.ListOptions)
+			arg1 = args[1].(client.EventsListOptions)
 		}
 		run(
 			arg0,
@@ -3369,81 +2962,476 @@ func (_c *APIClient_Events_Call) Run(run func(ctx context.Context, options event
 	return _c
 }
 
-func (_c *APIClient_Events_Call) Return(messageCh <-chan events.Message, errCh <-chan error) *APIClient_Events_Call {
-	_c.Call.Return(messageCh, errCh)
+func (_c *APIClient_Events_Call) Return(eventsResult client.EventsResult) *APIClient_Events_Call {
+	_c.Call.Return(eventsResult)
 	return _c
 }
 
-func (_c *APIClient_Events_Call) RunAndReturn(run func(ctx context.Context, options events.ListOptions) (<-chan events.Message, <-chan error)) *APIClient_Events_Call {
+func (_c *APIClient_Events_Call) RunAndReturn(run func(ctx context.Context, options client.EventsListOptions) client.EventsResult) *APIClient_Events_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// HTTPClient provides a mock function for the type APIClient
-func (_mock *APIClient) HTTPClient() *http.Client {
-	ret := _mock.Called()
+// ExecAttach provides a mock function for the type APIClient
+func (_mock *APIClient) ExecAttach(ctx context.Context, execID string, options client.ExecAttachOptions) (client.ExecAttachResult, error) {
+	ret := _mock.Called(ctx, execID, options)
 
 	if len(ret) == 0 {
-		panic("no return value specified for HTTPClient")
+		panic("no return value specified for ExecAttach")
 	}
 
-	var r0 *http.Client
-	if returnFunc, ok := ret.Get(0).(func() *http.Client); ok {
-		r0 = returnFunc()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*http.Client)
-		}
+	var r0 client.ExecAttachResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ExecAttachOptions) (client.ExecAttachResult, error)); ok {
+		return returnFunc(ctx, execID, options)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ExecAttachOptions) client.ExecAttachResult); ok {
+		r0 = returnFunc(ctx, execID, options)
+	} else {
+		r0 = ret.Get(0).(client.ExecAttachResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ExecAttachOptions) error); ok {
+		r1 = returnFunc(ctx, execID, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
-// APIClient_HTTPClient_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'HTTPClient'
-type APIClient_HTTPClient_Call struct {
+// APIClient_ExecAttach_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ExecAttach'
+type APIClient_ExecAttach_Call struct {
 	*mock.Call
 }
 
-// HTTPClient is a helper method to define mock.On call
-func (_e *APIClient_Expecter) HTTPClient() *APIClient_HTTPClient_Call {
-	return &APIClient_HTTPClient_Call{Call: _e.mock.On("HTTPClient")}
+// ExecAttach is a helper method to define mock.On call
+//   - ctx context.Context
+//   - execID string
+//   - options client.ExecAttachOptions
+func (_e *APIClient_Expecter) ExecAttach(ctx any, execID any, options any) *APIClient_ExecAttach_Call {
+	return &APIClient_ExecAttach_Call{Call: _e.mock.On("ExecAttach", ctx, execID, options)}
 }
 
-func (_c *APIClient_HTTPClient_Call) Run(run func()) *APIClient_HTTPClient_Call {
+func (_c *APIClient_ExecAttach_Call) Run(run func(ctx context.Context, execID string, options client.ExecAttachOptions)) *APIClient_ExecAttach_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run()
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 client.ExecAttachOptions
+		if args[2] != nil {
+			arg2 = args[2].(client.ExecAttachOptions)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
 	})
 	return _c
 }
 
-func (_c *APIClient_HTTPClient_Call) Return(client *http.Client) *APIClient_HTTPClient_Call {
-	_c.Call.Return(client)
+func (_c *APIClient_ExecAttach_Call) Return(execAttachResult client.ExecAttachResult, err error) *APIClient_ExecAttach_Call {
+	_c.Call.Return(execAttachResult, err)
 	return _c
 }
 
-func (_c *APIClient_HTTPClient_Call) RunAndReturn(run func() *http.Client) *APIClient_HTTPClient_Call {
+func (_c *APIClient_ExecAttach_Call) RunAndReturn(run func(ctx context.Context, execID string, options client.ExecAttachOptions) (client.ExecAttachResult, error)) *APIClient_ExecAttach_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ExecCreate provides a mock function for the type APIClient
+func (_mock *APIClient) ExecCreate(ctx context.Context, container string, options client.ExecCreateOptions) (client.ExecCreateResult, error) {
+	ret := _mock.Called(ctx, container, options)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ExecCreate")
+	}
+
+	var r0 client.ExecCreateResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ExecCreateOptions) (client.ExecCreateResult, error)); ok {
+		return returnFunc(ctx, container, options)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ExecCreateOptions) client.ExecCreateResult); ok {
+		r0 = returnFunc(ctx, container, options)
+	} else {
+		r0 = ret.Get(0).(client.ExecCreateResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ExecCreateOptions) error); ok {
+		r1 = returnFunc(ctx, container, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// APIClient_ExecCreate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ExecCreate'
+type APIClient_ExecCreate_Call struct {
+	*mock.Call
+}
+
+// ExecCreate is a helper method to define mock.On call
+//   - ctx context.Context
+//   - container string
+//   - options client.ExecCreateOptions
+func (_e *APIClient_Expecter) ExecCreate(ctx any, container any, options any) *APIClient_ExecCreate_Call {
+	return &APIClient_ExecCreate_Call{Call: _e.mock.On("ExecCreate", ctx, container, options)}
+}
+
+func (_c *APIClient_ExecCreate_Call) Run(run func(ctx context.Context, container string, options client.ExecCreateOptions)) *APIClient_ExecCreate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 client.ExecCreateOptions
+		if args[2] != nil {
+			arg2 = args[2].(client.ExecCreateOptions)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *APIClient_ExecCreate_Call) Return(execCreateResult client.ExecCreateResult, err error) *APIClient_ExecCreate_Call {
+	_c.Call.Return(execCreateResult, err)
+	return _c
+}
+
+func (_c *APIClient_ExecCreate_Call) RunAndReturn(run func(ctx context.Context, container string, options client.ExecCreateOptions) (client.ExecCreateResult, error)) *APIClient_ExecCreate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ExecInspect provides a mock function for the type APIClient
+func (_mock *APIClient) ExecInspect(ctx context.Context, execID string, options client.ExecInspectOptions) (client.ExecInspectResult, error) {
+	ret := _mock.Called(ctx, execID, options)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ExecInspect")
+	}
+
+	var r0 client.ExecInspectResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ExecInspectOptions) (client.ExecInspectResult, error)); ok {
+		return returnFunc(ctx, execID, options)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ExecInspectOptions) client.ExecInspectResult); ok {
+		r0 = returnFunc(ctx, execID, options)
+	} else {
+		r0 = ret.Get(0).(client.ExecInspectResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ExecInspectOptions) error); ok {
+		r1 = returnFunc(ctx, execID, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// APIClient_ExecInspect_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ExecInspect'
+type APIClient_ExecInspect_Call struct {
+	*mock.Call
+}
+
+// ExecInspect is a helper method to define mock.On call
+//   - ctx context.Context
+//   - execID string
+//   - options client.ExecInspectOptions
+func (_e *APIClient_Expecter) ExecInspect(ctx any, execID any, options any) *APIClient_ExecInspect_Call {
+	return &APIClient_ExecInspect_Call{Call: _e.mock.On("ExecInspect", ctx, execID, options)}
+}
+
+func (_c *APIClient_ExecInspect_Call) Run(run func(ctx context.Context, execID string, options client.ExecInspectOptions)) *APIClient_ExecInspect_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 client.ExecInspectOptions
+		if args[2] != nil {
+			arg2 = args[2].(client.ExecInspectOptions)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *APIClient_ExecInspect_Call) Return(execInspectResult client.ExecInspectResult, err error) *APIClient_ExecInspect_Call {
+	_c.Call.Return(execInspectResult, err)
+	return _c
+}
+
+func (_c *APIClient_ExecInspect_Call) RunAndReturn(run func(ctx context.Context, execID string, options client.ExecInspectOptions) (client.ExecInspectResult, error)) *APIClient_ExecInspect_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ExecResize provides a mock function for the type APIClient
+func (_mock *APIClient) ExecResize(ctx context.Context, execID string, options client.ExecResizeOptions) (client.ExecResizeResult, error) {
+	ret := _mock.Called(ctx, execID, options)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ExecResize")
+	}
+
+	var r0 client.ExecResizeResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ExecResizeOptions) (client.ExecResizeResult, error)); ok {
+		return returnFunc(ctx, execID, options)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ExecResizeOptions) client.ExecResizeResult); ok {
+		r0 = returnFunc(ctx, execID, options)
+	} else {
+		r0 = ret.Get(0).(client.ExecResizeResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ExecResizeOptions) error); ok {
+		r1 = returnFunc(ctx, execID, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// APIClient_ExecResize_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ExecResize'
+type APIClient_ExecResize_Call struct {
+	*mock.Call
+}
+
+// ExecResize is a helper method to define mock.On call
+//   - ctx context.Context
+//   - execID string
+//   - options client.ExecResizeOptions
+func (_e *APIClient_Expecter) ExecResize(ctx any, execID any, options any) *APIClient_ExecResize_Call {
+	return &APIClient_ExecResize_Call{Call: _e.mock.On("ExecResize", ctx, execID, options)}
+}
+
+func (_c *APIClient_ExecResize_Call) Run(run func(ctx context.Context, execID string, options client.ExecResizeOptions)) *APIClient_ExecResize_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 client.ExecResizeOptions
+		if args[2] != nil {
+			arg2 = args[2].(client.ExecResizeOptions)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *APIClient_ExecResize_Call) Return(execResizeResult client.ExecResizeResult, err error) *APIClient_ExecResize_Call {
+	_c.Call.Return(execResizeResult, err)
+	return _c
+}
+
+func (_c *APIClient_ExecResize_Call) RunAndReturn(run func(ctx context.Context, execID string, options client.ExecResizeOptions) (client.ExecResizeResult, error)) *APIClient_ExecResize_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ExecStart provides a mock function for the type APIClient
+func (_mock *APIClient) ExecStart(ctx context.Context, execID string, options client.ExecStartOptions) (client.ExecStartResult, error) {
+	ret := _mock.Called(ctx, execID, options)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ExecStart")
+	}
+
+	var r0 client.ExecStartResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ExecStartOptions) (client.ExecStartResult, error)); ok {
+		return returnFunc(ctx, execID, options)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ExecStartOptions) client.ExecStartResult); ok {
+		r0 = returnFunc(ctx, execID, options)
+	} else {
+		r0 = ret.Get(0).(client.ExecStartResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ExecStartOptions) error); ok {
+		r1 = returnFunc(ctx, execID, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// APIClient_ExecStart_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ExecStart'
+type APIClient_ExecStart_Call struct {
+	*mock.Call
+}
+
+// ExecStart is a helper method to define mock.On call
+//   - ctx context.Context
+//   - execID string
+//   - options client.ExecStartOptions
+func (_e *APIClient_Expecter) ExecStart(ctx any, execID any, options any) *APIClient_ExecStart_Call {
+	return &APIClient_ExecStart_Call{Call: _e.mock.On("ExecStart", ctx, execID, options)}
+}
+
+func (_c *APIClient_ExecStart_Call) Run(run func(ctx context.Context, execID string, options client.ExecStartOptions)) *APIClient_ExecStart_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 client.ExecStartOptions
+		if args[2] != nil {
+			arg2 = args[2].(client.ExecStartOptions)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *APIClient_ExecStart_Call) Return(execStartResult client.ExecStartResult, err error) *APIClient_ExecStart_Call {
+	_c.Call.Return(execStartResult, err)
+	return _c
+}
+
+func (_c *APIClient_ExecStart_Call) RunAndReturn(run func(ctx context.Context, execID string, options client.ExecStartOptions) (client.ExecStartResult, error)) *APIClient_ExecStart_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ImageAttestations provides a mock function for the type APIClient
+func (_mock *APIClient) ImageAttestations(ctx context.Context, image string, imageAttestationsOptions ...client.ImageAttestationsOption) (client.ImageAttestationsResult, error) {
+	var tmpRet mock.Arguments
+	if len(imageAttestationsOptions) > 0 {
+		tmpRet = _mock.Called(ctx, image, imageAttestationsOptions)
+	} else {
+		tmpRet = _mock.Called(ctx, image)
+	}
+	ret := tmpRet
+
+	if len(ret) == 0 {
+		panic("no return value specified for ImageAttestations")
+	}
+
+	var r0 client.ImageAttestationsResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, ...client.ImageAttestationsOption) (client.ImageAttestationsResult, error)); ok {
+		return returnFunc(ctx, image, imageAttestationsOptions...)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, ...client.ImageAttestationsOption) client.ImageAttestationsResult); ok {
+		r0 = returnFunc(ctx, image, imageAttestationsOptions...)
+	} else {
+		r0 = ret.Get(0).(client.ImageAttestationsResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, ...client.ImageAttestationsOption) error); ok {
+		r1 = returnFunc(ctx, image, imageAttestationsOptions...)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// APIClient_ImageAttestations_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ImageAttestations'
+type APIClient_ImageAttestations_Call struct {
+	*mock.Call
+}
+
+// ImageAttestations is a helper method to define mock.On call
+//   - ctx context.Context
+//   - image string
+//   - imageAttestationsOptions ...client.ImageAttestationsOption
+func (_e *APIClient_Expecter) ImageAttestations(ctx any, image any, imageAttestationsOptions ...any) *APIClient_ImageAttestations_Call {
+	return &APIClient_ImageAttestations_Call{Call: _e.mock.On("ImageAttestations",
+		append([]any{ctx, image}, imageAttestationsOptions...)...)}
+}
+
+func (_c *APIClient_ImageAttestations_Call) Run(run func(ctx context.Context, image string, imageAttestationsOptions ...client.ImageAttestationsOption)) *APIClient_ImageAttestations_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 []client.ImageAttestationsOption
+		var variadicArgs []client.ImageAttestationsOption
+		if len(args) > 2 {
+			variadicArgs = args[2].([]client.ImageAttestationsOption)
+		}
+		arg2 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2...,
+		)
+	})
+	return _c
+}
+
+func (_c *APIClient_ImageAttestations_Call) Return(imageAttestationsResult client.ImageAttestationsResult, err error) *APIClient_ImageAttestations_Call {
+	_c.Call.Return(imageAttestationsResult, err)
+	return _c
+}
+
+func (_c *APIClient_ImageAttestations_Call) RunAndReturn(run func(ctx context.Context, image string, imageAttestationsOptions ...client.ImageAttestationsOption) (client.ImageAttestationsResult, error)) *APIClient_ImageAttestations_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ImageBuild provides a mock function for the type APIClient
-func (_mock *APIClient) ImageBuild(ctx context.Context, context1 io.Reader, options build.ImageBuildOptions) (build.ImageBuildResponse, error) {
+func (_mock *APIClient) ImageBuild(ctx context.Context, context1 io.Reader, options client.ImageBuildOptions) (client.ImageBuildResult, error) {
 	ret := _mock.Called(ctx, context1, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ImageBuild")
 	}
 
-	var r0 build.ImageBuildResponse
+	var r0 client.ImageBuildResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, io.Reader, build.ImageBuildOptions) (build.ImageBuildResponse, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, io.Reader, client.ImageBuildOptions) (client.ImageBuildResult, error)); ok {
 		return returnFunc(ctx, context1, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, io.Reader, build.ImageBuildOptions) build.ImageBuildResponse); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, io.Reader, client.ImageBuildOptions) client.ImageBuildResult); ok {
 		r0 = returnFunc(ctx, context1, options)
 	} else {
-		r0 = ret.Get(0).(build.ImageBuildResponse)
+		r0 = ret.Get(0).(client.ImageBuildResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, io.Reader, build.ImageBuildOptions) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, io.Reader, client.ImageBuildOptions) error); ok {
 		r1 = returnFunc(ctx, context1, options)
 	} else {
 		r1 = ret.Error(1)
@@ -3459,12 +3447,12 @@ type APIClient_ImageBuild_Call struct {
 // ImageBuild is a helper method to define mock.On call
 //   - ctx context.Context
 //   - context1 io.Reader
-//   - options build.ImageBuildOptions
+//   - options client.ImageBuildOptions
 func (_e *APIClient_Expecter) ImageBuild(ctx any, context1 any, options any) *APIClient_ImageBuild_Call {
 	return &APIClient_ImageBuild_Call{Call: _e.mock.On("ImageBuild", ctx, context1, options)}
 }
 
-func (_c *APIClient_ImageBuild_Call) Run(run func(ctx context.Context, context1 io.Reader, options build.ImageBuildOptions)) *APIClient_ImageBuild_Call {
+func (_c *APIClient_ImageBuild_Call) Run(run func(ctx context.Context, context1 io.Reader, options client.ImageBuildOptions)) *APIClient_ImageBuild_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -3474,9 +3462,9 @@ func (_c *APIClient_ImageBuild_Call) Run(run func(ctx context.Context, context1 
 		if args[1] != nil {
 			arg1 = args[1].(io.Reader)
 		}
-		var arg2 build.ImageBuildOptions
+		var arg2 client.ImageBuildOptions
 		if args[2] != nil {
-			arg2 = args[2].(build.ImageBuildOptions)
+			arg2 = args[2].(client.ImageBuildOptions)
 		}
 		run(
 			arg0,
@@ -3487,97 +3475,23 @@ func (_c *APIClient_ImageBuild_Call) Run(run func(ctx context.Context, context1 
 	return _c
 }
 
-func (_c *APIClient_ImageBuild_Call) Return(imageBuildResponse build.ImageBuildResponse, err error) *APIClient_ImageBuild_Call {
-	_c.Call.Return(imageBuildResponse, err)
+func (_c *APIClient_ImageBuild_Call) Return(imageBuildResult client.ImageBuildResult, err error) *APIClient_ImageBuild_Call {
+	_c.Call.Return(imageBuildResult, err)
 	return _c
 }
 
-func (_c *APIClient_ImageBuild_Call) RunAndReturn(run func(ctx context.Context, context1 io.Reader, options build.ImageBuildOptions) (build.ImageBuildResponse, error)) *APIClient_ImageBuild_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// ImageCreate provides a mock function for the type APIClient
-func (_mock *APIClient) ImageCreate(ctx context.Context, parentReference string, options image.CreateOptions) (io.ReadCloser, error) {
-	ret := _mock.Called(ctx, parentReference, options)
-
-	if len(ret) == 0 {
-		panic("no return value specified for ImageCreate")
-	}
-
-	var r0 io.ReadCloser
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, image.CreateOptions) (io.ReadCloser, error)); ok {
-		return returnFunc(ctx, parentReference, options)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, image.CreateOptions) io.ReadCloser); ok {
-		r0 = returnFunc(ctx, parentReference, options)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(io.ReadCloser)
-		}
-	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, image.CreateOptions) error); ok {
-		r1 = returnFunc(ctx, parentReference, options)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
-}
-
-// APIClient_ImageCreate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ImageCreate'
-type APIClient_ImageCreate_Call struct {
-	*mock.Call
-}
-
-// ImageCreate is a helper method to define mock.On call
-//   - ctx context.Context
-//   - parentReference string
-//   - options image.CreateOptions
-func (_e *APIClient_Expecter) ImageCreate(ctx any, parentReference any, options any) *APIClient_ImageCreate_Call {
-	return &APIClient_ImageCreate_Call{Call: _e.mock.On("ImageCreate", ctx, parentReference, options)}
-}
-
-func (_c *APIClient_ImageCreate_Call) Run(run func(ctx context.Context, parentReference string, options image.CreateOptions)) *APIClient_ImageCreate_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 string
-		if args[1] != nil {
-			arg1 = args[1].(string)
-		}
-		var arg2 image.CreateOptions
-		if args[2] != nil {
-			arg2 = args[2].(image.CreateOptions)
-		}
-		run(
-			arg0,
-			arg1,
-			arg2,
-		)
-	})
-	return _c
-}
-
-func (_c *APIClient_ImageCreate_Call) Return(readCloser io.ReadCloser, err error) *APIClient_ImageCreate_Call {
-	_c.Call.Return(readCloser, err)
-	return _c
-}
-
-func (_c *APIClient_ImageCreate_Call) RunAndReturn(run func(ctx context.Context, parentReference string, options image.CreateOptions) (io.ReadCloser, error)) *APIClient_ImageCreate_Call {
+func (_c *APIClient_ImageBuild_Call) RunAndReturn(run func(ctx context.Context, context1 io.Reader, options client.ImageBuildOptions) (client.ImageBuildResult, error)) *APIClient_ImageBuild_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ImageHistory provides a mock function for the type APIClient
-func (_mock *APIClient) ImageHistory(ctx context.Context, image1 string, imageHistoryOptions ...client.ImageHistoryOption) ([]image.HistoryResponseItem, error) {
+func (_mock *APIClient) ImageHistory(ctx context.Context, image string, imageHistoryOptions ...client.ImageHistoryOption) (client.ImageHistoryResult, error) {
 	var tmpRet mock.Arguments
 	if len(imageHistoryOptions) > 0 {
-		tmpRet = _mock.Called(ctx, image1, imageHistoryOptions)
+		tmpRet = _mock.Called(ctx, image, imageHistoryOptions)
 	} else {
-		tmpRet = _mock.Called(ctx, image1)
+		tmpRet = _mock.Called(ctx, image)
 	}
 	ret := tmpRet
 
@@ -3585,20 +3499,18 @@ func (_mock *APIClient) ImageHistory(ctx context.Context, image1 string, imageHi
 		panic("no return value specified for ImageHistory")
 	}
 
-	var r0 []image.HistoryResponseItem
+	var r0 client.ImageHistoryResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, ...client.ImageHistoryOption) ([]image.HistoryResponseItem, error)); ok {
-		return returnFunc(ctx, image1, imageHistoryOptions...)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, ...client.ImageHistoryOption) (client.ImageHistoryResult, error)); ok {
+		return returnFunc(ctx, image, imageHistoryOptions...)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, ...client.ImageHistoryOption) []image.HistoryResponseItem); ok {
-		r0 = returnFunc(ctx, image1, imageHistoryOptions...)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, ...client.ImageHistoryOption) client.ImageHistoryResult); ok {
+		r0 = returnFunc(ctx, image, imageHistoryOptions...)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]image.HistoryResponseItem)
-		}
+		r0 = ret.Get(0).(client.ImageHistoryResult)
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, string, ...client.ImageHistoryOption) error); ok {
-		r1 = returnFunc(ctx, image1, imageHistoryOptions...)
+		r1 = returnFunc(ctx, image, imageHistoryOptions...)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -3612,14 +3524,14 @@ type APIClient_ImageHistory_Call struct {
 
 // ImageHistory is a helper method to define mock.On call
 //   - ctx context.Context
-//   - image1 string
+//   - image string
 //   - imageHistoryOptions ...client.ImageHistoryOption
-func (_e *APIClient_Expecter) ImageHistory(ctx any, image1 any, imageHistoryOptions ...any) *APIClient_ImageHistory_Call {
+func (_e *APIClient_Expecter) ImageHistory(ctx any, image any, imageHistoryOptions ...any) *APIClient_ImageHistory_Call {
 	return &APIClient_ImageHistory_Call{Call: _e.mock.On("ImageHistory",
-		append([]any{ctx, image1}, imageHistoryOptions...)...)}
+		append([]any{ctx, image}, imageHistoryOptions...)...)}
 }
 
-func (_c *APIClient_ImageHistory_Call) Run(run func(ctx context.Context, image1 string, imageHistoryOptions ...client.ImageHistoryOption)) *APIClient_ImageHistory_Call {
+func (_c *APIClient_ImageHistory_Call) Run(run func(ctx context.Context, image string, imageHistoryOptions ...client.ImageHistoryOption)) *APIClient_ImageHistory_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -3644,37 +3556,37 @@ func (_c *APIClient_ImageHistory_Call) Run(run func(ctx context.Context, image1 
 	return _c
 }
 
-func (_c *APIClient_ImageHistory_Call) Return(historyResponseItems []image.HistoryResponseItem, err error) *APIClient_ImageHistory_Call {
-	_c.Call.Return(historyResponseItems, err)
+func (_c *APIClient_ImageHistory_Call) Return(imageHistoryResult client.ImageHistoryResult, err error) *APIClient_ImageHistory_Call {
+	_c.Call.Return(imageHistoryResult, err)
 	return _c
 }
 
-func (_c *APIClient_ImageHistory_Call) RunAndReturn(run func(ctx context.Context, image1 string, imageHistoryOptions ...client.ImageHistoryOption) ([]image.HistoryResponseItem, error)) *APIClient_ImageHistory_Call {
+func (_c *APIClient_ImageHistory_Call) RunAndReturn(run func(ctx context.Context, image string, imageHistoryOptions ...client.ImageHistoryOption) (client.ImageHistoryResult, error)) *APIClient_ImageHistory_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ImageImport provides a mock function for the type APIClient
-func (_mock *APIClient) ImageImport(ctx context.Context, source image.ImportSource, ref string, options image.ImportOptions) (io.ReadCloser, error) {
+func (_mock *APIClient) ImageImport(ctx context.Context, source client.ImageImportSource, ref string, options client.ImageImportOptions) (client.ImageImportResult, error) {
 	ret := _mock.Called(ctx, source, ref, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ImageImport")
 	}
 
-	var r0 io.ReadCloser
+	var r0 client.ImageImportResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, image.ImportSource, string, image.ImportOptions) (io.ReadCloser, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.ImageImportSource, string, client.ImageImportOptions) (client.ImageImportResult, error)); ok {
 		return returnFunc(ctx, source, ref, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, image.ImportSource, string, image.ImportOptions) io.ReadCloser); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.ImageImportSource, string, client.ImageImportOptions) client.ImageImportResult); ok {
 		r0 = returnFunc(ctx, source, ref, options)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(io.ReadCloser)
+			r0 = ret.Get(0).(client.ImageImportResult)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, image.ImportSource, string, image.ImportOptions) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.ImageImportSource, string, client.ImageImportOptions) error); ok {
 		r1 = returnFunc(ctx, source, ref, options)
 	} else {
 		r1 = ret.Error(1)
@@ -3689,30 +3601,30 @@ type APIClient_ImageImport_Call struct {
 
 // ImageImport is a helper method to define mock.On call
 //   - ctx context.Context
-//   - source image.ImportSource
+//   - source client.ImageImportSource
 //   - ref string
-//   - options image.ImportOptions
+//   - options client.ImageImportOptions
 func (_e *APIClient_Expecter) ImageImport(ctx any, source any, ref any, options any) *APIClient_ImageImport_Call {
 	return &APIClient_ImageImport_Call{Call: _e.mock.On("ImageImport", ctx, source, ref, options)}
 }
 
-func (_c *APIClient_ImageImport_Call) Run(run func(ctx context.Context, source image.ImportSource, ref string, options image.ImportOptions)) *APIClient_ImageImport_Call {
+func (_c *APIClient_ImageImport_Call) Run(run func(ctx context.Context, source client.ImageImportSource, ref string, options client.ImageImportOptions)) *APIClient_ImageImport_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 image.ImportSource
+		var arg1 client.ImageImportSource
 		if args[1] != nil {
-			arg1 = args[1].(image.ImportSource)
+			arg1 = args[1].(client.ImageImportSource)
 		}
 		var arg2 string
 		if args[2] != nil {
 			arg2 = args[2].(string)
 		}
-		var arg3 image.ImportOptions
+		var arg3 client.ImageImportOptions
 		if args[3] != nil {
-			arg3 = args[3].(image.ImportOptions)
+			arg3 = args[3].(client.ImageImportOptions)
 		}
 		run(
 			arg0,
@@ -3724,23 +3636,23 @@ func (_c *APIClient_ImageImport_Call) Run(run func(ctx context.Context, source i
 	return _c
 }
 
-func (_c *APIClient_ImageImport_Call) Return(readCloser io.ReadCloser, err error) *APIClient_ImageImport_Call {
-	_c.Call.Return(readCloser, err)
+func (_c *APIClient_ImageImport_Call) Return(imageImportResult client.ImageImportResult, err error) *APIClient_ImageImport_Call {
+	_c.Call.Return(imageImportResult, err)
 	return _c
 }
 
-func (_c *APIClient_ImageImport_Call) RunAndReturn(run func(ctx context.Context, source image.ImportSource, ref string, options image.ImportOptions) (io.ReadCloser, error)) *APIClient_ImageImport_Call {
+func (_c *APIClient_ImageImport_Call) RunAndReturn(run func(ctx context.Context, source client.ImageImportSource, ref string, options client.ImageImportOptions) (client.ImageImportResult, error)) *APIClient_ImageImport_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ImageInspect provides a mock function for the type APIClient
-func (_mock *APIClient) ImageInspect(ctx context.Context, image1 string, imageInspectOptions ...client.ImageInspectOption) (image.InspectResponse, error) {
+func (_mock *APIClient) ImageInspect(ctx context.Context, image string, imageInspectOptions ...client.ImageInspectOption) (client.ImageInspectResult, error) {
 	var tmpRet mock.Arguments
 	if len(imageInspectOptions) > 0 {
-		tmpRet = _mock.Called(ctx, image1, imageInspectOptions)
+		tmpRet = _mock.Called(ctx, image, imageInspectOptions)
 	} else {
-		tmpRet = _mock.Called(ctx, image1)
+		tmpRet = _mock.Called(ctx, image)
 	}
 	ret := tmpRet
 
@@ -3748,18 +3660,18 @@ func (_mock *APIClient) ImageInspect(ctx context.Context, image1 string, imageIn
 		panic("no return value specified for ImageInspect")
 	}
 
-	var r0 image.InspectResponse
+	var r0 client.ImageInspectResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, ...client.ImageInspectOption) (image.InspectResponse, error)); ok {
-		return returnFunc(ctx, image1, imageInspectOptions...)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, ...client.ImageInspectOption) (client.ImageInspectResult, error)); ok {
+		return returnFunc(ctx, image, imageInspectOptions...)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, ...client.ImageInspectOption) image.InspectResponse); ok {
-		r0 = returnFunc(ctx, image1, imageInspectOptions...)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, ...client.ImageInspectOption) client.ImageInspectResult); ok {
+		r0 = returnFunc(ctx, image, imageInspectOptions...)
 	} else {
-		r0 = ret.Get(0).(image.InspectResponse)
+		r0 = ret.Get(0).(client.ImageInspectResult)
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, string, ...client.ImageInspectOption) error); ok {
-		r1 = returnFunc(ctx, image1, imageInspectOptions...)
+		r1 = returnFunc(ctx, image, imageInspectOptions...)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -3773,14 +3685,14 @@ type APIClient_ImageInspect_Call struct {
 
 // ImageInspect is a helper method to define mock.On call
 //   - ctx context.Context
-//   - image1 string
+//   - image string
 //   - imageInspectOptions ...client.ImageInspectOption
-func (_e *APIClient_Expecter) ImageInspect(ctx any, image1 any, imageInspectOptions ...any) *APIClient_ImageInspect_Call {
+func (_e *APIClient_Expecter) ImageInspect(ctx any, image any, imageInspectOptions ...any) *APIClient_ImageInspect_Call {
 	return &APIClient_ImageInspect_Call{Call: _e.mock.On("ImageInspect",
-		append([]any{ctx, image1}, imageInspectOptions...)...)}
+		append([]any{ctx, image}, imageInspectOptions...)...)}
 }
 
-func (_c *APIClient_ImageInspect_Call) Run(run func(ctx context.Context, image1 string, imageInspectOptions ...client.ImageInspectOption)) *APIClient_ImageInspect_Call {
+func (_c *APIClient_ImageInspect_Call) Run(run func(ctx context.Context, image string, imageInspectOptions ...client.ImageInspectOption)) *APIClient_ImageInspect_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -3805,111 +3717,35 @@ func (_c *APIClient_ImageInspect_Call) Run(run func(ctx context.Context, image1 
 	return _c
 }
 
-func (_c *APIClient_ImageInspect_Call) Return(inspectResponse image.InspectResponse, err error) *APIClient_ImageInspect_Call {
-	_c.Call.Return(inspectResponse, err)
+func (_c *APIClient_ImageInspect_Call) Return(imageInspectResult client.ImageInspectResult, err error) *APIClient_ImageInspect_Call {
+	_c.Call.Return(imageInspectResult, err)
 	return _c
 }
 
-func (_c *APIClient_ImageInspect_Call) RunAndReturn(run func(ctx context.Context, image1 string, imageInspectOptions ...client.ImageInspectOption) (image.InspectResponse, error)) *APIClient_ImageInspect_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// ImageInspectWithRaw provides a mock function for the type APIClient
-func (_mock *APIClient) ImageInspectWithRaw(ctx context.Context, image1 string) (image.InspectResponse, []byte, error) {
-	ret := _mock.Called(ctx, image1)
-
-	if len(ret) == 0 {
-		panic("no return value specified for ImageInspectWithRaw")
-	}
-
-	var r0 image.InspectResponse
-	var r1 []byte
-	var r2 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (image.InspectResponse, []byte, error)); ok {
-		return returnFunc(ctx, image1)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) image.InspectResponse); ok {
-		r0 = returnFunc(ctx, image1)
-	} else {
-		r0 = ret.Get(0).(image.InspectResponse)
-	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string) []byte); ok {
-		r1 = returnFunc(ctx, image1)
-	} else {
-		if ret.Get(1) != nil {
-			r1 = ret.Get(1).([]byte)
-		}
-	}
-	if returnFunc, ok := ret.Get(2).(func(context.Context, string) error); ok {
-		r2 = returnFunc(ctx, image1)
-	} else {
-		r2 = ret.Error(2)
-	}
-	return r0, r1, r2
-}
-
-// APIClient_ImageInspectWithRaw_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ImageInspectWithRaw'
-type APIClient_ImageInspectWithRaw_Call struct {
-	*mock.Call
-}
-
-// ImageInspectWithRaw is a helper method to define mock.On call
-//   - ctx context.Context
-//   - image1 string
-func (_e *APIClient_Expecter) ImageInspectWithRaw(ctx any, image1 any) *APIClient_ImageInspectWithRaw_Call {
-	return &APIClient_ImageInspectWithRaw_Call{Call: _e.mock.On("ImageInspectWithRaw", ctx, image1)}
-}
-
-func (_c *APIClient_ImageInspectWithRaw_Call) Run(run func(ctx context.Context, image1 string)) *APIClient_ImageInspectWithRaw_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 string
-		if args[1] != nil {
-			arg1 = args[1].(string)
-		}
-		run(
-			arg0,
-			arg1,
-		)
-	})
-	return _c
-}
-
-func (_c *APIClient_ImageInspectWithRaw_Call) Return(inspectResponse image.InspectResponse, bytes []byte, err error) *APIClient_ImageInspectWithRaw_Call {
-	_c.Call.Return(inspectResponse, bytes, err)
-	return _c
-}
-
-func (_c *APIClient_ImageInspectWithRaw_Call) RunAndReturn(run func(ctx context.Context, image1 string) (image.InspectResponse, []byte, error)) *APIClient_ImageInspectWithRaw_Call {
+func (_c *APIClient_ImageInspect_Call) RunAndReturn(run func(ctx context.Context, image string, imageInspectOptions ...client.ImageInspectOption) (client.ImageInspectResult, error)) *APIClient_ImageInspect_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ImageList provides a mock function for the type APIClient
-func (_mock *APIClient) ImageList(ctx context.Context, options image.ListOptions) ([]image.Summary, error) {
+func (_mock *APIClient) ImageList(ctx context.Context, options client.ImageListOptions) (client.ImageListResult, error) {
 	ret := _mock.Called(ctx, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ImageList")
 	}
 
-	var r0 []image.Summary
+	var r0 client.ImageListResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, image.ListOptions) ([]image.Summary, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.ImageListOptions) (client.ImageListResult, error)); ok {
 		return returnFunc(ctx, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, image.ListOptions) []image.Summary); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.ImageListOptions) client.ImageListResult); ok {
 		r0 = returnFunc(ctx, options)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]image.Summary)
-		}
+		r0 = ret.Get(0).(client.ImageListResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, image.ListOptions) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.ImageListOptions) error); ok {
 		r1 = returnFunc(ctx, options)
 	} else {
 		r1 = ret.Error(1)
@@ -3924,20 +3760,20 @@ type APIClient_ImageList_Call struct {
 
 // ImageList is a helper method to define mock.On call
 //   - ctx context.Context
-//   - options image.ListOptions
+//   - options client.ImageListOptions
 func (_e *APIClient_Expecter) ImageList(ctx any, options any) *APIClient_ImageList_Call {
 	return &APIClient_ImageList_Call{Call: _e.mock.On("ImageList", ctx, options)}
 }
 
-func (_c *APIClient_ImageList_Call) Run(run func(ctx context.Context, options image.ListOptions)) *APIClient_ImageList_Call {
+func (_c *APIClient_ImageList_Call) Run(run func(ctx context.Context, options client.ImageListOptions)) *APIClient_ImageList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 image.ListOptions
+		var arg1 client.ImageListOptions
 		if args[1] != nil {
-			arg1 = args[1].(image.ListOptions)
+			arg1 = args[1].(client.ImageListOptions)
 		}
 		run(
 			arg0,
@@ -3947,18 +3783,18 @@ func (_c *APIClient_ImageList_Call) Run(run func(ctx context.Context, options im
 	return _c
 }
 
-func (_c *APIClient_ImageList_Call) Return(summarys []image.Summary, err error) *APIClient_ImageList_Call {
-	_c.Call.Return(summarys, err)
+func (_c *APIClient_ImageList_Call) Return(imageListResult client.ImageListResult, err error) *APIClient_ImageList_Call {
+	_c.Call.Return(imageListResult, err)
 	return _c
 }
 
-func (_c *APIClient_ImageList_Call) RunAndReturn(run func(ctx context.Context, options image.ListOptions) ([]image.Summary, error)) *APIClient_ImageList_Call {
+func (_c *APIClient_ImageList_Call) RunAndReturn(run func(ctx context.Context, options client.ImageListOptions) (client.ImageListResult, error)) *APIClient_ImageList_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ImageLoad provides a mock function for the type APIClient
-func (_mock *APIClient) ImageLoad(ctx context.Context, input io.Reader, imageLoadOptions ...client.ImageLoadOption) (image.LoadResponse, error) {
+func (_mock *APIClient) ImageLoad(ctx context.Context, input io.Reader, imageLoadOptions ...client.ImageLoadOption) (client.ImageLoadResult, error) {
 	var tmpRet mock.Arguments
 	if len(imageLoadOptions) > 0 {
 		tmpRet = _mock.Called(ctx, input, imageLoadOptions)
@@ -3971,15 +3807,17 @@ func (_mock *APIClient) ImageLoad(ctx context.Context, input io.Reader, imageLoa
 		panic("no return value specified for ImageLoad")
 	}
 
-	var r0 image.LoadResponse
+	var r0 client.ImageLoadResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, io.Reader, ...client.ImageLoadOption) (image.LoadResponse, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, io.Reader, ...client.ImageLoadOption) (client.ImageLoadResult, error)); ok {
 		return returnFunc(ctx, input, imageLoadOptions...)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, io.Reader, ...client.ImageLoadOption) image.LoadResponse); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, io.Reader, ...client.ImageLoadOption) client.ImageLoadResult); ok {
 		r0 = returnFunc(ctx, input, imageLoadOptions...)
 	} else {
-		r0 = ret.Get(0).(image.LoadResponse)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(client.ImageLoadResult)
+		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, io.Reader, ...client.ImageLoadOption) error); ok {
 		r1 = returnFunc(ctx, input, imageLoadOptions...)
@@ -4028,37 +3866,103 @@ func (_c *APIClient_ImageLoad_Call) Run(run func(ctx context.Context, input io.R
 	return _c
 }
 
-func (_c *APIClient_ImageLoad_Call) Return(loadResponse image.LoadResponse, err error) *APIClient_ImageLoad_Call {
-	_c.Call.Return(loadResponse, err)
+func (_c *APIClient_ImageLoad_Call) Return(imageLoadResult client.ImageLoadResult, err error) *APIClient_ImageLoad_Call {
+	_c.Call.Return(imageLoadResult, err)
 	return _c
 }
 
-func (_c *APIClient_ImageLoad_Call) RunAndReturn(run func(ctx context.Context, input io.Reader, imageLoadOptions ...client.ImageLoadOption) (image.LoadResponse, error)) *APIClient_ImageLoad_Call {
+func (_c *APIClient_ImageLoad_Call) RunAndReturn(run func(ctx context.Context, input io.Reader, imageLoadOptions ...client.ImageLoadOption) (client.ImageLoadResult, error)) *APIClient_ImageLoad_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ImagePrune provides a mock function for the type APIClient
+func (_mock *APIClient) ImagePrune(ctx context.Context, opts client.ImagePruneOptions) (client.ImagePruneResult, error) {
+	ret := _mock.Called(ctx, opts)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ImagePrune")
+	}
+
+	var r0 client.ImagePruneResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.ImagePruneOptions) (client.ImagePruneResult, error)); ok {
+		return returnFunc(ctx, opts)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.ImagePruneOptions) client.ImagePruneResult); ok {
+		r0 = returnFunc(ctx, opts)
+	} else {
+		r0 = ret.Get(0).(client.ImagePruneResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.ImagePruneOptions) error); ok {
+		r1 = returnFunc(ctx, opts)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// APIClient_ImagePrune_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ImagePrune'
+type APIClient_ImagePrune_Call struct {
+	*mock.Call
+}
+
+// ImagePrune is a helper method to define mock.On call
+//   - ctx context.Context
+//   - opts client.ImagePruneOptions
+func (_e *APIClient_Expecter) ImagePrune(ctx any, opts any) *APIClient_ImagePrune_Call {
+	return &APIClient_ImagePrune_Call{Call: _e.mock.On("ImagePrune", ctx, opts)}
+}
+
+func (_c *APIClient_ImagePrune_Call) Run(run func(ctx context.Context, opts client.ImagePruneOptions)) *APIClient_ImagePrune_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 client.ImagePruneOptions
+		if args[1] != nil {
+			arg1 = args[1].(client.ImagePruneOptions)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *APIClient_ImagePrune_Call) Return(imagePruneResult client.ImagePruneResult, err error) *APIClient_ImagePrune_Call {
+	_c.Call.Return(imagePruneResult, err)
+	return _c
+}
+
+func (_c *APIClient_ImagePrune_Call) RunAndReturn(run func(ctx context.Context, opts client.ImagePruneOptions) (client.ImagePruneResult, error)) *APIClient_ImagePrune_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ImagePull provides a mock function for the type APIClient
-func (_mock *APIClient) ImagePull(ctx context.Context, ref string, options image.PullOptions) (io.ReadCloser, error) {
+func (_mock *APIClient) ImagePull(ctx context.Context, ref string, options client.ImagePullOptions) (client.ImagePullResponse, error) {
 	ret := _mock.Called(ctx, ref, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ImagePull")
 	}
 
-	var r0 io.ReadCloser
+	var r0 client.ImagePullResponse
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, image.PullOptions) (io.ReadCloser, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ImagePullOptions) (client.ImagePullResponse, error)); ok {
 		return returnFunc(ctx, ref, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, image.PullOptions) io.ReadCloser); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ImagePullOptions) client.ImagePullResponse); ok {
 		r0 = returnFunc(ctx, ref, options)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(io.ReadCloser)
+			r0 = ret.Get(0).(client.ImagePullResponse)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, image.PullOptions) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ImagePullOptions) error); ok {
 		r1 = returnFunc(ctx, ref, options)
 	} else {
 		r1 = ret.Error(1)
@@ -4074,12 +3978,12 @@ type APIClient_ImagePull_Call struct {
 // ImagePull is a helper method to define mock.On call
 //   - ctx context.Context
 //   - ref string
-//   - options image.PullOptions
+//   - options client.ImagePullOptions
 func (_e *APIClient_Expecter) ImagePull(ctx any, ref any, options any) *APIClient_ImagePull_Call {
 	return &APIClient_ImagePull_Call{Call: _e.mock.On("ImagePull", ctx, ref, options)}
 }
 
-func (_c *APIClient_ImagePull_Call) Run(run func(ctx context.Context, ref string, options image.PullOptions)) *APIClient_ImagePull_Call {
+func (_c *APIClient_ImagePull_Call) Run(run func(ctx context.Context, ref string, options client.ImagePullOptions)) *APIClient_ImagePull_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -4089,9 +3993,9 @@ func (_c *APIClient_ImagePull_Call) Run(run func(ctx context.Context, ref string
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 image.PullOptions
+		var arg2 client.ImagePullOptions
 		if args[2] != nil {
-			arg2 = args[2].(image.PullOptions)
+			arg2 = args[2].(client.ImagePullOptions)
 		}
 		run(
 			arg0,
@@ -4102,37 +4006,37 @@ func (_c *APIClient_ImagePull_Call) Run(run func(ctx context.Context, ref string
 	return _c
 }
 
-func (_c *APIClient_ImagePull_Call) Return(readCloser io.ReadCloser, err error) *APIClient_ImagePull_Call {
-	_c.Call.Return(readCloser, err)
+func (_c *APIClient_ImagePull_Call) Return(imagePullResponse client.ImagePullResponse, err error) *APIClient_ImagePull_Call {
+	_c.Call.Return(imagePullResponse, err)
 	return _c
 }
 
-func (_c *APIClient_ImagePull_Call) RunAndReturn(run func(ctx context.Context, ref string, options image.PullOptions) (io.ReadCloser, error)) *APIClient_ImagePull_Call {
+func (_c *APIClient_ImagePull_Call) RunAndReturn(run func(ctx context.Context, ref string, options client.ImagePullOptions) (client.ImagePullResponse, error)) *APIClient_ImagePull_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ImagePush provides a mock function for the type APIClient
-func (_mock *APIClient) ImagePush(ctx context.Context, ref string, options image.PushOptions) (io.ReadCloser, error) {
+func (_mock *APIClient) ImagePush(ctx context.Context, ref string, options client.ImagePushOptions) (client.ImagePushResponse, error) {
 	ret := _mock.Called(ctx, ref, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ImagePush")
 	}
 
-	var r0 io.ReadCloser
+	var r0 client.ImagePushResponse
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, image.PushOptions) (io.ReadCloser, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ImagePushOptions) (client.ImagePushResponse, error)); ok {
 		return returnFunc(ctx, ref, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, image.PushOptions) io.ReadCloser); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ImagePushOptions) client.ImagePushResponse); ok {
 		r0 = returnFunc(ctx, ref, options)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(io.ReadCloser)
+			r0 = ret.Get(0).(client.ImagePushResponse)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, image.PushOptions) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ImagePushOptions) error); ok {
 		r1 = returnFunc(ctx, ref, options)
 	} else {
 		r1 = ret.Error(1)
@@ -4148,12 +4052,12 @@ type APIClient_ImagePush_Call struct {
 // ImagePush is a helper method to define mock.On call
 //   - ctx context.Context
 //   - ref string
-//   - options image.PushOptions
+//   - options client.ImagePushOptions
 func (_e *APIClient_Expecter) ImagePush(ctx any, ref any, options any) *APIClient_ImagePush_Call {
 	return &APIClient_ImagePush_Call{Call: _e.mock.On("ImagePush", ctx, ref, options)}
 }
 
-func (_c *APIClient_ImagePush_Call) Run(run func(ctx context.Context, ref string, options image.PushOptions)) *APIClient_ImagePush_Call {
+func (_c *APIClient_ImagePush_Call) Run(run func(ctx context.Context, ref string, options client.ImagePushOptions)) *APIClient_ImagePush_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -4163,9 +4067,9 @@ func (_c *APIClient_ImagePush_Call) Run(run func(ctx context.Context, ref string
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 image.PushOptions
+		var arg2 client.ImagePushOptions
 		if args[2] != nil {
-			arg2 = args[2].(image.PushOptions)
+			arg2 = args[2].(client.ImagePushOptions)
 		}
 		run(
 			arg0,
@@ -4176,38 +4080,36 @@ func (_c *APIClient_ImagePush_Call) Run(run func(ctx context.Context, ref string
 	return _c
 }
 
-func (_c *APIClient_ImagePush_Call) Return(readCloser io.ReadCloser, err error) *APIClient_ImagePush_Call {
-	_c.Call.Return(readCloser, err)
+func (_c *APIClient_ImagePush_Call) Return(imagePushResponse client.ImagePushResponse, err error) *APIClient_ImagePush_Call {
+	_c.Call.Return(imagePushResponse, err)
 	return _c
 }
 
-func (_c *APIClient_ImagePush_Call) RunAndReturn(run func(ctx context.Context, ref string, options image.PushOptions) (io.ReadCloser, error)) *APIClient_ImagePush_Call {
+func (_c *APIClient_ImagePush_Call) RunAndReturn(run func(ctx context.Context, ref string, options client.ImagePushOptions) (client.ImagePushResponse, error)) *APIClient_ImagePush_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ImageRemove provides a mock function for the type APIClient
-func (_mock *APIClient) ImageRemove(ctx context.Context, image1 string, options image.RemoveOptions) ([]image.DeleteResponse, error) {
-	ret := _mock.Called(ctx, image1, options)
+func (_mock *APIClient) ImageRemove(ctx context.Context, image string, options client.ImageRemoveOptions) (client.ImageRemoveResult, error) {
+	ret := _mock.Called(ctx, image, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ImageRemove")
 	}
 
-	var r0 []image.DeleteResponse
+	var r0 client.ImageRemoveResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, image.RemoveOptions) ([]image.DeleteResponse, error)); ok {
-		return returnFunc(ctx, image1, options)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ImageRemoveOptions) (client.ImageRemoveResult, error)); ok {
+		return returnFunc(ctx, image, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, image.RemoveOptions) []image.DeleteResponse); ok {
-		r0 = returnFunc(ctx, image1, options)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ImageRemoveOptions) client.ImageRemoveResult); ok {
+		r0 = returnFunc(ctx, image, options)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]image.DeleteResponse)
-		}
+		r0 = ret.Get(0).(client.ImageRemoveResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, image.RemoveOptions) error); ok {
-		r1 = returnFunc(ctx, image1, options)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ImageRemoveOptions) error); ok {
+		r1 = returnFunc(ctx, image, options)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -4221,13 +4123,13 @@ type APIClient_ImageRemove_Call struct {
 
 // ImageRemove is a helper method to define mock.On call
 //   - ctx context.Context
-//   - image1 string
-//   - options image.RemoveOptions
-func (_e *APIClient_Expecter) ImageRemove(ctx any, image1 any, options any) *APIClient_ImageRemove_Call {
-	return &APIClient_ImageRemove_Call{Call: _e.mock.On("ImageRemove", ctx, image1, options)}
+//   - image string
+//   - options client.ImageRemoveOptions
+func (_e *APIClient_Expecter) ImageRemove(ctx any, image any, options any) *APIClient_ImageRemove_Call {
+	return &APIClient_ImageRemove_Call{Call: _e.mock.On("ImageRemove", ctx, image, options)}
 }
 
-func (_c *APIClient_ImageRemove_Call) Run(run func(ctx context.Context, image1 string, options image.RemoveOptions)) *APIClient_ImageRemove_Call {
+func (_c *APIClient_ImageRemove_Call) Run(run func(ctx context.Context, image string, options client.ImageRemoveOptions)) *APIClient_ImageRemove_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -4237,9 +4139,9 @@ func (_c *APIClient_ImageRemove_Call) Run(run func(ctx context.Context, image1 s
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 image.RemoveOptions
+		var arg2 client.ImageRemoveOptions
 		if args[2] != nil {
-			arg2 = args[2].(image.RemoveOptions)
+			arg2 = args[2].(client.ImageRemoveOptions)
 		}
 		run(
 			arg0,
@@ -4250,18 +4152,18 @@ func (_c *APIClient_ImageRemove_Call) Run(run func(ctx context.Context, image1 s
 	return _c
 }
 
-func (_c *APIClient_ImageRemove_Call) Return(deleteResponses []image.DeleteResponse, err error) *APIClient_ImageRemove_Call {
-	_c.Call.Return(deleteResponses, err)
+func (_c *APIClient_ImageRemove_Call) Return(imageRemoveResult client.ImageRemoveResult, err error) *APIClient_ImageRemove_Call {
+	_c.Call.Return(imageRemoveResult, err)
 	return _c
 }
 
-func (_c *APIClient_ImageRemove_Call) RunAndReturn(run func(ctx context.Context, image1 string, options image.RemoveOptions) ([]image.DeleteResponse, error)) *APIClient_ImageRemove_Call {
+func (_c *APIClient_ImageRemove_Call) RunAndReturn(run func(ctx context.Context, image string, options client.ImageRemoveOptions) (client.ImageRemoveResult, error)) *APIClient_ImageRemove_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ImageSave provides a mock function for the type APIClient
-func (_mock *APIClient) ImageSave(ctx context.Context, images []string, imageSaveOptions ...client.ImageSaveOption) (io.ReadCloser, error) {
+func (_mock *APIClient) ImageSave(ctx context.Context, images []string, imageSaveOptions ...client.ImageSaveOption) (client.ImageSaveResult, error) {
 	var tmpRet mock.Arguments
 	if len(imageSaveOptions) > 0 {
 		tmpRet = _mock.Called(ctx, images, imageSaveOptions)
@@ -4274,16 +4176,16 @@ func (_mock *APIClient) ImageSave(ctx context.Context, images []string, imageSav
 		panic("no return value specified for ImageSave")
 	}
 
-	var r0 io.ReadCloser
+	var r0 client.ImageSaveResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, []string, ...client.ImageSaveOption) (io.ReadCloser, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []string, ...client.ImageSaveOption) (client.ImageSaveResult, error)); ok {
 		return returnFunc(ctx, images, imageSaveOptions...)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, []string, ...client.ImageSaveOption) io.ReadCloser); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []string, ...client.ImageSaveOption) client.ImageSaveResult); ok {
 		r0 = returnFunc(ctx, images, imageSaveOptions...)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(io.ReadCloser)
+			r0 = ret.Get(0).(client.ImageSaveResult)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, []string, ...client.ImageSaveOption) error); ok {
@@ -4333,37 +4235,35 @@ func (_c *APIClient_ImageSave_Call) Run(run func(ctx context.Context, images []s
 	return _c
 }
 
-func (_c *APIClient_ImageSave_Call) Return(readCloser io.ReadCloser, err error) *APIClient_ImageSave_Call {
-	_c.Call.Return(readCloser, err)
+func (_c *APIClient_ImageSave_Call) Return(imageSaveResult client.ImageSaveResult, err error) *APIClient_ImageSave_Call {
+	_c.Call.Return(imageSaveResult, err)
 	return _c
 }
 
-func (_c *APIClient_ImageSave_Call) RunAndReturn(run func(ctx context.Context, images []string, imageSaveOptions ...client.ImageSaveOption) (io.ReadCloser, error)) *APIClient_ImageSave_Call {
+func (_c *APIClient_ImageSave_Call) RunAndReturn(run func(ctx context.Context, images []string, imageSaveOptions ...client.ImageSaveOption) (client.ImageSaveResult, error)) *APIClient_ImageSave_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ImageSearch provides a mock function for the type APIClient
-func (_mock *APIClient) ImageSearch(ctx context.Context, term string, options registry.SearchOptions) ([]registry.SearchResult, error) {
+func (_mock *APIClient) ImageSearch(ctx context.Context, term string, options client.ImageSearchOptions) (client.ImageSearchResult, error) {
 	ret := _mock.Called(ctx, term, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ImageSearch")
 	}
 
-	var r0 []registry.SearchResult
+	var r0 client.ImageSearchResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, registry.SearchOptions) ([]registry.SearchResult, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ImageSearchOptions) (client.ImageSearchResult, error)); ok {
 		return returnFunc(ctx, term, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, registry.SearchOptions) []registry.SearchResult); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ImageSearchOptions) client.ImageSearchResult); ok {
 		r0 = returnFunc(ctx, term, options)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]registry.SearchResult)
-		}
+		r0 = ret.Get(0).(client.ImageSearchResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, registry.SearchOptions) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ImageSearchOptions) error); ok {
 		r1 = returnFunc(ctx, term, options)
 	} else {
 		r1 = ret.Error(1)
@@ -4379,12 +4279,12 @@ type APIClient_ImageSearch_Call struct {
 // ImageSearch is a helper method to define mock.On call
 //   - ctx context.Context
 //   - term string
-//   - options registry.SearchOptions
+//   - options client.ImageSearchOptions
 func (_e *APIClient_Expecter) ImageSearch(ctx any, term any, options any) *APIClient_ImageSearch_Call {
 	return &APIClient_ImageSearch_Call{Call: _e.mock.On("ImageSearch", ctx, term, options)}
 }
 
-func (_c *APIClient_ImageSearch_Call) Run(run func(ctx context.Context, term string, options registry.SearchOptions)) *APIClient_ImageSearch_Call {
+func (_c *APIClient_ImageSearch_Call) Run(run func(ctx context.Context, term string, options client.ImageSearchOptions)) *APIClient_ImageSearch_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -4394,9 +4294,9 @@ func (_c *APIClient_ImageSearch_Call) Run(run func(ctx context.Context, term str
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 registry.SearchOptions
+		var arg2 client.ImageSearchOptions
 		if args[2] != nil {
-			arg2 = args[2].(registry.SearchOptions)
+			arg2 = args[2].(client.ImageSearchOptions)
 		}
 		run(
 			arg0,
@@ -4407,31 +4307,40 @@ func (_c *APIClient_ImageSearch_Call) Run(run func(ctx context.Context, term str
 	return _c
 }
 
-func (_c *APIClient_ImageSearch_Call) Return(searchResults []registry.SearchResult, err error) *APIClient_ImageSearch_Call {
-	_c.Call.Return(searchResults, err)
+func (_c *APIClient_ImageSearch_Call) Return(imageSearchResult client.ImageSearchResult, err error) *APIClient_ImageSearch_Call {
+	_c.Call.Return(imageSearchResult, err)
 	return _c
 }
 
-func (_c *APIClient_ImageSearch_Call) RunAndReturn(run func(ctx context.Context, term string, options registry.SearchOptions) ([]registry.SearchResult, error)) *APIClient_ImageSearch_Call {
+func (_c *APIClient_ImageSearch_Call) RunAndReturn(run func(ctx context.Context, term string, options client.ImageSearchOptions) (client.ImageSearchResult, error)) *APIClient_ImageSearch_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ImageTag provides a mock function for the type APIClient
-func (_mock *APIClient) ImageTag(ctx context.Context, image1 string, ref string) error {
-	ret := _mock.Called(ctx, image1, ref)
+func (_mock *APIClient) ImageTag(ctx context.Context, options client.ImageTagOptions) (client.ImageTagResult, error) {
+	ret := _mock.Called(ctx, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ImageTag")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
-		r0 = returnFunc(ctx, image1, ref)
-	} else {
-		r0 = ret.Error(0)
+	var r0 client.ImageTagResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.ImageTagOptions) (client.ImageTagResult, error)); ok {
+		return returnFunc(ctx, options)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.ImageTagOptions) client.ImageTagResult); ok {
+		r0 = returnFunc(ctx, options)
+	} else {
+		r0 = ret.Get(0).(client.ImageTagResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.ImageTagOptions) error); ok {
+		r1 = returnFunc(ctx, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_ImageTag_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ImageTag'
@@ -4441,92 +4350,20 @@ type APIClient_ImageTag_Call struct {
 
 // ImageTag is a helper method to define mock.On call
 //   - ctx context.Context
-//   - image1 string
-//   - ref string
-func (_e *APIClient_Expecter) ImageTag(ctx any, image1 any, ref any) *APIClient_ImageTag_Call {
-	return &APIClient_ImageTag_Call{Call: _e.mock.On("ImageTag", ctx, image1, ref)}
+//   - options client.ImageTagOptions
+func (_e *APIClient_Expecter) ImageTag(ctx any, options any) *APIClient_ImageTag_Call {
+	return &APIClient_ImageTag_Call{Call: _e.mock.On("ImageTag", ctx, options)}
 }
 
-func (_c *APIClient_ImageTag_Call) Run(run func(ctx context.Context, image1 string, ref string)) *APIClient_ImageTag_Call {
+func (_c *APIClient_ImageTag_Call) Run(run func(ctx context.Context, options client.ImageTagOptions)) *APIClient_ImageTag_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 string
+		var arg1 client.ImageTagOptions
 		if args[1] != nil {
-			arg1 = args[1].(string)
-		}
-		var arg2 string
-		if args[2] != nil {
-			arg2 = args[2].(string)
-		}
-		run(
-			arg0,
-			arg1,
-			arg2,
-		)
-	})
-	return _c
-}
-
-func (_c *APIClient_ImageTag_Call) Return(err error) *APIClient_ImageTag_Call {
-	_c.Call.Return(err)
-	return _c
-}
-
-func (_c *APIClient_ImageTag_Call) RunAndReturn(run func(ctx context.Context, image1 string, ref string) error) *APIClient_ImageTag_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// ImagesPrune provides a mock function for the type APIClient
-func (_mock *APIClient) ImagesPrune(ctx context.Context, pruneFilter filters.Args) (image.PruneReport, error) {
-	ret := _mock.Called(ctx, pruneFilter)
-
-	if len(ret) == 0 {
-		panic("no return value specified for ImagesPrune")
-	}
-
-	var r0 image.PruneReport
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, filters.Args) (image.PruneReport, error)); ok {
-		return returnFunc(ctx, pruneFilter)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, filters.Args) image.PruneReport); ok {
-		r0 = returnFunc(ctx, pruneFilter)
-	} else {
-		r0 = ret.Get(0).(image.PruneReport)
-	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, filters.Args) error); ok {
-		r1 = returnFunc(ctx, pruneFilter)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
-}
-
-// APIClient_ImagesPrune_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ImagesPrune'
-type APIClient_ImagesPrune_Call struct {
-	*mock.Call
-}
-
-// ImagesPrune is a helper method to define mock.On call
-//   - ctx context.Context
-//   - pruneFilter filters.Args
-func (_e *APIClient_Expecter) ImagesPrune(ctx any, pruneFilter any) *APIClient_ImagesPrune_Call {
-	return &APIClient_ImagesPrune_Call{Call: _e.mock.On("ImagesPrune", ctx, pruneFilter)}
-}
-
-func (_c *APIClient_ImagesPrune_Call) Run(run func(ctx context.Context, pruneFilter filters.Args)) *APIClient_ImagesPrune_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 filters.Args
-		if args[1] != nil {
-			arg1 = args[1].(filters.Args)
+			arg1 = args[1].(client.ImageTagOptions)
 		}
 		run(
 			arg0,
@@ -4536,36 +4373,36 @@ func (_c *APIClient_ImagesPrune_Call) Run(run func(ctx context.Context, pruneFil
 	return _c
 }
 
-func (_c *APIClient_ImagesPrune_Call) Return(pruneReport image.PruneReport, err error) *APIClient_ImagesPrune_Call {
-	_c.Call.Return(pruneReport, err)
+func (_c *APIClient_ImageTag_Call) Return(imageTagResult client.ImageTagResult, err error) *APIClient_ImageTag_Call {
+	_c.Call.Return(imageTagResult, err)
 	return _c
 }
 
-func (_c *APIClient_ImagesPrune_Call) RunAndReturn(run func(ctx context.Context, pruneFilter filters.Args) (image.PruneReport, error)) *APIClient_ImagesPrune_Call {
+func (_c *APIClient_ImageTag_Call) RunAndReturn(run func(ctx context.Context, options client.ImageTagOptions) (client.ImageTagResult, error)) *APIClient_ImageTag_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // Info provides a mock function for the type APIClient
-func (_mock *APIClient) Info(ctx context.Context) (system.Info, error) {
-	ret := _mock.Called(ctx)
+func (_mock *APIClient) Info(ctx context.Context, options client.InfoOptions) (client.SystemInfoResult, error) {
+	ret := _mock.Called(ctx, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Info")
 	}
 
-	var r0 system.Info
+	var r0 client.SystemInfoResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context) (system.Info, error)); ok {
-		return returnFunc(ctx)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.InfoOptions) (client.SystemInfoResult, error)); ok {
+		return returnFunc(ctx, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context) system.Info); ok {
-		r0 = returnFunc(ctx)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.InfoOptions) client.SystemInfoResult); ok {
+		r0 = returnFunc(ctx, options)
 	} else {
-		r0 = ret.Get(0).(system.Info)
+		r0 = ret.Get(0).(client.SystemInfoResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context) error); ok {
-		r1 = returnFunc(ctx)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.InfoOptions) error); ok {
+		r1 = returnFunc(ctx, options)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -4579,128 +4416,63 @@ type APIClient_Info_Call struct {
 
 // Info is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *APIClient_Expecter) Info(ctx any) *APIClient_Info_Call {
-	return &APIClient_Info_Call{Call: _e.mock.On("Info", ctx)}
+//   - options client.InfoOptions
+func (_e *APIClient_Expecter) Info(ctx any, options any) *APIClient_Info_Call {
+	return &APIClient_Info_Call{Call: _e.mock.On("Info", ctx, options)}
 }
 
-func (_c *APIClient_Info_Call) Run(run func(ctx context.Context)) *APIClient_Info_Call {
+func (_c *APIClient_Info_Call) Run(run func(ctx context.Context, options client.InfoOptions)) *APIClient_Info_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
+		var arg1 client.InfoOptions
+		if args[1] != nil {
+			arg1 = args[1].(client.InfoOptions)
+		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
 }
 
-func (_c *APIClient_Info_Call) Return(info system.Info, err error) *APIClient_Info_Call {
-	_c.Call.Return(info, err)
+func (_c *APIClient_Info_Call) Return(systemInfoResult client.SystemInfoResult, err error) *APIClient_Info_Call {
+	_c.Call.Return(systemInfoResult, err)
 	return _c
 }
 
-func (_c *APIClient_Info_Call) RunAndReturn(run func(ctx context.Context) (system.Info, error)) *APIClient_Info_Call {
+func (_c *APIClient_Info_Call) RunAndReturn(run func(ctx context.Context, options client.InfoOptions) (client.SystemInfoResult, error)) *APIClient_Info_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// NegotiateAPIVersion provides a mock function for the type APIClient
-func (_mock *APIClient) NegotiateAPIVersion(ctx context.Context) {
-	_mock.Called(ctx)
-	return
-}
-
-// APIClient_NegotiateAPIVersion_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'NegotiateAPIVersion'
-type APIClient_NegotiateAPIVersion_Call struct {
-	*mock.Call
-}
-
-// NegotiateAPIVersion is a helper method to define mock.On call
-//   - ctx context.Context
-func (_e *APIClient_Expecter) NegotiateAPIVersion(ctx any) *APIClient_NegotiateAPIVersion_Call {
-	return &APIClient_NegotiateAPIVersion_Call{Call: _e.mock.On("NegotiateAPIVersion", ctx)}
-}
-
-func (_c *APIClient_NegotiateAPIVersion_Call) Run(run func(ctx context.Context)) *APIClient_NegotiateAPIVersion_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		run(
-			arg0,
-		)
-	})
-	return _c
-}
-
-func (_c *APIClient_NegotiateAPIVersion_Call) Return() *APIClient_NegotiateAPIVersion_Call {
-	_c.Call.Return()
-	return _c
-}
-
-func (_c *APIClient_NegotiateAPIVersion_Call) RunAndReturn(run func(ctx context.Context)) *APIClient_NegotiateAPIVersion_Call {
-	_c.Run(run)
-	return _c
-}
-
-// NegotiateAPIVersionPing provides a mock function for the type APIClient
-func (_mock *APIClient) NegotiateAPIVersionPing(ping types.Ping) {
-	_mock.Called(ping)
-	return
-}
-
-// APIClient_NegotiateAPIVersionPing_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'NegotiateAPIVersionPing'
-type APIClient_NegotiateAPIVersionPing_Call struct {
-	*mock.Call
-}
-
-// NegotiateAPIVersionPing is a helper method to define mock.On call
-//   - ping types.Ping
-func (_e *APIClient_Expecter) NegotiateAPIVersionPing(ping any) *APIClient_NegotiateAPIVersionPing_Call {
-	return &APIClient_NegotiateAPIVersionPing_Call{Call: _e.mock.On("NegotiateAPIVersionPing", ping)}
-}
-
-func (_c *APIClient_NegotiateAPIVersionPing_Call) Run(run func(ping types.Ping)) *APIClient_NegotiateAPIVersionPing_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 types.Ping
-		if args[0] != nil {
-			arg0 = args[0].(types.Ping)
-		}
-		run(
-			arg0,
-		)
-	})
-	return _c
-}
-
-func (_c *APIClient_NegotiateAPIVersionPing_Call) Return() *APIClient_NegotiateAPIVersionPing_Call {
-	_c.Call.Return()
-	return _c
-}
-
-func (_c *APIClient_NegotiateAPIVersionPing_Call) RunAndReturn(run func(ping types.Ping)) *APIClient_NegotiateAPIVersionPing_Call {
-	_c.Run(run)
-	return _c
-}
-
 // NetworkConnect provides a mock function for the type APIClient
-func (_mock *APIClient) NetworkConnect(ctx context.Context, network1 string, container1 string, config *network.EndpointSettings) error {
-	ret := _mock.Called(ctx, network1, container1, config)
+func (_mock *APIClient) NetworkConnect(ctx context.Context, network string, options client.NetworkConnectOptions) (client.NetworkConnectResult, error) {
+	ret := _mock.Called(ctx, network, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for NetworkConnect")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, *network.EndpointSettings) error); ok {
-		r0 = returnFunc(ctx, network1, container1, config)
-	} else {
-		r0 = ret.Error(0)
+	var r0 client.NetworkConnectResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.NetworkConnectOptions) (client.NetworkConnectResult, error)); ok {
+		return returnFunc(ctx, network, options)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.NetworkConnectOptions) client.NetworkConnectResult); ok {
+		r0 = returnFunc(ctx, network, options)
+	} else {
+		r0 = ret.Get(0).(client.NetworkConnectResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.NetworkConnectOptions) error); ok {
+		r1 = returnFunc(ctx, network, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_NetworkConnect_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'NetworkConnect'
@@ -4710,14 +4482,13 @@ type APIClient_NetworkConnect_Call struct {
 
 // NetworkConnect is a helper method to define mock.On call
 //   - ctx context.Context
-//   - network1 string
-//   - container1 string
-//   - config *network.EndpointSettings
-func (_e *APIClient_Expecter) NetworkConnect(ctx any, network1 any, container1 any, config any) *APIClient_NetworkConnect_Call {
-	return &APIClient_NetworkConnect_Call{Call: _e.mock.On("NetworkConnect", ctx, network1, container1, config)}
+//   - network string
+//   - options client.NetworkConnectOptions
+func (_e *APIClient_Expecter) NetworkConnect(ctx any, network any, options any) *APIClient_NetworkConnect_Call {
+	return &APIClient_NetworkConnect_Call{Call: _e.mock.On("NetworkConnect", ctx, network, options)}
 }
 
-func (_c *APIClient_NetworkConnect_Call) Run(run func(ctx context.Context, network1 string, container1 string, config *network.EndpointSettings)) *APIClient_NetworkConnect_Call {
+func (_c *APIClient_NetworkConnect_Call) Run(run func(ctx context.Context, network string, options client.NetworkConnectOptions)) *APIClient_NetworkConnect_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -4727,53 +4498,48 @@ func (_c *APIClient_NetworkConnect_Call) Run(run func(ctx context.Context, netwo
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 string
+		var arg2 client.NetworkConnectOptions
 		if args[2] != nil {
-			arg2 = args[2].(string)
-		}
-		var arg3 *network.EndpointSettings
-		if args[3] != nil {
-			arg3 = args[3].(*network.EndpointSettings)
+			arg2 = args[2].(client.NetworkConnectOptions)
 		}
 		run(
 			arg0,
 			arg1,
 			arg2,
-			arg3,
 		)
 	})
 	return _c
 }
 
-func (_c *APIClient_NetworkConnect_Call) Return(err error) *APIClient_NetworkConnect_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_NetworkConnect_Call) Return(networkConnectResult client.NetworkConnectResult, err error) *APIClient_NetworkConnect_Call {
+	_c.Call.Return(networkConnectResult, err)
 	return _c
 }
 
-func (_c *APIClient_NetworkConnect_Call) RunAndReturn(run func(ctx context.Context, network1 string, container1 string, config *network.EndpointSettings) error) *APIClient_NetworkConnect_Call {
+func (_c *APIClient_NetworkConnect_Call) RunAndReturn(run func(ctx context.Context, network string, options client.NetworkConnectOptions) (client.NetworkConnectResult, error)) *APIClient_NetworkConnect_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // NetworkCreate provides a mock function for the type APIClient
-func (_mock *APIClient) NetworkCreate(ctx context.Context, name string, options network.CreateOptions) (network.CreateResponse, error) {
+func (_mock *APIClient) NetworkCreate(ctx context.Context, name string, options client.NetworkCreateOptions) (client.NetworkCreateResult, error) {
 	ret := _mock.Called(ctx, name, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for NetworkCreate")
 	}
 
-	var r0 network.CreateResponse
+	var r0 client.NetworkCreateResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, network.CreateOptions) (network.CreateResponse, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.NetworkCreateOptions) (client.NetworkCreateResult, error)); ok {
 		return returnFunc(ctx, name, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, network.CreateOptions) network.CreateResponse); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.NetworkCreateOptions) client.NetworkCreateResult); ok {
 		r0 = returnFunc(ctx, name, options)
 	} else {
-		r0 = ret.Get(0).(network.CreateResponse)
+		r0 = ret.Get(0).(client.NetworkCreateResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, network.CreateOptions) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.NetworkCreateOptions) error); ok {
 		r1 = returnFunc(ctx, name, options)
 	} else {
 		r1 = ret.Error(1)
@@ -4789,12 +4555,12 @@ type APIClient_NetworkCreate_Call struct {
 // NetworkCreate is a helper method to define mock.On call
 //   - ctx context.Context
 //   - name string
-//   - options network.CreateOptions
+//   - options client.NetworkCreateOptions
 func (_e *APIClient_Expecter) NetworkCreate(ctx any, name any, options any) *APIClient_NetworkCreate_Call {
 	return &APIClient_NetworkCreate_Call{Call: _e.mock.On("NetworkCreate", ctx, name, options)}
 }
 
-func (_c *APIClient_NetworkCreate_Call) Run(run func(ctx context.Context, name string, options network.CreateOptions)) *APIClient_NetworkCreate_Call {
+func (_c *APIClient_NetworkCreate_Call) Run(run func(ctx context.Context, name string, options client.NetworkCreateOptions)) *APIClient_NetworkCreate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -4804,9 +4570,9 @@ func (_c *APIClient_NetworkCreate_Call) Run(run func(ctx context.Context, name s
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 network.CreateOptions
+		var arg2 client.NetworkCreateOptions
 		if args[2] != nil {
-			arg2 = args[2].(network.CreateOptions)
+			arg2 = args[2].(client.NetworkCreateOptions)
 		}
 		run(
 			arg0,
@@ -4817,31 +4583,40 @@ func (_c *APIClient_NetworkCreate_Call) Run(run func(ctx context.Context, name s
 	return _c
 }
 
-func (_c *APIClient_NetworkCreate_Call) Return(createResponse network.CreateResponse, err error) *APIClient_NetworkCreate_Call {
-	_c.Call.Return(createResponse, err)
+func (_c *APIClient_NetworkCreate_Call) Return(networkCreateResult client.NetworkCreateResult, err error) *APIClient_NetworkCreate_Call {
+	_c.Call.Return(networkCreateResult, err)
 	return _c
 }
 
-func (_c *APIClient_NetworkCreate_Call) RunAndReturn(run func(ctx context.Context, name string, options network.CreateOptions) (network.CreateResponse, error)) *APIClient_NetworkCreate_Call {
+func (_c *APIClient_NetworkCreate_Call) RunAndReturn(run func(ctx context.Context, name string, options client.NetworkCreateOptions) (client.NetworkCreateResult, error)) *APIClient_NetworkCreate_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // NetworkDisconnect provides a mock function for the type APIClient
-func (_mock *APIClient) NetworkDisconnect(ctx context.Context, network1 string, container1 string, force bool) error {
-	ret := _mock.Called(ctx, network1, container1, force)
+func (_mock *APIClient) NetworkDisconnect(ctx context.Context, network string, options client.NetworkDisconnectOptions) (client.NetworkDisconnectResult, error) {
+	ret := _mock.Called(ctx, network, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for NetworkDisconnect")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, bool) error); ok {
-		r0 = returnFunc(ctx, network1, container1, force)
-	} else {
-		r0 = ret.Error(0)
+	var r0 client.NetworkDisconnectResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.NetworkDisconnectOptions) (client.NetworkDisconnectResult, error)); ok {
+		return returnFunc(ctx, network, options)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.NetworkDisconnectOptions) client.NetworkDisconnectResult); ok {
+		r0 = returnFunc(ctx, network, options)
+	} else {
+		r0 = ret.Get(0).(client.NetworkDisconnectResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.NetworkDisconnectOptions) error); ok {
+		r1 = returnFunc(ctx, network, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_NetworkDisconnect_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'NetworkDisconnect'
@@ -4851,14 +4626,13 @@ type APIClient_NetworkDisconnect_Call struct {
 
 // NetworkDisconnect is a helper method to define mock.On call
 //   - ctx context.Context
-//   - network1 string
-//   - container1 string
-//   - force bool
-func (_e *APIClient_Expecter) NetworkDisconnect(ctx any, network1 any, container1 any, force any) *APIClient_NetworkDisconnect_Call {
-	return &APIClient_NetworkDisconnect_Call{Call: _e.mock.On("NetworkDisconnect", ctx, network1, container1, force)}
+//   - network string
+//   - options client.NetworkDisconnectOptions
+func (_e *APIClient_Expecter) NetworkDisconnect(ctx any, network any, options any) *APIClient_NetworkDisconnect_Call {
+	return &APIClient_NetworkDisconnect_Call{Call: _e.mock.On("NetworkDisconnect", ctx, network, options)}
 }
 
-func (_c *APIClient_NetworkDisconnect_Call) Run(run func(ctx context.Context, network1 string, container1 string, force bool)) *APIClient_NetworkDisconnect_Call {
+func (_c *APIClient_NetworkDisconnect_Call) Run(run func(ctx context.Context, network string, options client.NetworkDisconnectOptions)) *APIClient_NetworkDisconnect_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -4868,54 +4642,49 @@ func (_c *APIClient_NetworkDisconnect_Call) Run(run func(ctx context.Context, ne
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 string
+		var arg2 client.NetworkDisconnectOptions
 		if args[2] != nil {
-			arg2 = args[2].(string)
-		}
-		var arg3 bool
-		if args[3] != nil {
-			arg3 = args[3].(bool)
+			arg2 = args[2].(client.NetworkDisconnectOptions)
 		}
 		run(
 			arg0,
 			arg1,
 			arg2,
-			arg3,
 		)
 	})
 	return _c
 }
 
-func (_c *APIClient_NetworkDisconnect_Call) Return(err error) *APIClient_NetworkDisconnect_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_NetworkDisconnect_Call) Return(networkDisconnectResult client.NetworkDisconnectResult, err error) *APIClient_NetworkDisconnect_Call {
+	_c.Call.Return(networkDisconnectResult, err)
 	return _c
 }
 
-func (_c *APIClient_NetworkDisconnect_Call) RunAndReturn(run func(ctx context.Context, network1 string, container1 string, force bool) error) *APIClient_NetworkDisconnect_Call {
+func (_c *APIClient_NetworkDisconnect_Call) RunAndReturn(run func(ctx context.Context, network string, options client.NetworkDisconnectOptions) (client.NetworkDisconnectResult, error)) *APIClient_NetworkDisconnect_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // NetworkInspect provides a mock function for the type APIClient
-func (_mock *APIClient) NetworkInspect(ctx context.Context, network1 string, options network.InspectOptions) (network.Inspect, error) {
-	ret := _mock.Called(ctx, network1, options)
+func (_mock *APIClient) NetworkInspect(ctx context.Context, network string, options client.NetworkInspectOptions) (client.NetworkInspectResult, error) {
+	ret := _mock.Called(ctx, network, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for NetworkInspect")
 	}
 
-	var r0 network.Inspect
+	var r0 client.NetworkInspectResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, network.InspectOptions) (network.Inspect, error)); ok {
-		return returnFunc(ctx, network1, options)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.NetworkInspectOptions) (client.NetworkInspectResult, error)); ok {
+		return returnFunc(ctx, network, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, network.InspectOptions) network.Inspect); ok {
-		r0 = returnFunc(ctx, network1, options)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.NetworkInspectOptions) client.NetworkInspectResult); ok {
+		r0 = returnFunc(ctx, network, options)
 	} else {
-		r0 = ret.Get(0).(network.Inspect)
+		r0 = ret.Get(0).(client.NetworkInspectResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, network.InspectOptions) error); ok {
-		r1 = returnFunc(ctx, network1, options)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.NetworkInspectOptions) error); ok {
+		r1 = returnFunc(ctx, network, options)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -4929,13 +4698,13 @@ type APIClient_NetworkInspect_Call struct {
 
 // NetworkInspect is a helper method to define mock.On call
 //   - ctx context.Context
-//   - network1 string
-//   - options network.InspectOptions
-func (_e *APIClient_Expecter) NetworkInspect(ctx any, network1 any, options any) *APIClient_NetworkInspect_Call {
-	return &APIClient_NetworkInspect_Call{Call: _e.mock.On("NetworkInspect", ctx, network1, options)}
+//   - network string
+//   - options client.NetworkInspectOptions
+func (_e *APIClient_Expecter) NetworkInspect(ctx any, network any, options any) *APIClient_NetworkInspect_Call {
+	return &APIClient_NetworkInspect_Call{Call: _e.mock.On("NetworkInspect", ctx, network, options)}
 }
 
-func (_c *APIClient_NetworkInspect_Call) Run(run func(ctx context.Context, network1 string, options network.InspectOptions)) *APIClient_NetworkInspect_Call {
+func (_c *APIClient_NetworkInspect_Call) Run(run func(ctx context.Context, network string, options client.NetworkInspectOptions)) *APIClient_NetworkInspect_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -4945,9 +4714,9 @@ func (_c *APIClient_NetworkInspect_Call) Run(run func(ctx context.Context, netwo
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 network.InspectOptions
+		var arg2 client.NetworkInspectOptions
 		if args[2] != nil {
-			arg2 = args[2].(network.InspectOptions)
+			arg2 = args[2].(client.NetworkInspectOptions)
 		}
 		run(
 			arg0,
@@ -4958,117 +4727,35 @@ func (_c *APIClient_NetworkInspect_Call) Run(run func(ctx context.Context, netwo
 	return _c
 }
 
-func (_c *APIClient_NetworkInspect_Call) Return(inspect network.Inspect, err error) *APIClient_NetworkInspect_Call {
-	_c.Call.Return(inspect, err)
+func (_c *APIClient_NetworkInspect_Call) Return(networkInspectResult client.NetworkInspectResult, err error) *APIClient_NetworkInspect_Call {
+	_c.Call.Return(networkInspectResult, err)
 	return _c
 }
 
-func (_c *APIClient_NetworkInspect_Call) RunAndReturn(run func(ctx context.Context, network1 string, options network.InspectOptions) (network.Inspect, error)) *APIClient_NetworkInspect_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// NetworkInspectWithRaw provides a mock function for the type APIClient
-func (_mock *APIClient) NetworkInspectWithRaw(ctx context.Context, network1 string, options network.InspectOptions) (network.Inspect, []byte, error) {
-	ret := _mock.Called(ctx, network1, options)
-
-	if len(ret) == 0 {
-		panic("no return value specified for NetworkInspectWithRaw")
-	}
-
-	var r0 network.Inspect
-	var r1 []byte
-	var r2 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, network.InspectOptions) (network.Inspect, []byte, error)); ok {
-		return returnFunc(ctx, network1, options)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, network.InspectOptions) network.Inspect); ok {
-		r0 = returnFunc(ctx, network1, options)
-	} else {
-		r0 = ret.Get(0).(network.Inspect)
-	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, network.InspectOptions) []byte); ok {
-		r1 = returnFunc(ctx, network1, options)
-	} else {
-		if ret.Get(1) != nil {
-			r1 = ret.Get(1).([]byte)
-		}
-	}
-	if returnFunc, ok := ret.Get(2).(func(context.Context, string, network.InspectOptions) error); ok {
-		r2 = returnFunc(ctx, network1, options)
-	} else {
-		r2 = ret.Error(2)
-	}
-	return r0, r1, r2
-}
-
-// APIClient_NetworkInspectWithRaw_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'NetworkInspectWithRaw'
-type APIClient_NetworkInspectWithRaw_Call struct {
-	*mock.Call
-}
-
-// NetworkInspectWithRaw is a helper method to define mock.On call
-//   - ctx context.Context
-//   - network1 string
-//   - options network.InspectOptions
-func (_e *APIClient_Expecter) NetworkInspectWithRaw(ctx any, network1 any, options any) *APIClient_NetworkInspectWithRaw_Call {
-	return &APIClient_NetworkInspectWithRaw_Call{Call: _e.mock.On("NetworkInspectWithRaw", ctx, network1, options)}
-}
-
-func (_c *APIClient_NetworkInspectWithRaw_Call) Run(run func(ctx context.Context, network1 string, options network.InspectOptions)) *APIClient_NetworkInspectWithRaw_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 string
-		if args[1] != nil {
-			arg1 = args[1].(string)
-		}
-		var arg2 network.InspectOptions
-		if args[2] != nil {
-			arg2 = args[2].(network.InspectOptions)
-		}
-		run(
-			arg0,
-			arg1,
-			arg2,
-		)
-	})
-	return _c
-}
-
-func (_c *APIClient_NetworkInspectWithRaw_Call) Return(inspect network.Inspect, bytes []byte, err error) *APIClient_NetworkInspectWithRaw_Call {
-	_c.Call.Return(inspect, bytes, err)
-	return _c
-}
-
-func (_c *APIClient_NetworkInspectWithRaw_Call) RunAndReturn(run func(ctx context.Context, network1 string, options network.InspectOptions) (network.Inspect, []byte, error)) *APIClient_NetworkInspectWithRaw_Call {
+func (_c *APIClient_NetworkInspect_Call) RunAndReturn(run func(ctx context.Context, network string, options client.NetworkInspectOptions) (client.NetworkInspectResult, error)) *APIClient_NetworkInspect_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // NetworkList provides a mock function for the type APIClient
-func (_mock *APIClient) NetworkList(ctx context.Context, options network.ListOptions) ([]network.Summary, error) {
+func (_mock *APIClient) NetworkList(ctx context.Context, options client.NetworkListOptions) (client.NetworkListResult, error) {
 	ret := _mock.Called(ctx, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for NetworkList")
 	}
 
-	var r0 []network.Summary
+	var r0 client.NetworkListResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, network.ListOptions) ([]network.Summary, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.NetworkListOptions) (client.NetworkListResult, error)); ok {
 		return returnFunc(ctx, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, network.ListOptions) []network.Summary); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.NetworkListOptions) client.NetworkListResult); ok {
 		r0 = returnFunc(ctx, options)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]network.Summary)
-		}
+		r0 = ret.Get(0).(client.NetworkListResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, network.ListOptions) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.NetworkListOptions) error); ok {
 		r1 = returnFunc(ctx, options)
 	} else {
 		r1 = ret.Error(1)
@@ -5083,20 +4770,20 @@ type APIClient_NetworkList_Call struct {
 
 // NetworkList is a helper method to define mock.On call
 //   - ctx context.Context
-//   - options network.ListOptions
+//   - options client.NetworkListOptions
 func (_e *APIClient_Expecter) NetworkList(ctx any, options any) *APIClient_NetworkList_Call {
 	return &APIClient_NetworkList_Call{Call: _e.mock.On("NetworkList", ctx, options)}
 }
 
-func (_c *APIClient_NetworkList_Call) Run(run func(ctx context.Context, options network.ListOptions)) *APIClient_NetworkList_Call {
+func (_c *APIClient_NetworkList_Call) Run(run func(ctx context.Context, options client.NetworkListOptions)) *APIClient_NetworkList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 network.ListOptions
+		var arg1 client.NetworkListOptions
 		if args[1] != nil {
-			arg1 = args[1].(network.ListOptions)
+			arg1 = args[1].(client.NetworkListOptions)
 		}
 		run(
 			arg0,
@@ -5106,31 +4793,106 @@ func (_c *APIClient_NetworkList_Call) Run(run func(ctx context.Context, options 
 	return _c
 }
 
-func (_c *APIClient_NetworkList_Call) Return(summarys []network.Summary, err error) *APIClient_NetworkList_Call {
-	_c.Call.Return(summarys, err)
+func (_c *APIClient_NetworkList_Call) Return(networkListResult client.NetworkListResult, err error) *APIClient_NetworkList_Call {
+	_c.Call.Return(networkListResult, err)
 	return _c
 }
 
-func (_c *APIClient_NetworkList_Call) RunAndReturn(run func(ctx context.Context, options network.ListOptions) ([]network.Summary, error)) *APIClient_NetworkList_Call {
+func (_c *APIClient_NetworkList_Call) RunAndReturn(run func(ctx context.Context, options client.NetworkListOptions) (client.NetworkListResult, error)) *APIClient_NetworkList_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// NetworkPrune provides a mock function for the type APIClient
+func (_mock *APIClient) NetworkPrune(ctx context.Context, opts client.NetworkPruneOptions) (client.NetworkPruneResult, error) {
+	ret := _mock.Called(ctx, opts)
+
+	if len(ret) == 0 {
+		panic("no return value specified for NetworkPrune")
+	}
+
+	var r0 client.NetworkPruneResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.NetworkPruneOptions) (client.NetworkPruneResult, error)); ok {
+		return returnFunc(ctx, opts)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.NetworkPruneOptions) client.NetworkPruneResult); ok {
+		r0 = returnFunc(ctx, opts)
+	} else {
+		r0 = ret.Get(0).(client.NetworkPruneResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.NetworkPruneOptions) error); ok {
+		r1 = returnFunc(ctx, opts)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// APIClient_NetworkPrune_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'NetworkPrune'
+type APIClient_NetworkPrune_Call struct {
+	*mock.Call
+}
+
+// NetworkPrune is a helper method to define mock.On call
+//   - ctx context.Context
+//   - opts client.NetworkPruneOptions
+func (_e *APIClient_Expecter) NetworkPrune(ctx any, opts any) *APIClient_NetworkPrune_Call {
+	return &APIClient_NetworkPrune_Call{Call: _e.mock.On("NetworkPrune", ctx, opts)}
+}
+
+func (_c *APIClient_NetworkPrune_Call) Run(run func(ctx context.Context, opts client.NetworkPruneOptions)) *APIClient_NetworkPrune_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 client.NetworkPruneOptions
+		if args[1] != nil {
+			arg1 = args[1].(client.NetworkPruneOptions)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *APIClient_NetworkPrune_Call) Return(networkPruneResult client.NetworkPruneResult, err error) *APIClient_NetworkPrune_Call {
+	_c.Call.Return(networkPruneResult, err)
+	return _c
+}
+
+func (_c *APIClient_NetworkPrune_Call) RunAndReturn(run func(ctx context.Context, opts client.NetworkPruneOptions) (client.NetworkPruneResult, error)) *APIClient_NetworkPrune_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // NetworkRemove provides a mock function for the type APIClient
-func (_mock *APIClient) NetworkRemove(ctx context.Context, network1 string) error {
-	ret := _mock.Called(ctx, network1)
+func (_mock *APIClient) NetworkRemove(ctx context.Context, network string, options client.NetworkRemoveOptions) (client.NetworkRemoveResult, error) {
+	ret := _mock.Called(ctx, network, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for NetworkRemove")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) error); ok {
-		r0 = returnFunc(ctx, network1)
-	} else {
-		r0 = ret.Error(0)
+	var r0 client.NetworkRemoveResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.NetworkRemoveOptions) (client.NetworkRemoveResult, error)); ok {
+		return returnFunc(ctx, network, options)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.NetworkRemoveOptions) client.NetworkRemoveResult); ok {
+		r0 = returnFunc(ctx, network, options)
+	} else {
+		r0 = ret.Get(0).(client.NetworkRemoveResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.NetworkRemoveOptions) error); ok {
+		r1 = returnFunc(ctx, network, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_NetworkRemove_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'NetworkRemove'
@@ -5140,12 +4902,13 @@ type APIClient_NetworkRemove_Call struct {
 
 // NetworkRemove is a helper method to define mock.On call
 //   - ctx context.Context
-//   - network1 string
-func (_e *APIClient_Expecter) NetworkRemove(ctx any, network1 any) *APIClient_NetworkRemove_Call {
-	return &APIClient_NetworkRemove_Call{Call: _e.mock.On("NetworkRemove", ctx, network1)}
+//   - network string
+//   - options client.NetworkRemoveOptions
+func (_e *APIClient_Expecter) NetworkRemove(ctx any, network any, options any) *APIClient_NetworkRemove_Call {
+	return &APIClient_NetworkRemove_Call{Call: _e.mock.On("NetworkRemove", ctx, network, options)}
 }
 
-func (_c *APIClient_NetworkRemove_Call) Run(run func(ctx context.Context, network1 string)) *APIClient_NetworkRemove_Call {
+func (_c *APIClient_NetworkRemove_Call) Run(run func(ctx context.Context, network string, options client.NetworkRemoveOptions)) *APIClient_NetworkRemove_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -5155,137 +4918,69 @@ func (_c *APIClient_NetworkRemove_Call) Run(run func(ctx context.Context, networ
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
+		var arg2 client.NetworkRemoveOptions
+		if args[2] != nil {
+			arg2 = args[2].(client.NetworkRemoveOptions)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
 }
 
-func (_c *APIClient_NetworkRemove_Call) Return(err error) *APIClient_NetworkRemove_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_NetworkRemove_Call) Return(networkRemoveResult client.NetworkRemoveResult, err error) *APIClient_NetworkRemove_Call {
+	_c.Call.Return(networkRemoveResult, err)
 	return _c
 }
 
-func (_c *APIClient_NetworkRemove_Call) RunAndReturn(run func(ctx context.Context, network1 string) error) *APIClient_NetworkRemove_Call {
+func (_c *APIClient_NetworkRemove_Call) RunAndReturn(run func(ctx context.Context, network string, options client.NetworkRemoveOptions) (client.NetworkRemoveResult, error)) *APIClient_NetworkRemove_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// NetworksPrune provides a mock function for the type APIClient
-func (_mock *APIClient) NetworksPrune(ctx context.Context, pruneFilter filters.Args) (network.PruneReport, error) {
-	ret := _mock.Called(ctx, pruneFilter)
+// NodeInspect provides a mock function for the type APIClient
+func (_mock *APIClient) NodeInspect(ctx context.Context, nodeID string, options client.NodeInspectOptions) (client.NodeInspectResult, error) {
+	ret := _mock.Called(ctx, nodeID, options)
 
 	if len(ret) == 0 {
-		panic("no return value specified for NetworksPrune")
+		panic("no return value specified for NodeInspect")
 	}
 
-	var r0 network.PruneReport
+	var r0 client.NodeInspectResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, filters.Args) (network.PruneReport, error)); ok {
-		return returnFunc(ctx, pruneFilter)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.NodeInspectOptions) (client.NodeInspectResult, error)); ok {
+		return returnFunc(ctx, nodeID, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, filters.Args) network.PruneReport); ok {
-		r0 = returnFunc(ctx, pruneFilter)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.NodeInspectOptions) client.NodeInspectResult); ok {
+		r0 = returnFunc(ctx, nodeID, options)
 	} else {
-		r0 = ret.Get(0).(network.PruneReport)
+		r0 = ret.Get(0).(client.NodeInspectResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, filters.Args) error); ok {
-		r1 = returnFunc(ctx, pruneFilter)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.NodeInspectOptions) error); ok {
+		r1 = returnFunc(ctx, nodeID, options)
 	} else {
 		r1 = ret.Error(1)
 	}
 	return r0, r1
 }
 
-// APIClient_NetworksPrune_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'NetworksPrune'
-type APIClient_NetworksPrune_Call struct {
+// APIClient_NodeInspect_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'NodeInspect'
+type APIClient_NodeInspect_Call struct {
 	*mock.Call
 }
 
-// NetworksPrune is a helper method to define mock.On call
-//   - ctx context.Context
-//   - pruneFilter filters.Args
-func (_e *APIClient_Expecter) NetworksPrune(ctx any, pruneFilter any) *APIClient_NetworksPrune_Call {
-	return &APIClient_NetworksPrune_Call{Call: _e.mock.On("NetworksPrune", ctx, pruneFilter)}
-}
-
-func (_c *APIClient_NetworksPrune_Call) Run(run func(ctx context.Context, pruneFilter filters.Args)) *APIClient_NetworksPrune_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 filters.Args
-		if args[1] != nil {
-			arg1 = args[1].(filters.Args)
-		}
-		run(
-			arg0,
-			arg1,
-		)
-	})
-	return _c
-}
-
-func (_c *APIClient_NetworksPrune_Call) Return(pruneReport network.PruneReport, err error) *APIClient_NetworksPrune_Call {
-	_c.Call.Return(pruneReport, err)
-	return _c
-}
-
-func (_c *APIClient_NetworksPrune_Call) RunAndReturn(run func(ctx context.Context, pruneFilter filters.Args) (network.PruneReport, error)) *APIClient_NetworksPrune_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// NodeInspectWithRaw provides a mock function for the type APIClient
-func (_mock *APIClient) NodeInspectWithRaw(ctx context.Context, nodeID string) (swarm.Node, []byte, error) {
-	ret := _mock.Called(ctx, nodeID)
-
-	if len(ret) == 0 {
-		panic("no return value specified for NodeInspectWithRaw")
-	}
-
-	var r0 swarm.Node
-	var r1 []byte
-	var r2 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (swarm.Node, []byte, error)); ok {
-		return returnFunc(ctx, nodeID)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) swarm.Node); ok {
-		r0 = returnFunc(ctx, nodeID)
-	} else {
-		r0 = ret.Get(0).(swarm.Node)
-	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string) []byte); ok {
-		r1 = returnFunc(ctx, nodeID)
-	} else {
-		if ret.Get(1) != nil {
-			r1 = ret.Get(1).([]byte)
-		}
-	}
-	if returnFunc, ok := ret.Get(2).(func(context.Context, string) error); ok {
-		r2 = returnFunc(ctx, nodeID)
-	} else {
-		r2 = ret.Error(2)
-	}
-	return r0, r1, r2
-}
-
-// APIClient_NodeInspectWithRaw_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'NodeInspectWithRaw'
-type APIClient_NodeInspectWithRaw_Call struct {
-	*mock.Call
-}
-
-// NodeInspectWithRaw is a helper method to define mock.On call
+// NodeInspect is a helper method to define mock.On call
 //   - ctx context.Context
 //   - nodeID string
-func (_e *APIClient_Expecter) NodeInspectWithRaw(ctx any, nodeID any) *APIClient_NodeInspectWithRaw_Call {
-	return &APIClient_NodeInspectWithRaw_Call{Call: _e.mock.On("NodeInspectWithRaw", ctx, nodeID)}
+//   - options client.NodeInspectOptions
+func (_e *APIClient_Expecter) NodeInspect(ctx any, nodeID any, options any) *APIClient_NodeInspect_Call {
+	return &APIClient_NodeInspect_Call{Call: _e.mock.On("NodeInspect", ctx, nodeID, options)}
 }
 
-func (_c *APIClient_NodeInspectWithRaw_Call) Run(run func(ctx context.Context, nodeID string)) *APIClient_NodeInspectWithRaw_Call {
+func (_c *APIClient_NodeInspect_Call) Run(run func(ctx context.Context, nodeID string, options client.NodeInspectOptions)) *APIClient_NodeInspect_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -5295,45 +4990,48 @@ func (_c *APIClient_NodeInspectWithRaw_Call) Run(run func(ctx context.Context, n
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
+		var arg2 client.NodeInspectOptions
+		if args[2] != nil {
+			arg2 = args[2].(client.NodeInspectOptions)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
 }
 
-func (_c *APIClient_NodeInspectWithRaw_Call) Return(node swarm.Node, bytes []byte, err error) *APIClient_NodeInspectWithRaw_Call {
-	_c.Call.Return(node, bytes, err)
+func (_c *APIClient_NodeInspect_Call) Return(nodeInspectResult client.NodeInspectResult, err error) *APIClient_NodeInspect_Call {
+	_c.Call.Return(nodeInspectResult, err)
 	return _c
 }
 
-func (_c *APIClient_NodeInspectWithRaw_Call) RunAndReturn(run func(ctx context.Context, nodeID string) (swarm.Node, []byte, error)) *APIClient_NodeInspectWithRaw_Call {
+func (_c *APIClient_NodeInspect_Call) RunAndReturn(run func(ctx context.Context, nodeID string, options client.NodeInspectOptions) (client.NodeInspectResult, error)) *APIClient_NodeInspect_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // NodeList provides a mock function for the type APIClient
-func (_mock *APIClient) NodeList(ctx context.Context, options swarm.NodeListOptions) ([]swarm.Node, error) {
+func (_mock *APIClient) NodeList(ctx context.Context, options client.NodeListOptions) (client.NodeListResult, error) {
 	ret := _mock.Called(ctx, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for NodeList")
 	}
 
-	var r0 []swarm.Node
+	var r0 client.NodeListResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, swarm.NodeListOptions) ([]swarm.Node, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.NodeListOptions) (client.NodeListResult, error)); ok {
 		return returnFunc(ctx, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, swarm.NodeListOptions) []swarm.Node); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.NodeListOptions) client.NodeListResult); ok {
 		r0 = returnFunc(ctx, options)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]swarm.Node)
-		}
+		r0 = ret.Get(0).(client.NodeListResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, swarm.NodeListOptions) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.NodeListOptions) error); ok {
 		r1 = returnFunc(ctx, options)
 	} else {
 		r1 = ret.Error(1)
@@ -5348,20 +5046,20 @@ type APIClient_NodeList_Call struct {
 
 // NodeList is a helper method to define mock.On call
 //   - ctx context.Context
-//   - options swarm.NodeListOptions
+//   - options client.NodeListOptions
 func (_e *APIClient_Expecter) NodeList(ctx any, options any) *APIClient_NodeList_Call {
 	return &APIClient_NodeList_Call{Call: _e.mock.On("NodeList", ctx, options)}
 }
 
-func (_c *APIClient_NodeList_Call) Run(run func(ctx context.Context, options swarm.NodeListOptions)) *APIClient_NodeList_Call {
+func (_c *APIClient_NodeList_Call) Run(run func(ctx context.Context, options client.NodeListOptions)) *APIClient_NodeList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 swarm.NodeListOptions
+		var arg1 client.NodeListOptions
 		if args[1] != nil {
-			arg1 = args[1].(swarm.NodeListOptions)
+			arg1 = args[1].(client.NodeListOptions)
 		}
 		run(
 			arg0,
@@ -5371,31 +5069,40 @@ func (_c *APIClient_NodeList_Call) Run(run func(ctx context.Context, options swa
 	return _c
 }
 
-func (_c *APIClient_NodeList_Call) Return(nodes []swarm.Node, err error) *APIClient_NodeList_Call {
-	_c.Call.Return(nodes, err)
+func (_c *APIClient_NodeList_Call) Return(nodeListResult client.NodeListResult, err error) *APIClient_NodeList_Call {
+	_c.Call.Return(nodeListResult, err)
 	return _c
 }
 
-func (_c *APIClient_NodeList_Call) RunAndReturn(run func(ctx context.Context, options swarm.NodeListOptions) ([]swarm.Node, error)) *APIClient_NodeList_Call {
+func (_c *APIClient_NodeList_Call) RunAndReturn(run func(ctx context.Context, options client.NodeListOptions) (client.NodeListResult, error)) *APIClient_NodeList_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // NodeRemove provides a mock function for the type APIClient
-func (_mock *APIClient) NodeRemove(ctx context.Context, nodeID string, options swarm.NodeRemoveOptions) error {
+func (_mock *APIClient) NodeRemove(ctx context.Context, nodeID string, options client.NodeRemoveOptions) (client.NodeRemoveResult, error) {
 	ret := _mock.Called(ctx, nodeID, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for NodeRemove")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, swarm.NodeRemoveOptions) error); ok {
+	var r0 client.NodeRemoveResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.NodeRemoveOptions) (client.NodeRemoveResult, error)); ok {
+		return returnFunc(ctx, nodeID, options)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.NodeRemoveOptions) client.NodeRemoveResult); ok {
 		r0 = returnFunc(ctx, nodeID, options)
 	} else {
-		r0 = ret.Error(0)
+		r0 = ret.Get(0).(client.NodeRemoveResult)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.NodeRemoveOptions) error); ok {
+		r1 = returnFunc(ctx, nodeID, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_NodeRemove_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'NodeRemove'
@@ -5406,12 +5113,12 @@ type APIClient_NodeRemove_Call struct {
 // NodeRemove is a helper method to define mock.On call
 //   - ctx context.Context
 //   - nodeID string
-//   - options swarm.NodeRemoveOptions
+//   - options client.NodeRemoveOptions
 func (_e *APIClient_Expecter) NodeRemove(ctx any, nodeID any, options any) *APIClient_NodeRemove_Call {
 	return &APIClient_NodeRemove_Call{Call: _e.mock.On("NodeRemove", ctx, nodeID, options)}
 }
 
-func (_c *APIClient_NodeRemove_Call) Run(run func(ctx context.Context, nodeID string, options swarm.NodeRemoveOptions)) *APIClient_NodeRemove_Call {
+func (_c *APIClient_NodeRemove_Call) Run(run func(ctx context.Context, nodeID string, options client.NodeRemoveOptions)) *APIClient_NodeRemove_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -5421,9 +5128,9 @@ func (_c *APIClient_NodeRemove_Call) Run(run func(ctx context.Context, nodeID st
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 swarm.NodeRemoveOptions
+		var arg2 client.NodeRemoveOptions
 		if args[2] != nil {
-			arg2 = args[2].(swarm.NodeRemoveOptions)
+			arg2 = args[2].(client.NodeRemoveOptions)
 		}
 		run(
 			arg0,
@@ -5434,31 +5141,40 @@ func (_c *APIClient_NodeRemove_Call) Run(run func(ctx context.Context, nodeID st
 	return _c
 }
 
-func (_c *APIClient_NodeRemove_Call) Return(err error) *APIClient_NodeRemove_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_NodeRemove_Call) Return(nodeRemoveResult client.NodeRemoveResult, err error) *APIClient_NodeRemove_Call {
+	_c.Call.Return(nodeRemoveResult, err)
 	return _c
 }
 
-func (_c *APIClient_NodeRemove_Call) RunAndReturn(run func(ctx context.Context, nodeID string, options swarm.NodeRemoveOptions) error) *APIClient_NodeRemove_Call {
+func (_c *APIClient_NodeRemove_Call) RunAndReturn(run func(ctx context.Context, nodeID string, options client.NodeRemoveOptions) (client.NodeRemoveResult, error)) *APIClient_NodeRemove_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // NodeUpdate provides a mock function for the type APIClient
-func (_mock *APIClient) NodeUpdate(ctx context.Context, nodeID string, version swarm.Version, node swarm.NodeSpec) error {
-	ret := _mock.Called(ctx, nodeID, version, node)
+func (_mock *APIClient) NodeUpdate(ctx context.Context, nodeID string, options client.NodeUpdateOptions) (client.NodeUpdateResult, error) {
+	ret := _mock.Called(ctx, nodeID, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for NodeUpdate")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, swarm.Version, swarm.NodeSpec) error); ok {
-		r0 = returnFunc(ctx, nodeID, version, node)
-	} else {
-		r0 = ret.Error(0)
+	var r0 client.NodeUpdateResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.NodeUpdateOptions) (client.NodeUpdateResult, error)); ok {
+		return returnFunc(ctx, nodeID, options)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.NodeUpdateOptions) client.NodeUpdateResult); ok {
+		r0 = returnFunc(ctx, nodeID, options)
+	} else {
+		r0 = ret.Get(0).(client.NodeUpdateResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.NodeUpdateOptions) error); ok {
+		r1 = returnFunc(ctx, nodeID, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_NodeUpdate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'NodeUpdate'
@@ -5469,13 +5185,12 @@ type APIClient_NodeUpdate_Call struct {
 // NodeUpdate is a helper method to define mock.On call
 //   - ctx context.Context
 //   - nodeID string
-//   - version swarm.Version
-//   - node swarm.NodeSpec
-func (_e *APIClient_Expecter) NodeUpdate(ctx any, nodeID any, version any, node any) *APIClient_NodeUpdate_Call {
-	return &APIClient_NodeUpdate_Call{Call: _e.mock.On("NodeUpdate", ctx, nodeID, version, node)}
+//   - options client.NodeUpdateOptions
+func (_e *APIClient_Expecter) NodeUpdate(ctx any, nodeID any, options any) *APIClient_NodeUpdate_Call {
+	return &APIClient_NodeUpdate_Call{Call: _e.mock.On("NodeUpdate", ctx, nodeID, options)}
 }
 
-func (_c *APIClient_NodeUpdate_Call) Run(run func(ctx context.Context, nodeID string, version swarm.Version, node swarm.NodeSpec)) *APIClient_NodeUpdate_Call {
+func (_c *APIClient_NodeUpdate_Call) Run(run func(ctx context.Context, nodeID string, options client.NodeUpdateOptions)) *APIClient_NodeUpdate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -5485,54 +5200,49 @@ func (_c *APIClient_NodeUpdate_Call) Run(run func(ctx context.Context, nodeID st
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 swarm.Version
+		var arg2 client.NodeUpdateOptions
 		if args[2] != nil {
-			arg2 = args[2].(swarm.Version)
-		}
-		var arg3 swarm.NodeSpec
-		if args[3] != nil {
-			arg3 = args[3].(swarm.NodeSpec)
+			arg2 = args[2].(client.NodeUpdateOptions)
 		}
 		run(
 			arg0,
 			arg1,
 			arg2,
-			arg3,
 		)
 	})
 	return _c
 }
 
-func (_c *APIClient_NodeUpdate_Call) Return(err error) *APIClient_NodeUpdate_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_NodeUpdate_Call) Return(nodeUpdateResult client.NodeUpdateResult, err error) *APIClient_NodeUpdate_Call {
+	_c.Call.Return(nodeUpdateResult, err)
 	return _c
 }
 
-func (_c *APIClient_NodeUpdate_Call) RunAndReturn(run func(ctx context.Context, nodeID string, version swarm.Version, node swarm.NodeSpec) error) *APIClient_NodeUpdate_Call {
+func (_c *APIClient_NodeUpdate_Call) RunAndReturn(run func(ctx context.Context, nodeID string, options client.NodeUpdateOptions) (client.NodeUpdateResult, error)) *APIClient_NodeUpdate_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // Ping provides a mock function for the type APIClient
-func (_mock *APIClient) Ping(ctx context.Context) (types.Ping, error) {
-	ret := _mock.Called(ctx)
+func (_mock *APIClient) Ping(ctx context.Context, options client.PingOptions) (client.PingResult, error) {
+	ret := _mock.Called(ctx, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Ping")
 	}
 
-	var r0 types.Ping
+	var r0 client.PingResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context) (types.Ping, error)); ok {
-		return returnFunc(ctx)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.PingOptions) (client.PingResult, error)); ok {
+		return returnFunc(ctx, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context) types.Ping); ok {
-		r0 = returnFunc(ctx)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.PingOptions) client.PingResult); ok {
+		r0 = returnFunc(ctx, options)
 	} else {
-		r0 = ret.Get(0).(types.Ping)
+		r0 = ret.Get(0).(client.PingResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context) error); ok {
-		r1 = returnFunc(ctx)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.PingOptions) error); ok {
+		r1 = returnFunc(ctx, options)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -5546,48 +5256,63 @@ type APIClient_Ping_Call struct {
 
 // Ping is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *APIClient_Expecter) Ping(ctx any) *APIClient_Ping_Call {
-	return &APIClient_Ping_Call{Call: _e.mock.On("Ping", ctx)}
+//   - options client.PingOptions
+func (_e *APIClient_Expecter) Ping(ctx any, options any) *APIClient_Ping_Call {
+	return &APIClient_Ping_Call{Call: _e.mock.On("Ping", ctx, options)}
 }
 
-func (_c *APIClient_Ping_Call) Run(run func(ctx context.Context)) *APIClient_Ping_Call {
+func (_c *APIClient_Ping_Call) Run(run func(ctx context.Context, options client.PingOptions)) *APIClient_Ping_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
+		var arg1 client.PingOptions
+		if args[1] != nil {
+			arg1 = args[1].(client.PingOptions)
+		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
 }
 
-func (_c *APIClient_Ping_Call) Return(ping types.Ping, err error) *APIClient_Ping_Call {
-	_c.Call.Return(ping, err)
+func (_c *APIClient_Ping_Call) Return(pingResult client.PingResult, err error) *APIClient_Ping_Call {
+	_c.Call.Return(pingResult, err)
 	return _c
 }
 
-func (_c *APIClient_Ping_Call) RunAndReturn(run func(ctx context.Context) (types.Ping, error)) *APIClient_Ping_Call {
+func (_c *APIClient_Ping_Call) RunAndReturn(run func(ctx context.Context, options client.PingOptions) (client.PingResult, error)) *APIClient_Ping_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // PluginCreate provides a mock function for the type APIClient
-func (_mock *APIClient) PluginCreate(ctx context.Context, createContext io.Reader, options types.PluginCreateOptions) error {
+func (_mock *APIClient) PluginCreate(ctx context.Context, createContext io.Reader, options client.PluginCreateOptions) (client.PluginCreateResult, error) {
 	ret := _mock.Called(ctx, createContext, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for PluginCreate")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, io.Reader, types.PluginCreateOptions) error); ok {
+	var r0 client.PluginCreateResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, io.Reader, client.PluginCreateOptions) (client.PluginCreateResult, error)); ok {
+		return returnFunc(ctx, createContext, options)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, io.Reader, client.PluginCreateOptions) client.PluginCreateResult); ok {
 		r0 = returnFunc(ctx, createContext, options)
 	} else {
-		r0 = ret.Error(0)
+		r0 = ret.Get(0).(client.PluginCreateResult)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(1).(func(context.Context, io.Reader, client.PluginCreateOptions) error); ok {
+		r1 = returnFunc(ctx, createContext, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_PluginCreate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PluginCreate'
@@ -5598,12 +5323,12 @@ type APIClient_PluginCreate_Call struct {
 // PluginCreate is a helper method to define mock.On call
 //   - ctx context.Context
 //   - createContext io.Reader
-//   - options types.PluginCreateOptions
+//   - options client.PluginCreateOptions
 func (_e *APIClient_Expecter) PluginCreate(ctx any, createContext any, options any) *APIClient_PluginCreate_Call {
 	return &APIClient_PluginCreate_Call{Call: _e.mock.On("PluginCreate", ctx, createContext, options)}
 }
 
-func (_c *APIClient_PluginCreate_Call) Run(run func(ctx context.Context, createContext io.Reader, options types.PluginCreateOptions)) *APIClient_PluginCreate_Call {
+func (_c *APIClient_PluginCreate_Call) Run(run func(ctx context.Context, createContext io.Reader, options client.PluginCreateOptions)) *APIClient_PluginCreate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -5613,9 +5338,9 @@ func (_c *APIClient_PluginCreate_Call) Run(run func(ctx context.Context, createC
 		if args[1] != nil {
 			arg1 = args[1].(io.Reader)
 		}
-		var arg2 types.PluginCreateOptions
+		var arg2 client.PluginCreateOptions
 		if args[2] != nil {
-			arg2 = args[2].(types.PluginCreateOptions)
+			arg2 = args[2].(client.PluginCreateOptions)
 		}
 		run(
 			arg0,
@@ -5626,31 +5351,40 @@ func (_c *APIClient_PluginCreate_Call) Run(run func(ctx context.Context, createC
 	return _c
 }
 
-func (_c *APIClient_PluginCreate_Call) Return(err error) *APIClient_PluginCreate_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_PluginCreate_Call) Return(pluginCreateResult client.PluginCreateResult, err error) *APIClient_PluginCreate_Call {
+	_c.Call.Return(pluginCreateResult, err)
 	return _c
 }
 
-func (_c *APIClient_PluginCreate_Call) RunAndReturn(run func(ctx context.Context, createContext io.Reader, options types.PluginCreateOptions) error) *APIClient_PluginCreate_Call {
+func (_c *APIClient_PluginCreate_Call) RunAndReturn(run func(ctx context.Context, createContext io.Reader, options client.PluginCreateOptions) (client.PluginCreateResult, error)) *APIClient_PluginCreate_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // PluginDisable provides a mock function for the type APIClient
-func (_mock *APIClient) PluginDisable(ctx context.Context, name string, options types.PluginDisableOptions) error {
+func (_mock *APIClient) PluginDisable(ctx context.Context, name string, options client.PluginDisableOptions) (client.PluginDisableResult, error) {
 	ret := _mock.Called(ctx, name, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for PluginDisable")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, types.PluginDisableOptions) error); ok {
+	var r0 client.PluginDisableResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.PluginDisableOptions) (client.PluginDisableResult, error)); ok {
+		return returnFunc(ctx, name, options)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.PluginDisableOptions) client.PluginDisableResult); ok {
 		r0 = returnFunc(ctx, name, options)
 	} else {
-		r0 = ret.Error(0)
+		r0 = ret.Get(0).(client.PluginDisableResult)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.PluginDisableOptions) error); ok {
+		r1 = returnFunc(ctx, name, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_PluginDisable_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PluginDisable'
@@ -5661,12 +5395,12 @@ type APIClient_PluginDisable_Call struct {
 // PluginDisable is a helper method to define mock.On call
 //   - ctx context.Context
 //   - name string
-//   - options types.PluginDisableOptions
+//   - options client.PluginDisableOptions
 func (_e *APIClient_Expecter) PluginDisable(ctx any, name any, options any) *APIClient_PluginDisable_Call {
 	return &APIClient_PluginDisable_Call{Call: _e.mock.On("PluginDisable", ctx, name, options)}
 }
 
-func (_c *APIClient_PluginDisable_Call) Run(run func(ctx context.Context, name string, options types.PluginDisableOptions)) *APIClient_PluginDisable_Call {
+func (_c *APIClient_PluginDisable_Call) Run(run func(ctx context.Context, name string, options client.PluginDisableOptions)) *APIClient_PluginDisable_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -5676,9 +5410,9 @@ func (_c *APIClient_PluginDisable_Call) Run(run func(ctx context.Context, name s
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 types.PluginDisableOptions
+		var arg2 client.PluginDisableOptions
 		if args[2] != nil {
-			arg2 = args[2].(types.PluginDisableOptions)
+			arg2 = args[2].(client.PluginDisableOptions)
 		}
 		run(
 			arg0,
@@ -5689,31 +5423,40 @@ func (_c *APIClient_PluginDisable_Call) Run(run func(ctx context.Context, name s
 	return _c
 }
 
-func (_c *APIClient_PluginDisable_Call) Return(err error) *APIClient_PluginDisable_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_PluginDisable_Call) Return(pluginDisableResult client.PluginDisableResult, err error) *APIClient_PluginDisable_Call {
+	_c.Call.Return(pluginDisableResult, err)
 	return _c
 }
 
-func (_c *APIClient_PluginDisable_Call) RunAndReturn(run func(ctx context.Context, name string, options types.PluginDisableOptions) error) *APIClient_PluginDisable_Call {
+func (_c *APIClient_PluginDisable_Call) RunAndReturn(run func(ctx context.Context, name string, options client.PluginDisableOptions) (client.PluginDisableResult, error)) *APIClient_PluginDisable_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // PluginEnable provides a mock function for the type APIClient
-func (_mock *APIClient) PluginEnable(ctx context.Context, name string, options types.PluginEnableOptions) error {
+func (_mock *APIClient) PluginEnable(ctx context.Context, name string, options client.PluginEnableOptions) (client.PluginEnableResult, error) {
 	ret := _mock.Called(ctx, name, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for PluginEnable")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, types.PluginEnableOptions) error); ok {
+	var r0 client.PluginEnableResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.PluginEnableOptions) (client.PluginEnableResult, error)); ok {
+		return returnFunc(ctx, name, options)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.PluginEnableOptions) client.PluginEnableResult); ok {
 		r0 = returnFunc(ctx, name, options)
 	} else {
-		r0 = ret.Error(0)
+		r0 = ret.Get(0).(client.PluginEnableResult)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.PluginEnableOptions) error); ok {
+		r1 = returnFunc(ctx, name, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_PluginEnable_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PluginEnable'
@@ -5724,12 +5467,12 @@ type APIClient_PluginEnable_Call struct {
 // PluginEnable is a helper method to define mock.On call
 //   - ctx context.Context
 //   - name string
-//   - options types.PluginEnableOptions
+//   - options client.PluginEnableOptions
 func (_e *APIClient_Expecter) PluginEnable(ctx any, name any, options any) *APIClient_PluginEnable_Call {
 	return &APIClient_PluginEnable_Call{Call: _e.mock.On("PluginEnable", ctx, name, options)}
 }
 
-func (_c *APIClient_PluginEnable_Call) Run(run func(ctx context.Context, name string, options types.PluginEnableOptions)) *APIClient_PluginEnable_Call {
+func (_c *APIClient_PluginEnable_Call) Run(run func(ctx context.Context, name string, options client.PluginEnableOptions)) *APIClient_PluginEnable_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -5739,9 +5482,9 @@ func (_c *APIClient_PluginEnable_Call) Run(run func(ctx context.Context, name st
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 types.PluginEnableOptions
+		var arg2 client.PluginEnableOptions
 		if args[2] != nil {
-			arg2 = args[2].(types.PluginEnableOptions)
+			arg2 = args[2].(client.PluginEnableOptions)
 		}
 		run(
 			arg0,
@@ -5752,65 +5495,56 @@ func (_c *APIClient_PluginEnable_Call) Run(run func(ctx context.Context, name st
 	return _c
 }
 
-func (_c *APIClient_PluginEnable_Call) Return(err error) *APIClient_PluginEnable_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_PluginEnable_Call) Return(pluginEnableResult client.PluginEnableResult, err error) *APIClient_PluginEnable_Call {
+	_c.Call.Return(pluginEnableResult, err)
 	return _c
 }
 
-func (_c *APIClient_PluginEnable_Call) RunAndReturn(run func(ctx context.Context, name string, options types.PluginEnableOptions) error) *APIClient_PluginEnable_Call {
+func (_c *APIClient_PluginEnable_Call) RunAndReturn(run func(ctx context.Context, name string, options client.PluginEnableOptions) (client.PluginEnableResult, error)) *APIClient_PluginEnable_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// PluginInspectWithRaw provides a mock function for the type APIClient
-func (_mock *APIClient) PluginInspectWithRaw(ctx context.Context, name string) (*types.Plugin, []byte, error) {
-	ret := _mock.Called(ctx, name)
+// PluginInspect provides a mock function for the type APIClient
+func (_mock *APIClient) PluginInspect(ctx context.Context, name string, options client.PluginInspectOptions) (client.PluginInspectResult, error) {
+	ret := _mock.Called(ctx, name, options)
 
 	if len(ret) == 0 {
-		panic("no return value specified for PluginInspectWithRaw")
+		panic("no return value specified for PluginInspect")
 	}
 
-	var r0 *types.Plugin
-	var r1 []byte
-	var r2 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*types.Plugin, []byte, error)); ok {
-		return returnFunc(ctx, name)
+	var r0 client.PluginInspectResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.PluginInspectOptions) (client.PluginInspectResult, error)); ok {
+		return returnFunc(ctx, name, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *types.Plugin); ok {
-		r0 = returnFunc(ctx, name)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.PluginInspectOptions) client.PluginInspectResult); ok {
+		r0 = returnFunc(ctx, name, options)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Plugin)
-		}
+		r0 = ret.Get(0).(client.PluginInspectResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string) []byte); ok {
-		r1 = returnFunc(ctx, name)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.PluginInspectOptions) error); ok {
+		r1 = returnFunc(ctx, name, options)
 	} else {
-		if ret.Get(1) != nil {
-			r1 = ret.Get(1).([]byte)
-		}
+		r1 = ret.Error(1)
 	}
-	if returnFunc, ok := ret.Get(2).(func(context.Context, string) error); ok {
-		r2 = returnFunc(ctx, name)
-	} else {
-		r2 = ret.Error(2)
-	}
-	return r0, r1, r2
+	return r0, r1
 }
 
-// APIClient_PluginInspectWithRaw_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PluginInspectWithRaw'
-type APIClient_PluginInspectWithRaw_Call struct {
+// APIClient_PluginInspect_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PluginInspect'
+type APIClient_PluginInspect_Call struct {
 	*mock.Call
 }
 
-// PluginInspectWithRaw is a helper method to define mock.On call
+// PluginInspect is a helper method to define mock.On call
 //   - ctx context.Context
 //   - name string
-func (_e *APIClient_Expecter) PluginInspectWithRaw(ctx any, name any) *APIClient_PluginInspectWithRaw_Call {
-	return &APIClient_PluginInspectWithRaw_Call{Call: _e.mock.On("PluginInspectWithRaw", ctx, name)}
+//   - options client.PluginInspectOptions
+func (_e *APIClient_Expecter) PluginInspect(ctx any, name any, options any) *APIClient_PluginInspect_Call {
+	return &APIClient_PluginInspect_Call{Call: _e.mock.On("PluginInspect", ctx, name, options)}
 }
 
-func (_c *APIClient_PluginInspectWithRaw_Call) Run(run func(ctx context.Context, name string)) *APIClient_PluginInspectWithRaw_Call {
+func (_c *APIClient_PluginInspect_Call) Run(run func(ctx context.Context, name string, options client.PluginInspectOptions)) *APIClient_PluginInspect_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -5820,45 +5554,48 @@ func (_c *APIClient_PluginInspectWithRaw_Call) Run(run func(ctx context.Context,
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
+		var arg2 client.PluginInspectOptions
+		if args[2] != nil {
+			arg2 = args[2].(client.PluginInspectOptions)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
 }
 
-func (_c *APIClient_PluginInspectWithRaw_Call) Return(plugin *types.Plugin, bytes []byte, err error) *APIClient_PluginInspectWithRaw_Call {
-	_c.Call.Return(plugin, bytes, err)
+func (_c *APIClient_PluginInspect_Call) Return(pluginInspectResult client.PluginInspectResult, err error) *APIClient_PluginInspect_Call {
+	_c.Call.Return(pluginInspectResult, err)
 	return _c
 }
 
-func (_c *APIClient_PluginInspectWithRaw_Call) RunAndReturn(run func(ctx context.Context, name string) (*types.Plugin, []byte, error)) *APIClient_PluginInspectWithRaw_Call {
+func (_c *APIClient_PluginInspect_Call) RunAndReturn(run func(ctx context.Context, name string, options client.PluginInspectOptions) (client.PluginInspectResult, error)) *APIClient_PluginInspect_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // PluginInstall provides a mock function for the type APIClient
-func (_mock *APIClient) PluginInstall(ctx context.Context, name string, options types.PluginInstallOptions) (io.ReadCloser, error) {
+func (_mock *APIClient) PluginInstall(ctx context.Context, name string, options client.PluginInstallOptions) (client.PluginInstallResult, error) {
 	ret := _mock.Called(ctx, name, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for PluginInstall")
 	}
 
-	var r0 io.ReadCloser
+	var r0 client.PluginInstallResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, types.PluginInstallOptions) (io.ReadCloser, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.PluginInstallOptions) (client.PluginInstallResult, error)); ok {
 		return returnFunc(ctx, name, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, types.PluginInstallOptions) io.ReadCloser); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.PluginInstallOptions) client.PluginInstallResult); ok {
 		r0 = returnFunc(ctx, name, options)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(io.ReadCloser)
-		}
+		r0 = ret.Get(0).(client.PluginInstallResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, types.PluginInstallOptions) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.PluginInstallOptions) error); ok {
 		r1 = returnFunc(ctx, name, options)
 	} else {
 		r1 = ret.Error(1)
@@ -5874,12 +5611,12 @@ type APIClient_PluginInstall_Call struct {
 // PluginInstall is a helper method to define mock.On call
 //   - ctx context.Context
 //   - name string
-//   - options types.PluginInstallOptions
+//   - options client.PluginInstallOptions
 func (_e *APIClient_Expecter) PluginInstall(ctx any, name any, options any) *APIClient_PluginInstall_Call {
 	return &APIClient_PluginInstall_Call{Call: _e.mock.On("PluginInstall", ctx, name, options)}
 }
 
-func (_c *APIClient_PluginInstall_Call) Run(run func(ctx context.Context, name string, options types.PluginInstallOptions)) *APIClient_PluginInstall_Call {
+func (_c *APIClient_PluginInstall_Call) Run(run func(ctx context.Context, name string, options client.PluginInstallOptions)) *APIClient_PluginInstall_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -5889,9 +5626,9 @@ func (_c *APIClient_PluginInstall_Call) Run(run func(ctx context.Context, name s
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 types.PluginInstallOptions
+		var arg2 client.PluginInstallOptions
 		if args[2] != nil {
-			arg2 = args[2].(types.PluginInstallOptions)
+			arg2 = args[2].(client.PluginInstallOptions)
 		}
 		run(
 			arg0,
@@ -5902,38 +5639,36 @@ func (_c *APIClient_PluginInstall_Call) Run(run func(ctx context.Context, name s
 	return _c
 }
 
-func (_c *APIClient_PluginInstall_Call) Return(readCloser io.ReadCloser, err error) *APIClient_PluginInstall_Call {
-	_c.Call.Return(readCloser, err)
+func (_c *APIClient_PluginInstall_Call) Return(pluginInstallResult client.PluginInstallResult, err error) *APIClient_PluginInstall_Call {
+	_c.Call.Return(pluginInstallResult, err)
 	return _c
 }
 
-func (_c *APIClient_PluginInstall_Call) RunAndReturn(run func(ctx context.Context, name string, options types.PluginInstallOptions) (io.ReadCloser, error)) *APIClient_PluginInstall_Call {
+func (_c *APIClient_PluginInstall_Call) RunAndReturn(run func(ctx context.Context, name string, options client.PluginInstallOptions) (client.PluginInstallResult, error)) *APIClient_PluginInstall_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // PluginList provides a mock function for the type APIClient
-func (_mock *APIClient) PluginList(ctx context.Context, filter filters.Args) (types.PluginsListResponse, error) {
-	ret := _mock.Called(ctx, filter)
+func (_mock *APIClient) PluginList(ctx context.Context, options client.PluginListOptions) (client.PluginListResult, error) {
+	ret := _mock.Called(ctx, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for PluginList")
 	}
 
-	var r0 types.PluginsListResponse
+	var r0 client.PluginListResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, filters.Args) (types.PluginsListResponse, error)); ok {
-		return returnFunc(ctx, filter)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.PluginListOptions) (client.PluginListResult, error)); ok {
+		return returnFunc(ctx, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, filters.Args) types.PluginsListResponse); ok {
-		r0 = returnFunc(ctx, filter)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.PluginListOptions) client.PluginListResult); ok {
+		r0 = returnFunc(ctx, options)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(types.PluginsListResponse)
-		}
+		r0 = ret.Get(0).(client.PluginListResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, filters.Args) error); ok {
-		r1 = returnFunc(ctx, filter)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.PluginListOptions) error); ok {
+		r1 = returnFunc(ctx, options)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -5947,20 +5682,20 @@ type APIClient_PluginList_Call struct {
 
 // PluginList is a helper method to define mock.On call
 //   - ctx context.Context
-//   - filter filters.Args
-func (_e *APIClient_Expecter) PluginList(ctx any, filter any) *APIClient_PluginList_Call {
-	return &APIClient_PluginList_Call{Call: _e.mock.On("PluginList", ctx, filter)}
+//   - options client.PluginListOptions
+func (_e *APIClient_Expecter) PluginList(ctx any, options any) *APIClient_PluginList_Call {
+	return &APIClient_PluginList_Call{Call: _e.mock.On("PluginList", ctx, options)}
 }
 
-func (_c *APIClient_PluginList_Call) Run(run func(ctx context.Context, filter filters.Args)) *APIClient_PluginList_Call {
+func (_c *APIClient_PluginList_Call) Run(run func(ctx context.Context, options client.PluginListOptions)) *APIClient_PluginList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 filters.Args
+		var arg1 client.PluginListOptions
 		if args[1] != nil {
-			arg1 = args[1].(filters.Args)
+			arg1 = args[1].(client.PluginListOptions)
 		}
 		run(
 			arg0,
@@ -5970,38 +5705,36 @@ func (_c *APIClient_PluginList_Call) Run(run func(ctx context.Context, filter fi
 	return _c
 }
 
-func (_c *APIClient_PluginList_Call) Return(pluginsListResponse types.PluginsListResponse, err error) *APIClient_PluginList_Call {
-	_c.Call.Return(pluginsListResponse, err)
+func (_c *APIClient_PluginList_Call) Return(pluginListResult client.PluginListResult, err error) *APIClient_PluginList_Call {
+	_c.Call.Return(pluginListResult, err)
 	return _c
 }
 
-func (_c *APIClient_PluginList_Call) RunAndReturn(run func(ctx context.Context, filter filters.Args) (types.PluginsListResponse, error)) *APIClient_PluginList_Call {
+func (_c *APIClient_PluginList_Call) RunAndReturn(run func(ctx context.Context, options client.PluginListOptions) (client.PluginListResult, error)) *APIClient_PluginList_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // PluginPush provides a mock function for the type APIClient
-func (_mock *APIClient) PluginPush(ctx context.Context, name string, registryAuth string) (io.ReadCloser, error) {
-	ret := _mock.Called(ctx, name, registryAuth)
+func (_mock *APIClient) PluginPush(ctx context.Context, name string, options client.PluginPushOptions) (client.PluginPushResult, error) {
+	ret := _mock.Called(ctx, name, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for PluginPush")
 	}
 
-	var r0 io.ReadCloser
+	var r0 client.PluginPushResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (io.ReadCloser, error)); ok {
-		return returnFunc(ctx, name, registryAuth)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.PluginPushOptions) (client.PluginPushResult, error)); ok {
+		return returnFunc(ctx, name, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) io.ReadCloser); ok {
-		r0 = returnFunc(ctx, name, registryAuth)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.PluginPushOptions) client.PluginPushResult); ok {
+		r0 = returnFunc(ctx, name, options)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(io.ReadCloser)
-		}
+		r0 = ret.Get(0).(client.PluginPushResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = returnFunc(ctx, name, registryAuth)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.PluginPushOptions) error); ok {
+		r1 = returnFunc(ctx, name, options)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -6016,12 +5749,12 @@ type APIClient_PluginPush_Call struct {
 // PluginPush is a helper method to define mock.On call
 //   - ctx context.Context
 //   - name string
-//   - registryAuth string
-func (_e *APIClient_Expecter) PluginPush(ctx any, name any, registryAuth any) *APIClient_PluginPush_Call {
-	return &APIClient_PluginPush_Call{Call: _e.mock.On("PluginPush", ctx, name, registryAuth)}
+//   - options client.PluginPushOptions
+func (_e *APIClient_Expecter) PluginPush(ctx any, name any, options any) *APIClient_PluginPush_Call {
+	return &APIClient_PluginPush_Call{Call: _e.mock.On("PluginPush", ctx, name, options)}
 }
 
-func (_c *APIClient_PluginPush_Call) Run(run func(ctx context.Context, name string, registryAuth string)) *APIClient_PluginPush_Call {
+func (_c *APIClient_PluginPush_Call) Run(run func(ctx context.Context, name string, options client.PluginPushOptions)) *APIClient_PluginPush_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -6031,9 +5764,9 @@ func (_c *APIClient_PluginPush_Call) Run(run func(ctx context.Context, name stri
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 string
+		var arg2 client.PluginPushOptions
 		if args[2] != nil {
-			arg2 = args[2].(string)
+			arg2 = args[2].(client.PluginPushOptions)
 		}
 		run(
 			arg0,
@@ -6044,31 +5777,40 @@ func (_c *APIClient_PluginPush_Call) Run(run func(ctx context.Context, name stri
 	return _c
 }
 
-func (_c *APIClient_PluginPush_Call) Return(readCloser io.ReadCloser, err error) *APIClient_PluginPush_Call {
-	_c.Call.Return(readCloser, err)
+func (_c *APIClient_PluginPush_Call) Return(pluginPushResult client.PluginPushResult, err error) *APIClient_PluginPush_Call {
+	_c.Call.Return(pluginPushResult, err)
 	return _c
 }
 
-func (_c *APIClient_PluginPush_Call) RunAndReturn(run func(ctx context.Context, name string, registryAuth string) (io.ReadCloser, error)) *APIClient_PluginPush_Call {
+func (_c *APIClient_PluginPush_Call) RunAndReturn(run func(ctx context.Context, name string, options client.PluginPushOptions) (client.PluginPushResult, error)) *APIClient_PluginPush_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // PluginRemove provides a mock function for the type APIClient
-func (_mock *APIClient) PluginRemove(ctx context.Context, name string, options types.PluginRemoveOptions) error {
+func (_mock *APIClient) PluginRemove(ctx context.Context, name string, options client.PluginRemoveOptions) (client.PluginRemoveResult, error) {
 	ret := _mock.Called(ctx, name, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for PluginRemove")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, types.PluginRemoveOptions) error); ok {
+	var r0 client.PluginRemoveResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.PluginRemoveOptions) (client.PluginRemoveResult, error)); ok {
+		return returnFunc(ctx, name, options)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.PluginRemoveOptions) client.PluginRemoveResult); ok {
 		r0 = returnFunc(ctx, name, options)
 	} else {
-		r0 = ret.Error(0)
+		r0 = ret.Get(0).(client.PluginRemoveResult)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.PluginRemoveOptions) error); ok {
+		r1 = returnFunc(ctx, name, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_PluginRemove_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PluginRemove'
@@ -6079,12 +5821,12 @@ type APIClient_PluginRemove_Call struct {
 // PluginRemove is a helper method to define mock.On call
 //   - ctx context.Context
 //   - name string
-//   - options types.PluginRemoveOptions
+//   - options client.PluginRemoveOptions
 func (_e *APIClient_Expecter) PluginRemove(ctx any, name any, options any) *APIClient_PluginRemove_Call {
 	return &APIClient_PluginRemove_Call{Call: _e.mock.On("PluginRemove", ctx, name, options)}
 }
 
-func (_c *APIClient_PluginRemove_Call) Run(run func(ctx context.Context, name string, options types.PluginRemoveOptions)) *APIClient_PluginRemove_Call {
+func (_c *APIClient_PluginRemove_Call) Run(run func(ctx context.Context, name string, options client.PluginRemoveOptions)) *APIClient_PluginRemove_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -6094,9 +5836,9 @@ func (_c *APIClient_PluginRemove_Call) Run(run func(ctx context.Context, name st
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 types.PluginRemoveOptions
+		var arg2 client.PluginRemoveOptions
 		if args[2] != nil {
-			arg2 = args[2].(types.PluginRemoveOptions)
+			arg2 = args[2].(client.PluginRemoveOptions)
 		}
 		run(
 			arg0,
@@ -6107,31 +5849,40 @@ func (_c *APIClient_PluginRemove_Call) Run(run func(ctx context.Context, name st
 	return _c
 }
 
-func (_c *APIClient_PluginRemove_Call) Return(err error) *APIClient_PluginRemove_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_PluginRemove_Call) Return(pluginRemoveResult client.PluginRemoveResult, err error) *APIClient_PluginRemove_Call {
+	_c.Call.Return(pluginRemoveResult, err)
 	return _c
 }
 
-func (_c *APIClient_PluginRemove_Call) RunAndReturn(run func(ctx context.Context, name string, options types.PluginRemoveOptions) error) *APIClient_PluginRemove_Call {
+func (_c *APIClient_PluginRemove_Call) RunAndReturn(run func(ctx context.Context, name string, options client.PluginRemoveOptions) (client.PluginRemoveResult, error)) *APIClient_PluginRemove_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // PluginSet provides a mock function for the type APIClient
-func (_mock *APIClient) PluginSet(ctx context.Context, name string, args []string) error {
-	ret := _mock.Called(ctx, name, args)
+func (_mock *APIClient) PluginSet(ctx context.Context, name string, options client.PluginSetOptions) (client.PluginSetResult, error) {
+	ret := _mock.Called(ctx, name, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for PluginSet")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, []string) error); ok {
-		r0 = returnFunc(ctx, name, args)
-	} else {
-		r0 = ret.Error(0)
+	var r0 client.PluginSetResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.PluginSetOptions) (client.PluginSetResult, error)); ok {
+		return returnFunc(ctx, name, options)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.PluginSetOptions) client.PluginSetResult); ok {
+		r0 = returnFunc(ctx, name, options)
+	} else {
+		r0 = ret.Get(0).(client.PluginSetResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.PluginSetOptions) error); ok {
+		r1 = returnFunc(ctx, name, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_PluginSet_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PluginSet'
@@ -6142,12 +5893,12 @@ type APIClient_PluginSet_Call struct {
 // PluginSet is a helper method to define mock.On call
 //   - ctx context.Context
 //   - name string
-//   - args []string
-func (_e *APIClient_Expecter) PluginSet(ctx any, name any, args any) *APIClient_PluginSet_Call {
-	return &APIClient_PluginSet_Call{Call: _e.mock.On("PluginSet", ctx, name, args)}
+//   - options client.PluginSetOptions
+func (_e *APIClient_Expecter) PluginSet(ctx any, name any, options any) *APIClient_PluginSet_Call {
+	return &APIClient_PluginSet_Call{Call: _e.mock.On("PluginSet", ctx, name, options)}
 }
 
-func (_c *APIClient_PluginSet_Call) Run(run func(ctx context.Context, name string, args []string)) *APIClient_PluginSet_Call {
+func (_c *APIClient_PluginSet_Call) Run(run func(ctx context.Context, name string, options client.PluginSetOptions)) *APIClient_PluginSet_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -6157,9 +5908,9 @@ func (_c *APIClient_PluginSet_Call) Run(run func(ctx context.Context, name strin
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 []string
+		var arg2 client.PluginSetOptions
 		if args[2] != nil {
-			arg2 = args[2].([]string)
+			arg2 = args[2].(client.PluginSetOptions)
 		}
 		run(
 			arg0,
@@ -6170,37 +5921,37 @@ func (_c *APIClient_PluginSet_Call) Run(run func(ctx context.Context, name strin
 	return _c
 }
 
-func (_c *APIClient_PluginSet_Call) Return(err error) *APIClient_PluginSet_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_PluginSet_Call) Return(pluginSetResult client.PluginSetResult, err error) *APIClient_PluginSet_Call {
+	_c.Call.Return(pluginSetResult, err)
 	return _c
 }
 
-func (_c *APIClient_PluginSet_Call) RunAndReturn(run func(ctx context.Context, name string, args []string) error) *APIClient_PluginSet_Call {
+func (_c *APIClient_PluginSet_Call) RunAndReturn(run func(ctx context.Context, name string, options client.PluginSetOptions) (client.PluginSetResult, error)) *APIClient_PluginSet_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // PluginUpgrade provides a mock function for the type APIClient
-func (_mock *APIClient) PluginUpgrade(ctx context.Context, name string, options types.PluginInstallOptions) (io.ReadCloser, error) {
+func (_mock *APIClient) PluginUpgrade(ctx context.Context, name string, options client.PluginUpgradeOptions) (client.PluginUpgradeResult, error) {
 	ret := _mock.Called(ctx, name, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for PluginUpgrade")
 	}
 
-	var r0 io.ReadCloser
+	var r0 client.PluginUpgradeResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, types.PluginInstallOptions) (io.ReadCloser, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.PluginUpgradeOptions) (client.PluginUpgradeResult, error)); ok {
 		return returnFunc(ctx, name, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, types.PluginInstallOptions) io.ReadCloser); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.PluginUpgradeOptions) client.PluginUpgradeResult); ok {
 		r0 = returnFunc(ctx, name, options)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(io.ReadCloser)
+			r0 = ret.Get(0).(client.PluginUpgradeResult)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, types.PluginInstallOptions) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.PluginUpgradeOptions) error); ok {
 		r1 = returnFunc(ctx, name, options)
 	} else {
 		r1 = ret.Error(1)
@@ -6216,12 +5967,12 @@ type APIClient_PluginUpgrade_Call struct {
 // PluginUpgrade is a helper method to define mock.On call
 //   - ctx context.Context
 //   - name string
-//   - options types.PluginInstallOptions
+//   - options client.PluginUpgradeOptions
 func (_e *APIClient_Expecter) PluginUpgrade(ctx any, name any, options any) *APIClient_PluginUpgrade_Call {
 	return &APIClient_PluginUpgrade_Call{Call: _e.mock.On("PluginUpgrade", ctx, name, options)}
 }
 
-func (_c *APIClient_PluginUpgrade_Call) Run(run func(ctx context.Context, name string, options types.PluginInstallOptions)) *APIClient_PluginUpgrade_Call {
+func (_c *APIClient_PluginUpgrade_Call) Run(run func(ctx context.Context, name string, options client.PluginUpgradeOptions)) *APIClient_PluginUpgrade_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -6231,9 +5982,9 @@ func (_c *APIClient_PluginUpgrade_Call) Run(run func(ctx context.Context, name s
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 types.PluginInstallOptions
+		var arg2 client.PluginUpgradeOptions
 		if args[2] != nil {
-			arg2 = args[2].(types.PluginInstallOptions)
+			arg2 = args[2].(client.PluginUpgradeOptions)
 		}
 		run(
 			arg0,
@@ -6244,35 +5995,35 @@ func (_c *APIClient_PluginUpgrade_Call) Run(run func(ctx context.Context, name s
 	return _c
 }
 
-func (_c *APIClient_PluginUpgrade_Call) Return(readCloser io.ReadCloser, err error) *APIClient_PluginUpgrade_Call {
-	_c.Call.Return(readCloser, err)
+func (_c *APIClient_PluginUpgrade_Call) Return(pluginUpgradeResult client.PluginUpgradeResult, err error) *APIClient_PluginUpgrade_Call {
+	_c.Call.Return(pluginUpgradeResult, err)
 	return _c
 }
 
-func (_c *APIClient_PluginUpgrade_Call) RunAndReturn(run func(ctx context.Context, name string, options types.PluginInstallOptions) (io.ReadCloser, error)) *APIClient_PluginUpgrade_Call {
+func (_c *APIClient_PluginUpgrade_Call) RunAndReturn(run func(ctx context.Context, name string, options client.PluginUpgradeOptions) (client.PluginUpgradeResult, error)) *APIClient_PluginUpgrade_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // RegistryLogin provides a mock function for the type APIClient
-func (_mock *APIClient) RegistryLogin(ctx context.Context, auth registry.AuthConfig) (registry.AuthenticateOKBody, error) {
+func (_mock *APIClient) RegistryLogin(ctx context.Context, auth client.RegistryLoginOptions) (client.RegistryLoginResult, error) {
 	ret := _mock.Called(ctx, auth)
 
 	if len(ret) == 0 {
 		panic("no return value specified for RegistryLogin")
 	}
 
-	var r0 registry.AuthenticateOKBody
+	var r0 client.RegistryLoginResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, registry.AuthConfig) (registry.AuthenticateOKBody, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.RegistryLoginOptions) (client.RegistryLoginResult, error)); ok {
 		return returnFunc(ctx, auth)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, registry.AuthConfig) registry.AuthenticateOKBody); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.RegistryLoginOptions) client.RegistryLoginResult); ok {
 		r0 = returnFunc(ctx, auth)
 	} else {
-		r0 = ret.Get(0).(registry.AuthenticateOKBody)
+		r0 = ret.Get(0).(client.RegistryLoginResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, registry.AuthConfig) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.RegistryLoginOptions) error); ok {
 		r1 = returnFunc(ctx, auth)
 	} else {
 		r1 = ret.Error(1)
@@ -6287,20 +6038,20 @@ type APIClient_RegistryLogin_Call struct {
 
 // RegistryLogin is a helper method to define mock.On call
 //   - ctx context.Context
-//   - auth registry.AuthConfig
+//   - auth client.RegistryLoginOptions
 func (_e *APIClient_Expecter) RegistryLogin(ctx any, auth any) *APIClient_RegistryLogin_Call {
 	return &APIClient_RegistryLogin_Call{Call: _e.mock.On("RegistryLogin", ctx, auth)}
 }
 
-func (_c *APIClient_RegistryLogin_Call) Run(run func(ctx context.Context, auth registry.AuthConfig)) *APIClient_RegistryLogin_Call {
+func (_c *APIClient_RegistryLogin_Call) Run(run func(ctx context.Context, auth client.RegistryLoginOptions)) *APIClient_RegistryLogin_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 registry.AuthConfig
+		var arg1 client.RegistryLoginOptions
 		if args[1] != nil {
-			arg1 = args[1].(registry.AuthConfig)
+			arg1 = args[1].(client.RegistryLoginOptions)
 		}
 		run(
 			arg0,
@@ -6310,36 +6061,36 @@ func (_c *APIClient_RegistryLogin_Call) Run(run func(ctx context.Context, auth r
 	return _c
 }
 
-func (_c *APIClient_RegistryLogin_Call) Return(authenticateOKBody registry.AuthenticateOKBody, err error) *APIClient_RegistryLogin_Call {
-	_c.Call.Return(authenticateOKBody, err)
+func (_c *APIClient_RegistryLogin_Call) Return(registryLoginResult client.RegistryLoginResult, err error) *APIClient_RegistryLogin_Call {
+	_c.Call.Return(registryLoginResult, err)
 	return _c
 }
 
-func (_c *APIClient_RegistryLogin_Call) RunAndReturn(run func(ctx context.Context, auth registry.AuthConfig) (registry.AuthenticateOKBody, error)) *APIClient_RegistryLogin_Call {
+func (_c *APIClient_RegistryLogin_Call) RunAndReturn(run func(ctx context.Context, auth client.RegistryLoginOptions) (client.RegistryLoginResult, error)) *APIClient_RegistryLogin_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // SecretCreate provides a mock function for the type APIClient
-func (_mock *APIClient) SecretCreate(ctx context.Context, secret swarm.SecretSpec) (swarm.SecretCreateResponse, error) {
-	ret := _mock.Called(ctx, secret)
+func (_mock *APIClient) SecretCreate(ctx context.Context, options client.SecretCreateOptions) (client.SecretCreateResult, error) {
+	ret := _mock.Called(ctx, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for SecretCreate")
 	}
 
-	var r0 swarm.SecretCreateResponse
+	var r0 client.SecretCreateResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, swarm.SecretSpec) (swarm.SecretCreateResponse, error)); ok {
-		return returnFunc(ctx, secret)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.SecretCreateOptions) (client.SecretCreateResult, error)); ok {
+		return returnFunc(ctx, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, swarm.SecretSpec) swarm.SecretCreateResponse); ok {
-		r0 = returnFunc(ctx, secret)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.SecretCreateOptions) client.SecretCreateResult); ok {
+		r0 = returnFunc(ctx, options)
 	} else {
-		r0 = ret.Get(0).(swarm.SecretCreateResponse)
+		r0 = ret.Get(0).(client.SecretCreateResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, swarm.SecretSpec) error); ok {
-		r1 = returnFunc(ctx, secret)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.SecretCreateOptions) error); ok {
+		r1 = returnFunc(ctx, options)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -6353,20 +6104,20 @@ type APIClient_SecretCreate_Call struct {
 
 // SecretCreate is a helper method to define mock.On call
 //   - ctx context.Context
-//   - secret swarm.SecretSpec
-func (_e *APIClient_Expecter) SecretCreate(ctx any, secret any) *APIClient_SecretCreate_Call {
-	return &APIClient_SecretCreate_Call{Call: _e.mock.On("SecretCreate", ctx, secret)}
+//   - options client.SecretCreateOptions
+func (_e *APIClient_Expecter) SecretCreate(ctx any, options any) *APIClient_SecretCreate_Call {
+	return &APIClient_SecretCreate_Call{Call: _e.mock.On("SecretCreate", ctx, options)}
 }
 
-func (_c *APIClient_SecretCreate_Call) Run(run func(ctx context.Context, secret swarm.SecretSpec)) *APIClient_SecretCreate_Call {
+func (_c *APIClient_SecretCreate_Call) Run(run func(ctx context.Context, options client.SecretCreateOptions)) *APIClient_SecretCreate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 swarm.SecretSpec
+		var arg1 client.SecretCreateOptions
 		if args[1] != nil {
-			arg1 = args[1].(swarm.SecretSpec)
+			arg1 = args[1].(client.SecretCreateOptions)
 		}
 		run(
 			arg0,
@@ -6376,63 +6127,56 @@ func (_c *APIClient_SecretCreate_Call) Run(run func(ctx context.Context, secret 
 	return _c
 }
 
-func (_c *APIClient_SecretCreate_Call) Return(secretCreateResponse swarm.SecretCreateResponse, err error) *APIClient_SecretCreate_Call {
-	_c.Call.Return(secretCreateResponse, err)
+func (_c *APIClient_SecretCreate_Call) Return(secretCreateResult client.SecretCreateResult, err error) *APIClient_SecretCreate_Call {
+	_c.Call.Return(secretCreateResult, err)
 	return _c
 }
 
-func (_c *APIClient_SecretCreate_Call) RunAndReturn(run func(ctx context.Context, secret swarm.SecretSpec) (swarm.SecretCreateResponse, error)) *APIClient_SecretCreate_Call {
+func (_c *APIClient_SecretCreate_Call) RunAndReturn(run func(ctx context.Context, options client.SecretCreateOptions) (client.SecretCreateResult, error)) *APIClient_SecretCreate_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// SecretInspectWithRaw provides a mock function for the type APIClient
-func (_mock *APIClient) SecretInspectWithRaw(ctx context.Context, name string) (swarm.Secret, []byte, error) {
-	ret := _mock.Called(ctx, name)
+// SecretInspect provides a mock function for the type APIClient
+func (_mock *APIClient) SecretInspect(ctx context.Context, id string, options client.SecretInspectOptions) (client.SecretInspectResult, error) {
+	ret := _mock.Called(ctx, id, options)
 
 	if len(ret) == 0 {
-		panic("no return value specified for SecretInspectWithRaw")
+		panic("no return value specified for SecretInspect")
 	}
 
-	var r0 swarm.Secret
-	var r1 []byte
-	var r2 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (swarm.Secret, []byte, error)); ok {
-		return returnFunc(ctx, name)
+	var r0 client.SecretInspectResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.SecretInspectOptions) (client.SecretInspectResult, error)); ok {
+		return returnFunc(ctx, id, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) swarm.Secret); ok {
-		r0 = returnFunc(ctx, name)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.SecretInspectOptions) client.SecretInspectResult); ok {
+		r0 = returnFunc(ctx, id, options)
 	} else {
-		r0 = ret.Get(0).(swarm.Secret)
+		r0 = ret.Get(0).(client.SecretInspectResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string) []byte); ok {
-		r1 = returnFunc(ctx, name)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.SecretInspectOptions) error); ok {
+		r1 = returnFunc(ctx, id, options)
 	} else {
-		if ret.Get(1) != nil {
-			r1 = ret.Get(1).([]byte)
-		}
+		r1 = ret.Error(1)
 	}
-	if returnFunc, ok := ret.Get(2).(func(context.Context, string) error); ok {
-		r2 = returnFunc(ctx, name)
-	} else {
-		r2 = ret.Error(2)
-	}
-	return r0, r1, r2
+	return r0, r1
 }
 
-// APIClient_SecretInspectWithRaw_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SecretInspectWithRaw'
-type APIClient_SecretInspectWithRaw_Call struct {
+// APIClient_SecretInspect_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SecretInspect'
+type APIClient_SecretInspect_Call struct {
 	*mock.Call
 }
 
-// SecretInspectWithRaw is a helper method to define mock.On call
+// SecretInspect is a helper method to define mock.On call
 //   - ctx context.Context
-//   - name string
-func (_e *APIClient_Expecter) SecretInspectWithRaw(ctx any, name any) *APIClient_SecretInspectWithRaw_Call {
-	return &APIClient_SecretInspectWithRaw_Call{Call: _e.mock.On("SecretInspectWithRaw", ctx, name)}
+//   - id string
+//   - options client.SecretInspectOptions
+func (_e *APIClient_Expecter) SecretInspect(ctx any, id any, options any) *APIClient_SecretInspect_Call {
+	return &APIClient_SecretInspect_Call{Call: _e.mock.On("SecretInspect", ctx, id, options)}
 }
 
-func (_c *APIClient_SecretInspectWithRaw_Call) Run(run func(ctx context.Context, name string)) *APIClient_SecretInspectWithRaw_Call {
+func (_c *APIClient_SecretInspect_Call) Run(run func(ctx context.Context, id string, options client.SecretInspectOptions)) *APIClient_SecretInspect_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -6442,45 +6186,48 @@ func (_c *APIClient_SecretInspectWithRaw_Call) Run(run func(ctx context.Context,
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
+		var arg2 client.SecretInspectOptions
+		if args[2] != nil {
+			arg2 = args[2].(client.SecretInspectOptions)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
 }
 
-func (_c *APIClient_SecretInspectWithRaw_Call) Return(secret swarm.Secret, bytes []byte, err error) *APIClient_SecretInspectWithRaw_Call {
-	_c.Call.Return(secret, bytes, err)
+func (_c *APIClient_SecretInspect_Call) Return(secretInspectResult client.SecretInspectResult, err error) *APIClient_SecretInspect_Call {
+	_c.Call.Return(secretInspectResult, err)
 	return _c
 }
 
-func (_c *APIClient_SecretInspectWithRaw_Call) RunAndReturn(run func(ctx context.Context, name string) (swarm.Secret, []byte, error)) *APIClient_SecretInspectWithRaw_Call {
+func (_c *APIClient_SecretInspect_Call) RunAndReturn(run func(ctx context.Context, id string, options client.SecretInspectOptions) (client.SecretInspectResult, error)) *APIClient_SecretInspect_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // SecretList provides a mock function for the type APIClient
-func (_mock *APIClient) SecretList(ctx context.Context, options swarm.SecretListOptions) ([]swarm.Secret, error) {
+func (_mock *APIClient) SecretList(ctx context.Context, options client.SecretListOptions) (client.SecretListResult, error) {
 	ret := _mock.Called(ctx, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for SecretList")
 	}
 
-	var r0 []swarm.Secret
+	var r0 client.SecretListResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, swarm.SecretListOptions) ([]swarm.Secret, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.SecretListOptions) (client.SecretListResult, error)); ok {
 		return returnFunc(ctx, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, swarm.SecretListOptions) []swarm.Secret); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.SecretListOptions) client.SecretListResult); ok {
 		r0 = returnFunc(ctx, options)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]swarm.Secret)
-		}
+		r0 = ret.Get(0).(client.SecretListResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, swarm.SecretListOptions) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.SecretListOptions) error); ok {
 		r1 = returnFunc(ctx, options)
 	} else {
 		r1 = ret.Error(1)
@@ -6495,20 +6242,20 @@ type APIClient_SecretList_Call struct {
 
 // SecretList is a helper method to define mock.On call
 //   - ctx context.Context
-//   - options swarm.SecretListOptions
+//   - options client.SecretListOptions
 func (_e *APIClient_Expecter) SecretList(ctx any, options any) *APIClient_SecretList_Call {
 	return &APIClient_SecretList_Call{Call: _e.mock.On("SecretList", ctx, options)}
 }
 
-func (_c *APIClient_SecretList_Call) Run(run func(ctx context.Context, options swarm.SecretListOptions)) *APIClient_SecretList_Call {
+func (_c *APIClient_SecretList_Call) Run(run func(ctx context.Context, options client.SecretListOptions)) *APIClient_SecretList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 swarm.SecretListOptions
+		var arg1 client.SecretListOptions
 		if args[1] != nil {
-			arg1 = args[1].(swarm.SecretListOptions)
+			arg1 = args[1].(client.SecretListOptions)
 		}
 		run(
 			arg0,
@@ -6518,31 +6265,40 @@ func (_c *APIClient_SecretList_Call) Run(run func(ctx context.Context, options s
 	return _c
 }
 
-func (_c *APIClient_SecretList_Call) Return(secrets []swarm.Secret, err error) *APIClient_SecretList_Call {
-	_c.Call.Return(secrets, err)
+func (_c *APIClient_SecretList_Call) Return(secretListResult client.SecretListResult, err error) *APIClient_SecretList_Call {
+	_c.Call.Return(secretListResult, err)
 	return _c
 }
 
-func (_c *APIClient_SecretList_Call) RunAndReturn(run func(ctx context.Context, options swarm.SecretListOptions) ([]swarm.Secret, error)) *APIClient_SecretList_Call {
+func (_c *APIClient_SecretList_Call) RunAndReturn(run func(ctx context.Context, options client.SecretListOptions) (client.SecretListResult, error)) *APIClient_SecretList_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // SecretRemove provides a mock function for the type APIClient
-func (_mock *APIClient) SecretRemove(ctx context.Context, id string) error {
-	ret := _mock.Called(ctx, id)
+func (_mock *APIClient) SecretRemove(ctx context.Context, id string, options client.SecretRemoveOptions) (client.SecretRemoveResult, error) {
+	ret := _mock.Called(ctx, id, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for SecretRemove")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) error); ok {
-		r0 = returnFunc(ctx, id)
-	} else {
-		r0 = ret.Error(0)
+	var r0 client.SecretRemoveResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.SecretRemoveOptions) (client.SecretRemoveResult, error)); ok {
+		return returnFunc(ctx, id, options)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.SecretRemoveOptions) client.SecretRemoveResult); ok {
+		r0 = returnFunc(ctx, id, options)
+	} else {
+		r0 = ret.Get(0).(client.SecretRemoveResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.SecretRemoveOptions) error); ok {
+		r1 = returnFunc(ctx, id, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_SecretRemove_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SecretRemove'
@@ -6553,11 +6309,12 @@ type APIClient_SecretRemove_Call struct {
 // SecretRemove is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id string
-func (_e *APIClient_Expecter) SecretRemove(ctx any, id any) *APIClient_SecretRemove_Call {
-	return &APIClient_SecretRemove_Call{Call: _e.mock.On("SecretRemove", ctx, id)}
+//   - options client.SecretRemoveOptions
+func (_e *APIClient_Expecter) SecretRemove(ctx any, id any, options any) *APIClient_SecretRemove_Call {
+	return &APIClient_SecretRemove_Call{Call: _e.mock.On("SecretRemove", ctx, id, options)}
 }
 
-func (_c *APIClient_SecretRemove_Call) Run(run func(ctx context.Context, id string)) *APIClient_SecretRemove_Call {
+func (_c *APIClient_SecretRemove_Call) Run(run func(ctx context.Context, id string, options client.SecretRemoveOptions)) *APIClient_SecretRemove_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -6567,39 +6324,53 @@ func (_c *APIClient_SecretRemove_Call) Run(run func(ctx context.Context, id stri
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
+		var arg2 client.SecretRemoveOptions
+		if args[2] != nil {
+			arg2 = args[2].(client.SecretRemoveOptions)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
 }
 
-func (_c *APIClient_SecretRemove_Call) Return(err error) *APIClient_SecretRemove_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_SecretRemove_Call) Return(secretRemoveResult client.SecretRemoveResult, err error) *APIClient_SecretRemove_Call {
+	_c.Call.Return(secretRemoveResult, err)
 	return _c
 }
 
-func (_c *APIClient_SecretRemove_Call) RunAndReturn(run func(ctx context.Context, id string) error) *APIClient_SecretRemove_Call {
+func (_c *APIClient_SecretRemove_Call) RunAndReturn(run func(ctx context.Context, id string, options client.SecretRemoveOptions) (client.SecretRemoveResult, error)) *APIClient_SecretRemove_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // SecretUpdate provides a mock function for the type APIClient
-func (_mock *APIClient) SecretUpdate(ctx context.Context, id string, version swarm.Version, secret swarm.SecretSpec) error {
-	ret := _mock.Called(ctx, id, version, secret)
+func (_mock *APIClient) SecretUpdate(ctx context.Context, id string, options client.SecretUpdateOptions) (client.SecretUpdateResult, error) {
+	ret := _mock.Called(ctx, id, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for SecretUpdate")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, swarm.Version, swarm.SecretSpec) error); ok {
-		r0 = returnFunc(ctx, id, version, secret)
-	} else {
-		r0 = ret.Error(0)
+	var r0 client.SecretUpdateResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.SecretUpdateOptions) (client.SecretUpdateResult, error)); ok {
+		return returnFunc(ctx, id, options)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.SecretUpdateOptions) client.SecretUpdateResult); ok {
+		r0 = returnFunc(ctx, id, options)
+	} else {
+		r0 = ret.Get(0).(client.SecretUpdateResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.SecretUpdateOptions) error); ok {
+		r1 = returnFunc(ctx, id, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_SecretUpdate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SecretUpdate'
@@ -6610,13 +6381,12 @@ type APIClient_SecretUpdate_Call struct {
 // SecretUpdate is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id string
-//   - version swarm.Version
-//   - secret swarm.SecretSpec
-func (_e *APIClient_Expecter) SecretUpdate(ctx any, id any, version any, secret any) *APIClient_SecretUpdate_Call {
-	return &APIClient_SecretUpdate_Call{Call: _e.mock.On("SecretUpdate", ctx, id, version, secret)}
+//   - options client.SecretUpdateOptions
+func (_e *APIClient_Expecter) SecretUpdate(ctx any, id any, options any) *APIClient_SecretUpdate_Call {
+	return &APIClient_SecretUpdate_Call{Call: _e.mock.On("SecretUpdate", ctx, id, options)}
 }
 
-func (_c *APIClient_SecretUpdate_Call) Run(run func(ctx context.Context, id string, version swarm.Version, secret swarm.SecretSpec)) *APIClient_SecretUpdate_Call {
+func (_c *APIClient_SecretUpdate_Call) Run(run func(ctx context.Context, id string, options client.SecretUpdateOptions)) *APIClient_SecretUpdate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -6626,54 +6396,49 @@ func (_c *APIClient_SecretUpdate_Call) Run(run func(ctx context.Context, id stri
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 swarm.Version
+		var arg2 client.SecretUpdateOptions
 		if args[2] != nil {
-			arg2 = args[2].(swarm.Version)
-		}
-		var arg3 swarm.SecretSpec
-		if args[3] != nil {
-			arg3 = args[3].(swarm.SecretSpec)
+			arg2 = args[2].(client.SecretUpdateOptions)
 		}
 		run(
 			arg0,
 			arg1,
 			arg2,
-			arg3,
 		)
 	})
 	return _c
 }
 
-func (_c *APIClient_SecretUpdate_Call) Return(err error) *APIClient_SecretUpdate_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_SecretUpdate_Call) Return(secretUpdateResult client.SecretUpdateResult, err error) *APIClient_SecretUpdate_Call {
+	_c.Call.Return(secretUpdateResult, err)
 	return _c
 }
 
-func (_c *APIClient_SecretUpdate_Call) RunAndReturn(run func(ctx context.Context, id string, version swarm.Version, secret swarm.SecretSpec) error) *APIClient_SecretUpdate_Call {
+func (_c *APIClient_SecretUpdate_Call) RunAndReturn(run func(ctx context.Context, id string, options client.SecretUpdateOptions) (client.SecretUpdateResult, error)) *APIClient_SecretUpdate_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ServerVersion provides a mock function for the type APIClient
-func (_mock *APIClient) ServerVersion(ctx context.Context) (types.Version, error) {
-	ret := _mock.Called(ctx)
+func (_mock *APIClient) ServerVersion(ctx context.Context, options client.ServerVersionOptions) (client.ServerVersionResult, error) {
+	ret := _mock.Called(ctx, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ServerVersion")
 	}
 
-	var r0 types.Version
+	var r0 client.ServerVersionResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context) (types.Version, error)); ok {
-		return returnFunc(ctx)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.ServerVersionOptions) (client.ServerVersionResult, error)); ok {
+		return returnFunc(ctx, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context) types.Version); ok {
-		r0 = returnFunc(ctx)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.ServerVersionOptions) client.ServerVersionResult); ok {
+		r0 = returnFunc(ctx, options)
 	} else {
-		r0 = ret.Get(0).(types.Version)
+		r0 = ret.Get(0).(client.ServerVersionResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context) error); ok {
-		r1 = returnFunc(ctx)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.ServerVersionOptions) error); ok {
+		r1 = returnFunc(ctx, options)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -6687,53 +6452,59 @@ type APIClient_ServerVersion_Call struct {
 
 // ServerVersion is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *APIClient_Expecter) ServerVersion(ctx any) *APIClient_ServerVersion_Call {
-	return &APIClient_ServerVersion_Call{Call: _e.mock.On("ServerVersion", ctx)}
+//   - options client.ServerVersionOptions
+func (_e *APIClient_Expecter) ServerVersion(ctx any, options any) *APIClient_ServerVersion_Call {
+	return &APIClient_ServerVersion_Call{Call: _e.mock.On("ServerVersion", ctx, options)}
 }
 
-func (_c *APIClient_ServerVersion_Call) Run(run func(ctx context.Context)) *APIClient_ServerVersion_Call {
+func (_c *APIClient_ServerVersion_Call) Run(run func(ctx context.Context, options client.ServerVersionOptions)) *APIClient_ServerVersion_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
+		var arg1 client.ServerVersionOptions
+		if args[1] != nil {
+			arg1 = args[1].(client.ServerVersionOptions)
+		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
 }
 
-func (_c *APIClient_ServerVersion_Call) Return(version types.Version, err error) *APIClient_ServerVersion_Call {
-	_c.Call.Return(version, err)
+func (_c *APIClient_ServerVersion_Call) Return(serverVersionResult client.ServerVersionResult, err error) *APIClient_ServerVersion_Call {
+	_c.Call.Return(serverVersionResult, err)
 	return _c
 }
 
-func (_c *APIClient_ServerVersion_Call) RunAndReturn(run func(ctx context.Context) (types.Version, error)) *APIClient_ServerVersion_Call {
+func (_c *APIClient_ServerVersion_Call) RunAndReturn(run func(ctx context.Context, options client.ServerVersionOptions) (client.ServerVersionResult, error)) *APIClient_ServerVersion_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ServiceCreate provides a mock function for the type APIClient
-func (_mock *APIClient) ServiceCreate(ctx context.Context, service swarm.ServiceSpec, options swarm.ServiceCreateOptions) (swarm.ServiceCreateResponse, error) {
-	ret := _mock.Called(ctx, service, options)
+func (_mock *APIClient) ServiceCreate(ctx context.Context, options client.ServiceCreateOptions) (client.ServiceCreateResult, error) {
+	ret := _mock.Called(ctx, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ServiceCreate")
 	}
 
-	var r0 swarm.ServiceCreateResponse
+	var r0 client.ServiceCreateResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, swarm.ServiceSpec, swarm.ServiceCreateOptions) (swarm.ServiceCreateResponse, error)); ok {
-		return returnFunc(ctx, service, options)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.ServiceCreateOptions) (client.ServiceCreateResult, error)); ok {
+		return returnFunc(ctx, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, swarm.ServiceSpec, swarm.ServiceCreateOptions) swarm.ServiceCreateResponse); ok {
-		r0 = returnFunc(ctx, service, options)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.ServiceCreateOptions) client.ServiceCreateResult); ok {
+		r0 = returnFunc(ctx, options)
 	} else {
-		r0 = ret.Get(0).(swarm.ServiceCreateResponse)
+		r0 = ret.Get(0).(client.ServiceCreateResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, swarm.ServiceSpec, swarm.ServiceCreateOptions) error); ok {
-		r1 = returnFunc(ctx, service, options)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.ServiceCreateOptions) error); ok {
+		r1 = returnFunc(ctx, options)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -6747,93 +6518,79 @@ type APIClient_ServiceCreate_Call struct {
 
 // ServiceCreate is a helper method to define mock.On call
 //   - ctx context.Context
-//   - service swarm.ServiceSpec
-//   - options swarm.ServiceCreateOptions
-func (_e *APIClient_Expecter) ServiceCreate(ctx any, service any, options any) *APIClient_ServiceCreate_Call {
-	return &APIClient_ServiceCreate_Call{Call: _e.mock.On("ServiceCreate", ctx, service, options)}
+//   - options client.ServiceCreateOptions
+func (_e *APIClient_Expecter) ServiceCreate(ctx any, options any) *APIClient_ServiceCreate_Call {
+	return &APIClient_ServiceCreate_Call{Call: _e.mock.On("ServiceCreate", ctx, options)}
 }
 
-func (_c *APIClient_ServiceCreate_Call) Run(run func(ctx context.Context, service swarm.ServiceSpec, options swarm.ServiceCreateOptions)) *APIClient_ServiceCreate_Call {
+func (_c *APIClient_ServiceCreate_Call) Run(run func(ctx context.Context, options client.ServiceCreateOptions)) *APIClient_ServiceCreate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 swarm.ServiceSpec
+		var arg1 client.ServiceCreateOptions
 		if args[1] != nil {
-			arg1 = args[1].(swarm.ServiceSpec)
-		}
-		var arg2 swarm.ServiceCreateOptions
-		if args[2] != nil {
-			arg2 = args[2].(swarm.ServiceCreateOptions)
+			arg1 = args[1].(client.ServiceCreateOptions)
 		}
 		run(
 			arg0,
 			arg1,
-			arg2,
 		)
 	})
 	return _c
 }
 
-func (_c *APIClient_ServiceCreate_Call) Return(serviceCreateResponse swarm.ServiceCreateResponse, err error) *APIClient_ServiceCreate_Call {
-	_c.Call.Return(serviceCreateResponse, err)
+func (_c *APIClient_ServiceCreate_Call) Return(serviceCreateResult client.ServiceCreateResult, err error) *APIClient_ServiceCreate_Call {
+	_c.Call.Return(serviceCreateResult, err)
 	return _c
 }
 
-func (_c *APIClient_ServiceCreate_Call) RunAndReturn(run func(ctx context.Context, service swarm.ServiceSpec, options swarm.ServiceCreateOptions) (swarm.ServiceCreateResponse, error)) *APIClient_ServiceCreate_Call {
+func (_c *APIClient_ServiceCreate_Call) RunAndReturn(run func(ctx context.Context, options client.ServiceCreateOptions) (client.ServiceCreateResult, error)) *APIClient_ServiceCreate_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// ServiceInspectWithRaw provides a mock function for the type APIClient
-func (_mock *APIClient) ServiceInspectWithRaw(ctx context.Context, serviceID string, options swarm.ServiceInspectOptions) (swarm.Service, []byte, error) {
+// ServiceInspect provides a mock function for the type APIClient
+func (_mock *APIClient) ServiceInspect(ctx context.Context, serviceID string, options client.ServiceInspectOptions) (client.ServiceInspectResult, error) {
 	ret := _mock.Called(ctx, serviceID, options)
 
 	if len(ret) == 0 {
-		panic("no return value specified for ServiceInspectWithRaw")
+		panic("no return value specified for ServiceInspect")
 	}
 
-	var r0 swarm.Service
-	var r1 []byte
-	var r2 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, swarm.ServiceInspectOptions) (swarm.Service, []byte, error)); ok {
+	var r0 client.ServiceInspectResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ServiceInspectOptions) (client.ServiceInspectResult, error)); ok {
 		return returnFunc(ctx, serviceID, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, swarm.ServiceInspectOptions) swarm.Service); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ServiceInspectOptions) client.ServiceInspectResult); ok {
 		r0 = returnFunc(ctx, serviceID, options)
 	} else {
-		r0 = ret.Get(0).(swarm.Service)
+		r0 = ret.Get(0).(client.ServiceInspectResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, swarm.ServiceInspectOptions) []byte); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ServiceInspectOptions) error); ok {
 		r1 = returnFunc(ctx, serviceID, options)
 	} else {
-		if ret.Get(1) != nil {
-			r1 = ret.Get(1).([]byte)
-		}
+		r1 = ret.Error(1)
 	}
-	if returnFunc, ok := ret.Get(2).(func(context.Context, string, swarm.ServiceInspectOptions) error); ok {
-		r2 = returnFunc(ctx, serviceID, options)
-	} else {
-		r2 = ret.Error(2)
-	}
-	return r0, r1, r2
+	return r0, r1
 }
 
-// APIClient_ServiceInspectWithRaw_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ServiceInspectWithRaw'
-type APIClient_ServiceInspectWithRaw_Call struct {
+// APIClient_ServiceInspect_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ServiceInspect'
+type APIClient_ServiceInspect_Call struct {
 	*mock.Call
 }
 
-// ServiceInspectWithRaw is a helper method to define mock.On call
+// ServiceInspect is a helper method to define mock.On call
 //   - ctx context.Context
 //   - serviceID string
-//   - options swarm.ServiceInspectOptions
-func (_e *APIClient_Expecter) ServiceInspectWithRaw(ctx any, serviceID any, options any) *APIClient_ServiceInspectWithRaw_Call {
-	return &APIClient_ServiceInspectWithRaw_Call{Call: _e.mock.On("ServiceInspectWithRaw", ctx, serviceID, options)}
+//   - options client.ServiceInspectOptions
+func (_e *APIClient_Expecter) ServiceInspect(ctx any, serviceID any, options any) *APIClient_ServiceInspect_Call {
+	return &APIClient_ServiceInspect_Call{Call: _e.mock.On("ServiceInspect", ctx, serviceID, options)}
 }
 
-func (_c *APIClient_ServiceInspectWithRaw_Call) Run(run func(ctx context.Context, serviceID string, options swarm.ServiceInspectOptions)) *APIClient_ServiceInspectWithRaw_Call {
+func (_c *APIClient_ServiceInspect_Call) Run(run func(ctx context.Context, serviceID string, options client.ServiceInspectOptions)) *APIClient_ServiceInspect_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -6843,9 +6600,9 @@ func (_c *APIClient_ServiceInspectWithRaw_Call) Run(run func(ctx context.Context
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 swarm.ServiceInspectOptions
+		var arg2 client.ServiceInspectOptions
 		if args[2] != nil {
-			arg2 = args[2].(swarm.ServiceInspectOptions)
+			arg2 = args[2].(client.ServiceInspectOptions)
 		}
 		run(
 			arg0,
@@ -6856,37 +6613,35 @@ func (_c *APIClient_ServiceInspectWithRaw_Call) Run(run func(ctx context.Context
 	return _c
 }
 
-func (_c *APIClient_ServiceInspectWithRaw_Call) Return(service swarm.Service, bytes []byte, err error) *APIClient_ServiceInspectWithRaw_Call {
-	_c.Call.Return(service, bytes, err)
+func (_c *APIClient_ServiceInspect_Call) Return(serviceInspectResult client.ServiceInspectResult, err error) *APIClient_ServiceInspect_Call {
+	_c.Call.Return(serviceInspectResult, err)
 	return _c
 }
 
-func (_c *APIClient_ServiceInspectWithRaw_Call) RunAndReturn(run func(ctx context.Context, serviceID string, options swarm.ServiceInspectOptions) (swarm.Service, []byte, error)) *APIClient_ServiceInspectWithRaw_Call {
+func (_c *APIClient_ServiceInspect_Call) RunAndReturn(run func(ctx context.Context, serviceID string, options client.ServiceInspectOptions) (client.ServiceInspectResult, error)) *APIClient_ServiceInspect_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ServiceList provides a mock function for the type APIClient
-func (_mock *APIClient) ServiceList(ctx context.Context, options swarm.ServiceListOptions) ([]swarm.Service, error) {
+func (_mock *APIClient) ServiceList(ctx context.Context, options client.ServiceListOptions) (client.ServiceListResult, error) {
 	ret := _mock.Called(ctx, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ServiceList")
 	}
 
-	var r0 []swarm.Service
+	var r0 client.ServiceListResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.ServiceListOptions) (client.ServiceListResult, error)); ok {
 		return returnFunc(ctx, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, swarm.ServiceListOptions) []swarm.Service); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.ServiceListOptions) client.ServiceListResult); ok {
 		r0 = returnFunc(ctx, options)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]swarm.Service)
-		}
+		r0 = ret.Get(0).(client.ServiceListResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, swarm.ServiceListOptions) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.ServiceListOptions) error); ok {
 		r1 = returnFunc(ctx, options)
 	} else {
 		r1 = ret.Error(1)
@@ -6901,20 +6656,20 @@ type APIClient_ServiceList_Call struct {
 
 // ServiceList is a helper method to define mock.On call
 //   - ctx context.Context
-//   - options swarm.ServiceListOptions
+//   - options client.ServiceListOptions
 func (_e *APIClient_Expecter) ServiceList(ctx any, options any) *APIClient_ServiceList_Call {
 	return &APIClient_ServiceList_Call{Call: _e.mock.On("ServiceList", ctx, options)}
 }
 
-func (_c *APIClient_ServiceList_Call) Run(run func(ctx context.Context, options swarm.ServiceListOptions)) *APIClient_ServiceList_Call {
+func (_c *APIClient_ServiceList_Call) Run(run func(ctx context.Context, options client.ServiceListOptions)) *APIClient_ServiceList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 swarm.ServiceListOptions
+		var arg1 client.ServiceListOptions
 		if args[1] != nil {
-			arg1 = args[1].(swarm.ServiceListOptions)
+			arg1 = args[1].(client.ServiceListOptions)
 		}
 		run(
 			arg0,
@@ -6924,37 +6679,37 @@ func (_c *APIClient_ServiceList_Call) Run(run func(ctx context.Context, options 
 	return _c
 }
 
-func (_c *APIClient_ServiceList_Call) Return(services []swarm.Service, err error) *APIClient_ServiceList_Call {
-	_c.Call.Return(services, err)
+func (_c *APIClient_ServiceList_Call) Return(serviceListResult client.ServiceListResult, err error) *APIClient_ServiceList_Call {
+	_c.Call.Return(serviceListResult, err)
 	return _c
 }
 
-func (_c *APIClient_ServiceList_Call) RunAndReturn(run func(ctx context.Context, options swarm.ServiceListOptions) ([]swarm.Service, error)) *APIClient_ServiceList_Call {
+func (_c *APIClient_ServiceList_Call) RunAndReturn(run func(ctx context.Context, options client.ServiceListOptions) (client.ServiceListResult, error)) *APIClient_ServiceList_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ServiceLogs provides a mock function for the type APIClient
-func (_mock *APIClient) ServiceLogs(ctx context.Context, serviceID string, options container.LogsOptions) (io.ReadCloser, error) {
+func (_mock *APIClient) ServiceLogs(ctx context.Context, serviceID string, options client.ServiceLogsOptions) (client.ServiceLogsResult, error) {
 	ret := _mock.Called(ctx, serviceID, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ServiceLogs")
 	}
 
-	var r0 io.ReadCloser
+	var r0 client.ServiceLogsResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, container.LogsOptions) (io.ReadCloser, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ServiceLogsOptions) (client.ServiceLogsResult, error)); ok {
 		return returnFunc(ctx, serviceID, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, container.LogsOptions) io.ReadCloser); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ServiceLogsOptions) client.ServiceLogsResult); ok {
 		r0 = returnFunc(ctx, serviceID, options)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(io.ReadCloser)
+			r0 = ret.Get(0).(client.ServiceLogsResult)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, container.LogsOptions) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ServiceLogsOptions) error); ok {
 		r1 = returnFunc(ctx, serviceID, options)
 	} else {
 		r1 = ret.Error(1)
@@ -6970,12 +6725,12 @@ type APIClient_ServiceLogs_Call struct {
 // ServiceLogs is a helper method to define mock.On call
 //   - ctx context.Context
 //   - serviceID string
-//   - options container.LogsOptions
+//   - options client.ServiceLogsOptions
 func (_e *APIClient_Expecter) ServiceLogs(ctx any, serviceID any, options any) *APIClient_ServiceLogs_Call {
 	return &APIClient_ServiceLogs_Call{Call: _e.mock.On("ServiceLogs", ctx, serviceID, options)}
 }
 
-func (_c *APIClient_ServiceLogs_Call) Run(run func(ctx context.Context, serviceID string, options container.LogsOptions)) *APIClient_ServiceLogs_Call {
+func (_c *APIClient_ServiceLogs_Call) Run(run func(ctx context.Context, serviceID string, options client.ServiceLogsOptions)) *APIClient_ServiceLogs_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -6985,9 +6740,9 @@ func (_c *APIClient_ServiceLogs_Call) Run(run func(ctx context.Context, serviceI
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 container.LogsOptions
+		var arg2 client.ServiceLogsOptions
 		if args[2] != nil {
-			arg2 = args[2].(container.LogsOptions)
+			arg2 = args[2].(client.ServiceLogsOptions)
 		}
 		run(
 			arg0,
@@ -6998,31 +6753,40 @@ func (_c *APIClient_ServiceLogs_Call) Run(run func(ctx context.Context, serviceI
 	return _c
 }
 
-func (_c *APIClient_ServiceLogs_Call) Return(readCloser io.ReadCloser, err error) *APIClient_ServiceLogs_Call {
-	_c.Call.Return(readCloser, err)
+func (_c *APIClient_ServiceLogs_Call) Return(serviceLogsResult client.ServiceLogsResult, err error) *APIClient_ServiceLogs_Call {
+	_c.Call.Return(serviceLogsResult, err)
 	return _c
 }
 
-func (_c *APIClient_ServiceLogs_Call) RunAndReturn(run func(ctx context.Context, serviceID string, options container.LogsOptions) (io.ReadCloser, error)) *APIClient_ServiceLogs_Call {
+func (_c *APIClient_ServiceLogs_Call) RunAndReturn(run func(ctx context.Context, serviceID string, options client.ServiceLogsOptions) (client.ServiceLogsResult, error)) *APIClient_ServiceLogs_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ServiceRemove provides a mock function for the type APIClient
-func (_mock *APIClient) ServiceRemove(ctx context.Context, serviceID string) error {
-	ret := _mock.Called(ctx, serviceID)
+func (_mock *APIClient) ServiceRemove(ctx context.Context, serviceID string, options client.ServiceRemoveOptions) (client.ServiceRemoveResult, error) {
+	ret := _mock.Called(ctx, serviceID, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ServiceRemove")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) error); ok {
-		r0 = returnFunc(ctx, serviceID)
-	} else {
-		r0 = ret.Error(0)
+	var r0 client.ServiceRemoveResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ServiceRemoveOptions) (client.ServiceRemoveResult, error)); ok {
+		return returnFunc(ctx, serviceID, options)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ServiceRemoveOptions) client.ServiceRemoveResult); ok {
+		r0 = returnFunc(ctx, serviceID, options)
+	} else {
+		r0 = ret.Get(0).(client.ServiceRemoveResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ServiceRemoveOptions) error); ok {
+		r1 = returnFunc(ctx, serviceID, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_ServiceRemove_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ServiceRemove'
@@ -7033,11 +6797,12 @@ type APIClient_ServiceRemove_Call struct {
 // ServiceRemove is a helper method to define mock.On call
 //   - ctx context.Context
 //   - serviceID string
-func (_e *APIClient_Expecter) ServiceRemove(ctx any, serviceID any) *APIClient_ServiceRemove_Call {
-	return &APIClient_ServiceRemove_Call{Call: _e.mock.On("ServiceRemove", ctx, serviceID)}
+//   - options client.ServiceRemoveOptions
+func (_e *APIClient_Expecter) ServiceRemove(ctx any, serviceID any, options any) *APIClient_ServiceRemove_Call {
+	return &APIClient_ServiceRemove_Call{Call: _e.mock.On("ServiceRemove", ctx, serviceID, options)}
 }
 
-func (_c *APIClient_ServiceRemove_Call) Run(run func(ctx context.Context, serviceID string)) *APIClient_ServiceRemove_Call {
+func (_c *APIClient_ServiceRemove_Call) Run(run func(ctx context.Context, serviceID string, options client.ServiceRemoveOptions)) *APIClient_ServiceRemove_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -7047,44 +6812,49 @@ func (_c *APIClient_ServiceRemove_Call) Run(run func(ctx context.Context, servic
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
+		var arg2 client.ServiceRemoveOptions
+		if args[2] != nil {
+			arg2 = args[2].(client.ServiceRemoveOptions)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
 }
 
-func (_c *APIClient_ServiceRemove_Call) Return(err error) *APIClient_ServiceRemove_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_ServiceRemove_Call) Return(serviceRemoveResult client.ServiceRemoveResult, err error) *APIClient_ServiceRemove_Call {
+	_c.Call.Return(serviceRemoveResult, err)
 	return _c
 }
 
-func (_c *APIClient_ServiceRemove_Call) RunAndReturn(run func(ctx context.Context, serviceID string) error) *APIClient_ServiceRemove_Call {
+func (_c *APIClient_ServiceRemove_Call) RunAndReturn(run func(ctx context.Context, serviceID string, options client.ServiceRemoveOptions) (client.ServiceRemoveResult, error)) *APIClient_ServiceRemove_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ServiceUpdate provides a mock function for the type APIClient
-func (_mock *APIClient) ServiceUpdate(ctx context.Context, serviceID string, version swarm.Version, service swarm.ServiceSpec, options swarm.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error) {
-	ret := _mock.Called(ctx, serviceID, version, service, options)
+func (_mock *APIClient) ServiceUpdate(ctx context.Context, serviceID string, options client.ServiceUpdateOptions) (client.ServiceUpdateResult, error) {
+	ret := _mock.Called(ctx, serviceID, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ServiceUpdate")
 	}
 
-	var r0 swarm.ServiceUpdateResponse
+	var r0 client.ServiceUpdateResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, swarm.Version, swarm.ServiceSpec, swarm.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error)); ok {
-		return returnFunc(ctx, serviceID, version, service, options)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ServiceUpdateOptions) (client.ServiceUpdateResult, error)); ok {
+		return returnFunc(ctx, serviceID, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, swarm.Version, swarm.ServiceSpec, swarm.ServiceUpdateOptions) swarm.ServiceUpdateResponse); ok {
-		r0 = returnFunc(ctx, serviceID, version, service, options)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.ServiceUpdateOptions) client.ServiceUpdateResult); ok {
+		r0 = returnFunc(ctx, serviceID, options)
 	} else {
-		r0 = ret.Get(0).(swarm.ServiceUpdateResponse)
+		r0 = ret.Get(0).(client.ServiceUpdateResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, swarm.Version, swarm.ServiceSpec, swarm.ServiceUpdateOptions) error); ok {
-		r1 = returnFunc(ctx, serviceID, version, service, options)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.ServiceUpdateOptions) error); ok {
+		r1 = returnFunc(ctx, serviceID, options)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -7099,14 +6869,12 @@ type APIClient_ServiceUpdate_Call struct {
 // ServiceUpdate is a helper method to define mock.On call
 //   - ctx context.Context
 //   - serviceID string
-//   - version swarm.Version
-//   - service swarm.ServiceSpec
-//   - options swarm.ServiceUpdateOptions
-func (_e *APIClient_Expecter) ServiceUpdate(ctx any, serviceID any, version any, service any, options any) *APIClient_ServiceUpdate_Call {
-	return &APIClient_ServiceUpdate_Call{Call: _e.mock.On("ServiceUpdate", ctx, serviceID, version, service, options)}
+//   - options client.ServiceUpdateOptions
+func (_e *APIClient_Expecter) ServiceUpdate(ctx any, serviceID any, options any) *APIClient_ServiceUpdate_Call {
+	return &APIClient_ServiceUpdate_Call{Call: _e.mock.On("ServiceUpdate", ctx, serviceID, options)}
 }
 
-func (_c *APIClient_ServiceUpdate_Call) Run(run func(ctx context.Context, serviceID string, version swarm.Version, service swarm.ServiceSpec, options swarm.ServiceUpdateOptions)) *APIClient_ServiceUpdate_Call {
+func (_c *APIClient_ServiceUpdate_Call) Run(run func(ctx context.Context, serviceID string, options client.ServiceUpdateOptions)) *APIClient_ServiceUpdate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -7116,56 +6884,46 @@ func (_c *APIClient_ServiceUpdate_Call) Run(run func(ctx context.Context, servic
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 swarm.Version
+		var arg2 client.ServiceUpdateOptions
 		if args[2] != nil {
-			arg2 = args[2].(swarm.Version)
-		}
-		var arg3 swarm.ServiceSpec
-		if args[3] != nil {
-			arg3 = args[3].(swarm.ServiceSpec)
-		}
-		var arg4 swarm.ServiceUpdateOptions
-		if args[4] != nil {
-			arg4 = args[4].(swarm.ServiceUpdateOptions)
+			arg2 = args[2].(client.ServiceUpdateOptions)
 		}
 		run(
 			arg0,
 			arg1,
 			arg2,
-			arg3,
-			arg4,
 		)
 	})
 	return _c
 }
 
-func (_c *APIClient_ServiceUpdate_Call) Return(serviceUpdateResponse swarm.ServiceUpdateResponse, err error) *APIClient_ServiceUpdate_Call {
-	_c.Call.Return(serviceUpdateResponse, err)
+func (_c *APIClient_ServiceUpdate_Call) Return(serviceUpdateResult client.ServiceUpdateResult, err error) *APIClient_ServiceUpdate_Call {
+	_c.Call.Return(serviceUpdateResult, err)
 	return _c
 }
 
-func (_c *APIClient_ServiceUpdate_Call) RunAndReturn(run func(ctx context.Context, serviceID string, version swarm.Version, service swarm.ServiceSpec, options swarm.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error)) *APIClient_ServiceUpdate_Call {
+func (_c *APIClient_ServiceUpdate_Call) RunAndReturn(run func(ctx context.Context, serviceID string, options client.ServiceUpdateOptions) (client.ServiceUpdateResult, error)) *APIClient_ServiceUpdate_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // SwarmGetUnlockKey provides a mock function for the type APIClient
-func (_mock *APIClient) SwarmGetUnlockKey(ctx context.Context) (swarm.UnlockKeyResponse, error) {
+func (_mock *APIClient) SwarmGetUnlockKey(ctx context.Context) (client.SwarmGetUnlockKeyResult, error) {
 	ret := _mock.Called(ctx)
 
 	if len(ret) == 0 {
 		panic("no return value specified for SwarmGetUnlockKey")
 	}
 
-	var r0 swarm.UnlockKeyResponse
+	var r0 client.SwarmGetUnlockKeyResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context) (swarm.UnlockKeyResponse, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context) (client.SwarmGetUnlockKeyResult, error)); ok {
 		return returnFunc(ctx)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context) swarm.UnlockKeyResponse); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context) client.SwarmGetUnlockKeyResult); ok {
 		r0 = returnFunc(ctx)
 	} else {
-		r0 = ret.Get(0).(swarm.UnlockKeyResponse)
+		r0 = ret.Get(0).(client.SwarmGetUnlockKeyResult)
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context) error); ok {
 		r1 = returnFunc(ctx)
@@ -7199,36 +6957,36 @@ func (_c *APIClient_SwarmGetUnlockKey_Call) Run(run func(ctx context.Context)) *
 	return _c
 }
 
-func (_c *APIClient_SwarmGetUnlockKey_Call) Return(unlockKeyResponse swarm.UnlockKeyResponse, err error) *APIClient_SwarmGetUnlockKey_Call {
-	_c.Call.Return(unlockKeyResponse, err)
+func (_c *APIClient_SwarmGetUnlockKey_Call) Return(swarmGetUnlockKeyResult client.SwarmGetUnlockKeyResult, err error) *APIClient_SwarmGetUnlockKey_Call {
+	_c.Call.Return(swarmGetUnlockKeyResult, err)
 	return _c
 }
 
-func (_c *APIClient_SwarmGetUnlockKey_Call) RunAndReturn(run func(ctx context.Context) (swarm.UnlockKeyResponse, error)) *APIClient_SwarmGetUnlockKey_Call {
+func (_c *APIClient_SwarmGetUnlockKey_Call) RunAndReturn(run func(ctx context.Context) (client.SwarmGetUnlockKeyResult, error)) *APIClient_SwarmGetUnlockKey_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // SwarmInit provides a mock function for the type APIClient
-func (_mock *APIClient) SwarmInit(ctx context.Context, req swarm.InitRequest) (string, error) {
-	ret := _mock.Called(ctx, req)
+func (_mock *APIClient) SwarmInit(ctx context.Context, options client.SwarmInitOptions) (client.SwarmInitResult, error) {
+	ret := _mock.Called(ctx, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for SwarmInit")
 	}
 
-	var r0 string
+	var r0 client.SwarmInitResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, swarm.InitRequest) (string, error)); ok {
-		return returnFunc(ctx, req)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.SwarmInitOptions) (client.SwarmInitResult, error)); ok {
+		return returnFunc(ctx, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, swarm.InitRequest) string); ok {
-		r0 = returnFunc(ctx, req)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.SwarmInitOptions) client.SwarmInitResult); ok {
+		r0 = returnFunc(ctx, options)
 	} else {
-		r0 = ret.Get(0).(string)
+		r0 = ret.Get(0).(client.SwarmInitResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, swarm.InitRequest) error); ok {
-		r1 = returnFunc(ctx, req)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.SwarmInitOptions) error); ok {
+		r1 = returnFunc(ctx, options)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -7242,20 +7000,20 @@ type APIClient_SwarmInit_Call struct {
 
 // SwarmInit is a helper method to define mock.On call
 //   - ctx context.Context
-//   - req swarm.InitRequest
-func (_e *APIClient_Expecter) SwarmInit(ctx any, req any) *APIClient_SwarmInit_Call {
-	return &APIClient_SwarmInit_Call{Call: _e.mock.On("SwarmInit", ctx, req)}
+//   - options client.SwarmInitOptions
+func (_e *APIClient_Expecter) SwarmInit(ctx any, options any) *APIClient_SwarmInit_Call {
+	return &APIClient_SwarmInit_Call{Call: _e.mock.On("SwarmInit", ctx, options)}
 }
 
-func (_c *APIClient_SwarmInit_Call) Run(run func(ctx context.Context, req swarm.InitRequest)) *APIClient_SwarmInit_Call {
+func (_c *APIClient_SwarmInit_Call) Run(run func(ctx context.Context, options client.SwarmInitOptions)) *APIClient_SwarmInit_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 swarm.InitRequest
+		var arg1 client.SwarmInitOptions
 		if args[1] != nil {
-			arg1 = args[1].(swarm.InitRequest)
+			arg1 = args[1].(client.SwarmInitOptions)
 		}
 		run(
 			arg0,
@@ -7265,36 +7023,36 @@ func (_c *APIClient_SwarmInit_Call) Run(run func(ctx context.Context, req swarm.
 	return _c
 }
 
-func (_c *APIClient_SwarmInit_Call) Return(s string, err error) *APIClient_SwarmInit_Call {
-	_c.Call.Return(s, err)
+func (_c *APIClient_SwarmInit_Call) Return(swarmInitResult client.SwarmInitResult, err error) *APIClient_SwarmInit_Call {
+	_c.Call.Return(swarmInitResult, err)
 	return _c
 }
 
-func (_c *APIClient_SwarmInit_Call) RunAndReturn(run func(ctx context.Context, req swarm.InitRequest) (string, error)) *APIClient_SwarmInit_Call {
+func (_c *APIClient_SwarmInit_Call) RunAndReturn(run func(ctx context.Context, options client.SwarmInitOptions) (client.SwarmInitResult, error)) *APIClient_SwarmInit_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // SwarmInspect provides a mock function for the type APIClient
-func (_mock *APIClient) SwarmInspect(ctx context.Context) (swarm.Swarm, error) {
-	ret := _mock.Called(ctx)
+func (_mock *APIClient) SwarmInspect(ctx context.Context, options client.SwarmInspectOptions) (client.SwarmInspectResult, error) {
+	ret := _mock.Called(ctx, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for SwarmInspect")
 	}
 
-	var r0 swarm.Swarm
+	var r0 client.SwarmInspectResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context) (swarm.Swarm, error)); ok {
-		return returnFunc(ctx)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.SwarmInspectOptions) (client.SwarmInspectResult, error)); ok {
+		return returnFunc(ctx, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context) swarm.Swarm); ok {
-		r0 = returnFunc(ctx)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.SwarmInspectOptions) client.SwarmInspectResult); ok {
+		r0 = returnFunc(ctx, options)
 	} else {
-		r0 = ret.Get(0).(swarm.Swarm)
+		r0 = ret.Get(0).(client.SwarmInspectResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context) error); ok {
-		r1 = returnFunc(ctx)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.SwarmInspectOptions) error); ok {
+		r1 = returnFunc(ctx, options)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -7308,48 +7066,63 @@ type APIClient_SwarmInspect_Call struct {
 
 // SwarmInspect is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *APIClient_Expecter) SwarmInspect(ctx any) *APIClient_SwarmInspect_Call {
-	return &APIClient_SwarmInspect_Call{Call: _e.mock.On("SwarmInspect", ctx)}
+//   - options client.SwarmInspectOptions
+func (_e *APIClient_Expecter) SwarmInspect(ctx any, options any) *APIClient_SwarmInspect_Call {
+	return &APIClient_SwarmInspect_Call{Call: _e.mock.On("SwarmInspect", ctx, options)}
 }
 
-func (_c *APIClient_SwarmInspect_Call) Run(run func(ctx context.Context)) *APIClient_SwarmInspect_Call {
+func (_c *APIClient_SwarmInspect_Call) Run(run func(ctx context.Context, options client.SwarmInspectOptions)) *APIClient_SwarmInspect_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
+		var arg1 client.SwarmInspectOptions
+		if args[1] != nil {
+			arg1 = args[1].(client.SwarmInspectOptions)
+		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
 }
 
-func (_c *APIClient_SwarmInspect_Call) Return(swarm1 swarm.Swarm, err error) *APIClient_SwarmInspect_Call {
-	_c.Call.Return(swarm1, err)
+func (_c *APIClient_SwarmInspect_Call) Return(swarmInspectResult client.SwarmInspectResult, err error) *APIClient_SwarmInspect_Call {
+	_c.Call.Return(swarmInspectResult, err)
 	return _c
 }
 
-func (_c *APIClient_SwarmInspect_Call) RunAndReturn(run func(ctx context.Context) (swarm.Swarm, error)) *APIClient_SwarmInspect_Call {
+func (_c *APIClient_SwarmInspect_Call) RunAndReturn(run func(ctx context.Context, options client.SwarmInspectOptions) (client.SwarmInspectResult, error)) *APIClient_SwarmInspect_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // SwarmJoin provides a mock function for the type APIClient
-func (_mock *APIClient) SwarmJoin(ctx context.Context, req swarm.JoinRequest) error {
-	ret := _mock.Called(ctx, req)
+func (_mock *APIClient) SwarmJoin(ctx context.Context, options client.SwarmJoinOptions) (client.SwarmJoinResult, error) {
+	ret := _mock.Called(ctx, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for SwarmJoin")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, swarm.JoinRequest) error); ok {
-		r0 = returnFunc(ctx, req)
-	} else {
-		r0 = ret.Error(0)
+	var r0 client.SwarmJoinResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.SwarmJoinOptions) (client.SwarmJoinResult, error)); ok {
+		return returnFunc(ctx, options)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.SwarmJoinOptions) client.SwarmJoinResult); ok {
+		r0 = returnFunc(ctx, options)
+	} else {
+		r0 = ret.Get(0).(client.SwarmJoinResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.SwarmJoinOptions) error); ok {
+		r1 = returnFunc(ctx, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_SwarmJoin_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SwarmJoin'
@@ -7359,20 +7132,20 @@ type APIClient_SwarmJoin_Call struct {
 
 // SwarmJoin is a helper method to define mock.On call
 //   - ctx context.Context
-//   - req swarm.JoinRequest
-func (_e *APIClient_Expecter) SwarmJoin(ctx any, req any) *APIClient_SwarmJoin_Call {
-	return &APIClient_SwarmJoin_Call{Call: _e.mock.On("SwarmJoin", ctx, req)}
+//   - options client.SwarmJoinOptions
+func (_e *APIClient_Expecter) SwarmJoin(ctx any, options any) *APIClient_SwarmJoin_Call {
+	return &APIClient_SwarmJoin_Call{Call: _e.mock.On("SwarmJoin", ctx, options)}
 }
 
-func (_c *APIClient_SwarmJoin_Call) Run(run func(ctx context.Context, req swarm.JoinRequest)) *APIClient_SwarmJoin_Call {
+func (_c *APIClient_SwarmJoin_Call) Run(run func(ctx context.Context, options client.SwarmJoinOptions)) *APIClient_SwarmJoin_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 swarm.JoinRequest
+		var arg1 client.SwarmJoinOptions
 		if args[1] != nil {
-			arg1 = args[1].(swarm.JoinRequest)
+			arg1 = args[1].(client.SwarmJoinOptions)
 		}
 		run(
 			arg0,
@@ -7382,31 +7155,40 @@ func (_c *APIClient_SwarmJoin_Call) Run(run func(ctx context.Context, req swarm.
 	return _c
 }
 
-func (_c *APIClient_SwarmJoin_Call) Return(err error) *APIClient_SwarmJoin_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_SwarmJoin_Call) Return(swarmJoinResult client.SwarmJoinResult, err error) *APIClient_SwarmJoin_Call {
+	_c.Call.Return(swarmJoinResult, err)
 	return _c
 }
 
-func (_c *APIClient_SwarmJoin_Call) RunAndReturn(run func(ctx context.Context, req swarm.JoinRequest) error) *APIClient_SwarmJoin_Call {
+func (_c *APIClient_SwarmJoin_Call) RunAndReturn(run func(ctx context.Context, options client.SwarmJoinOptions) (client.SwarmJoinResult, error)) *APIClient_SwarmJoin_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // SwarmLeave provides a mock function for the type APIClient
-func (_mock *APIClient) SwarmLeave(ctx context.Context, force bool) error {
-	ret := _mock.Called(ctx, force)
+func (_mock *APIClient) SwarmLeave(ctx context.Context, options client.SwarmLeaveOptions) (client.SwarmLeaveResult, error) {
+	ret := _mock.Called(ctx, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for SwarmLeave")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, bool) error); ok {
-		r0 = returnFunc(ctx, force)
-	} else {
-		r0 = ret.Error(0)
+	var r0 client.SwarmLeaveResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.SwarmLeaveOptions) (client.SwarmLeaveResult, error)); ok {
+		return returnFunc(ctx, options)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.SwarmLeaveOptions) client.SwarmLeaveResult); ok {
+		r0 = returnFunc(ctx, options)
+	} else {
+		r0 = ret.Get(0).(client.SwarmLeaveResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.SwarmLeaveOptions) error); ok {
+		r1 = returnFunc(ctx, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_SwarmLeave_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SwarmLeave'
@@ -7416,20 +7198,20 @@ type APIClient_SwarmLeave_Call struct {
 
 // SwarmLeave is a helper method to define mock.On call
 //   - ctx context.Context
-//   - force bool
-func (_e *APIClient_Expecter) SwarmLeave(ctx any, force any) *APIClient_SwarmLeave_Call {
-	return &APIClient_SwarmLeave_Call{Call: _e.mock.On("SwarmLeave", ctx, force)}
+//   - options client.SwarmLeaveOptions
+func (_e *APIClient_Expecter) SwarmLeave(ctx any, options any) *APIClient_SwarmLeave_Call {
+	return &APIClient_SwarmLeave_Call{Call: _e.mock.On("SwarmLeave", ctx, options)}
 }
 
-func (_c *APIClient_SwarmLeave_Call) Run(run func(ctx context.Context, force bool)) *APIClient_SwarmLeave_Call {
+func (_c *APIClient_SwarmLeave_Call) Run(run func(ctx context.Context, options client.SwarmLeaveOptions)) *APIClient_SwarmLeave_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 bool
+		var arg1 client.SwarmLeaveOptions
 		if args[1] != nil {
-			arg1 = args[1].(bool)
+			arg1 = args[1].(client.SwarmLeaveOptions)
 		}
 		run(
 			arg0,
@@ -7439,31 +7221,40 @@ func (_c *APIClient_SwarmLeave_Call) Run(run func(ctx context.Context, force boo
 	return _c
 }
 
-func (_c *APIClient_SwarmLeave_Call) Return(err error) *APIClient_SwarmLeave_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_SwarmLeave_Call) Return(swarmLeaveResult client.SwarmLeaveResult, err error) *APIClient_SwarmLeave_Call {
+	_c.Call.Return(swarmLeaveResult, err)
 	return _c
 }
 
-func (_c *APIClient_SwarmLeave_Call) RunAndReturn(run func(ctx context.Context, force bool) error) *APIClient_SwarmLeave_Call {
+func (_c *APIClient_SwarmLeave_Call) RunAndReturn(run func(ctx context.Context, options client.SwarmLeaveOptions) (client.SwarmLeaveResult, error)) *APIClient_SwarmLeave_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // SwarmUnlock provides a mock function for the type APIClient
-func (_mock *APIClient) SwarmUnlock(ctx context.Context, req swarm.UnlockRequest) error {
-	ret := _mock.Called(ctx, req)
+func (_mock *APIClient) SwarmUnlock(ctx context.Context, options client.SwarmUnlockOptions) (client.SwarmUnlockResult, error) {
+	ret := _mock.Called(ctx, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for SwarmUnlock")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, swarm.UnlockRequest) error); ok {
-		r0 = returnFunc(ctx, req)
-	} else {
-		r0 = ret.Error(0)
+	var r0 client.SwarmUnlockResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.SwarmUnlockOptions) (client.SwarmUnlockResult, error)); ok {
+		return returnFunc(ctx, options)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.SwarmUnlockOptions) client.SwarmUnlockResult); ok {
+		r0 = returnFunc(ctx, options)
+	} else {
+		r0 = ret.Get(0).(client.SwarmUnlockResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.SwarmUnlockOptions) error); ok {
+		r1 = returnFunc(ctx, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_SwarmUnlock_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SwarmUnlock'
@@ -7473,20 +7264,20 @@ type APIClient_SwarmUnlock_Call struct {
 
 // SwarmUnlock is a helper method to define mock.On call
 //   - ctx context.Context
-//   - req swarm.UnlockRequest
-func (_e *APIClient_Expecter) SwarmUnlock(ctx any, req any) *APIClient_SwarmUnlock_Call {
-	return &APIClient_SwarmUnlock_Call{Call: _e.mock.On("SwarmUnlock", ctx, req)}
+//   - options client.SwarmUnlockOptions
+func (_e *APIClient_Expecter) SwarmUnlock(ctx any, options any) *APIClient_SwarmUnlock_Call {
+	return &APIClient_SwarmUnlock_Call{Call: _e.mock.On("SwarmUnlock", ctx, options)}
 }
 
-func (_c *APIClient_SwarmUnlock_Call) Run(run func(ctx context.Context, req swarm.UnlockRequest)) *APIClient_SwarmUnlock_Call {
+func (_c *APIClient_SwarmUnlock_Call) Run(run func(ctx context.Context, options client.SwarmUnlockOptions)) *APIClient_SwarmUnlock_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 swarm.UnlockRequest
+		var arg1 client.SwarmUnlockOptions
 		if args[1] != nil {
-			arg1 = args[1].(swarm.UnlockRequest)
+			arg1 = args[1].(client.SwarmUnlockOptions)
 		}
 		run(
 			arg0,
@@ -7496,31 +7287,40 @@ func (_c *APIClient_SwarmUnlock_Call) Run(run func(ctx context.Context, req swar
 	return _c
 }
 
-func (_c *APIClient_SwarmUnlock_Call) Return(err error) *APIClient_SwarmUnlock_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_SwarmUnlock_Call) Return(swarmUnlockResult client.SwarmUnlockResult, err error) *APIClient_SwarmUnlock_Call {
+	_c.Call.Return(swarmUnlockResult, err)
 	return _c
 }
 
-func (_c *APIClient_SwarmUnlock_Call) RunAndReturn(run func(ctx context.Context, req swarm.UnlockRequest) error) *APIClient_SwarmUnlock_Call {
+func (_c *APIClient_SwarmUnlock_Call) RunAndReturn(run func(ctx context.Context, options client.SwarmUnlockOptions) (client.SwarmUnlockResult, error)) *APIClient_SwarmUnlock_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // SwarmUpdate provides a mock function for the type APIClient
-func (_mock *APIClient) SwarmUpdate(ctx context.Context, version swarm.Version, swarm1 swarm.Spec, flags swarm.UpdateFlags) error {
-	ret := _mock.Called(ctx, version, swarm1, flags)
+func (_mock *APIClient) SwarmUpdate(ctx context.Context, options client.SwarmUpdateOptions) (client.SwarmUpdateResult, error) {
+	ret := _mock.Called(ctx, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for SwarmUpdate")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, swarm.Version, swarm.Spec, swarm.UpdateFlags) error); ok {
-		r0 = returnFunc(ctx, version, swarm1, flags)
-	} else {
-		r0 = ret.Error(0)
+	var r0 client.SwarmUpdateResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.SwarmUpdateOptions) (client.SwarmUpdateResult, error)); ok {
+		return returnFunc(ctx, options)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.SwarmUpdateOptions) client.SwarmUpdateResult); ok {
+		r0 = returnFunc(ctx, options)
+	} else {
+		r0 = ret.Get(0).(client.SwarmUpdateResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.SwarmUpdateOptions) error); ok {
+		r1 = returnFunc(ctx, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_SwarmUpdate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SwarmUpdate'
@@ -7530,98 +7330,79 @@ type APIClient_SwarmUpdate_Call struct {
 
 // SwarmUpdate is a helper method to define mock.On call
 //   - ctx context.Context
-//   - version swarm.Version
-//   - swarm1 swarm.Spec
-//   - flags swarm.UpdateFlags
-func (_e *APIClient_Expecter) SwarmUpdate(ctx any, version any, swarm1 any, flags any) *APIClient_SwarmUpdate_Call {
-	return &APIClient_SwarmUpdate_Call{Call: _e.mock.On("SwarmUpdate", ctx, version, swarm1, flags)}
+//   - options client.SwarmUpdateOptions
+func (_e *APIClient_Expecter) SwarmUpdate(ctx any, options any) *APIClient_SwarmUpdate_Call {
+	return &APIClient_SwarmUpdate_Call{Call: _e.mock.On("SwarmUpdate", ctx, options)}
 }
 
-func (_c *APIClient_SwarmUpdate_Call) Run(run func(ctx context.Context, version swarm.Version, swarm1 swarm.Spec, flags swarm.UpdateFlags)) *APIClient_SwarmUpdate_Call {
+func (_c *APIClient_SwarmUpdate_Call) Run(run func(ctx context.Context, options client.SwarmUpdateOptions)) *APIClient_SwarmUpdate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 swarm.Version
+		var arg1 client.SwarmUpdateOptions
 		if args[1] != nil {
-			arg1 = args[1].(swarm.Version)
-		}
-		var arg2 swarm.Spec
-		if args[2] != nil {
-			arg2 = args[2].(swarm.Spec)
-		}
-		var arg3 swarm.UpdateFlags
-		if args[3] != nil {
-			arg3 = args[3].(swarm.UpdateFlags)
+			arg1 = args[1].(client.SwarmUpdateOptions)
 		}
 		run(
 			arg0,
 			arg1,
-			arg2,
-			arg3,
 		)
 	})
 	return _c
 }
 
-func (_c *APIClient_SwarmUpdate_Call) Return(err error) *APIClient_SwarmUpdate_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_SwarmUpdate_Call) Return(swarmUpdateResult client.SwarmUpdateResult, err error) *APIClient_SwarmUpdate_Call {
+	_c.Call.Return(swarmUpdateResult, err)
 	return _c
 }
 
-func (_c *APIClient_SwarmUpdate_Call) RunAndReturn(run func(ctx context.Context, version swarm.Version, swarm1 swarm.Spec, flags swarm.UpdateFlags) error) *APIClient_SwarmUpdate_Call {
+func (_c *APIClient_SwarmUpdate_Call) RunAndReturn(run func(ctx context.Context, options client.SwarmUpdateOptions) (client.SwarmUpdateResult, error)) *APIClient_SwarmUpdate_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// TaskInspectWithRaw provides a mock function for the type APIClient
-func (_mock *APIClient) TaskInspectWithRaw(ctx context.Context, taskID string) (swarm.Task, []byte, error) {
-	ret := _mock.Called(ctx, taskID)
+// TaskInspect provides a mock function for the type APIClient
+func (_mock *APIClient) TaskInspect(ctx context.Context, taskID string, options client.TaskInspectOptions) (client.TaskInspectResult, error) {
+	ret := _mock.Called(ctx, taskID, options)
 
 	if len(ret) == 0 {
-		panic("no return value specified for TaskInspectWithRaw")
+		panic("no return value specified for TaskInspect")
 	}
 
-	var r0 swarm.Task
-	var r1 []byte
-	var r2 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (swarm.Task, []byte, error)); ok {
-		return returnFunc(ctx, taskID)
+	var r0 client.TaskInspectResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.TaskInspectOptions) (client.TaskInspectResult, error)); ok {
+		return returnFunc(ctx, taskID, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) swarm.Task); ok {
-		r0 = returnFunc(ctx, taskID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.TaskInspectOptions) client.TaskInspectResult); ok {
+		r0 = returnFunc(ctx, taskID, options)
 	} else {
-		r0 = ret.Get(0).(swarm.Task)
+		r0 = ret.Get(0).(client.TaskInspectResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string) []byte); ok {
-		r1 = returnFunc(ctx, taskID)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.TaskInspectOptions) error); ok {
+		r1 = returnFunc(ctx, taskID, options)
 	} else {
-		if ret.Get(1) != nil {
-			r1 = ret.Get(1).([]byte)
-		}
+		r1 = ret.Error(1)
 	}
-	if returnFunc, ok := ret.Get(2).(func(context.Context, string) error); ok {
-		r2 = returnFunc(ctx, taskID)
-	} else {
-		r2 = ret.Error(2)
-	}
-	return r0, r1, r2
+	return r0, r1
 }
 
-// APIClient_TaskInspectWithRaw_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'TaskInspectWithRaw'
-type APIClient_TaskInspectWithRaw_Call struct {
+// APIClient_TaskInspect_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'TaskInspect'
+type APIClient_TaskInspect_Call struct {
 	*mock.Call
 }
 
-// TaskInspectWithRaw is a helper method to define mock.On call
+// TaskInspect is a helper method to define mock.On call
 //   - ctx context.Context
 //   - taskID string
-func (_e *APIClient_Expecter) TaskInspectWithRaw(ctx any, taskID any) *APIClient_TaskInspectWithRaw_Call {
-	return &APIClient_TaskInspectWithRaw_Call{Call: _e.mock.On("TaskInspectWithRaw", ctx, taskID)}
+//   - options client.TaskInspectOptions
+func (_e *APIClient_Expecter) TaskInspect(ctx any, taskID any, options any) *APIClient_TaskInspect_Call {
+	return &APIClient_TaskInspect_Call{Call: _e.mock.On("TaskInspect", ctx, taskID, options)}
 }
 
-func (_c *APIClient_TaskInspectWithRaw_Call) Run(run func(ctx context.Context, taskID string)) *APIClient_TaskInspectWithRaw_Call {
+func (_c *APIClient_TaskInspect_Call) Run(run func(ctx context.Context, taskID string, options client.TaskInspectOptions)) *APIClient_TaskInspect_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -7631,45 +7412,48 @@ func (_c *APIClient_TaskInspectWithRaw_Call) Run(run func(ctx context.Context, t
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
+		var arg2 client.TaskInspectOptions
+		if args[2] != nil {
+			arg2 = args[2].(client.TaskInspectOptions)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
 }
 
-func (_c *APIClient_TaskInspectWithRaw_Call) Return(task swarm.Task, bytes []byte, err error) *APIClient_TaskInspectWithRaw_Call {
-	_c.Call.Return(task, bytes, err)
+func (_c *APIClient_TaskInspect_Call) Return(taskInspectResult client.TaskInspectResult, err error) *APIClient_TaskInspect_Call {
+	_c.Call.Return(taskInspectResult, err)
 	return _c
 }
 
-func (_c *APIClient_TaskInspectWithRaw_Call) RunAndReturn(run func(ctx context.Context, taskID string) (swarm.Task, []byte, error)) *APIClient_TaskInspectWithRaw_Call {
+func (_c *APIClient_TaskInspect_Call) RunAndReturn(run func(ctx context.Context, taskID string, options client.TaskInspectOptions) (client.TaskInspectResult, error)) *APIClient_TaskInspect_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // TaskList provides a mock function for the type APIClient
-func (_mock *APIClient) TaskList(ctx context.Context, options swarm.TaskListOptions) ([]swarm.Task, error) {
+func (_mock *APIClient) TaskList(ctx context.Context, options client.TaskListOptions) (client.TaskListResult, error) {
 	ret := _mock.Called(ctx, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for TaskList")
 	}
 
-	var r0 []swarm.Task
+	var r0 client.TaskListResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, swarm.TaskListOptions) ([]swarm.Task, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.TaskListOptions) (client.TaskListResult, error)); ok {
 		return returnFunc(ctx, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, swarm.TaskListOptions) []swarm.Task); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.TaskListOptions) client.TaskListResult); ok {
 		r0 = returnFunc(ctx, options)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]swarm.Task)
-		}
+		r0 = ret.Get(0).(client.TaskListResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, swarm.TaskListOptions) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.TaskListOptions) error); ok {
 		r1 = returnFunc(ctx, options)
 	} else {
 		r1 = ret.Error(1)
@@ -7684,20 +7468,20 @@ type APIClient_TaskList_Call struct {
 
 // TaskList is a helper method to define mock.On call
 //   - ctx context.Context
-//   - options swarm.TaskListOptions
+//   - options client.TaskListOptions
 func (_e *APIClient_Expecter) TaskList(ctx any, options any) *APIClient_TaskList_Call {
 	return &APIClient_TaskList_Call{Call: _e.mock.On("TaskList", ctx, options)}
 }
 
-func (_c *APIClient_TaskList_Call) Run(run func(ctx context.Context, options swarm.TaskListOptions)) *APIClient_TaskList_Call {
+func (_c *APIClient_TaskList_Call) Run(run func(ctx context.Context, options client.TaskListOptions)) *APIClient_TaskList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 swarm.TaskListOptions
+		var arg1 client.TaskListOptions
 		if args[1] != nil {
-			arg1 = args[1].(swarm.TaskListOptions)
+			arg1 = args[1].(client.TaskListOptions)
 		}
 		run(
 			arg0,
@@ -7707,37 +7491,37 @@ func (_c *APIClient_TaskList_Call) Run(run func(ctx context.Context, options swa
 	return _c
 }
 
-func (_c *APIClient_TaskList_Call) Return(tasks []swarm.Task, err error) *APIClient_TaskList_Call {
-	_c.Call.Return(tasks, err)
+func (_c *APIClient_TaskList_Call) Return(taskListResult client.TaskListResult, err error) *APIClient_TaskList_Call {
+	_c.Call.Return(taskListResult, err)
 	return _c
 }
 
-func (_c *APIClient_TaskList_Call) RunAndReturn(run func(ctx context.Context, options swarm.TaskListOptions) ([]swarm.Task, error)) *APIClient_TaskList_Call {
+func (_c *APIClient_TaskList_Call) RunAndReturn(run func(ctx context.Context, options client.TaskListOptions) (client.TaskListResult, error)) *APIClient_TaskList_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // TaskLogs provides a mock function for the type APIClient
-func (_mock *APIClient) TaskLogs(ctx context.Context, taskID string, options container.LogsOptions) (io.ReadCloser, error) {
+func (_mock *APIClient) TaskLogs(ctx context.Context, taskID string, options client.TaskLogsOptions) (client.TaskLogsResult, error) {
 	ret := _mock.Called(ctx, taskID, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for TaskLogs")
 	}
 
-	var r0 io.ReadCloser
+	var r0 client.TaskLogsResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, container.LogsOptions) (io.ReadCloser, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.TaskLogsOptions) (client.TaskLogsResult, error)); ok {
 		return returnFunc(ctx, taskID, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, container.LogsOptions) io.ReadCloser); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.TaskLogsOptions) client.TaskLogsResult); ok {
 		r0 = returnFunc(ctx, taskID, options)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(io.ReadCloser)
+			r0 = ret.Get(0).(client.TaskLogsResult)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, container.LogsOptions) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.TaskLogsOptions) error); ok {
 		r1 = returnFunc(ctx, taskID, options)
 	} else {
 		r1 = ret.Error(1)
@@ -7753,12 +7537,12 @@ type APIClient_TaskLogs_Call struct {
 // TaskLogs is a helper method to define mock.On call
 //   - ctx context.Context
 //   - taskID string
-//   - options container.LogsOptions
+//   - options client.TaskLogsOptions
 func (_e *APIClient_Expecter) TaskLogs(ctx any, taskID any, options any) *APIClient_TaskLogs_Call {
 	return &APIClient_TaskLogs_Call{Call: _e.mock.On("TaskLogs", ctx, taskID, options)}
 }
 
-func (_c *APIClient_TaskLogs_Call) Run(run func(ctx context.Context, taskID string, options container.LogsOptions)) *APIClient_TaskLogs_Call {
+func (_c *APIClient_TaskLogs_Call) Run(run func(ctx context.Context, taskID string, options client.TaskLogsOptions)) *APIClient_TaskLogs_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -7768,9 +7552,9 @@ func (_c *APIClient_TaskLogs_Call) Run(run func(ctx context.Context, taskID stri
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 container.LogsOptions
+		var arg2 client.TaskLogsOptions
 		if args[2] != nil {
-			arg2 = args[2].(container.LogsOptions)
+			arg2 = args[2].(client.TaskLogsOptions)
 		}
 		run(
 			arg0,
@@ -7781,35 +7565,35 @@ func (_c *APIClient_TaskLogs_Call) Run(run func(ctx context.Context, taskID stri
 	return _c
 }
 
-func (_c *APIClient_TaskLogs_Call) Return(readCloser io.ReadCloser, err error) *APIClient_TaskLogs_Call {
-	_c.Call.Return(readCloser, err)
+func (_c *APIClient_TaskLogs_Call) Return(taskLogsResult client.TaskLogsResult, err error) *APIClient_TaskLogs_Call {
+	_c.Call.Return(taskLogsResult, err)
 	return _c
 }
 
-func (_c *APIClient_TaskLogs_Call) RunAndReturn(run func(ctx context.Context, taskID string, options container.LogsOptions) (io.ReadCloser, error)) *APIClient_TaskLogs_Call {
+func (_c *APIClient_TaskLogs_Call) RunAndReturn(run func(ctx context.Context, taskID string, options client.TaskLogsOptions) (client.TaskLogsResult, error)) *APIClient_TaskLogs_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // VolumeCreate provides a mock function for the type APIClient
-func (_mock *APIClient) VolumeCreate(ctx context.Context, options volume.CreateOptions) (volume.Volume, error) {
+func (_mock *APIClient) VolumeCreate(ctx context.Context, options client.VolumeCreateOptions) (client.VolumeCreateResult, error) {
 	ret := _mock.Called(ctx, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for VolumeCreate")
 	}
 
-	var r0 volume.Volume
+	var r0 client.VolumeCreateResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, volume.CreateOptions) (volume.Volume, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.VolumeCreateOptions) (client.VolumeCreateResult, error)); ok {
 		return returnFunc(ctx, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, volume.CreateOptions) volume.Volume); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.VolumeCreateOptions) client.VolumeCreateResult); ok {
 		r0 = returnFunc(ctx, options)
 	} else {
-		r0 = ret.Get(0).(volume.Volume)
+		r0 = ret.Get(0).(client.VolumeCreateResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, volume.CreateOptions) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.VolumeCreateOptions) error); ok {
 		r1 = returnFunc(ctx, options)
 	} else {
 		r1 = ret.Error(1)
@@ -7824,20 +7608,20 @@ type APIClient_VolumeCreate_Call struct {
 
 // VolumeCreate is a helper method to define mock.On call
 //   - ctx context.Context
-//   - options volume.CreateOptions
+//   - options client.VolumeCreateOptions
 func (_e *APIClient_Expecter) VolumeCreate(ctx any, options any) *APIClient_VolumeCreate_Call {
 	return &APIClient_VolumeCreate_Call{Call: _e.mock.On("VolumeCreate", ctx, options)}
 }
 
-func (_c *APIClient_VolumeCreate_Call) Run(run func(ctx context.Context, options volume.CreateOptions)) *APIClient_VolumeCreate_Call {
+func (_c *APIClient_VolumeCreate_Call) Run(run func(ctx context.Context, options client.VolumeCreateOptions)) *APIClient_VolumeCreate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 volume.CreateOptions
+		var arg1 client.VolumeCreateOptions
 		if args[1] != nil {
-			arg1 = args[1].(volume.CreateOptions)
+			arg1 = args[1].(client.VolumeCreateOptions)
 		}
 		run(
 			arg0,
@@ -7847,36 +7631,36 @@ func (_c *APIClient_VolumeCreate_Call) Run(run func(ctx context.Context, options
 	return _c
 }
 
-func (_c *APIClient_VolumeCreate_Call) Return(volume1 volume.Volume, err error) *APIClient_VolumeCreate_Call {
-	_c.Call.Return(volume1, err)
+func (_c *APIClient_VolumeCreate_Call) Return(volumeCreateResult client.VolumeCreateResult, err error) *APIClient_VolumeCreate_Call {
+	_c.Call.Return(volumeCreateResult, err)
 	return _c
 }
 
-func (_c *APIClient_VolumeCreate_Call) RunAndReturn(run func(ctx context.Context, options volume.CreateOptions) (volume.Volume, error)) *APIClient_VolumeCreate_Call {
+func (_c *APIClient_VolumeCreate_Call) RunAndReturn(run func(ctx context.Context, options client.VolumeCreateOptions) (client.VolumeCreateResult, error)) *APIClient_VolumeCreate_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // VolumeInspect provides a mock function for the type APIClient
-func (_mock *APIClient) VolumeInspect(ctx context.Context, volumeID string) (volume.Volume, error) {
-	ret := _mock.Called(ctx, volumeID)
+func (_mock *APIClient) VolumeInspect(ctx context.Context, volumeID string, options client.VolumeInspectOptions) (client.VolumeInspectResult, error) {
+	ret := _mock.Called(ctx, volumeID, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for VolumeInspect")
 	}
 
-	var r0 volume.Volume
+	var r0 client.VolumeInspectResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (volume.Volume, error)); ok {
-		return returnFunc(ctx, volumeID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.VolumeInspectOptions) (client.VolumeInspectResult, error)); ok {
+		return returnFunc(ctx, volumeID, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) volume.Volume); ok {
-		r0 = returnFunc(ctx, volumeID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.VolumeInspectOptions) client.VolumeInspectResult); ok {
+		r0 = returnFunc(ctx, volumeID, options)
 	} else {
-		r0 = ret.Get(0).(volume.Volume)
+		r0 = ret.Get(0).(client.VolumeInspectResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = returnFunc(ctx, volumeID)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.VolumeInspectOptions) error); ok {
+		r1 = returnFunc(ctx, volumeID, options)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -7891,11 +7675,12 @@ type APIClient_VolumeInspect_Call struct {
 // VolumeInspect is a helper method to define mock.On call
 //   - ctx context.Context
 //   - volumeID string
-func (_e *APIClient_Expecter) VolumeInspect(ctx any, volumeID any) *APIClient_VolumeInspect_Call {
-	return &APIClient_VolumeInspect_Call{Call: _e.mock.On("VolumeInspect", ctx, volumeID)}
+//   - options client.VolumeInspectOptions
+func (_e *APIClient_Expecter) VolumeInspect(ctx any, volumeID any, options any) *APIClient_VolumeInspect_Call {
+	return &APIClient_VolumeInspect_Call{Call: _e.mock.On("VolumeInspect", ctx, volumeID, options)}
 }
 
-func (_c *APIClient_VolumeInspect_Call) Run(run func(ctx context.Context, volumeID string)) *APIClient_VolumeInspect_Call {
+func (_c *APIClient_VolumeInspect_Call) Run(run func(ctx context.Context, volumeID string, options client.VolumeInspectOptions)) *APIClient_VolumeInspect_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -7905,117 +7690,48 @@ func (_c *APIClient_VolumeInspect_Call) Run(run func(ctx context.Context, volume
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
+		var arg2 client.VolumeInspectOptions
+		if args[2] != nil {
+			arg2 = args[2].(client.VolumeInspectOptions)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
 }
 
-func (_c *APIClient_VolumeInspect_Call) Return(volume1 volume.Volume, err error) *APIClient_VolumeInspect_Call {
-	_c.Call.Return(volume1, err)
+func (_c *APIClient_VolumeInspect_Call) Return(volumeInspectResult client.VolumeInspectResult, err error) *APIClient_VolumeInspect_Call {
+	_c.Call.Return(volumeInspectResult, err)
 	return _c
 }
 
-func (_c *APIClient_VolumeInspect_Call) RunAndReturn(run func(ctx context.Context, volumeID string) (volume.Volume, error)) *APIClient_VolumeInspect_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// VolumeInspectWithRaw provides a mock function for the type APIClient
-func (_mock *APIClient) VolumeInspectWithRaw(ctx context.Context, volumeID string) (volume.Volume, []byte, error) {
-	ret := _mock.Called(ctx, volumeID)
-
-	if len(ret) == 0 {
-		panic("no return value specified for VolumeInspectWithRaw")
-	}
-
-	var r0 volume.Volume
-	var r1 []byte
-	var r2 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (volume.Volume, []byte, error)); ok {
-		return returnFunc(ctx, volumeID)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) volume.Volume); ok {
-		r0 = returnFunc(ctx, volumeID)
-	} else {
-		r0 = ret.Get(0).(volume.Volume)
-	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string) []byte); ok {
-		r1 = returnFunc(ctx, volumeID)
-	} else {
-		if ret.Get(1) != nil {
-			r1 = ret.Get(1).([]byte)
-		}
-	}
-	if returnFunc, ok := ret.Get(2).(func(context.Context, string) error); ok {
-		r2 = returnFunc(ctx, volumeID)
-	} else {
-		r2 = ret.Error(2)
-	}
-	return r0, r1, r2
-}
-
-// APIClient_VolumeInspectWithRaw_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'VolumeInspectWithRaw'
-type APIClient_VolumeInspectWithRaw_Call struct {
-	*mock.Call
-}
-
-// VolumeInspectWithRaw is a helper method to define mock.On call
-//   - ctx context.Context
-//   - volumeID string
-func (_e *APIClient_Expecter) VolumeInspectWithRaw(ctx any, volumeID any) *APIClient_VolumeInspectWithRaw_Call {
-	return &APIClient_VolumeInspectWithRaw_Call{Call: _e.mock.On("VolumeInspectWithRaw", ctx, volumeID)}
-}
-
-func (_c *APIClient_VolumeInspectWithRaw_Call) Run(run func(ctx context.Context, volumeID string)) *APIClient_VolumeInspectWithRaw_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 string
-		if args[1] != nil {
-			arg1 = args[1].(string)
-		}
-		run(
-			arg0,
-			arg1,
-		)
-	})
-	return _c
-}
-
-func (_c *APIClient_VolumeInspectWithRaw_Call) Return(volume1 volume.Volume, bytes []byte, err error) *APIClient_VolumeInspectWithRaw_Call {
-	_c.Call.Return(volume1, bytes, err)
-	return _c
-}
-
-func (_c *APIClient_VolumeInspectWithRaw_Call) RunAndReturn(run func(ctx context.Context, volumeID string) (volume.Volume, []byte, error)) *APIClient_VolumeInspectWithRaw_Call {
+func (_c *APIClient_VolumeInspect_Call) RunAndReturn(run func(ctx context.Context, volumeID string, options client.VolumeInspectOptions) (client.VolumeInspectResult, error)) *APIClient_VolumeInspect_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // VolumeList provides a mock function for the type APIClient
-func (_mock *APIClient) VolumeList(ctx context.Context, options volume.ListOptions) (volume.ListResponse, error) {
+func (_mock *APIClient) VolumeList(ctx context.Context, options client.VolumeListOptions) (client.VolumeListResult, error) {
 	ret := _mock.Called(ctx, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for VolumeList")
 	}
 
-	var r0 volume.ListResponse
+	var r0 client.VolumeListResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, volume.ListOptions) (volume.ListResponse, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.VolumeListOptions) (client.VolumeListResult, error)); ok {
 		return returnFunc(ctx, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, volume.ListOptions) volume.ListResponse); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.VolumeListOptions) client.VolumeListResult); ok {
 		r0 = returnFunc(ctx, options)
 	} else {
-		r0 = ret.Get(0).(volume.ListResponse)
+		r0 = ret.Get(0).(client.VolumeListResult)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, volume.ListOptions) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.VolumeListOptions) error); ok {
 		r1 = returnFunc(ctx, options)
 	} else {
 		r1 = ret.Error(1)
@@ -8030,20 +7746,20 @@ type APIClient_VolumeList_Call struct {
 
 // VolumeList is a helper method to define mock.On call
 //   - ctx context.Context
-//   - options volume.ListOptions
+//   - options client.VolumeListOptions
 func (_e *APIClient_Expecter) VolumeList(ctx any, options any) *APIClient_VolumeList_Call {
 	return &APIClient_VolumeList_Call{Call: _e.mock.On("VolumeList", ctx, options)}
 }
 
-func (_c *APIClient_VolumeList_Call) Run(run func(ctx context.Context, options volume.ListOptions)) *APIClient_VolumeList_Call {
+func (_c *APIClient_VolumeList_Call) Run(run func(ctx context.Context, options client.VolumeListOptions)) *APIClient_VolumeList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 volume.ListOptions
+		var arg1 client.VolumeListOptions
 		if args[1] != nil {
-			arg1 = args[1].(volume.ListOptions)
+			arg1 = args[1].(client.VolumeListOptions)
 		}
 		run(
 			arg0,
@@ -8053,31 +7769,106 @@ func (_c *APIClient_VolumeList_Call) Run(run func(ctx context.Context, options v
 	return _c
 }
 
-func (_c *APIClient_VolumeList_Call) Return(listResponse volume.ListResponse, err error) *APIClient_VolumeList_Call {
-	_c.Call.Return(listResponse, err)
+func (_c *APIClient_VolumeList_Call) Return(volumeListResult client.VolumeListResult, err error) *APIClient_VolumeList_Call {
+	_c.Call.Return(volumeListResult, err)
 	return _c
 }
 
-func (_c *APIClient_VolumeList_Call) RunAndReturn(run func(ctx context.Context, options volume.ListOptions) (volume.ListResponse, error)) *APIClient_VolumeList_Call {
+func (_c *APIClient_VolumeList_Call) RunAndReturn(run func(ctx context.Context, options client.VolumeListOptions) (client.VolumeListResult, error)) *APIClient_VolumeList_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// VolumePrune provides a mock function for the type APIClient
+func (_mock *APIClient) VolumePrune(ctx context.Context, options client.VolumePruneOptions) (client.VolumePruneResult, error) {
+	ret := _mock.Called(ctx, options)
+
+	if len(ret) == 0 {
+		panic("no return value specified for VolumePrune")
+	}
+
+	var r0 client.VolumePruneResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.VolumePruneOptions) (client.VolumePruneResult, error)); ok {
+		return returnFunc(ctx, options)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.VolumePruneOptions) client.VolumePruneResult); ok {
+		r0 = returnFunc(ctx, options)
+	} else {
+		r0 = ret.Get(0).(client.VolumePruneResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.VolumePruneOptions) error); ok {
+		r1 = returnFunc(ctx, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// APIClient_VolumePrune_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'VolumePrune'
+type APIClient_VolumePrune_Call struct {
+	*mock.Call
+}
+
+// VolumePrune is a helper method to define mock.On call
+//   - ctx context.Context
+//   - options client.VolumePruneOptions
+func (_e *APIClient_Expecter) VolumePrune(ctx any, options any) *APIClient_VolumePrune_Call {
+	return &APIClient_VolumePrune_Call{Call: _e.mock.On("VolumePrune", ctx, options)}
+}
+
+func (_c *APIClient_VolumePrune_Call) Run(run func(ctx context.Context, options client.VolumePruneOptions)) *APIClient_VolumePrune_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 client.VolumePruneOptions
+		if args[1] != nil {
+			arg1 = args[1].(client.VolumePruneOptions)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *APIClient_VolumePrune_Call) Return(volumePruneResult client.VolumePruneResult, err error) *APIClient_VolumePrune_Call {
+	_c.Call.Return(volumePruneResult, err)
+	return _c
+}
+
+func (_c *APIClient_VolumePrune_Call) RunAndReturn(run func(ctx context.Context, options client.VolumePruneOptions) (client.VolumePruneResult, error)) *APIClient_VolumePrune_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // VolumeRemove provides a mock function for the type APIClient
-func (_mock *APIClient) VolumeRemove(ctx context.Context, volumeID string, force bool) error {
-	ret := _mock.Called(ctx, volumeID, force)
+func (_mock *APIClient) VolumeRemove(ctx context.Context, volumeID string, options client.VolumeRemoveOptions) (client.VolumeRemoveResult, error) {
+	ret := _mock.Called(ctx, volumeID, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for VolumeRemove")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, bool) error); ok {
-		r0 = returnFunc(ctx, volumeID, force)
-	} else {
-		r0 = ret.Error(0)
+	var r0 client.VolumeRemoveResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.VolumeRemoveOptions) (client.VolumeRemoveResult, error)); ok {
+		return returnFunc(ctx, volumeID, options)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.VolumeRemoveOptions) client.VolumeRemoveResult); ok {
+		r0 = returnFunc(ctx, volumeID, options)
+	} else {
+		r0 = ret.Get(0).(client.VolumeRemoveResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.VolumeRemoveOptions) error); ok {
+		r1 = returnFunc(ctx, volumeID, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_VolumeRemove_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'VolumeRemove'
@@ -8088,12 +7879,12 @@ type APIClient_VolumeRemove_Call struct {
 // VolumeRemove is a helper method to define mock.On call
 //   - ctx context.Context
 //   - volumeID string
-//   - force bool
-func (_e *APIClient_Expecter) VolumeRemove(ctx any, volumeID any, force any) *APIClient_VolumeRemove_Call {
-	return &APIClient_VolumeRemove_Call{Call: _e.mock.On("VolumeRemove", ctx, volumeID, force)}
+//   - options client.VolumeRemoveOptions
+func (_e *APIClient_Expecter) VolumeRemove(ctx any, volumeID any, options any) *APIClient_VolumeRemove_Call {
+	return &APIClient_VolumeRemove_Call{Call: _e.mock.On("VolumeRemove", ctx, volumeID, options)}
 }
 
-func (_c *APIClient_VolumeRemove_Call) Run(run func(ctx context.Context, volumeID string, force bool)) *APIClient_VolumeRemove_Call {
+func (_c *APIClient_VolumeRemove_Call) Run(run func(ctx context.Context, volumeID string, options client.VolumeRemoveOptions)) *APIClient_VolumeRemove_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -8103,9 +7894,9 @@ func (_c *APIClient_VolumeRemove_Call) Run(run func(ctx context.Context, volumeI
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 bool
+		var arg2 client.VolumeRemoveOptions
 		if args[2] != nil {
-			arg2 = args[2].(bool)
+			arg2 = args[2].(client.VolumeRemoveOptions)
 		}
 		run(
 			arg0,
@@ -8116,31 +7907,40 @@ func (_c *APIClient_VolumeRemove_Call) Run(run func(ctx context.Context, volumeI
 	return _c
 }
 
-func (_c *APIClient_VolumeRemove_Call) Return(err error) *APIClient_VolumeRemove_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_VolumeRemove_Call) Return(volumeRemoveResult client.VolumeRemoveResult, err error) *APIClient_VolumeRemove_Call {
+	_c.Call.Return(volumeRemoveResult, err)
 	return _c
 }
 
-func (_c *APIClient_VolumeRemove_Call) RunAndReturn(run func(ctx context.Context, volumeID string, force bool) error) *APIClient_VolumeRemove_Call {
+func (_c *APIClient_VolumeRemove_Call) RunAndReturn(run func(ctx context.Context, volumeID string, options client.VolumeRemoveOptions) (client.VolumeRemoveResult, error)) *APIClient_VolumeRemove_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // VolumeUpdate provides a mock function for the type APIClient
-func (_mock *APIClient) VolumeUpdate(ctx context.Context, volumeID string, version swarm.Version, options volume.UpdateOptions) error {
-	ret := _mock.Called(ctx, volumeID, version, options)
+func (_mock *APIClient) VolumeUpdate(ctx context.Context, volumeID string, options client.VolumeUpdateOptions) (client.VolumeUpdateResult, error) {
+	ret := _mock.Called(ctx, volumeID, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for VolumeUpdate")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, swarm.Version, volume.UpdateOptions) error); ok {
-		r0 = returnFunc(ctx, volumeID, version, options)
-	} else {
-		r0 = ret.Error(0)
+	var r0 client.VolumeUpdateResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.VolumeUpdateOptions) (client.VolumeUpdateResult, error)); ok {
+		return returnFunc(ctx, volumeID, options)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, client.VolumeUpdateOptions) client.VolumeUpdateResult); ok {
+		r0 = returnFunc(ctx, volumeID, options)
+	} else {
+		r0 = ret.Get(0).(client.VolumeUpdateResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, client.VolumeUpdateOptions) error); ok {
+		r1 = returnFunc(ctx, volumeID, options)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // APIClient_VolumeUpdate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'VolumeUpdate'
@@ -8151,13 +7951,12 @@ type APIClient_VolumeUpdate_Call struct {
 // VolumeUpdate is a helper method to define mock.On call
 //   - ctx context.Context
 //   - volumeID string
-//   - version swarm.Version
-//   - options volume.UpdateOptions
-func (_e *APIClient_Expecter) VolumeUpdate(ctx any, volumeID any, version any, options any) *APIClient_VolumeUpdate_Call {
-	return &APIClient_VolumeUpdate_Call{Call: _e.mock.On("VolumeUpdate", ctx, volumeID, version, options)}
+//   - options client.VolumeUpdateOptions
+func (_e *APIClient_Expecter) VolumeUpdate(ctx any, volumeID any, options any) *APIClient_VolumeUpdate_Call {
+	return &APIClient_VolumeUpdate_Call{Call: _e.mock.On("VolumeUpdate", ctx, volumeID, options)}
 }
 
-func (_c *APIClient_VolumeUpdate_Call) Run(run func(ctx context.Context, volumeID string, version swarm.Version, options volume.UpdateOptions)) *APIClient_VolumeUpdate_Call {
+func (_c *APIClient_VolumeUpdate_Call) Run(run func(ctx context.Context, volumeID string, options client.VolumeUpdateOptions)) *APIClient_VolumeUpdate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -8167,96 +7966,25 @@ func (_c *APIClient_VolumeUpdate_Call) Run(run func(ctx context.Context, volumeI
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 swarm.Version
+		var arg2 client.VolumeUpdateOptions
 		if args[2] != nil {
-			arg2 = args[2].(swarm.Version)
-		}
-		var arg3 volume.UpdateOptions
-		if args[3] != nil {
-			arg3 = args[3].(volume.UpdateOptions)
+			arg2 = args[2].(client.VolumeUpdateOptions)
 		}
 		run(
 			arg0,
 			arg1,
 			arg2,
-			arg3,
 		)
 	})
 	return _c
 }
 
-func (_c *APIClient_VolumeUpdate_Call) Return(err error) *APIClient_VolumeUpdate_Call {
-	_c.Call.Return(err)
+func (_c *APIClient_VolumeUpdate_Call) Return(volumeUpdateResult client.VolumeUpdateResult, err error) *APIClient_VolumeUpdate_Call {
+	_c.Call.Return(volumeUpdateResult, err)
 	return _c
 }
 
-func (_c *APIClient_VolumeUpdate_Call) RunAndReturn(run func(ctx context.Context, volumeID string, version swarm.Version, options volume.UpdateOptions) error) *APIClient_VolumeUpdate_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// VolumesPrune provides a mock function for the type APIClient
-func (_mock *APIClient) VolumesPrune(ctx context.Context, pruneFilter filters.Args) (volume.PruneReport, error) {
-	ret := _mock.Called(ctx, pruneFilter)
-
-	if len(ret) == 0 {
-		panic("no return value specified for VolumesPrune")
-	}
-
-	var r0 volume.PruneReport
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, filters.Args) (volume.PruneReport, error)); ok {
-		return returnFunc(ctx, pruneFilter)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, filters.Args) volume.PruneReport); ok {
-		r0 = returnFunc(ctx, pruneFilter)
-	} else {
-		r0 = ret.Get(0).(volume.PruneReport)
-	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, filters.Args) error); ok {
-		r1 = returnFunc(ctx, pruneFilter)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
-}
-
-// APIClient_VolumesPrune_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'VolumesPrune'
-type APIClient_VolumesPrune_Call struct {
-	*mock.Call
-}
-
-// VolumesPrune is a helper method to define mock.On call
-//   - ctx context.Context
-//   - pruneFilter filters.Args
-func (_e *APIClient_Expecter) VolumesPrune(ctx any, pruneFilter any) *APIClient_VolumesPrune_Call {
-	return &APIClient_VolumesPrune_Call{Call: _e.mock.On("VolumesPrune", ctx, pruneFilter)}
-}
-
-func (_c *APIClient_VolumesPrune_Call) Run(run func(ctx context.Context, pruneFilter filters.Args)) *APIClient_VolumesPrune_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 filters.Args
-		if args[1] != nil {
-			arg1 = args[1].(filters.Args)
-		}
-		run(
-			arg0,
-			arg1,
-		)
-	})
-	return _c
-}
-
-func (_c *APIClient_VolumesPrune_Call) Return(pruneReport volume.PruneReport, err error) *APIClient_VolumesPrune_Call {
-	_c.Call.Return(pruneReport, err)
-	return _c
-}
-
-func (_c *APIClient_VolumesPrune_Call) RunAndReturn(run func(ctx context.Context, pruneFilter filters.Args) (volume.PruneReport, error)) *APIClient_VolumesPrune_Call {
+func (_c *APIClient_VolumeUpdate_Call) RunAndReturn(run func(ctx context.Context, volumeID string, options client.VolumeUpdateOptions) (client.VolumeUpdateResult, error)) *APIClient_VolumeUpdate_Call {
 	_c.Call.Return(run)
 	return _c
 }

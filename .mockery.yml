@@ -32,7 +32,7 @@ packages:
   github.com/projecteru2/core/wal:
     interfaces:
       WAL:
-  github.com/docker/docker/client:
+  github.com/moby/moby/client:
     config:
       dir: engine/docker/mocks
     interfaces:

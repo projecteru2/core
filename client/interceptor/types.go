@@ -41,7 +41,6 @@ func (s *retryStream) RecvMsg(m any) (err error) {
 		logger.Debug(s.ctx, "retry on new stream")
 		stream, err := s.newStream()
 		if err != nil {
-			// io.EOF must trigger a retry too
 			return err
 		}
 		s.setStream(stream)

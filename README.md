@@ -66,8 +66,12 @@ See [Installation](docs/installation.md) and [Configuration](docs/configuration.
 - [agent](https://github.com/projecteru2/agent) — per-node daemon that reports node and workload status back to core
 - [cli](https://github.com/projecteru2/cli) — command line client for the core API
 - [resource-extend](https://github.com/projecteru2/resource-extend) — external resource plugins (gpu, storage)
-- [yavirt](https://github.com/projecteru2/yavirt) — VM runtime driven by core's `virt` engine
-- [libyavirt](https://github.com/projecteru2/libyavirt) — yavirt client library used by that engine
+- [quickstart](https://github.com/projecteru2/quickstart) — a local Eru stack to try things against
+- [footstone](https://github.com/projecteru2/footstone) — shared base images
+
+The `virt` engine still ships and its
+[libyavirt](https://github.com/projecteru2/libyavirt) dependency still resolves, but
+[yavirt](https://github.com/projecteru2/yavirt) is an archived runtime and is no longer developed.
 
 ## Development
 

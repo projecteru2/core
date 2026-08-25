@@ -13,8 +13,8 @@ const (
 )
 
 type Config struct {
-	Bind                string        `yaml:"bind" required:"true" default:"5001"`           // listen address
-	LockTimeout         time.Duration `yaml:"lock_timeout" required:"true" default:"30s"`    // lock ttl
+	Bind                string        `yaml:"bind" required:"true" default:"5001"`
+	LockTimeout         time.Duration `yaml:"lock_timeout" required:"true" default:"30s"`
 	GlobalTimeout       time.Duration `yaml:"global_timeout" required:"true" default:"300s"` // timeout for remove, run_and_wait and build
 	ConnectionTimeout   time.Duration `yaml:"connection_timeout" required:"true" default:"10s"`
 	HAKeepaliveInterval time.Duration `yaml:"ha_keepalive_interval" required:"true" default:"16s"` // interval for node status watcher
@@ -79,8 +79,8 @@ type GitConfig struct {
 
 type EtcdConfig struct {
 	Machines   []string   `yaml:"machines" required:"true"`
-	Prefix     string     `yaml:"prefix" required:"true" default:"/eru"`              // key prefix for core data
-	LockPrefix string     `yaml:"lock_prefix" required:"true" default:"__lock__/eru"` // key prefix for locks
+	Prefix     string     `yaml:"prefix" required:"true" default:"/eru"` // key prefix for core data
+	LockPrefix string     `yaml:"lock_prefix" required:"true" default:"__lock__/eru"`
 	Ca         string     `yaml:"ca"`
 	Key        string     `yaml:"key"`
 	Cert       string     `yaml:"cert"`
@@ -94,7 +94,7 @@ type RedisConfig struct {
 }
 
 type DockerConfig struct {
-	APIVersion  string    `yaml:"version" required:"true" default:"1.32"`
+	APIVersion  string    `yaml:"version" required:"true" default:"1.40"`
 	NetworkMode string    `yaml:"network_mode" required:"true" default:"host"`
 	UseLocalDNS bool      `yaml:"use_local_dns"` // use node IP as dns
 	Log         LogConfig `yaml:"log"`           // docker log driver
@@ -131,9 +131,8 @@ type LogConfig struct {
 }
 
 type ServerLogConfig struct {
-	Level   string `yaml:"level" default:"info"`
-	UseJSON bool   `yaml:"use_json"`
-	// file log only
+	Level      string `yaml:"level" default:"info"`
+	UseJSON    bool   `yaml:"use_json"`
 	Filename   string `yaml:"filename"`
 	MaxSize    int    `yaml:"maxsize" default:"500"`
 	MaxAge     int    `yaml:"max_age" default:"28"`

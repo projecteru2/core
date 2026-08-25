@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	dockerapi "github.com/docker/docker/client"
+	dockerapi "github.com/moby/moby/client"
 
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -27,15 +27,15 @@ type Engine struct {
 }
 
 func (e *Engine) Info(ctx context.Context) (*enginetypes.Info, error) {
-	r, err := e.client.Info(ctx)
+	r, err := e.client.Info(ctx, dockerapi.InfoOptions{})
 	if err != nil {
 		return nil, err
 	}
-	return &enginetypes.Info{Type: Type, ID: r.ID, NCPU: r.NCPU, MemTotal: r.MemTotal}, nil
+	return &enginetypes.Info{Type: Type, ID: r.Info.ID, NCPU: r.Info.NCPU, MemTotal: r.Info.MemTotal}, nil
 }
 
 func (e *Engine) Ping(ctx context.Context) error {
-	_, err := e.client.Ping(ctx)
+	_, err := e.client.Ping(ctx, dockerapi.PingOptions{})
 	return err
 }
 
@@ -74,9 +74,9 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 func makeDockerClient(_ context.Context, config coretypes.Config, client *http.Client, endpoint string) (*Engine, error) {
 	// the docker client rewrites Transport on the *http.Client it is given, so the shared one is copied
 	own := *client
-	cli, err := dockerapi.NewClientWithOpts(
+	cli, err := dockerapi.New(
 		dockerapi.WithHost(endpoint),
-		dockerapi.WithVersion(config.Docker.APIVersion),
+		dockerapi.WithAPIVersion(config.Docker.APIVersion),
 		dockerapi.WithHTTPClient(&own),
 	)
 	if err != nil {

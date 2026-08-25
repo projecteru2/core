@@ -48,7 +48,6 @@ func (c *Calcium) doUnlockAll(ctx context.Context, locks map[string]lock.Distrib
 	for _, key := range order {
 		if err := c.doUnlock(ctx, locks[key], key); err != nil {
 			logger.Errorf(ctx, err, "failed to unlock %s", key)
-			continue
 		}
 	}
 }

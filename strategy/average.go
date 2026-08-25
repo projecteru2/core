@@ -12,8 +12,7 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-// AveragePlan deploys need workloads onto each of limit nodes with enough capacity, adding need*limit instances.
-// need is per node, not a total; limit 0 means every node
+// AveragePlan puts need workloads on each of limit nodes; need is per node, limit 0 means every node.
 func AveragePlan(ctx context.Context, infos []Info, need, _, limit int) (map[string]int, error) {
 	log.WithFunc("strategy.AveragePlan").Debugf(ctx, "need %d limit %d infos %+v", need, limit, infos)
 	scheduleInfosLength := len(infos)

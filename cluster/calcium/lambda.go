@@ -66,8 +66,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		}()
 
 		defer func() {
-			removeCtx, cancel := context.WithCancel(utils.NewInheritCtx(ctx))
-			defer cancel()
+			removeCtx := utils.NewInheritCtx(ctx)
 			if removeErr := c.doRemoveWorkloadSync(removeCtx, []string{message.WorkloadID}); removeErr != nil {
 				logger.Error(removeCtx, removeErr, "remove lambda workload failed")
 			} else {

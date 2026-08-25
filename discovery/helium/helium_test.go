@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
-	storemocks "github.com/projecteru2/core/store/mocks"
-	"github.com/projecteru2/core/types"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+
+	storemocks "github.com/projecteru2/core/store/mocks"
+	"github.com/projecteru2/core/types"
 )
 
 func TestHelium(t *testing.T) {

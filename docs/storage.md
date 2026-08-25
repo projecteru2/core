@@ -50,16 +50,16 @@ transactional pipelines; `Watch`-style streams become **keyspace notifications**
 `__keyspace@{db}__:{pattern}`, so the redis server must be configured to emit them — core cannot
 see status changes otherwise. Ephemeral keys are ordinary keys with a TTL, refreshed on a timer.
 
-Two behaviours differ from etcd and are marked as such in the code: `BatchUpdate` checks key
-existence before writing rather than doing it in one transaction, and there is no embedded redis
-for tests.
+One behaviour differs from etcd and is marked as such in the code: `BatchUpdate` checks key
+existence before writing rather than doing it in one transaction. Tests run against an embedded
+miniredis.
 
 Note that even with `store: redis`, the built-in cpumem resource plugin still uses the etcd
 config for its own bookkeeping — see [Resource plugins](resource-plugins.md).
 
 ## Locks
 
-`store.CreateLock(key, ttl)` returns a `DistributedLock` with `Lock`, `TryLock` and `Unlock`, and
+`store.CreateLock(key, ttl)` returns a `DistributedLock` with `Lock` and `Unlock`, and
 `Lock` returns a context that is cancelled if the lock is lost. TTL is `lock_timeout`.
 
 - etcd — `concurrency.Mutex` under `etcd.lock_prefix` (default `__lock__/eru`)

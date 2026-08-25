@@ -18,7 +18,6 @@ func (c *Calcium) doHook(
 	for _, cmd := range cmds {
 		output, err := c.executeInside(ctx, engine, ID, cmd, user, env, privileged)
 		if err != nil {
-			// abort only when the hook is forced and hook errors are not ignored
 			outputs = append(outputs, bytes.NewBufferString(err.Error()))
 			if cmdForce && !force {
 				return outputs, err

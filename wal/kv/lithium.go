@@ -7,10 +7,9 @@ import (
 	"time"
 
 	"github.com/cockroachdb/errors"
+	"go.etcd.io/bbolt"
 
 	"github.com/projecteru2/core/types"
-
-	"go.etcd.io/bbolt"
 )
 
 // Lithium is a bbolt backed KV.

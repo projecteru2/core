@@ -2,6 +2,7 @@ package calcium
 
 import (
 	"context"
+	"slices"
 	"sync"
 
 	"github.com/projecteru2/core/log"
@@ -55,33 +56,24 @@ func distributionInspect(ctx context.Context, node *types.Node, image string, di
 		return false
 	}
 
-	for _, digest := range digests {
-		if digest == remoteDigest {
-			logger.Debugf(ctx, "local digest %s", digest)
-			logger.Debugf(ctx, "remote digest %s", remoteDigest)
-			return true
-		}
+	if slices.Contains(digests, remoteDigest) {
+		logger.Debugf(ctx, "digest matched %s", remoteDigest)
+		return true
 	}
 	return false
 }
 
 func pullImage(ctx context.Context, node *types.Node, image string) error {
 	logger := log.WithFunc("calcium.pullImage").WithField("node", node.Name).WithField("image", image)
-	logger.Info(ctx, "pulling image")
 	if image == "" {
 		return types.ErrNoImage
 	}
 
-	exists := false
 	digests, err := node.Engine.ImageLocalDigests(ctx, image)
-	if err != nil {
-		logger.Error(ctx, err, "check image failed")
-	} else {
-		logger.Debug(ctx, "local image exists")
-		exists = true
-	}
-
-	if exists && distributionInspect(ctx, node, image, digests) {
+	switch {
+	case err != nil:
+		logger.Warnf(ctx, "check image failed: %+v", err)
+	case distributionInspect(ctx, node, image, digests):
 		logger.Debug(ctx, "image cached, skip pulling")
 		return nil
 	}

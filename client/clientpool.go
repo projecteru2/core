@@ -84,15 +84,19 @@ func (c *Pool) GetClient() pb.CoreRPCClient {
 }
 
 func (c *Pool) updateClientsStatus(ctx context.Context, timeout time.Duration) {
+	alive := make([]bool, len(c.rpcClients))
+	var wg sync.WaitGroup
+	for i, rpc := range c.rpcClients {
+		wg.Go(func() {
+			alive[i] = checkAlive(ctx, rpc, timeout)
+		})
+	}
+	wg.Wait()
+
 	c.mu.Lock()
 	defer c.mu.Unlock()
-
-	var wg sync.WaitGroup
-	defer wg.Wait()
-	for _, rpc := range c.rpcClients {
-		wg.Go(func() {
-			rpc.alive = checkAlive(ctx, rpc, timeout)
-		})
+	for i, rpc := range c.rpcClients {
+		rpc.alive = alive[i]
 	}
 }
 

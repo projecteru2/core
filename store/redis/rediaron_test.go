@@ -8,7 +8,6 @@ import (
 
 	"github.com/alicebob/miniredis/v2"
 	"github.com/redis/go-redis/v9"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/projecteru2/core/engine/factory"
@@ -44,29 +43,6 @@ func TestRediaron(t *testing.T) {
 		rediserver: s,
 		rediaron:   newRediaron(cli, config, pool),
 	})
-}
-
-func TestTerminateEmbeddedStorage(t *testing.T) {
-	s, err := miniredis.Run()
-	if err != nil {
-		t.Fail()
-	}
-	defer s.Close()
-
-	cli := redis.NewClient(&redis.Options{
-		Addr: s.Addr(),
-		DB:   0,
-	})
-	defer cli.Close()
-
-	rediaron := newRediaron(cli, types.Config{}, nil)
-
-	_, err = rediaron.cli.Ping(context.Background()).Result()
-	assert.NoError(t, err)
-
-	rediaron.TerminateEmbededStorage()
-	_, err = rediaron.cli.Ping(context.Background()).Result()
-	assert.Error(t, err)
 }
 
 type RediaronTestSuite struct {

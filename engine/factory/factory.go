@@ -157,7 +157,6 @@ func (e *EngineCache) checkNodeStatus(ctx context.Context) {
 // InitEngineCache builds the global engine cache and starts its checkers.
 func InitEngineCache(ctx context.Context, config types.Config, stor store.Store) {
 	engineCache = NewEngineCache(config, stor)
-	// warm the cache; the return values are irrelevant
 	if stor != nil {
 		_, _ = engineCache.stor.GetNodesByPod(ctx, &types.NodeFilter{
 			All: true,
@@ -169,12 +168,12 @@ func InitEngineCache(ctx context.Context, config types.Config, stor store.Store)
 
 // GetEngineFromCache returns the cached engine for an endpoint, or nil.
 func GetEngineFromCache(_ context.Context, endpoint, ca, cert, key string) engine.API {
-	return engineCache.Get(getEngineCacheKey(endpoint, ca, cert, key))
+	return engineCache.Get(enginetypes.EndpointCacheKey(endpoint, ca, cert, key))
 }
 
 // RemoveEngineFromCache drops the cached engine for an endpoint.
 func RemoveEngineFromCache(ctx context.Context, endpoint, ca, cert, key string) {
-	cacheKey := getEngineCacheKey(endpoint, ca, cert, key)
+	cacheKey := enginetypes.EndpointCacheKey(endpoint, ca, cert, key)
 	log.WithFunc("engine.factory.RemoveEngineFromCache").Infof(ctx, "remove engine %+v from cache", cacheKey)
 	engineCache.Delete(cacheKey)
 }
@@ -215,10 +214,6 @@ func getEnginePrefix(endpoint string) (string, error) {
 		}
 	}
 	return "", errors.Wrapf(types.ErrInvaildNodeEndpoint, "endpoint invalid %+v", endpoint)
-}
-
-func getEngineCacheKey(endpoint, ca, cert, key string) string {
-	return enginetypes.NewParams("", endpoint, ca, cert, key).CacheKey()
 }
 
 func newEngine(ctx context.Context, config types.Config, params *enginetypes.Params) (client engine.API, err error) {

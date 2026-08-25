@@ -228,7 +228,6 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 	})
 }
 
-// includes bypass the podname filter
 func (c *Calcium) filterNodes(ctx context.Context, nodeFilter *types.NodeFilter) (ns []*types.Node, err error) {
 	defer func() {
 		ns = slices.SortedFunc(slices.Values(ns), func(a, b *types.Node) int { return cmp.Compare(a.Name, b.Name) })
@@ -254,18 +253,9 @@ func (c *Calcium) filterNodes(ctx context.Context, nodeFilter *types.NodeFilter)
 		return listedNodes, nil
 	}
 
-	excludes := map[string]struct{}{}
-	for _, n := range nodeFilter.Excludes {
-		excludes[n] = struct{}{}
-	}
-
-	for _, n := range listedNodes {
-		if _, ok := excludes[n.Name]; ok {
-			continue
-		}
-		ns = append(ns, n)
-	}
-	return ns, nil
+	return slices.DeleteFunc(listedNodes, func(n *types.Node) bool {
+		return slices.Contains(nodeFilter.Excludes, n.Name)
+	}), nil
 }
 
 func (c *Calcium) setAllWorkloadsOnNodeDown(ctx context.Context, nodename string) {

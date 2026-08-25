@@ -5,10 +5,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cockroachdb/errors"
+
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
-
-	"github.com/cockroachdb/errors"
 )
 
 const ephemeralValue = "__aaron__"

@@ -576,9 +576,9 @@ func toSendLargeFileOptions(opts *pb.FileOptions) (*types.SendLargeFileOptions, 
 		IDs:   opts.Ids,
 		Dst:   opts.Dst,
 		Size:  opts.Size,
-		Mode:  opts.Mode.Mode,
-		UID:   int(opts.Owner.Uid),
-		GID:   int(opts.Owner.Gid),
+		Mode:  opts.GetMode().GetMode(),
+		UID:   int(opts.GetOwner().GetUid()),
+		GID:   int(opts.GetOwner().GetGid()),
 		Chunk: opts.Chunk,
 	}
 	err := ret.Validate()

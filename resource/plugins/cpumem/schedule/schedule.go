@@ -80,6 +80,9 @@ func newHost(cpuMap types.CPUMap, shareBase, maxFragmentCores int) *host {
 
 func (h *host) getCPUPlans(cpuRequest float64) []types.CPUMap {
 	piecesRequest := int(cpuRequest * float64(h.shareBase))
+	if piecesRequest == 0 {
+		return nil
+	}
 	full := piecesRequest / h.shareBase
 	fragment := piecesRequest % h.shareBase
 

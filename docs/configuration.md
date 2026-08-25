@@ -96,7 +96,7 @@ warning at startup and the build API returns an error.
 
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `docker.version` | string | `1.32` | Docker API version negotiated by the client |
+| `docker.version` | string | `1.40` | Docker API version the client pins; setting it disables version negotiation, and the moby client supports 1.40 and up |
 | `docker.network_mode` | string | `host` | Network mode for workloads that do not request a network |
 | `docker.use_local_dns` | bool | `false` | When the deploy request sets no DNS, use the node's own IP as the workload's resolver |
 | `docker.log.type` | string | `journald` | Default log driver for workloads (`journald`, `json-file`, `none`, …) |

@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/projecteru2/core/engine/factory"
 	"github.com/projecteru2/core/store/etcdv3/embedded"
 	"github.com/projecteru2/core/types"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func NewMercury(t *testing.T) *Mercury {

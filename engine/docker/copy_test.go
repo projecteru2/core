@@ -10,8 +10,7 @@ import (
 	"testing"
 	"time"
 
-	dockercontainer "github.com/docker/docker/api/types/container"
-	dockerapi "github.com/docker/docker/client"
+	dockerapi "github.com/moby/moby/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -23,8 +22,8 @@ import (
 func TestVirtualizationCopyFromClosesResponse(t *testing.T) {
 	body := &countingReadCloser{Reader: bytes.NewReader(tarWithFile(t, "hello", []byte("data")))}
 	client := dockermocks.NewAPIClient(t)
-	client.On("CopyFromContainer", mock.Anything, "wid", "/hello").
-		Return(body, dockercontainer.PathStat{}, nil)
+	client.On("CopyFromContainer", mock.Anything, "wid", dockerapi.CopyFromContainerOptions{SourcePath: "/hello"}).
+		Return(dockerapi.CopyFromContainerResult{Content: body}, nil)
 
 	e := &Engine{client: client}
 	content, _, _, _, err := e.VirtualizationCopyFrom(t.Context(), "wid", "/hello")
@@ -95,10 +94,10 @@ type copyToClient struct {
 	body bytes.Buffer
 }
 
-func (c *copyToClient) CopyToContainer(_ context.Context, _, _ string, content io.Reader, _ dockercontainer.CopyToContainerOptions) error {
+func (c *copyToClient) CopyToContainer(_ context.Context, _ string, options dockerapi.CopyToContainerOptions) (dockerapi.CopyToContainerResult, error) {
 	if c.err != nil {
-		return c.err
+		return dockerapi.CopyToContainerResult{}, c.err
 	}
-	_, err := io.Copy(&c.body, content)
-	return err
+	_, err := io.Copy(&c.body, options.Content)
+	return dockerapi.CopyToContainerResult{}, err
 }

@@ -11,8 +11,7 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-// FillPlan tops every node up to need workloads and skips nodes already at or above need.
-// need is the per-node ceiling, not an increment; limit 0 means every node
+// FillPlan tops every node up to need workloads; need is a per-node ceiling, limit 0 means every node.
 func FillPlan(ctx context.Context, infos []Info, need, _, limit int) (_ map[string]int, err error) {
 	log.WithFunc("strategy.FillPlan").Debugf(ctx, "need %d limit %d infos %+v", need, limit, infos)
 	scheduleInfosLength := len(infos)

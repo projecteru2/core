@@ -5,27 +5,24 @@ import (
 	"fmt"
 	"io"
 
-	dockerbuild "github.com/docker/docker/api/types/build"
-	dockercontainer "github.com/docker/docker/api/types/container"
-	dockerfilters "github.com/docker/docker/api/types/filters"
-	dockerimage "github.com/docker/docker/api/types/image"
-	registrytypes "github.com/docker/docker/api/types/registry"
+	registrytypes "github.com/moby/moby/api/types/registry"
+	dockerapi "github.com/moby/moby/client"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 )
 
 func (e *Engine) ImageList(ctx context.Context, image string) ([]*enginetypes.Image, error) {
 	image = normalizeImage(image)
-	imgListFilter := dockerfilters.NewArgs()
+	imgListFilter := dockerapi.Filters{}
 	imgListFilter.Add("reference", image)
 
-	images, err := e.client.ImageList(ctx, dockerimage.ListOptions{Filters: imgListFilter})
+	images, err := e.client.ImageList(ctx, dockerapi.ImageListOptions{Filters: imgListFilter})
 	if err != nil {
 		return nil, err
 	}
 
 	r := []*enginetypes.Image{}
-	for _, image := range images {
+	for _, image := range images.Items {
 		i := &enginetypes.Image{
 			ID:   image.ID,
 			Tags: image.RepoTags,
@@ -36,7 +33,7 @@ func (e *Engine) ImageList(ctx context.Context, image string) ([]*enginetypes.Im
 }
 
 func (e *Engine) ImageRemove(ctx context.Context, image string, force, prune bool) ([]string, error) {
-	opts := dockerimage.RemoveOptions{
+	opts := dockerapi.ImageRemoveOptions{
 		Force:         force,
 		PruneChildren: prune,
 	}
@@ -47,7 +44,7 @@ func (e *Engine) ImageRemove(ctx context.Context, image string, force, prune boo
 		return r, err
 	}
 
-	for _, item := range removed {
+	for _, item := range removed.Items {
 		if item.Untagged != "" {
 			r = append(r, item.Untagged)
 		}
@@ -60,7 +57,7 @@ func (e *Engine) ImageRemove(ctx context.Context, image string, force, prune boo
 }
 
 func (e *Engine) ImagesPrune(ctx context.Context) error {
-	_, err := e.client.ImagesPrune(ctx, dockerfilters.NewArgs())
+	_, err := e.client.ImagePrune(ctx, dockerapi.ImagePruneOptions{})
 	return err
 }
 
@@ -69,7 +66,7 @@ func (e *Engine) ImagePull(ctx context.Context, ref string, all bool) (io.ReadCl
 	if err != nil {
 		return nil, err
 	}
-	pullOptions := dockerimage.PullOptions{All: all, RegistryAuth: auth}
+	pullOptions := dockerapi.ImagePullOptions{All: all, RegistryAuth: auth}
 	return e.client.ImagePull(ctx, ref, pullOptions)
 }
 
@@ -78,7 +75,7 @@ func (e *Engine) ImagePush(ctx context.Context, ref string) (io.ReadCloser, erro
 	if err != nil {
 		return nil, err
 	}
-	pushOptions := dockerimage.PushOptions{RegistryAuth: auth}
+	pushOptions := dockerapi.ImagePushOptions{RegistryAuth: auth}
 	return e.client.ImagePush(ctx, ref, pushOptions)
 }
 
@@ -95,14 +92,14 @@ func (e *Engine) ImageBuild(ctx context.Context, input io.Reader, refs []string,
 			Auth:     b64auth,
 		}
 	}
-	buildOptions := dockerbuild.ImageBuildOptions{
+	buildOptions := dockerapi.ImageBuildOptions{
 		Tags:           refs,
 		SuppressOutput: false,
 		NoCache:        true,
 		Remove:         true,
 		ForceRemove:    true,
 		PullParent:     true,
-		Platform:       platform,
+		Platforms:      parsePlatform(platform),
 		AuthConfigs:    authConfigs,
 	}
 	resp, err := e.client.ImageBuild(ctx, input, buildOptions)
@@ -113,7 +110,7 @@ func (e *Engine) ImageBuild(ctx context.Context, input io.Reader, refs []string,
 }
 
 func (e *Engine) ImageBuildFromExist(ctx context.Context, ID string, refs []string, _ string) (imageID string, err error) {
-	opts := dockercontainer.CommitOptions{
+	opts := dockerapi.ContainerCommitOptions{
 		Reference: refs[0],
 		Author:    "eru-core",
 	}
@@ -122,7 +119,7 @@ func (e *Engine) ImageBuildFromExist(ctx context.Context, ID string, refs []stri
 		return "", err
 	}
 	for _, ref := range refs[1:] {
-		if err = e.client.ImageTag(ctx, resp.ID, ref); err != nil {
+		if _, err = e.client.ImageTag(ctx, dockerapi.ImageTagOptions{Source: resp.ID, Target: ref}); err != nil {
 			return "", err
 		}
 	}
@@ -130,11 +127,11 @@ func (e *Engine) ImageBuildFromExist(ctx context.Context, ID string, refs []stri
 }
 
 func (e *Engine) ImageBuildCachePrune(ctx context.Context, all bool) (uint64, error) {
-	r, err := e.client.BuildCachePrune(ctx, dockerbuild.CachePruneOptions{All: all})
+	r, err := e.client.BuildCachePrune(ctx, dockerapi.BuildCachePruneOptions{All: all})
 	if err != nil {
 		return 0, err
 	}
-	return r.SpaceReclaimed, nil
+	return r.Report.SpaceReclaimed, nil
 }
 
 func (e *Engine) ImageLocalDigests(ctx context.Context, image string) ([]string, error) {
@@ -150,7 +147,7 @@ func (e *Engine) ImageRemoteDigest(ctx context.Context, image string) (string, e
 	if err != nil {
 		return "", err
 	}
-	inspect, err := e.client.DistributionInspect(ctx, image, auth)
+	inspect, err := e.client.DistributionInspect(ctx, image, dockerapi.DistributionInspectOptions{EncodedRegistryAuth: auth})
 	if err != nil {
 		return "", err
 	}

@@ -42,7 +42,6 @@ func (c *Calcium) CreateWorkload(ctx context.Context, opts *types.DeployOptions)
 func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptions) chan *types.CreateWorkloadMessage {
 	logger := log.WithFunc("calcium.doCreateWorkloads").WithField("ident", opts.ProcessIdent)
 	ch := make(chan *types.CreateWorkloadMessage)
-	// processing records make concurrent deploys of the same entrypoint visible to each other
 
 	var (
 		deployMap            map[string]int
@@ -246,7 +245,6 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
 	}
 	wg.Wait()
 
-	// remap stays outside the txn: it is idempotent and converges on the next run
 	_ = c.pool.Invoke(func() { c.RemapResourceAndLog(ctx, logger, node) })
 
 	return indices, err
@@ -317,7 +315,6 @@ func (c *Calcium) doDeployOneWorkload(
 		},
 
 		func(ctx context.Context) (err error) {
-			// avoid to be interrupted by MakeDeployStatus
 			processing := opts.GetProcessing(node.Name)
 			if !decrProcessing {
 				processing = nil

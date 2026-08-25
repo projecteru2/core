@@ -64,7 +64,6 @@ func (m *Manager) LoadPlugins(ctx context.Context, embeddedETCD *embedded.Cluste
 	return nil
 }
 
-// AddPlugins adds a plugin (for test and debug)
 func (m *Manager) AddPlugins(ps ...plugins.Plugin) {
 	m.plugins = append(m.plugins, ps...)
 }

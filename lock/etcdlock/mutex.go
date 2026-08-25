@@ -7,10 +7,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/projecteru2/core/types"
-
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/concurrency"
+
+	"github.com/projecteru2/core/types"
 )
 
 // Mutex is an etcd session based distributed lock.

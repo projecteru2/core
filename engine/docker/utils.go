@@ -9,6 +9,7 @@ import (
 	"io"
 	"maps"
 	"math"
+	"net/netip"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -16,13 +17,14 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/cockroachdb/errors"
 	"github.com/distribution/reference"
-	"github.com/docker/docker/api/types/blkiodev"
-	dockercontainer "github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/pkg/stdcopy"
-	"github.com/docker/docker/registry"
 	"github.com/moby/go-archive"
 	"github.com/moby/go-archive/compression"
+	"github.com/moby/moby/api/pkg/stdcopy"
+	"github.com/moby/moby/api/types/blkiodev"
+	dockercontainer "github.com/moby/moby/api/types/container"
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 
 	corecluster "github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/engine"
@@ -30,6 +32,11 @@ import (
 	"github.com/projecteru2/core/log"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
+)
+
+const (
+	defaultIndexName    = "docker.io"
+	legacyIndexHostname = "index.docker.io"
 )
 
 func CreateTarStream(path string) (io.ReadCloser, error) {
@@ -185,12 +192,10 @@ func makeEncodedAuthConfigFromRemote(authConfigs map[string]coretypes.AuthConfig
 		return "", err
 	}
 
-	repoInfo, err := registry.ParseRepositoryInfo(ref)
-	if err != nil {
-		return "", err
+	serverAddress := reference.Domain(ref)
+	if serverAddress == legacyIndexHostname {
+		serverAddress = defaultIndexName
 	}
-
-	serverAddress := repoInfo.Index.Name
 	if authConfig, exists := authConfigs[serverAddress]; exists {
 		encodedAuth, encodeErr := encodeAuthToBase64(authConfig)
 		if encodeErr != nil {
@@ -275,4 +280,44 @@ func createDockerfile(dockerfile, buildDir string) (err error) {
 
 func useCNI(labels map[string]string) bool {
 	return labels["cni"] == "1"
+}
+
+type validStringer interface {
+	IsValid() bool
+	String() string
+}
+
+// zeroToEmpty restores the pre-netip empty string: netip renders its zero value as "invalid IP".
+func zeroToEmpty[T validStringer](v T) string {
+	if !v.IsValid() {
+		return ""
+	}
+	return v.String()
+}
+
+func parsePlatform(platform string) []ocispec.Platform {
+	if platform == "" {
+		return nil
+	}
+	parts := strings.SplitN(platform, "/", 3)
+	p := ocispec.Platform{OS: parts[0]}
+	if len(parts) > 1 {
+		p.Architecture = parts[1]
+	}
+	if len(parts) > 2 {
+		p.Variant = parts[2]
+	}
+	return []ocispec.Platform{p}
+}
+
+func parseDNSAddrs(dns []string) ([]netip.Addr, error) {
+	addrs := make([]netip.Addr, 0, len(dns))
+	for _, d := range dns {
+		addr, err := netip.ParseAddr(d)
+		if err != nil {
+			return nil, errors.Wrapf(coretypes.ErrInvaildIPAddress, "dns: %s", d)
+		}
+		addrs = append(addrs, addr)
+	}
+	return addrs, nil
 }
