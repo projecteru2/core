@@ -26,9 +26,6 @@ type VirtualizationCreateOptions struct {
 
 	Networks map[string]string
 
-	LogType   string
-	LogConfig map[string]string
-
 	RawArgs []byte
 	Lambda  bool
 
