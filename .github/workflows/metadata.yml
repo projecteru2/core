@@ -26,6 +26,9 @@ jobs:
           fi
           description=$(yq -r '.description' .github/repo.yml)
           homepage=$(yq -r '.homepage' .github/repo.yml)
-          topics=$(yq -r '.topics | join(",")' .github/repo.yml)
           gh repo edit "$GITHUB_REPOSITORY" --description "$description" --homepage "$homepage"
-          gh api -X PUT "repos/$GITHUB_REPOSITORY/topics" -f "names[]=${topics//,/ -f names[]=}" >/dev/null
+          topic_args=()
+          while IFS= read -r topic; do
+            topic_args+=(-f "names[]=$topic")
+          done < <(yq -r '.topics[]' .github/repo.yml)
+          gh api -X PUT "repos/$GITHUB_REPOSITORY/topics" "${topic_args[@]}" >/dev/null

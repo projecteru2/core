@@ -15,7 +15,7 @@ username and whose *value* is the password. The Go client does this for you — 
 
 | RPC | Request | Description |
 | --- | --- | --- |
-| `Info` | `Empty` | Version, git revision, build time, Go version, OS/arch, and this instance's identifier (the hash of its config) |
+| `Info` | `Empty` | Version, git revision, build time, Go version, OS/arch, and this instance's identifier (the SHA-256 of its store settings: `store`, `etcd.machines`, `etcd.prefix`, `redis.addr`, `redis.db`) |
 | `WatchServiceStatus` ⇊ | `Empty` | The live set of core instance addresses, plus the interval within which the next push is expected |
 
 ## Pods
@@ -87,7 +87,7 @@ plugin name. See [Resource plugins](resource-plugins.md).
 | `ExecuteWorkload` ⇅ | `workload_id`, `commands`, `envs`, `workdir`, `open_stdin` | Exec inside a workload. When `open_stdin` is set, further client messages carry stdin in `repl_cmd` |
 | `RunAndWait` ⇅ | `deploy_options`, `cmd`, `async`, `async_timeout` | Lambda: deploy, attach, wait for exit, then remove. The first messages carry the new workload IDs (`TYPEWORKLOADID`), the last output line is `[exitcode] <n>`. With `async`, core sends the IDs, detaches from the stream, forces `open_stdin` off, and logs the output itself under `async_timeout` seconds (default `global_timeout`) |
 | `LogStream` ⇊ | `id`, `tail`, `since`, `until`, `follow` | Engine logs for one workload |
-| `RawEngine` | `id`, `op`, `params`, `ignore_lock` | Pass an engine-specific operation through to the node's engine. Implemented by the virt engine; the docker engine returns nothing |
+| `RawEngine` | `id`, `op`, `params`, `ignore_lock` | Pass an engine-specific operation through to the node's engine. Implemented by the virt engine; the docker and systemd engines return `ErrEngineNotImplemented` |
 
 ## Files
 
@@ -117,7 +117,7 @@ Image references are built as `hub/namespace/appname:tag` from `docker.hub` and
 | `ConnectNetwork` | `network`, `target`, `ipv4`, `ipv6` | Attach a workload to a network; returns its subnets |
 | `DisconnectNetwork` | `network`, `target`, `force` | Detach it |
 
-Only the docker engine implements these; `systemd://` nodes return "not implemented".
+The docker and virt engines implement these; `systemd://` nodes return `ErrEngineNotImplemented`.
 
 ## DeployOptions
 

@@ -45,6 +45,7 @@ jobs:
             ${{ github.repository }}
           tags: |
             type=ref,event=tag
+            type=raw,value=latest,enable={{is_default_branch}}
             type=sha,format=long,prefix=,enable=${{ github.ref == 'refs/heads/master' }}
 
       - name: Build and push image

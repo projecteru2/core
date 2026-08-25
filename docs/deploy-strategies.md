@@ -98,5 +98,5 @@ The strategy only sees nodes that survived `node_filter` on the request:
   - `excludes` — these names are removed from what is left
 
 A node is *down* when it is marked `bypass` (via `SetNode`) or when its liveness key is absent,
-which is what happens when its agent stops reporting. Nodes registered with `test: true` are
-always treated as alive.
+which is what happens when its agent stops reporting. Nodes registered with `test: true` skip the
+liveness check and count as alive unless they are also bypassed.

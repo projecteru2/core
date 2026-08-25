@@ -44,8 +44,8 @@ The active watcher:
    reporting — calls `SetNode` with `workloads_down`, marking that node's workloads dead.
 
 It deliberately ignores nodes coming *back* up: that transition is owned by the agent, which
-re-reports the node and its workloads. Nodes registered with `test: true` are always treated as
-alive.
+re-reports the node and its workloads. Nodes registered with `test: true` skip the liveness check
+and count as alive unless they are also bypassed.
 
 Separately, the engine cache subscribes to the same stream and evicts every cached engine client
 belonging to a node that went down — see [Engines](engines.md).

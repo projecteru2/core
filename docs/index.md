@@ -23,7 +23,7 @@ cli / agent / your service
    │           engine/factory (cached, per node) │
    └─────────────┼───────────────────────────────┘
                  ▼
-   docker:// unix:// | virt-grpc:// | systemd://
+   tcp:// unix:// | virt-grpc:// | systemd:// | mock://
 ```
 
 ## Guides

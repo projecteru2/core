@@ -23,7 +23,8 @@ An endpoint with any other prefix is rejected with `ErrInvaildNodeEndpoint`.
 
 ## docker
 
-The default. Uses the Docker Go client with `docker.version` as the negotiated API version.
+The default. Uses the moby client (`github.com/moby/moby/client`), pinning `docker.version` as the API
+version, which disables API-version negotiation.
 
 - Network mode comes from the deploy request, falling back to `docker.network_mode`.
 - If a deploy specifies no DNS and `docker.use_local_dns` is on, the node's own IP is injected as

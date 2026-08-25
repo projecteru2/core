@@ -81,7 +81,7 @@ To regenerate the gRPC bindings after editing `rpc/gen/core.proto` you also need
 
 ## Running
 
-Core takes two flags and nothing else:
+Core takes two flags of its own, plus what urfave/cli adds:
 
 | Flag | Default | Meaning |
 | --- | --- | --- |

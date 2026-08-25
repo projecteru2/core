@@ -31,7 +31,8 @@ The dependency direction is one-way: `rpc` knows `cluster`, `cluster` knows `sto
 2. If `--embedded-storage`, start a single-member in-process etcd under `$TMPDIR/eru-core-etcd`.
 3. `calcium.New` — build the store, the SCM client, the service-discovery watcher, the resource
    manager (loading plugins), the goroutine pool and the WAL; compute this instance's identifier
-   as the SHA-256 of the marshalled config, so instances sharing a config share an identity.
+   as the SHA-256 of its store settings (`store`, `etcd.machines`, `etcd.prefix`, `redis.addr`,
+   `redis.db`), so instances sharing a store share an identity.
 4. `factory.InitEngineCache` — start the engine liveness sweep and the node-status subscriber.
 5. `cluster.DisasterRecover` — replay the WAL (see [Operations](operations.md)).
 6. Listen on `bind`, register `CoreRPC`, optionally install the auth interceptors.
