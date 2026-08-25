@@ -16,7 +16,7 @@ import (
 
 const (
 	eventCreateLambda              = "create-lambda"
-	eventWorkloadCreated           = "create-workload"   // created but yet to start
+	eventWorkloadCreated           = "create-workload" // created but yet to start
 	eventWorkloadReplaced          = "replace-workload"
 	eventWorkloadReallocated       = "realloc-workload"
 	eventWorkloadResourceAllocated = "allocate-workload" // resource updated in node meta but yet to create all workloads
@@ -133,6 +133,51 @@ func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw any) (err error)
 	return nil
 }
 
+type workloadReplacement struct {
+	OldID string `json:"old_id"`
+	NewID string `json:"new_id"`
+}
+
+// ReplaceWorkloadHandler removes the workload an interrupted replace left behind.
+type ReplaceWorkloadHandler struct {
+	walBase[*workloadReplacement]
+
+	calcium *Calcium
+}
+
+func newReplaceWorkloadHandler(calcium *Calcium) *ReplaceWorkloadHandler {
+	return &ReplaceWorkloadHandler{calcium: calcium}
+}
+
+func (h *ReplaceWorkloadHandler) Typ() string {
+	return eventWorkloadReplaced
+}
+
+func (h *ReplaceWorkloadHandler) Handle(ctx context.Context, raw any) error {
+	replacement, _ := raw.(*workloadReplacement)
+	logger := log.WithFunc("calcium.ReplaceWorkloadHandler.Handle").WithField("ID", replacement.OldID)
+
+	ctx, cancel := getReplayContext(ctx)
+	defer cancel()
+
+	newWorkload, err := getWorkloadIfExists(ctx, h.calcium, replacement.NewID)
+	if err != nil || newWorkload == nil {
+		return err
+	}
+
+	oldWorkload, err := getWorkloadIfExists(ctx, h.calcium, replacement.OldID)
+	if err != nil || oldWorkload == nil {
+		return err
+	}
+
+	if err = h.calcium.doRemoveWorkload(ctx, oldWorkload, true); err != nil {
+		logger.Error(ctx, err)
+		return err
+	}
+	logger.Info(ctx, "replaced workload removed")
+	return nil
+}
+
 // ReallocWorkloadHandler re-applies the stored engine params of an interrupted realloc.
 type ReallocWorkloadHandler struct {
 	walBase[string]
@@ -233,51 +278,6 @@ func (h *ProcessingCreatedHandler) Handle(ctx context.Context, raw any) (err err
 	}
 	logger.Info(ctx, "obsolete processing deleted")
 	return err
-}
-
-type workloadReplacement struct {
-	OldID string `json:"old_id"`
-	NewID string `json:"new_id"`
-}
-
-// ReplaceWorkloadHandler removes the workload an interrupted replace left behind.
-type ReplaceWorkloadHandler struct {
-	walBase[*workloadReplacement]
-
-	calcium *Calcium
-}
-
-func newReplaceWorkloadHandler(calcium *Calcium) *ReplaceWorkloadHandler {
-	return &ReplaceWorkloadHandler{calcium: calcium}
-}
-
-func (h *ReplaceWorkloadHandler) Typ() string {
-	return eventWorkloadReplaced
-}
-
-func (h *ReplaceWorkloadHandler) Handle(ctx context.Context, raw any) error {
-	replacement, _ := raw.(*workloadReplacement)
-	logger := log.WithFunc("calcium.ReplaceWorkloadHandler.Handle").WithField("ID", replacement.OldID)
-
-	ctx, cancel := getReplayContext(ctx)
-	defer cancel()
-
-	newWorkload, err := getWorkloadIfExists(ctx, h.calcium, replacement.NewID)
-	if err != nil || newWorkload == nil {
-		return err
-	}
-
-	oldWorkload, err := getWorkloadIfExists(ctx, h.calcium, replacement.OldID)
-	if err != nil || oldWorkload == nil {
-		return err
-	}
-
-	if err = h.calcium.doRemoveWorkload(ctx, oldWorkload, true); err != nil {
-		logger.Error(ctx, err)
-		return err
-	}
-	logger.Info(ctx, "replaced workload removed")
-	return nil
 }
 
 type walBase[T any] struct{}
