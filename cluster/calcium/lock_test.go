@@ -62,7 +62,7 @@ func TestDoUnlockAll(t *testing.T) {
 	locks["somename"] = lock
 
 	lock.On("Unlock", mock.Anything).Return(types.ErrMockError)
-	c.doUnlockAll(context.Background(), locks)
+	c.doUnlockAll(context.Background(), locks, []string{"somename"})
 }
 
 func TestWithWorkloadsLocked(t *testing.T) {

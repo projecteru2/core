@@ -3,7 +3,6 @@ package calcium
 import (
 	"context"
 	"fmt"
-	"maps"
 	"slices"
 	"time"
 
@@ -44,12 +43,8 @@ func (c *Calcium) doUnlock(ctx context.Context, lock lock.DistributedLock, msg s
 	return lock.Unlock(ctx)
 }
 
-func (c *Calcium) doUnlockAll(ctx context.Context, locks map[string]lock.DistributedLock, order ...string) {
+func (c *Calcium) doUnlockAll(ctx context.Context, locks map[string]lock.DistributedLock, order []string) {
 	logger := log.WithFunc("calcium.doUnlockAll")
-	if len(order) != len(locks) {
-		logger.Warn(ctx, "order length does not match lock map")
-		order = slices.Collect(maps.Keys(locks))
-	}
 	for _, key := range order {
 		if err := c.doUnlock(ctx, locks[key], key); err != nil {
 			logger.Errorf(ctx, err, "failed to unlock %s", key)
@@ -78,7 +73,7 @@ func (c *Calcium) withWorkloadsLocked(ctx context.Context, ignoreLock bool, IDs 
 
 	defer func() {
 		slices.Reverse(lockKeys)
-		c.doUnlockAll(utils.NewInheritCtx(ctx), locks, lockKeys...)
+		c.doUnlockAll(utils.NewInheritCtx(ctx), locks, lockKeys)
 		logger.Debugf(ctx, "workloads %+v unlocked", lockKeys)
 	}()
 	cs, err := c.store.GetWorkloads(ctx, IDs)
@@ -149,7 +144,7 @@ func (c *Calcium) withNodesLocked(ctx context.Context, nodeFilter *types.NodeFil
 
 	defer func() {
 		slices.Reverse(lockKeys)
-		c.doUnlockAll(utils.NewInheritCtx(ctx), locks, lockKeys...)
+		c.doUnlockAll(utils.NewInheritCtx(ctx), locks, lockKeys)
 		logger.Debugf(ctx, "keys %+v unlocked", lockKeys)
 	}()
 
