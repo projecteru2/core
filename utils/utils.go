@@ -25,8 +25,6 @@ import (
 const (
 	letters       = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	shortenLength = 7
-	// DefaultVersion is the image tag assumed when a reference carries none.
-	DefaultVersion = "latest"
 )
 
 // RandomString returns n random letters from [a-zA-Z].

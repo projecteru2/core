@@ -11,6 +11,8 @@ import (
 const (
 	Etcd  = "etcd"
 	Redis = "redis"
+
+	defaultVersion = "latest"
 )
 
 type Config struct {
@@ -107,6 +109,17 @@ type RegistryConfig struct {
 	Namespace string                `yaml:"namespace"`  // image path becomes $Hub/$Namespace/$appname
 	Auths     map[string]AuthConfig `yaml:"auths"`      // keyed by registry host
 	PlainHTTP []string              `yaml:"plain_http"` // registry hosts served without TLS
+}
+
+func (c RegistryConfig) BuildRefs(appname string, tags []string) []string {
+	if len(tags) == 0 {
+		return []string{c.ImageTag(appname, defaultVersion)}
+	}
+	refs := make([]string, 0, len(tags))
+	for _, tag := range tags {
+		refs = append(refs, c.ImageTag(appname, tag))
+	}
+	return refs
 }
 
 // ImageTag renders the registry reference an app's built image is pushed under.

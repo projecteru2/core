@@ -21,7 +21,6 @@ import (
 	"github.com/projecteru2/core/log"
 	coresource "github.com/projecteru2/core/source"
 	coretypes "github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 )
 
 const (
@@ -35,12 +34,9 @@ const (
 )
 
 func (e *Engine) BuildRefs(_ context.Context, opts *enginetypes.BuildRefOptions) []string {
-	if len(opts.Tags) == 0 {
-		return []string{normalizeRef(e.config.Registry.ImageTag(opts.Name, utils.DefaultVersion))}
-	}
-	refs := make([]string, 0, len(opts.Tags))
-	for _, tag := range opts.Tags {
-		refs = append(refs, normalizeRef(e.config.Registry.ImageTag(opts.Name, tag)))
+	refs := e.config.Registry.BuildRefs(opts.Name, opts.Tags)
+	for i, ref := range refs {
+		refs[i] = normalizeRef(ref)
 	}
 	return refs
 }
