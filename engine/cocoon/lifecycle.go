@@ -69,8 +69,10 @@ bin=$1; vm=$2; snap=$3
 "$bin" vm inspect "$vm"
 `
 
+	// inspectScript prints the stored record first: cocoon's own JSON has no eru user.
 	inspectScript = `bin=$1; vm=$2; durable=$3
 test -f "$durable" || exit 64
+cat "$durable"
 exec "$bin" vm inspect "$vm"
 `
 
@@ -139,12 +141,13 @@ func (e *Engine) VirtualizationInspect(ctx context.Context, ID string) (*enginet
 	if err != nil {
 		return nil, err
 	}
-	vm, err := parseVM(res.Stdout)
+	record, vm, err := parseInspect(res.Stdout)
 	if err != nil {
 		return nil, err
 	}
 	return &enginetypes.VirtualizationInfo{
 		ID:       ID,
+		User:     record.User,
 		Image:    vm.Config.Image,
 		Running:  vm.running(),
 		Networks: vm.networks(),

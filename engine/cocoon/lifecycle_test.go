@@ -192,7 +192,9 @@ func TestVirtualizationInspectParsesTheVMRecord(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: tt.stdout} }}
+			runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result {
+				return &sshrunner.Result{Stdout: storedRecord + "\n" + tt.stdout}
+			}}
 			e := testEngine(t, runner)
 
 			info, err := e.VirtualizationInspect(t.Context(), "w1")
@@ -207,6 +209,9 @@ func TestVirtualizationInspectParsesTheVMRecord(t *testing.T) {
 			}
 			if info.Image != testImage {
 				t.Errorf("got image %q, want %q", info.Image, testImage)
+			}
+			if info.User != testUser {
+				t.Errorf("got user %q, want the one the create recorded", info.User)
 			}
 		})
 	}

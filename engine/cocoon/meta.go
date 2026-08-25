@@ -2,7 +2,9 @@ package cocoon
 
 import (
 	"context"
+	"encoding/json"
 	"path/filepath"
+	"strings"
 
 	"github.com/projecteru2/core/cluster"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -17,6 +19,7 @@ type meta struct {
 	ID          string            `json:"id"`
 	Kind        string            `json:"kind"`
 	Name        string            `json:"name"`
+	User        string            `json:"user,omitempty"`
 	Appname     string            `json:"appname"`
 	Entrypoint  string            `json:"entrypoint"`
 	Ident       string            `json:"ident"`
@@ -40,6 +43,7 @@ func newMeta(ctx context.Context, ID string, opts *enginetypes.VirtualizationCre
 		ID:         ID,
 		Kind:       kindVM,
 		Name:       opts.Name,
+		User:       opts.User,
 		Appname:    appname,
 		Entrypoint: entrypoint,
 		Ident:      ident,
@@ -62,6 +66,19 @@ func newMeta(ctx context.Context, ID string, opts *enginetypes.VirtualizationCre
 		}
 	}
 	return record
+}
+
+// parseInspect splits the stored record the inspect script prints ahead of cocoon's own vm JSON.
+func parseInspect(out string) (*meta, *vmRecord, error) {
+	decoder := json.NewDecoder(strings.NewReader(out))
+	record, vm := &meta{}, &vmRecord{}
+	if err := decoder.Decode(record); err != nil {
+		return nil, nil, err
+	}
+	if err := decoder.Decode(vm); err != nil {
+		return nil, nil, err
+	}
+	return record, vm, nil
 }
 
 type healthCheck struct {

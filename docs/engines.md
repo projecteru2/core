@@ -257,7 +257,7 @@ the cocoon daemon's events on it. The eru name stays in the meta file and in cor
 | `VirtualizationStop` | `vm stop`, `--force` for a forced stop, `--timeout` when a grace period is given |
 | `VirtualizationRemove` | `vm rm [--force]`, then the hibernate snapshot and both copies of the meta record; a running guest is refused unless forced |
 | `VirtualizationSuspend` / `Resume` | `vm hibernate --name eru-<id>` / `vm restore --restore-mode copy` followed by `snapshot rm` and `vm inspect`, then the record rewrite as at start |
-| `VirtualizationInspect` | `vm inspect`: running when the state is `running`, the image, and the CNI address under the network's name |
+| `VirtualizationInspect` | the stored record then `vm inspect`: running when the state is `running`, the image, the CNI address under the network's name, and the deploy's `user` — cocoon's own JSON has no eru user, and returning an empty one made core overwrite the stored value after every start |
 | `VirtualizationWait` | `vm status --event --format json` until the guest leaves `running`; a VM has no exit code, so the result is 0 |
 | `VirtualizationLogs` | `journalctl SYSLOG_IDENTIFIER=eru ERU_ID=<id>` with `-n`, `--since` and `--until` — eru-agent copies the guest console into journald; a followed stream ends when the guest stops |
 | `VirtualizationAttach` | without stdin, the journald follow; with stdin, `ErrEngineNotImplemented` — the console needs a pty (core#660) |
@@ -312,7 +312,8 @@ recreate.
 
 The same record the process engine writes, at `<cocoon.root>/<id>.json` and
 `/run/eru/workloads/<id>.json`, refreshed on tmpfs at start and deleted at remove. For a VM it
-carries `kind: vm`, `cgroup: /sys/fs/cgroup/<cocoon.cgroup_parent>/vm-<cocoon vm id>.scope`,
+carries `kind: vm`, `user`: the login the deploy asked for, which is also what `VirtualizationInspect`
+reads back, `cgroup: /sys/fs/cgroup/<cocoon.cgroup_parent>/vm-<cocoon vm id>.scope`,
 `netns_pid`: the VMM's pid (cocoon's `pid`; the tap lives in the VM's netns, so eru-agent reads it
 from `/proc/<pid>/net/dev`), `iface`: the first tap cocoon created, and `log: {"console_socket": …}` — the guest console of the
 current boot, which eru-agent reads and forwards into journald (`cocoon vm logs` shows only the

@@ -20,6 +20,9 @@ const (
 	testRunDir = "/var/lib/cocoon/run"
 	testVMID   = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 	testImage  = "ghcr.io/cocoonstack/cocoon/ubuntu:24.04"
+	testUser   = "eru"
+
+	storedRecord = `{"id":"w1","kind":"vm","name":"app_web_xyz","user":"` + testUser + `","nodename":"node1"}`
 
 	linuxVM = `{"id":"` + testVMID + `","hypervisor":"cloud-hypervisor","state":"created","first_booted":false,` +
 		`"config":{"cpu":2,"memory":1073741824,"image":"` + testImage + `","network":"eru-cni"},` +

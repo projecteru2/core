@@ -28,7 +28,7 @@ func TestVirtualizationCreateRendersTheVMAndRecordsIt(t *testing.T) {
 	created, err := e.VirtualizationCreate(t.Context(), &enginetypes.VirtualizationCreateOptions{
 		Name:         "app_web_xyz",
 		Image:        testImage,
-		User:         "eru",
+		User:         testUser,
 		Env:          []string{"ERU_POD=vms"},
 		Networks:     map[string]string{"eru-cni": ""},
 		EngineParams: resourcetypes.Resources{"cpumem": {"cpu": 1.5, "memory": 1 << 30}, "storage": {"storage": 20 << 30, "volumes": []string{"/data:/data:rw:1073741824"}}},
@@ -58,6 +58,7 @@ func TestVirtualizationCreateRendersTheVMAndRecordsIt(t *testing.T) {
 		durablePath(testRoot, created.ID),
 		metaPath(created.ID),
 		`"kind":"vm"`,
+		`"user":"` + testUser + `"`,
 		`"podname":"vms"`,
 		`"publish":["80"]`,
 		`"healthcheck":{"tcp_ports":["80"]}`,
