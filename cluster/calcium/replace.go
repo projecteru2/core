@@ -139,12 +139,19 @@ func (c *Calcium) doReplaceWorkload(
 					return c.doDeployOneWorkload(ctx, node, &opts.DeployOptions, createMessage, vco, false)
 				},
 				func(ctx context.Context) (err error) {
+					commit, err := c.wal.Log(eventWorkloadReplaced, &workloadReplacement{OldID: workload.ID, NewID: createMessage.WorkloadID})
+					if err != nil {
+						return err
+					}
 					if err = c.doRemoveWorkload(ctx, workload, true); err != nil {
 						logger.Error(ctx, err, "the new started but the old failed to stop")
 						return err
 					}
+					if commitErr := commit(); commitErr != nil {
+						logger.Errorf(ctx, commitErr, "commit wal failed: %s", eventWorkloadReplaced)
+					}
 					removeMessage.Success = true
-					return err
+					return nil
 				},
 				nil,
 				c.config.GlobalTimeout,

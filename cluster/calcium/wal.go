@@ -17,6 +17,7 @@ import (
 const (
 	eventCreateLambda              = "create-lambda"
 	eventWorkloadCreated           = "create-workload"   // created but yet to start
+	eventWorkloadReplaced          = "replace-workload"
 	eventWorkloadResourceAllocated = "allocate-workload" // resource updated in node meta but yet to create all workloads
 	eventProcessingCreated         = "create-processing" // processing created but yet to delete
 
@@ -198,6 +199,51 @@ func (h *ProcessingCreatedHandler) Handle(ctx context.Context, raw any) (err err
 	return err
 }
 
+type workloadReplacement struct {
+	OldID string `json:"old_id"`
+	NewID string `json:"new_id"`
+}
+
+// ReplaceWorkloadHandler removes the workload an interrupted replace left behind.
+type ReplaceWorkloadHandler struct {
+	walBase[*workloadReplacement]
+
+	calcium *Calcium
+}
+
+func newReplaceWorkloadHandler(calcium *Calcium) *ReplaceWorkloadHandler {
+	return &ReplaceWorkloadHandler{calcium: calcium}
+}
+
+func (h *ReplaceWorkloadHandler) Typ() string {
+	return eventWorkloadReplaced
+}
+
+func (h *ReplaceWorkloadHandler) Handle(ctx context.Context, raw any) error {
+	replacement, _ := raw.(*workloadReplacement)
+	logger := log.WithFunc("calcium.ReplaceWorkloadHandler.Handle").WithField("ID", replacement.OldID)
+
+	ctx, cancel := getReplayContext(ctx)
+	defer cancel()
+
+	newWorkload, err := getWorkloadIfExists(ctx, h.calcium, replacement.NewID)
+	if err != nil || newWorkload == nil {
+		return err
+	}
+
+	oldWorkload, err := getWorkloadIfExists(ctx, h.calcium, replacement.OldID)
+	if err != nil || oldWorkload == nil {
+		return err
+	}
+
+	if err = h.calcium.doRemoveWorkload(ctx, oldWorkload, true); err != nil {
+		logger.Error(ctx, err)
+		return err
+	}
+	logger.Info(ctx, "replaced workload removed")
+	return nil
+}
+
 type walBase[T any] struct{}
 
 func (walBase[T]) Encode(raw any) ([]byte, error) {
@@ -222,6 +268,7 @@ func enableWAL(config types.Config, calcium *Calcium, store store.Store) (wal.WA
 
 	hydro.Register(newCreateLambdaHandler(calcium, hydro))
 	hydro.Register(newCreateWorkloadHandler(calcium))
+	hydro.Register(newReplaceWorkloadHandler(calcium))
 	hydro.Register(newWorkloadResourceAllocatedHandler(calcium))
 	hydro.Register(newProcessingCreatedHandler(store))
 	return hydro, nil
