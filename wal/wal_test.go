@@ -12,12 +12,6 @@ import (
 )
 
 func TestRecover(t *testing.T) {
-	var checked bool
-	check := func(any) (bool, error) {
-		checked = true
-		return true, nil
-	}
-
 	var handled bool
 	handle := func(any) (err error) {
 		handled = true
@@ -55,14 +49,12 @@ func TestRecover(t *testing.T) {
 		event:  eventype,
 		encode: encode,
 		decode: decode,
-		check:  check,
 		handle: handle,
 	})
 
 	wal.Log(eventype, struct{}{})
 
 	wal.Recover(context.Background())
-	assert.True(t, checked)
 	assert.True(t, handled)
 	assert.True(t, encoded)
 	assert.True(t, decoded)
@@ -70,7 +62,6 @@ func TestRecover(t *testing.T) {
 
 type simpleEventHandler struct {
 	event  string
-	check  func(raw any) (bool, error)
 	encode func(any) ([]byte, error)
 	decode func([]byte) (any, error)
 	handle func(any) error
@@ -78,10 +69,6 @@ type simpleEventHandler struct {
 
 func (h simpleEventHandler) Typ() string {
 	return h.event
-}
-
-func (h simpleEventHandler) Check(ctx context.Context, raw any) (bool, error) {
-	return h.check(raw)
 }
 
 func (h simpleEventHandler) Encode(raw any) ([]byte, error) {

@@ -20,9 +20,9 @@ func TestLogFailedAsNoSuchHandler(t *testing.T) {
 }
 
 func TestLogFailedAsEncodeError(t *testing.T) {
-	var checked, handled, encoded, decoded bool
+	var handled, encoded, decoded bool
 	eventype := "create"
-	handler := newTestEventHandler(eventype, &checked, &handled, &encoded, &decoded)
+	handler := newTestEventHandler(eventype, &handled, &encoded, &decoded)
 	handler.encode = func(any) ([]byte, error) { return nil, fmt.Errorf("encode error") }
 
 	hydro, _ := NewHydro(path.Join(t.TempDir(), "1"), time.Second)
@@ -33,15 +33,14 @@ func TestLogFailedAsEncodeError(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, commit)
 	assert.False(t, encoded)
-	assert.False(t, checked)
 	assert.False(t, decoded)
 	assert.False(t, handled)
 }
 
 func TestLogWithCommitEvent(t *testing.T) {
-	var checked, handled, encoded, decoded bool
+	var handled, encoded, decoded bool
 	eventype := "create"
-	handler := newTestEventHandler(eventype, &checked, &handled, &encoded, &decoded)
+	handler := newTestEventHandler(eventype, &handled, &encoded, &decoded)
 
 	hydro, _ := NewHydro(path.Join(t.TempDir(), "1"), time.Second)
 	hydro.store = kv.NewMockedKV()
@@ -54,14 +53,13 @@ func TestLogWithCommitEvent(t *testing.T) {
 	assert.NoError(t, commit())
 	assert.True(t, encoded)
 	assert.False(t, decoded)
-	assert.False(t, checked)
 	assert.False(t, handled)
 }
 
 func TestRecoverFailedAsNoSuchHandler(t *testing.T) {
-	var checked, handled, encoded, decoded bool
+	var handled, encoded, decoded bool
 	eventype := "create"
-	handler := newTestEventHandler(eventype, &checked, &handled, &encoded, &decoded)
+	handler := newTestEventHandler(eventype, &handled, &encoded, &decoded)
 
 	hydro, _ := NewHydro(path.Join(t.TempDir(), "1"), time.Second)
 	hydro.store = kv.NewMockedKV()
@@ -76,31 +74,6 @@ func TestRecoverFailedAsNoSuchHandler(t *testing.T) {
 	hydro.Recover(context.Background())
 	assert.True(t, encoded)
 	assert.False(t, decoded)
-	assert.False(t, checked)
-	assert.False(t, handled)
-}
-
-func TestRecoverFailedAsCheckError(t *testing.T) {
-	var checked, handled, encoded, decoded bool
-	eventype := "create"
-	handler := newTestEventHandler(eventype, &checked, &handled, &encoded, &decoded)
-	handler.check = func(any) (bool, error) {
-		checked = true
-		return false, fmt.Errorf("check error")
-	}
-
-	hydro, _ := NewHydro(path.Join(t.TempDir(), "1"), time.Second)
-	hydro.store = kv.NewMockedKV()
-	hydro.Register(handler)
-
-	commit, err := hydro.Log(eventype, struct{}{})
-	assert.NoError(t, err)
-	assert.NotNil(t, commit)
-
-	hydro.Recover(context.Background())
-	assert.True(t, encoded)
-	assert.True(t, decoded)
-	assert.True(t, checked)
 	assert.False(t, handled)
 }
 
@@ -128,9 +101,9 @@ func TestDecodeEventFailedAsEntryError(t *testing.T) {
 }
 
 func TestRecoverFailedAsDecodeLogError(t *testing.T) {
-	var checked, handled, encoded, decoded bool
+	var handled, encoded, decoded bool
 	eventype := "create"
-	handler := newTestEventHandler(eventype, &checked, &handled, &encoded, &decoded)
+	handler := newTestEventHandler(eventype, &handled, &encoded, &decoded)
 	handler.decode = func([]byte) (any, error) {
 		decoded = true
 		return nil, fmt.Errorf("decode error")
@@ -147,40 +120,13 @@ func TestRecoverFailedAsDecodeLogError(t *testing.T) {
 	hydro.Recover(context.Background())
 	assert.True(t, encoded)
 	assert.True(t, decoded)
-	assert.False(t, checked)
-	assert.False(t, handled)
-}
-
-func TestHydroRecoverDiscardNoNeedEvent(t *testing.T) {
-	var checked, handled, encoded, decoded bool
-	check := func(any) (need bool, err error) {
-		checked = true
-		return need, err
-	}
-
-	eventype := "create"
-	handler := newTestEventHandler(eventype, &checked, &handled, &encoded, &decoded)
-	handler.check = check
-
-	hydro, _ := NewHydro(path.Join(t.TempDir(), "1"), time.Second)
-	hydro.store = kv.NewMockedKV()
-	hydro.Register(handler)
-
-	commit, err := hydro.Log(eventype, struct{}{})
-	assert.NoError(t, err)
-	assert.NotNil(t, commit)
-
-	hydro.Recover(context.Background())
-	assert.True(t, encoded)
-	assert.True(t, decoded)
-	assert.True(t, checked)
 	assert.False(t, handled)
 }
 
 func TestHydroRecover(t *testing.T) {
-	var checked, handled, encoded, decoded bool
+	var handled, encoded, decoded bool
 	eventype := "create"
-	handler := newTestEventHandler(eventype, &checked, &handled, &encoded, &decoded)
+	handler := newTestEventHandler(eventype, &handled, &encoded, &decoded)
 
 	hydro, _ := NewHydro(path.Join(t.TempDir(), "1"), time.Second)
 	hydro.store = kv.NewMockedKV()
@@ -193,7 +139,6 @@ func TestHydroRecover(t *testing.T) {
 	hydro.Recover(context.Background())
 	assert.True(t, encoded)
 	assert.True(t, decoded)
-	assert.True(t, checked)
 	assert.True(t, handled)
 
 	ch, _ := hydro.store.Scan([]byte(eventPrefix))
@@ -224,7 +169,6 @@ func TestHydroRecoverWithRealLithium(t *testing.T) {
 		event:  "create",
 		encode: func(any) ([]byte, error) { return []byte("{}"), nil },
 		decode: func([]byte) (any, error) { return struct{}{}, nil },
-		check:  func(any) (bool, error) { return true, nil },
 		handle: func(any) error { return nil },
 	}
 	hydro.Register(handler)
@@ -243,12 +187,7 @@ func TestHydroRecoverWithRealLithium(t *testing.T) {
 	}
 }
 
-func newTestEventHandler(eventype string, checked, handled, encoded, decoded *bool) simpleEventHandler {
-	check := func(any) (bool, error) {
-		*checked = true
-		return true, nil
-	}
-
+func newTestEventHandler(eventype string, handled, encoded, decoded *bool) simpleEventHandler {
 	handle := func(any) (err error) {
 		*handled = true
 		return err
@@ -268,7 +207,6 @@ func newTestEventHandler(eventype string, checked, handled, encoded, decoded *bo
 		event:  eventype,
 		encode: encode,
 		decode: decode,
-		check:  check,
 		handle: handle,
 	}
 }

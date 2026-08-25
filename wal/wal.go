@@ -16,7 +16,6 @@ type WAL interface {
 
 type EventHandler interface {
 	Typ() string
-	Check(context.Context, any) (need bool, err error)
 	Encode(any) ([]byte, error)
 	Decode([]byte) (any, error)
 	Handle(context.Context, any) error

@@ -104,21 +104,10 @@ func (h *Hydro) recover(ctx context.Context, handler EventHandler, event HydroEv
 		return err
 	}
 
-	del := func() error {
-		return h.store.Delete(event.Key())
-	}
-
-	switch handle, err := handler.Check(ctx, item); {
-	case err != nil:
+	if err := handler.Handle(ctx, item); err != nil {
 		return err
-	case !handle:
-		return del()
-	default:
-		if err := handler.Handle(ctx, item); err != nil {
-			return err
-		}
 	}
-	return del()
+	return h.store.Delete(event.Key())
 }
 
 func (h *Hydro) decodeEvent(scanEntry kv.ScanEntry) (event HydroEvent, err error) {

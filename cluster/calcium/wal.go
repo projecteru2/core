@@ -28,8 +28,6 @@ const (
 
 // CreateLambdaHandler waits for a replayed lambda workload and removes it.
 type CreateLambdaHandler struct {
-	walBase[string]
-
 	calcium cluster.Cluster
 }
 
@@ -200,13 +198,6 @@ func (h *ProcessingCreatedHandler) Handle(ctx context.Context, raw any) (err err
 }
 
 type walBase[T any] struct{}
-
-func (walBase[T]) Check(_ context.Context, raw any) (bool, error) {
-	if _, ok := raw.(T); !ok {
-		return false, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
-	}
-	return true, nil
-}
 
 func (walBase[T]) Encode(raw any) ([]byte, error) {
 	v, ok := raw.(T)
