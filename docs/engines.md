@@ -336,7 +336,10 @@ for events), the cocoonstack `dev` builds of Cloud Hypervisor, Firecracker and
 rust-hypervisor-firmware (the Windows fixes live there), the CNI plugin binaries in `/opt/cni/bin`
 with conf in `/etc/cni/net.d`, cocoon-agent inside the guest images, `sshd` with core's key in
 `authorized_keys`, and a login that may run `cocoon.binary` and owns `cocoon.root` and
-`/run/eru/workloads` (create them and `chown` them to that login before the first deploy). `oras`
+`/run/eru/workloads` (create them and `chown` them to that login before the first deploy). `cocoon.run_dir`
+is created by the node info probe itself, which reads `/etc/machine-id`, `nproc`, `MemTotal` and
+`df -Pk <cocoon.run_dir>`; a probe that cannot read any of them fails the `AddNode`, so a node is
+never registered with zero CPU, memory and storage. `oras`
 is optional: without it the remote digest check is skipped and every deploy runs `image pull`;
 with it (and the node's own registry credentials) the check runs and split-qcow2 artifacts can be
 pulled.
