@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/cockroachdb/errors"
 
@@ -16,6 +17,7 @@ import (
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	coretypes "github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 const (
@@ -23,6 +25,8 @@ const (
 	osWindows   = "windows"
 	formatJSON  = "json"
 	volumeParts = 4
+
+	discardTimeout = 30 * time.Second
 
 	recordScript = `set -e
 durable=$1; record=$2; body=$3
@@ -88,6 +92,8 @@ func (e *Engine) record(ctx context.Context, ID string, opts *enginetypes.Virtua
 
 // discard removes a VM whose eru record never landed; core only knows the ones that did.
 func (e *Engine) discard(ctx context.Context, ID string) {
+	ctx, cancel := context.WithTimeout(utils.NewInheritCtx(ctx), discardTimeout)
+	defer cancel()
 	if _, err := e.run(ctx, e.vm("rm", "--force", ID)...); err != nil {
 		log.WithFunc("engine.cocoon.discard").Errorf(ctx, err, "failed to remove the half-created vm %s", ID)
 	}

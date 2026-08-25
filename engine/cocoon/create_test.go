@@ -1,6 +1,7 @@
 package cocoon
 
 import (
+	"context"
 	"slices"
 	"strings"
 	"testing"
@@ -89,6 +90,27 @@ func TestVirtualizationCreateDiscardsAVMWhoseRecordFailed(t *testing.T) {
 	lines := runner.Lines()
 	if len(lines) != 3 || !strings.Contains(lines[2], "'rm' '--force'") {
 		t.Errorf("got %q, want a forced rm after the failed record", lines)
+	}
+}
+
+func TestVirtualizationCreateDiscardsAVMWhoseDeadlineExpired(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	runner := &sshrunnertest.Fake{Respond: func(line string) *sshrunner.Result {
+		if strings.Contains(line, "'create'") {
+			cancel()
+			return &sshrunner.Result{Stdout: linuxVM}
+		}
+		return &sshrunner.Result{}
+	}}
+	e := testEngine(t, runner)
+
+	if _, err := e.VirtualizationCreate(ctx, &enginetypes.VirtualizationCreateOptions{Name: "app_web_xyz", Image: testImage}); err == nil {
+		t.Fatal("a record core could not write must fail the create")
+	}
+	lines := runner.Lines()
+	if len(lines) != 2 || !strings.Contains(lines[1], "'rm' '--force'") {
+		t.Errorf("got %q, want the create then a forced rm the dead context cannot stop", lines)
 	}
 }
 
