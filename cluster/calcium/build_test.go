@@ -40,6 +40,53 @@ func TestSelectBuildNodeRejectsAFilterItCannotNarrow(t *testing.T) {
 	}
 }
 
+func TestBuildImageOnlyNeedsTheSCMForARepo(t *testing.T) {
+	buildNode := func(c *Calcium) *enginemocks.API {
+		engine := &enginemocks.API{}
+		node := &types.Node{NodeMeta: types.NodeMeta{Name: "test", Podname: "testpod"}, Available: true, Engine: engine}
+		store := c.store.(*storemocks.Store)
+		store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
+		rmgr := c.rmgr.(*resourcemocks.Manager)
+		rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
+		rmgr.On("GetMostIdleNode", mock.Anything, mock.Anything).Return("test", nil)
+		return engine
+	}
+
+	t.Run("a raw build never consults the scm", func(t *testing.T) {
+		c := NewTestCluster()
+		c.source = nil
+		engine := buildNode(c)
+		engine.On("BuildRefs", mock.Anything, mock.Anything).Return([]string{"t1"})
+		engine.On("ImageBuild", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+			Return(io.NopCloser(bytes.NewReader(nil)), nil)
+		engine.On("ImagePush", mock.Anything, mock.Anything).Return(io.NopCloser(bytes.NewReader(nil)), nil)
+		engine.On("ImageRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)
+		engine.On("ImageBuildCachePrune", mock.Anything, mock.Anything).Return(uint64(0), nil)
+
+		ch, err := c.BuildImage(t.Context(), &types.BuildOptions{Name: "xx", BuildMethod: types.BuildFromRaw})
+		assert.NoError(t, err)
+		for msg := range ch {
+			assert.Empty(t, msg.Error)
+		}
+	})
+
+	t.Run("a stage with a repo still needs one", func(t *testing.T) {
+		c := NewTestCluster()
+		c.source = nil
+		buildNode(c)
+
+		_, err := c.BuildImage(t.Context(), &types.BuildOptions{
+			Name:        "xx",
+			BuildMethod: types.BuildFromSCM,
+			Builds: &types.Builds{
+				Stages: []string{"compile"},
+				Builds: map[string]*types.Build{"compile": {Base: base, Repo: repo}},
+			},
+		})
+		assert.ErrorIs(t, err, types.ErrNoSCMSetting)
+	})
+}
+
 func TestBuild(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
@@ -71,13 +118,9 @@ func TestBuild(t *testing.T) {
 		User: "test",
 		Tags: []string{"tag1", "tag2"},
 	}
-	c.source = nil
-	_, err := c.BuildImage(ctx, opts)
-	assert.Error(t, err)
-	c = NewTestCluster()
 	c.config.Build.NodeFilter = types.NodeFilter{Podname: "buildpod"}
 	opts.NodeFilter = &types.NodeFilter{Podname: "elsewhere"}
-	_, err = c.BuildImage(ctx, opts)
+	_, err := c.BuildImage(ctx, opts)
 	assert.ErrorIs(t, err, types.ErrInvaildNodeFilter)
 	opts.NodeFilter = nil
 	store := c.store.(*storemocks.Store)
