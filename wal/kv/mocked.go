@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alphadose/haxmap"
 	"github.com/cockroachdb/errors"
 
 	"github.com/projecteru2/core/types"
@@ -15,15 +14,12 @@ import (
 // MockedKV is an in-memory KV for tests.
 type MockedKV struct {
 	sync.Mutex
-	pool    *haxmap.Map[string, []byte]
+	pool    sync.Map
 	nextSeq uint64
 }
 
 func NewMockedKV() *MockedKV {
-	return &MockedKV{
-		nextSeq: 1,
-		pool:    haxmap.New[string, []byte](),
-	}
+	return &MockedKV{nextSeq: 1}
 }
 
 func (m *MockedKV) Open(string, os.FileMode, time.Duration) error {
@@ -31,10 +27,7 @@ func (m *MockedKV) Open(string, os.FileMode, time.Duration) error {
 }
 
 func (m *MockedKV) Close() error {
-	m.pool.ForEach(func(k string, _ []byte) bool {
-		m.pool.Del(k)
-		return true
-	})
+	m.pool.Clear()
 	return nil
 }
 
@@ -47,20 +40,20 @@ func (m *MockedKV) NextSequence() (uint64, error) {
 }
 
 func (m *MockedKV) Put(key, value []byte) error {
-	m.pool.Set(string(key), value)
+	m.pool.Store(string(key), value)
 	return nil
 }
 
 func (m *MockedKV) Get(key []byte) ([]byte, error) {
-	value, ok := m.pool.Get(string(key))
+	value, ok := m.pool.Load(string(key))
 	if !ok {
-		return value, errors.Wrapf(types.ErrInvaildCount, "no such key: %s", key)
+		return nil, errors.Wrapf(types.ErrInvaildCount, "no such key: %s", key)
 	}
-	return value, nil
+	return value.([]byte), nil
 }
 
 func (m *MockedKV) Delete(key []byte) error {
-	m.pool.Del(string(key))
+	m.pool.Delete(string(key))
 	return nil
 }
 
@@ -78,8 +71,8 @@ func (m *MockedKV) Scan(prefix []byte) (<-chan ScanEntry, func()) {
 		dataCh := make(chan MockedScanEntry)
 		go func() {
 			defer close(dataCh)
-			m.pool.ForEach(func(k string, v []byte) bool {
-				dataCh <- MockedScanEntry{Key: k, Value: v}
+			m.pool.Range(func(k, v any) bool {
+				dataCh <- MockedScanEntry{Key: k.(string), Value: v.([]byte)}
 				return true
 			})
 		}()

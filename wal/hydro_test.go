@@ -69,7 +69,7 @@ func TestRecoverFailedAsNoSuchHandler(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, commit)
 
-	hydro.Del(eventype)
+	hydro.handlers.Delete(eventype)
 
 	hydro.Recover(context.Background())
 	assert.True(t, encoded)

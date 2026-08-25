@@ -2,18 +2,24 @@ package log
 
 import (
 	"context"
-
-	"github.com/alphadose/haxmap"
 )
+
+type field struct {
+	key   string
+	value any
+}
 
 // Fields carries key-value context for one log entry.
 type Fields struct {
-	kv *haxmap.Map[string, any]
+	kv []field
 }
 
+// WithField returns a copy of f tagged with key and value; f itself is left untouched.
 func (f *Fields) WithField(key string, value any) *Fields {
-	f.kv.Set(key, value)
-	return f
+	kv := make([]field, len(f.kv)+1)
+	copy(kv, f.kv)
+	kv[len(f.kv)] = field{key: key, value: value}
+	return &Fields{kv: kv}
 }
 
 // Fatalf logs at fatal level and reports to Sentry.
@@ -57,11 +63,7 @@ func (f *Fields) Error(ctx context.Context, err error, args ...any) {
 
 // WithField returns a Fields tagged with key and value.
 func WithField(key string, value any) *Fields {
-	r := haxmap.New[string, any]()
-	r.Set(key, value)
-	return &Fields{
-		kv: r,
-	}
+	return &Fields{kv: []field{{key: key, value: value}}}
 }
 
 // WithFunc tags the entry with the enclosing function name.

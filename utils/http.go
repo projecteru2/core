@@ -8,9 +8,9 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
-	"github.com/alphadose/haxmap"
 	"github.com/docker/go-connections/tlsconfig"
 
 	"github.com/projecteru2/core/log"
@@ -27,7 +27,7 @@ var (
 		Transport: getDefaultUnixSockTransport(),
 	}
 
-	httpsClientCache = haxmap.New[string, *http.Client]()
+	httpsClientCache sync.Map
 )
 
 func GetHTTPClient() *http.Client {
@@ -45,8 +45,8 @@ func GetHTTPSClient(ctx context.Context, certPath, name, ca, cert, key string) (
 	}
 
 	cacheKey := name + SHA256(fmt.Sprintf("%s-%s-%s-%s-%s", certPath, name, ca, cert, key))[:8]
-	if httpsClient, ok := httpsClientCache.Get(cacheKey); ok {
-		return httpsClient, nil
+	if httpsClient, ok := httpsClientCache.Load(cacheKey); ok {
+		return httpsClient.(*http.Client), nil
 	}
 
 	caFile, err := os.CreateTemp(certPath, fmt.Sprintf("ca-%s", name))
@@ -84,7 +84,7 @@ func GetHTTPSClient(ctx context.Context, certPath, name, ca, cert, key string) (
 		CheckRedirect: checkRedirect,
 		Transport:     transport,
 	}
-	httpsClientCache.Set(cacheKey, client)
+	httpsClientCache.Store(cacheKey, client)
 	return client, nil
 }
 

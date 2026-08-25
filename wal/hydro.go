@@ -3,9 +3,9 @@ package wal
 import (
 	"context"
 	"encoding/json"
+	"sync"
 	"time"
 
-	"github.com/alphadose/haxmap"
 	"github.com/cockroachdb/errors"
 
 	"github.com/projecteru2/core/log"
@@ -17,8 +17,8 @@ const fileMode = 0o600
 
 // Hydro is the simplest wal implementation.
 type Hydro struct {
-	*haxmap.Map[string, EventHandler]
-	store kv.KV
+	handlers sync.Map
+	store    kv.KV
 }
 
 func NewHydro(path string, timeout time.Duration) (*Hydro, error) {
@@ -26,10 +26,7 @@ func NewHydro(path string, timeout time.Duration) (*Hydro, error) {
 	if err := store.Open(path, fileMode, timeout); err != nil {
 		return nil, err
 	}
-	return &Hydro{
-		Map:   haxmap.New[string, EventHandler](),
-		store: store,
-	}, nil
+	return &Hydro{store: store}, nil
 }
 
 func (h *Hydro) Close() error {
@@ -37,7 +34,7 @@ func (h *Hydro) Close() error {
 }
 
 func (h *Hydro) Register(handler EventHandler) {
-	h.Set(handler.Typ(), handler)
+	h.handlers.Store(handler.Typ(), handler)
 }
 
 func (h *Hydro) Recover(ctx context.Context) {
@@ -55,7 +52,7 @@ func (h *Hydro) Recover(ctx context.Context) {
 	}
 
 	for _, event := range events {
-		handler, ok := h.Get(event.Type)
+		handler, ok := h.handler(event.Type)
 		if !ok {
 			logger.Warnf(ctx, "no such event handler for %s", event.Type)
 			continue
@@ -69,7 +66,7 @@ func (h *Hydro) Recover(ctx context.Context) {
 }
 
 func (h *Hydro) Log(eventyp string, item any) (Commit, error) {
-	handler, ok := h.Get(eventyp)
+	handler, ok := h.handler(eventyp)
 	if !ok {
 		return nil, errors.Wrap(coretypes.ErrInvaildWALEventType, eventyp)
 	}
@@ -96,6 +93,14 @@ func (h *Hydro) Log(eventyp string, item any) (Commit, error) {
 	return func() error {
 		return h.store.Delete(event.Key())
 	}, nil
+}
+
+func (h *Hydro) handler(eventyp string) (EventHandler, bool) {
+	v, ok := h.handlers.Load(eventyp)
+	if !ok {
+		return nil, false
+	}
+	return v.(EventHandler), true
 }
 
 func (h *Hydro) recover(ctx context.Context, handler EventHandler, event HydroEvent) error {

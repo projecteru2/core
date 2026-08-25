@@ -2,14 +2,14 @@ package helium
 
 import (
 	"context"
+	"sync"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
-
-	"github.com/alphadose/haxmap"
-	"github.com/google/uuid"
 )
 
 const interval = 15 * time.Second
@@ -22,7 +22,7 @@ type entry struct {
 
 type Helium struct {
 	store     store.Store
-	subs      *haxmap.Map[uint32, entry]
+	subs      sync.Map
 	interval  time.Duration
 	unsubChan chan uint32
 	done      chan struct{}
@@ -32,7 +32,6 @@ func New(ctx context.Context, config types.GRPCConfig, store store.Store) *Heliu
 	h := &Helium{
 		interval:  config.ServiceDiscoveryPushInterval,
 		store:     store,
-		subs:      haxmap.New[uint32, entry](),
 		unsubChan: make(chan uint32),
 		done:      make(chan struct{}),
 	}
@@ -48,7 +47,7 @@ func (h *Helium) Subscribe(ctx context.Context) (uuid.UUID, <-chan types.Service
 	key := ID.ID()
 	subCtx, cancel := context.WithCancel(ctx)
 	ch := make(chan types.ServiceStatus)
-	h.subs.Set(key, entry{
+	h.subs.Store(key, entry{
 		ch:     ch,
 		ctx:    subCtx,
 		cancel: cancel,
@@ -93,9 +92,10 @@ func (h *Helium) start(ctx context.Context) {
 				}
 
 			case ID := <-h.unsubChan:
-				if sub, ok := h.subs.Get(ID); ok {
+				if v, ok := h.subs.Load(ID); ok {
+					sub := v.(entry)
 					sub.cancel()
-					h.subs.Del(ID)
+					h.subs.Delete(ID)
 					close(sub.ch)
 				}
 
@@ -108,10 +108,11 @@ func (h *Helium) start(ctx context.Context) {
 }
 
 func (h *Helium) dispatch(status types.ServiceStatus) {
-	h.subs.ForEach(func(_ uint32, v entry) bool {
+	h.subs.Range(func(_, v any) bool {
+		sub := v.(entry)
 		select {
-		case v.ch <- status:
-		case <-v.ctx.Done():
+		case sub.ch <- status:
+		case <-sub.ctx.Done():
 		}
 		return true
 	})

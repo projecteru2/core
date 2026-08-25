@@ -4,7 +4,6 @@ go 1.27.0
 
 require (
 	github.com/alicebob/miniredis/v2 v2.30.2
-	github.com/alphadose/haxmap v1.4.1
 	github.com/bsm/redislock v0.10.0
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/cockroachdb/errors v1.14.0

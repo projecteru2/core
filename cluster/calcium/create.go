@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alphadose/haxmap"
 	"github.com/cockroachdb/errors"
 	"github.com/sanity-io/litter"
 
@@ -167,10 +166,10 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context,
 ) (_ map[string][]int, err error) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(deployMap))
-	syncRollbackMap := haxmap.New[string, []int]()
 	logger := log.WithFunc("calcium.doDeployWorkloads").WithField("ident", opts.ProcessIdent)
 
 	seq := 0
+	rollbackLock := sync.Mutex{}
 	rollbackMap := make(map[string][]int)
 	for nodename, deploy := range deployMap {
 		start := seq
@@ -179,16 +178,14 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context,
 		_ = c.pool.Invoke(func() {
 			defer wg.Done()
 			if indices, deployErr := c.doDeployWorkloadsOnNode(ctx, ch, nodename, opts, deploy, engineParamsMap[nodename], workloadResourcesMap[nodename], start); deployErr != nil {
-				syncRollbackMap.Set(nodename, indices)
+				rollbackLock.Lock()
+				rollbackMap[nodename] = indices
+				rollbackLock.Unlock()
 			}
 		})
 	}
 
 	wg.Wait()
-	syncRollbackMap.ForEach(func(nodename string, indices []int) bool {
-		rollbackMap[nodename] = indices
-		return true
-	})
 	logger.Debugf(ctx, "rollbackMap: %+v", rollbackMap)
 	if len(rollbackMap) != 0 {
 		err = types.ErrRollbackMapIsNotEmpty
