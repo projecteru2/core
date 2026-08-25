@@ -180,7 +180,11 @@ func pruneOpts(all bool) []bkclient.PruneOption {
 // streamSolveStatus renders buildkit's graph as the build messages core streams to clients.
 func streamSolveStatus(status <-chan *bkclient.SolveStatus, out io.Writer) error {
 	encoder := json.NewEncoder(out)
+	var failed error
 	for update := range status {
+		if failed != nil {
+			continue
+		}
 		for _, vertex := range update.Vertexes {
 			message := &coretypes.BuildImageMessage{Stream: vertex.Name + "\n", Status: vertexStatus(vertex)}
 			if vertex.Error != "" {
@@ -188,16 +192,20 @@ func streamSolveStatus(status <-chan *bkclient.SolveStatus, out io.Writer) error
 				message.ErrorDetail.Message = vertex.Error
 			}
 			if err := encoder.Encode(message); err != nil {
-				return err
+				failed = err
+				break
 			}
 		}
 		for _, entry := range update.Logs {
+			if failed != nil {
+				break
+			}
 			if err := encoder.Encode(&coretypes.BuildImageMessage{Stream: string(entry.Data)}); err != nil {
-				return err
+				failed = err
 			}
 		}
 	}
-	return nil
+	return failed
 }
 
 func writeSolveError(out io.Writer, err error) error {

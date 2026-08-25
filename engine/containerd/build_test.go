@@ -69,6 +69,23 @@ func TestStreamSolveStatusRendersBuildMessages(t *testing.T) {
 	}
 }
 
+func TestStreamSolveStatusDrainsAfterTheWriterFails(t *testing.T) {
+	status := make(chan *bkclient.SolveStatus, 3)
+	for range 3 {
+		status <- &bkclient.SolveStatus{Vertexes: []*bkclient.Vertex{{Name: "step"}}}
+	}
+	close(status)
+
+	err := streamSolveStatus(status, brokenWriter{})
+
+	if err == nil {
+		t.Fatal("the writer's failure must be reported")
+	}
+	if len(status) != 0 {
+		t.Errorf("%d updates left unread: Solve sends without a ctx select and would block", len(status))
+	}
+}
+
 func TestWriteSolveErrorEndsTheStream(t *testing.T) {
 	out := &strings.Builder{}
 	if err := writeSolveError(out, errSolveFailed); err != nil {
@@ -118,6 +135,12 @@ func TestMakeUserPartCreatesTheDeployUser(t *testing.T) {
 	if !strings.Contains(got, "USER eru") || !strings.Contains(got, "eru::1023:1023:") {
 		t.Errorf("got %q, want the user added and selected", got)
 	}
+}
+
+type brokenWriter struct{}
+
+func (brokenWriter) Write([]byte) (int, error) {
+	return 0, errSolveFailed
 }
 
 func decodeBuildMessages(t *testing.T, body string) []*coretypes.BuildImageMessage {
