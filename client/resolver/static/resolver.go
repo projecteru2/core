@@ -7,10 +7,7 @@ import (
 )
 
 // Resolver for target static://{addr1},{addr2},{addr3}
-type Resolver struct {
-	addresses []resolver.Address
-	cc        resolver.ClientConn
-}
+type Resolver struct{}
 
 func New(cc resolver.ClientConn, endpoints string) *Resolver {
 	var addresses []resolver.Address
@@ -18,10 +15,7 @@ func New(cc resolver.ClientConn, endpoints string) *Resolver {
 		addresses = append(addresses, resolver.Address{Addr: ep})
 	}
 	cc.UpdateState(resolver.State{Addresses: addresses}) //nolint
-	return &Resolver{
-		cc:        cc,
-		addresses: addresses,
-	}
+	return &Resolver{}
 }
 
 func (r *Resolver) ResolveNow(_ resolver.ResolveNowOptions) {}

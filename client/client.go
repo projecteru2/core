@@ -18,20 +18,12 @@ import (
 
 // Client is a grpc connection to a core instance.
 type Client struct {
-	addr string
 	conn *grpc.ClientConn
 }
 
 func NewClient(_ context.Context, addr string, authConfig types.AuthConfig) (*Client, error) {
 	cc, err := dial(addr, authConfig)
-	return &Client{
-		addr: addr,
-		conn: cc,
-	}, err
-}
-
-func (c *Client) GetConn() *grpc.ClientConn {
-	return c.conn
+	return &Client{conn: cc}, err
 }
 
 func (c *Client) GetRPCClient() pb.CoreRPCClient {
