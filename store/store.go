@@ -10,6 +10,8 @@ import (
 
 // Store persists eru cluster metadata.
 type Store interface {
+	NotFound(err error) bool
+
 	ServiceStatusStream(context.Context) (chan []string, error)
 	RegisterService(context.Context, string, time.Duration) (<-chan struct{}, func(), error)
 

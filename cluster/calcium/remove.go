@@ -34,12 +34,11 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 					for _, workloadID := range workloadIDs {
 						ret := &types.RemoveWorkloadMessage{WorkloadID: workloadID, Success: true, Hook: []*bytes.Buffer{}}
 						if workloadErr := c.withWorkloadLocked(ctx, workloadID, false, func(ctx context.Context, workload *types.Workload) error {
-							return c.withResourceReleased(ctx, node, workload, func(ctx context.Context) (err error) {
-								if err = c.doRemoveWorkload(ctx, workload, force); err == nil {
-									logger.Infof(ctx, "workload %s removed", workload.ID)
-								}
+							if err := c.doRemoveOneWorkload(ctx, node, workload, force); err != nil {
 								return err
-							})
+							}
+							logger.Infof(ctx, "workload %s removed", workload.ID)
+							return nil
 						}); workloadErr != nil {
 							logger.WithField("id", workloadID).Error(ctx, workloadErr, "failed to remove workload")
 							ret.Hook = append(ret.Hook, bytes.NewBufferString(workloadErr.Error()))
@@ -61,6 +60,34 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 
 func (c *Calcium) RemoveWorkloadSync(ctx context.Context, IDs []string) error {
 	return c.doRemoveWorkloadSync(ctx, IDs)
+}
+
+func (c *Calcium) doRemoveOneWorkload(ctx context.Context, node *types.Node, workload *types.Workload, force bool) error {
+	logger := log.WithFunc("calcium.doRemoveOneWorkload").WithField("id", workload.ID)
+
+	nodeCommit, err := c.wal.Log(eventWorkloadResourceAllocated, []*types.Node{node})
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if commitErr := nodeCommit(); commitErr != nil {
+			logger.Errorf(ctx, commitErr, "commit wal failed: %s", eventWorkloadResourceAllocated)
+		}
+	}()
+
+	workloadCommit, err := c.wal.Log(eventWorkloadCreated, &types.Workload{ID: workload.ID, Nodename: workload.Nodename})
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if commitErr := workloadCommit(); commitErr != nil {
+			logger.Errorf(ctx, commitErr, "commit wal failed: %s", eventWorkloadCreated)
+		}
+	}()
+
+	return c.withResourceReleased(ctx, node, workload, func(ctx context.Context) error {
+		return c.doRemoveWorkload(ctx, workload, force)
+	})
 }
 
 func (c *Calcium) doRemoveWorkload(ctx context.Context, workload *types.Workload, force bool) error {

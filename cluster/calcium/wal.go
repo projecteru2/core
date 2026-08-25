@@ -8,7 +8,6 @@ import (
 
 	"github.com/cockroachdb/errors"
 
-	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
@@ -17,7 +16,9 @@ import (
 
 const (
 	eventCreateLambda              = "create-lambda"
-	eventWorkloadCreated           = "create-workload"   // created but yet to start
+	eventWorkloadCreated           = "create-workload" // created but yet to start
+	eventWorkloadReplaced          = "replace-workload"
+	eventWorkloadReallocated       = "realloc-workload"
 	eventWorkloadResourceAllocated = "allocate-workload" // resource updated in node meta but yet to create all workloads
 	eventProcessingCreated         = "create-processing" // processing created but yet to delete
 
@@ -26,11 +27,12 @@ const (
 
 // CreateLambdaHandler waits for a replayed lambda workload and removes it.
 type CreateLambdaHandler struct {
-	calcium cluster.Cluster
+	calcium *Calcium
+	wal     wal.WAL
 }
 
-func newCreateLambdaHandler(calcium cluster.Cluster) *CreateLambdaHandler {
-	return &CreateLambdaHandler{calcium: calcium}
+func newCreateLambdaHandler(calcium *Calcium, wal wal.WAL) *CreateLambdaHandler {
+	return &CreateLambdaHandler{calcium: calcium, wal: wal}
 }
 
 func (h *CreateLambdaHandler) Typ() string {
@@ -55,25 +57,19 @@ func (h *CreateLambdaHandler) Handle(ctx context.Context, raw any) error {
 		return errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
 	}
 
+	commit, err := h.wal.Log(eventCreateLambda, workloadID)
+	if err != nil {
+		return err
+	}
+
 	logger := log.WithFunc("calcium.CreateLambdaHandler.Handle").WithField("ID", workloadID)
 	go func() {
-		workload, err := h.calcium.GetWorkload(ctx, workloadID)
-		if err != nil {
-			logger.Error(ctx, err, "get workload failed")
+		if err := h.waitAndRemove(ctx, logger, workloadID); err != nil {
+			logger.Error(ctx, err, "wait and remove failed")
 			return
 		}
-
-		r, err := workload.Engine.VirtualizationWait(ctx, workloadID, "")
-		if err != nil {
-			logger.Error(ctx, err, "wait failed")
-			return
-		}
-		if r.Code != 0 {
-			logger.Warnf(ctx, "lambda run failed: %s", r.Message)
-		}
-
-		if err := h.calcium.RemoveWorkloadSync(ctx, []string{workloadID}); err != nil {
-			logger.Error(ctx, err, "remove failed")
+		if err := commit(); err != nil {
+			logger.Errorf(ctx, err, "commit wal %s failed", eventCreateLambda)
 		}
 		logger.Info(ctx, "waited and removed")
 	}()
@@ -81,14 +77,30 @@ func (h *CreateLambdaHandler) Handle(ctx context.Context, raw any) error {
 	return nil
 }
 
+func (h *CreateLambdaHandler) waitAndRemove(ctx context.Context, logger *log.Fields, workloadID string) error {
+	workload, err := getWorkloadIfExists(ctx, h.calcium, workloadID)
+	if err != nil || workload == nil {
+		return err
+	}
+
+	r, err := workload.Engine.VirtualizationWait(ctx, workloadID, "")
+	if err != nil {
+		return err
+	}
+	if r.Code != 0 {
+		logger.Warnf(ctx, "lambda run failed: %s", r.Message)
+	}
+	return h.calcium.RemoveWorkloadSync(ctx, []string{workloadID})
+}
+
 // CreateWorkloadHandler removes a workload left behind by an interrupted create.
 type CreateWorkloadHandler struct {
 	walBase[*types.Workload]
 
-	calcium cluster.Cluster
+	calcium *Calcium
 }
 
-func newCreateWorkloadHandler(calcium cluster.Cluster) *CreateWorkloadHandler {
+func newCreateWorkloadHandler(calcium *Calcium) *CreateWorkloadHandler {
 	return &CreateWorkloadHandler{calcium: calcium}
 }
 
@@ -109,6 +121,10 @@ func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw any) (err error)
 
 	node, err := h.calcium.GetNode(ctx, wrk.Nodename)
 	if err != nil {
+		if h.calcium.store.NotFound(err) {
+			logger.Info(ctx, "node is gone, nothing to remove")
+			return nil
+		}
 		logger.Error(ctx, err)
 		return err
 	}
@@ -121,14 +137,94 @@ func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw any) (err error)
 	return nil
 }
 
+type workloadReplacement struct {
+	OldID string `json:"old_id"`
+	NewID string `json:"new_id"`
+}
+
+// ReplaceWorkloadHandler removes the workload an interrupted replace left behind.
+type ReplaceWorkloadHandler struct {
+	walBase[*workloadReplacement]
+
+	calcium *Calcium
+}
+
+func newReplaceWorkloadHandler(calcium *Calcium) *ReplaceWorkloadHandler {
+	return &ReplaceWorkloadHandler{calcium: calcium}
+}
+
+func (h *ReplaceWorkloadHandler) Typ() string {
+	return eventWorkloadReplaced
+}
+
+func (h *ReplaceWorkloadHandler) Handle(ctx context.Context, raw any) error {
+	replacement, _ := raw.(*workloadReplacement)
+	logger := log.WithFunc("calcium.ReplaceWorkloadHandler.Handle").WithField("ID", replacement.OldID)
+
+	ctx, cancel := getReplayContext(ctx)
+	defer cancel()
+
+	newWorkload, err := getWorkloadIfExists(ctx, h.calcium, replacement.NewID)
+	if err != nil || newWorkload == nil {
+		return err
+	}
+
+	oldWorkload, err := getWorkloadIfExists(ctx, h.calcium, replacement.OldID)
+	if err != nil || oldWorkload == nil {
+		return err
+	}
+
+	if err = h.calcium.doRemoveWorkload(ctx, oldWorkload, true); err != nil {
+		logger.Error(ctx, err)
+		return err
+	}
+	logger.Info(ctx, "replaced workload removed")
+	return nil
+}
+
+// ReallocWorkloadHandler re-applies the stored engine params of an interrupted realloc.
+type ReallocWorkloadHandler struct {
+	walBase[string]
+
+	calcium *Calcium
+}
+
+func newReallocWorkloadHandler(calcium *Calcium) *ReallocWorkloadHandler {
+	return &ReallocWorkloadHandler{calcium: calcium}
+}
+
+func (h *ReallocWorkloadHandler) Typ() string {
+	return eventWorkloadReallocated
+}
+
+func (h *ReallocWorkloadHandler) Handle(ctx context.Context, raw any) error {
+	workloadID, _ := raw.(string)
+	logger := log.WithFunc("calcium.ReallocWorkloadHandler.Handle").WithField("ID", workloadID)
+
+	ctx, cancel := getReplayContext(ctx)
+	defer cancel()
+
+	workload, err := getWorkloadIfExists(ctx, h.calcium, workloadID)
+	if err != nil || workload == nil {
+		return err
+	}
+
+	if err = workload.Engine.VirtualizationUpdateResource(ctx, workloadID, workload.EngineParams); err != nil {
+		logger.Error(ctx, err)
+		return err
+	}
+	logger.Info(ctx, "engine params reapplied")
+	return nil
+}
+
 // WorkloadResourceAllocatedHandler replays a dangling resource allocation by refreshing node resources.
 type WorkloadResourceAllocatedHandler struct {
 	walBase[[]*types.Node]
 
-	calcium cluster.Cluster
+	calcium *Calcium
 }
 
-func newWorkloadResourceAllocatedHandler(calcium cluster.Cluster) *WorkloadResourceAllocatedHandler {
+func newWorkloadResourceAllocatedHandler(calcium *Calcium) *WorkloadResourceAllocatedHandler {
 	return &WorkloadResourceAllocatedHandler{calcium: calcium}
 }
 
@@ -204,14 +300,16 @@ func (walBase[T]) Decode(bs []byte) (any, error) {
 	return v, err
 }
 
-func enableWAL(config types.Config, calcium cluster.Cluster, store store.Store) (wal.WAL, error) {
+func enableWAL(config types.Config, calcium *Calcium, store store.Store) (wal.WAL, error) {
 	hydro, err := wal.NewHydro(config.WALFile, config.WALOpenTimeout)
 	if err != nil {
 		return nil, err
 	}
 
-	hydro.Register(newCreateLambdaHandler(calcium))
+	hydro.Register(newCreateLambdaHandler(calcium, hydro))
 	hydro.Register(newCreateWorkloadHandler(calcium))
+	hydro.Register(newReplaceWorkloadHandler(calcium))
+	hydro.Register(newReallocWorkloadHandler(calcium))
 	hydro.Register(newWorkloadResourceAllocatedHandler(calcium))
 	hydro.Register(newProcessingCreatedHandler(store))
 	return hydro, nil
@@ -219,4 +317,12 @@ func enableWAL(config types.Config, calcium cluster.Cluster, store store.Store) 
 
 func getReplayContext(ctx context.Context) (context.Context, context.CancelFunc) {
 	return context.WithTimeout(ctx, replayTimeout)
+}
+
+func getWorkloadIfExists(ctx context.Context, calcium *Calcium, ID string) (*types.Workload, error) {
+	workload, err := calcium.GetWorkload(ctx, ID)
+	if err != nil && calcium.store.NotFound(err) {
+		return nil, nil
+	}
+	return workload, err
 }

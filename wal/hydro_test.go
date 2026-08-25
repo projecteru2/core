@@ -91,13 +91,21 @@ func TestDecodeEventFailedAsInvalidEventID(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestDecodeEventFailedAsEntryError(t *testing.T) {
+func TestRecoverStopsOnScanError(t *testing.T) {
+	var handled, encoded, decoded bool
+	handler := newTestEventHandler("create", &handled, &encoded, &decoded)
+
 	hydro, _ := NewHydro(path.Join(t.TempDir(), "1"), time.Second)
-	expErr := fmt.Errorf("expects an error")
-	ent := kv.MockedScanEntry{Err: expErr}
-	_, err := hydro.decodeEvent(ent)
-	assert.Error(t, err)
-	assert.Equal(t, expErr.Error(), err.Error())
+	hydro.store = scanErrorKV{MockedKV: kv.NewMockedKV()}
+	hydro.Register(handler)
+
+	commit, err := hydro.Log("create", struct{}{})
+	assert.NoError(t, err)
+	assert.NotNil(t, commit)
+
+	hydro.Recover(context.Background())
+	assert.False(t, decoded)
+	assert.False(t, handled)
 }
 
 func TestRecoverFailedAsDecodeLogError(t *testing.T) {
@@ -209,4 +217,24 @@ func newTestEventHandler(eventype string, handled, encoded, decoded *bool) simpl
 		decode: decode,
 		handle: handle,
 	}
+}
+
+type scanErrorKV struct {
+	*kv.MockedKV
+}
+
+func (k scanErrorKV) Scan(prefix []byte) (<-chan kv.ScanEntry, func()) {
+	scanned, _ := k.MockedKV.Scan(prefix)
+	entries := []kv.ScanEntry{kv.MockedScanEntry{Err: fmt.Errorf("scan error")}}
+	for entry := range scanned {
+		entries = append(entries, entry)
+	}
+
+	ch := make(chan kv.ScanEntry, len(entries))
+	for _, entry := range entries {
+		ch <- entry
+	}
+	close(ch)
+
+	return ch, func() {}
 }

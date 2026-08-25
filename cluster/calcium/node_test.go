@@ -64,6 +64,36 @@ func TestAddNode(t *testing.T) {
 	assert.Equal(t, n.Name, name)
 }
 
+func TestAddNodeRedoesTheStalePluginMetadata(t *testing.T) {
+	c := NewTestCluster()
+	ctx := context.Background()
+	factory.InitEngineCache(ctx, c.config, nil)
+
+	nodename := "nodename"
+	opts := &types.AddNodeOptions{
+		Nodename: nodename,
+		Podname:  "podname",
+		Endpoint: fmt.Sprintf("mock://%s", nodename),
+	}
+
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("AddNode", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNodeExists).Once()
+	rmgr.On("RemoveNode", mock.Anything, nodename).Return(nil).Once()
+	rmgr.On("AddNode", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(resourcetypes.Resources{}, nil).Once()
+	rmgr.On("GetNodeMetrics", mock.Anything, mock.Anything).Return([]*plugintypes.Metrics{}, nil).Maybe()
+
+	store := c.store.(*storemocks.Store)
+	store.On("GetNode", mock.Anything, nodename).Return(nil, types.ErrMockError).Once()
+	store.On("NotFound", types.ErrMockError).Return(true).Once()
+	store.On("AddNode", mock.Anything, mock.Anything).Return(&types.Node{NodeMeta: types.NodeMeta{Name: nodename}}, nil).Once()
+
+	n, err := c.AddNode(ctx, opts)
+	assert.NoError(t, err)
+	assert.Equal(t, nodename, n.Name)
+	rmgr.AssertExpectations(t)
+	store.AssertExpectations(t)
+}
+
 func TestRemoveNode(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()

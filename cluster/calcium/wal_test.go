@@ -111,6 +111,7 @@ func TestHandleCreateWorkloadError(t *testing.T) {
 	err = errors.Wrapf(types.ErrInvaildCount, "keys: [%s]", wrkid)
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(wrk, err).Once()
 	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, err).Once()
+	store.On("NotFound", err).Return(false).Once()
 	c.wal.Recover(context.Background())
 	store.AssertExpectations(t)
 	engine.AssertExpectations(t)
@@ -128,6 +129,18 @@ func TestHandleCreateWorkloadError(t *testing.T) {
 	c.wal.Recover(context.Background())
 	store.AssertExpectations(t)
 	engine.AssertExpectations(t)
+
+	_, err = c.wal.Log(eventWorkloadCreated, &types.Workload{ID: wrkid, Nodename: node.Name})
+	require.NoError(t, err)
+	gone := fmt.Errorf("node gone")
+	store.On("GetWorkload", mock.Anything, wrkid).Return(wrk, gone).Once()
+	store.On("GetNode", mock.Anything, wrk.Nodename).Return(nil, gone).Once()
+	store.On("NotFound", gone).Return(true).Once()
+	c.wal.Recover(context.Background())
+	store.AssertExpectations(t)
+	engine.AssertExpectations(t)
+	c.wal.Recover(context.Background())
+	store.AssertExpectations(t)
 
 	c.wal.Recover(context.Background())
 }
@@ -179,6 +192,71 @@ func TestHandleCreateWorkloadHandled(t *testing.T) {
 	c.wal.Recover(context.Background())
 }
 
+func TestHandleReplaceWorkload(t *testing.T) {
+	c := NewTestCluster()
+	wal, err := enableWAL(c.config, c, c.store)
+	require.NoError(t, err)
+	c.wal = wal
+
+	_, err = c.wal.Log(eventWorkloadReplaced, &workloadReplacement{OldID: "old", NewID: "new"})
+	require.NoError(t, err)
+
+	engine := &enginemocks.API{}
+	oldWorkload := &types.Workload{ID: "old", Name: "a_b_c", Nodename: "nodename", Engine: engine}
+	store := c.store.(*storemocks.Store)
+	store.On("GetWorkload", mock.Anything, "new").Return(&types.Workload{ID: "new"}, nil).Once()
+	store.On("GetWorkload", mock.Anything, "old").Return(oldWorkload, nil).Once()
+	store.On("RemoveWorkload", mock.Anything, oldWorkload).Return(nil).Once()
+	engine.On("VirtualizationRemove", mock.Anything, "old", true, true).Return(nil).Once()
+
+	c.wal.Recover(context.Background())
+	store.AssertExpectations(t)
+	engine.AssertExpectations(t)
+
+	c.wal.Recover(context.Background())
+}
+
+func TestHandleReplaceWorkloadKeepsTheOldOneWhenTheNewOneIsGone(t *testing.T) {
+	c := NewTestCluster()
+	wal, err := enableWAL(c.config, c, c.store)
+	require.NoError(t, err)
+	c.wal = wal
+
+	_, err = c.wal.Log(eventWorkloadReplaced, &workloadReplacement{OldID: "old", NewID: "new"})
+	require.NoError(t, err)
+
+	store := c.store.(*storemocks.Store)
+	store.On("GetWorkload", mock.Anything, "new").Return(nil, types.ErrMockError).Once()
+	store.On("NotFound", types.ErrMockError).Return(true).Once()
+
+	c.wal.Recover(context.Background())
+	store.AssertExpectations(t)
+}
+
+func TestHandleReallocWorkload(t *testing.T) {
+	c := NewTestCluster()
+	wal, err := enableWAL(c.config, c, c.store)
+	require.NoError(t, err)
+	c.wal = wal
+
+	_, err = c.wal.Log(eventWorkloadReallocated, "workloadid")
+	require.NoError(t, err)
+
+	engine := &enginemocks.API{}
+	engineParams := resourcetypes.Resources{"cpumem": {"cpu": 2}}
+	store := c.store.(*storemocks.Store)
+	store.On("GetWorkload", mock.Anything, "workloadid").Return(
+		&types.Workload{ID: "workloadid", EngineParams: engineParams, Engine: engine}, nil,
+	).Once()
+	engine.On("VirtualizationUpdateResource", mock.Anything, "workloadid", engineParams).Return(nil).Once()
+
+	c.wal.Recover(context.Background())
+	store.AssertExpectations(t)
+	engine.AssertExpectations(t)
+
+	c.wal.Recover(context.Background())
+}
+
 func TestHandleCreateLambda(t *testing.T) {
 	c := NewTestCluster()
 	wal, err := enableWAL(c.config, c, c.store)
@@ -216,13 +294,6 @@ func TestHandleCreateLambda(t *testing.T) {
 	}
 
 	store := c.store.(*storemocks.Store)
-	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
-	c.wal.Recover(context.Background())
-	time.Sleep(500 * time.Millisecond)
-	store.AssertExpectations(t)
-
-	_, err = c.wal.Log(eventCreateLambda, "workloadid")
-	require.NoError(t, err)
 	store.On("GetWorkload", mock.Anything, mock.Anything).
 		Return(wrk, nil).
 		Once()
@@ -246,8 +317,29 @@ func TestHandleCreateLambda(t *testing.T) {
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 
 	c.wal.Recover(context.Background())
+	time.Sleep(500 * time.Millisecond)
 	c.wal.Recover(context.Background())
 	time.Sleep(500 * time.Millisecond)
 	store.AssertExpectations(t)
 	eng.AssertExpectations(t)
+}
+
+func TestHandleCreateLambdaKeepsEntryUntilRemoved(t *testing.T) {
+	c := NewTestCluster()
+	wal, err := enableWAL(c.config, c, c.store)
+	require.NoError(t, err)
+	c.wal = wal
+
+	_, err = c.wal.Log(eventCreateLambda, "workloadid")
+	require.NoError(t, err)
+
+	store := c.store.(*storemocks.Store)
+	store.On("GetWorkload", mock.Anything, "workloadid").Return(nil, types.ErrMockError).Twice()
+	store.On("NotFound", types.ErrMockError).Return(false).Twice()
+
+	c.wal.Recover(context.Background())
+	time.Sleep(500 * time.Millisecond)
+	c.wal.Recover(context.Background())
+	time.Sleep(500 * time.Millisecond)
+	store.AssertExpectations(t)
 }

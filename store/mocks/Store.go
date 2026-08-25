@@ -1338,6 +1338,57 @@ func (_c *Store_NodeStatusStream_Call) RunAndReturn(run func(ctx context.Context
 	return _c
 }
 
+// NotFound provides a mock function for the type Store
+func (_mock *Store) NotFound(err error) bool {
+	ret := _mock.Called(err)
+
+	if len(ret) == 0 {
+		panic("no return value specified for NotFound")
+	}
+
+	var r0 bool
+	if returnFunc, ok := ret.Get(0).(func(error) bool); ok {
+		r0 = returnFunc(err)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	return r0
+}
+
+// Store_NotFound_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'NotFound'
+type Store_NotFound_Call struct {
+	*mock.Call
+}
+
+// NotFound is a helper method to define mock.On call
+//   - err error
+func (_e *Store_Expecter) NotFound(err any) *Store_NotFound_Call {
+	return &Store_NotFound_Call{Call: _e.mock.On("NotFound", err)}
+}
+
+func (_c *Store_NotFound_Call) Run(run func(err error)) *Store_NotFound_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 error
+		if args[0] != nil {
+			arg0 = args[0].(error)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *Store_NotFound_Call) Return(b bool) *Store_NotFound_Call {
+	_c.Call.Return(b)
+	return _c
+}
+
+func (_c *Store_NotFound_Call) RunAndReturn(run func(err error) bool) *Store_NotFound_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // RegisterService provides a mock function for the type Store
 func (_mock *Store) RegisterService(context1 context.Context, s string, duration time.Duration) (<-chan struct{}, func(), error) {
 	ret := _mock.Called(context1, s, duration)

@@ -5,6 +5,8 @@ import (
 	"context"
 	"slices"
 
+	"github.com/cockroachdb/errors"
+
 	enginefactory "github.com/projecteru2/core/engine/factory"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
@@ -37,6 +39,18 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 	return node, utils.Txn(
 		ctx,
 		func(ctx context.Context) error {
+			res, err = c.rmgr.AddNode(ctx, opts.Nodename, opts.Resources, nodeInfo)
+			if !errors.Is(err, types.ErrNodeExists) {
+				return err
+			}
+			_, getErr := c.store.GetNode(ctx, opts.Nodename)
+			if getErr == nil || !c.store.NotFound(getErr) {
+				return err
+			}
+			logger.Warn(ctx, "node known to the resource plugins only, dropping the stale metadata")
+			if err = c.rmgr.RemoveNode(ctx, opts.Nodename); err != nil {
+				return err
+			}
 			res, err = c.rmgr.AddNode(ctx, opts.Nodename, opts.Resources, nodeInfo)
 			return err
 		},

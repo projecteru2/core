@@ -81,23 +81,40 @@ func TestScanAbort(t *testing.T) {
 	}
 }
 
-func TestNextSequence(t *testing.T) {
+func TestPutNextKeepsSequencesGrowing(t *testing.T) {
 	lit, cancel := newTestLithium(t)
 	defer cancel()
 
-	seq0, err := lit.NextSequence()
-	require.NoError(t, err)
-	require.True(t, seq0 > 0)
+	seqs := []uint64{}
+	put := func() {
+		require.NoError(t, lit.PutNext(func(seq uint64) ([]byte, []byte, error) {
+			seqs = append(seqs, seq)
+			return []byte(fmt.Sprintf("/events/%016x", seq)), []byte("v"), nil
+		}))
+	}
 
-	seq1, err := lit.NextSequence()
-	require.NoError(t, err)
-	require.True(t, seq1 > seq0)
-
+	put()
+	put()
 	require.NoError(t, lit.Reopen())
+	put()
 
-	seq2, err := lit.NextSequence()
+	require.Len(t, seqs, 3)
+	require.True(t, seqs[0] > 0)
+	require.True(t, seqs[1] > seqs[0])
+	require.True(t, seqs[2] > seqs[1])
+
+	value, err := lit.Get([]byte(fmt.Sprintf("/events/%016x", seqs[2])))
 	require.NoError(t, err)
-	require.True(t, seq2 > seq1)
+	require.Equal(t, []byte("v"), value)
+}
+
+func TestPutNextFailedAsEntryError(t *testing.T) {
+	lit, cancel := newTestLithium(t)
+	defer cancel()
+
+	require.Error(t, lit.PutNext(func(uint64) ([]byte, []byte, error) {
+		return nil, nil, fmt.Errorf("entry error")
+	}))
 }
 
 func TestScanOrderedByKeys(t *testing.T) {

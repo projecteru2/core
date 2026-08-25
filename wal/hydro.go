@@ -38,11 +38,16 @@ func (h *Hydro) Register(handler EventHandler) {
 }
 
 func (h *Hydro) Recover(ctx context.Context) {
-	ch, _ := h.store.Scan([]byte(eventPrefix))
 	logger := log.WithFunc("wal.hydro.Recover")
+	ch, abort := h.store.Scan([]byte(eventPrefix))
+	defer abort()
 
 	var events []HydroEvent
 	for scanEntry := range ch {
+		if err := scanEntry.Error(); err != nil {
+			logger.Error(ctx, err, "scan events")
+			return
+		}
 		event, err := h.decodeEvent(scanEntry)
 		if err != nil {
 			logger.Error(ctx, err, "decode event")
@@ -76,22 +81,21 @@ func (h *Hydro) Log(eventyp string, item any) (Commit, error) {
 		return nil, err
 	}
 
-	var ID uint64
-	if ID, err = h.store.NextSequence(); err != nil {
-		return nil, err
-	}
-
-	event := NewHydroEvent(ID, eventyp, bs)
-	if bs, err = event.Encode(); err != nil {
-		return nil, coretypes.ErrInvaildWALEvent
-	}
-
-	if err = h.store.Put(event.Key(), bs); err != nil {
+	var key []byte
+	if err = h.store.PutNext(func(seq uint64) ([]byte, []byte, error) {
+		event := NewHydroEvent(seq, eventyp, bs)
+		value, encodeErr := event.Encode()
+		if encodeErr != nil {
+			return nil, nil, coretypes.ErrInvaildWALEvent
+		}
+		key = event.Key()
+		return key, value, nil
+	}); err != nil {
 		return nil, err
 	}
 
 	return func() error {
-		return h.store.Delete(event.Key())
+		return h.store.Delete(key)
 	}, nil
 }
 
@@ -116,10 +120,6 @@ func (h *Hydro) recover(ctx context.Context, handler EventHandler, event HydroEv
 }
 
 func (h *Hydro) decodeEvent(scanEntry kv.ScanEntry) (event HydroEvent, err error) {
-	if err = scanEntry.Error(); err != nil {
-		return event, err
-	}
-
 	key, value := scanEntry.Pair()
 	if err = json.Unmarshal(value, &event); err != nil {
 		return event, err
