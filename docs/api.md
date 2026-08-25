@@ -87,7 +87,7 @@ plugin name. See [Resource plugins](resource-plugins.md).
 | `ExecuteWorkload` ⇅ | `workload_id`, `commands`, `envs`, `workdir`, `open_stdin` | Exec inside a workload. When `open_stdin` is set, further client messages carry stdin in `repl_cmd` |
 | `RunAndWait` ⇅ | `deploy_options`, `cmd`, `async`, `async_timeout` | Lambda: deploy, attach, wait for exit, then remove. The first messages carry the new workload IDs (`TYPEWORKLOADID`), the last output line is `[exitcode] <n>`. With `async`, core sends the IDs, detaches from the stream, forces `open_stdin` off, and logs the output itself under `async_timeout` seconds (default `global_timeout`) |
 | `LogStream` ⇊ | `id`, `tail`, `since`, `until`, `follow` | Engine logs for one workload |
-| `RawEngine` | `id`, `op`, `params`, `ignore_lock` | Pass an engine-specific operation through to the node's engine. Implemented by the virt engine; the containerd and process engines return `ErrEngineNotImplemented` |
+| `RawEngine` | `id`, `op`, `params`, `ignore_lock` | Pass an engine-specific operation through to the node's engine. No engine implements it today; every one returns `ErrEngineNotImplemented` |
 
 ## Files
 
@@ -118,7 +118,7 @@ Image references are built as `hub/namespace/appname:tag` from `registry.hub` an
 | `ConnectNetwork` | `network`, `target`, `ipv4`, `ipv6` | Attach a workload to a network; returns its subnets |
 | `DisconnectNetwork` | `network`, `target`, `force` | Detach it |
 
-The virt engine implements all three and the containerd engine lists CNI networks; `process://` nodes use the host network and `NetworkConnect`/`Disconnect` return
+The containerd and cocoon engines list the node's CNI conf dir and return `ErrEngineNotImplemented` for `NetworkConnect`/`Disconnect`, which under CNI is decided when the workload is created; `process://` nodes use the host network and answer all three with
 `ErrEngineNotImplemented`.
 
 ## DeployOptions

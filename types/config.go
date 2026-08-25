@@ -23,7 +23,6 @@ type Config struct {
 	HAKeepaliveInterval time.Duration `yaml:"ha_keepalive_interval" required:"true" default:"16s"` // interval for node status watcher
 	Statsd              string        `yaml:"statsd"`                                              // statsd host:port
 	Profile             string        `yaml:"profile"`                                             // profile ip:port
-	CertPath            string        `yaml:"cert_path"`                                           // where the virt engine materializes a node's ca
 	MaxConcurrency      int           `yaml:"max_concurrency" default:"100000"`                    // max concurrent calls to one runtime
 	Store               string        `yaml:"store" default:"etcd"`
 	SentryDSN           string        `yaml:"sentry_dsn"`
@@ -39,7 +38,7 @@ type Config struct {
 	Build          BuildConfig          `yaml:"build"`
 	Containerd     ContainerdConfig     `yaml:"containerd"`
 	Process        ProcessConfig        `yaml:"process"`
-	Virt           VirtConfig           `yaml:"virt"`
+	Cocoon         CocoonConfig         `yaml:"cocoon"`
 	Scheduler      SchedulerConfig      `yaml:"scheduler"`
 	ResourcePlugin ResourcePluginConfig `yaml:"resource_plugin"`
 	Log            ServerLogConfig      `yaml:"log"`
@@ -150,8 +149,12 @@ type ProcessConfig struct {
 	StopTimeout time.Duration `yaml:"stop_timeout" default:"10s"` // grace period before systemd kills the unit
 }
 
-type VirtConfig struct {
-	APIVersion string `yaml:"version" default:"v1"` // Yavirtd API version
+// CocoonConfig is the node-side layout the cocoon engine drives over SSH.
+type CocoonConfig struct {
+	Binary       string `yaml:"binary" default:"cocoon"`               // the cocoon command on the node; a sudo wrapper works
+	Root         string `yaml:"root" default:"/var/lib/eru/cocoon"`    // durable copies of the workload records
+	RunDir       string `yaml:"run_dir" default:"/var/lib/cocoon/run"` // cocoon's run_dir, where the guest consoles live
+	CgroupParent string `yaml:"cgroup_parent" default:"cocoon.slice"`  // cocoon's cgroup_parent
 }
 
 type SchedulerConfig struct {

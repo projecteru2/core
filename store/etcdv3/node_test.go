@@ -105,7 +105,6 @@ RdCPRPt513WozkJZZAjUSP2U
 -----END PRIVATE KEY-----`
 	nodename3 := "nodename3"
 	endpoint3 := "tcp://path"
-	m.Config.CertPath = "/tmp"
 	node3, err := m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename3, Endpoint: endpoint3, Podname: podname, Ca: ca, Cert: cert, Key: certkey, Labels: labels})
 	assert.NoError(t, err)
 	_, err = m.MakeClient(ctx, node3)

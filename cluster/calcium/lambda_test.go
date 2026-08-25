@@ -189,6 +189,44 @@ func TestLambdaWithError(t *testing.T) {
 	assert.Equal(ms[5].StdStreamType, types.EruError)
 }
 
+func TestLambdaWithStdinOpensNoFollowStream(t *testing.T) {
+	assert := assert.New(t)
+	c, nodes := newLambdaCluster(t)
+	engine := nodes[0].Engine.(*enginemocks.API)
+
+	workload := &types.Workload{ID: "workloadfortonictest", Engine: engine}
+	store := c.store.(*storemocks.Store)
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
+	engine.On("VirtualizationAttach", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(nil, nil, nil, types.ErrEngineNotImplemented)
+
+	opts := &types.DeployOptions{
+		Name:           "zc:name",
+		Count:          1,
+		OpenStdin:      true,
+		DeployStrategy: strategy.Auto,
+		Podname:        "p1",
+		Resources:      resourcetypes.Resources{},
+		Image:          "zc:test",
+		Entrypoint: &types.Entrypoint{
+			Name: "good-entrypoint",
+		},
+		NodeFilter: &types.NodeFilter{},
+	}
+
+	_, ch, err := c.RunAndWait(context.Background(), opts, make(chan []byte))
+	assert.NoError(err)
+	ms := []*types.AttachWorkloadMessage{}
+	for m := range ch {
+		ms = append(ms, m)
+	}
+	assert.Len(ms, 1)
+	assert.True(strings.HasPrefix(string(ms[0].Data), "Attach to workload"))
+	assert.Equal(ms[0].StdStreamType, types.EruError)
+	engine.AssertNotCalled(t, "VirtualizationLogs", mock.Anything, mock.Anything)
+}
+
 func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {
 	c, nodes := newCreateWorkloadCluster(t)
 	node1, node2 := nodes[0], nodes[1]

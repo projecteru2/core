@@ -83,7 +83,6 @@ RdCPRPt513WozkJZZAjUSP2U
 -----END PRIVATE KEY-----`
 	nodename3 := "nodename3"
 	endpoint3 := "tcp://path"
-	s.rediaron.Config.CertPath = "/tmp"
 	node3, err := s.rediaron.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename3, Endpoint: endpoint3, Podname: podname, Ca: ca, Cert: cert, Key: certkey, Labels: labels})
 	s.NoError(err)
 	_, err = s.rediaron.MakeClient(ctx, node3)

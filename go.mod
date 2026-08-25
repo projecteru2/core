@@ -26,7 +26,6 @@ require (
 	github.com/opencontainers/runtime-spec v1.3.0
 	github.com/panjf2000/ants/v2 v2.12.1
 	github.com/pkg/sftp v1.13.11
-	github.com/projecteru2/libyavirt v0.0.0-20231128023216-96fef06a6ca4
 	github.com/prometheus/client_golang v1.24.1
 	github.com/prometheus/client_model v0.6.2
 	github.com/redis/go-redis/v9 v9.22.0

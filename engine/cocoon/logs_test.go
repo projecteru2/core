@@ -1,0 +1,76 @@
+package cocoon
+
+import (
+	"io"
+	"strings"
+	"testing"
+
+	"github.com/cockroachdb/errors"
+
+	"github.com/projecteru2/core/engine/sshrunner"
+	"github.com/projecteru2/core/engine/sshrunner/sshrunnertest"
+	enginetypes "github.com/projecteru2/core/engine/types"
+	coretypes "github.com/projecteru2/core/types"
+)
+
+func TestVirtualizationLogsReadsTheJournalWhenNotFollowing(t *testing.T) {
+	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: "hello\n"} }}
+	e := testEngine(t, runner)
+
+	stdout, stderr, err := e.VirtualizationLogs(t.Context(), &enginetypes.VirtualizationLogStreamOptions{ID: "w1", Tail: "10", Since: "1700000000"})
+	if err != nil {
+		t.Fatalf("logs: %v", err)
+	}
+	if stderr != nil {
+		t.Error("journald merges the streams, so stderr must stay nil")
+	}
+	want := sshrunner.Quote([]string{"journalctl", "SYSLOG_IDENTIFIER=eru", "ERU_ID=w1", "-o", "cat", "-n", "10", "--since", "@1700000000"})
+	if len(runner.Lines()) != 1 || runner.Lines()[0] != want {
+		t.Errorf("got %q, want %q", runner.Lines(), want)
+	}
+	body, err := io.ReadAll(stdout)
+	if err != nil {
+		t.Fatalf("read: %v", err)
+	}
+	if string(body) != "hello\n" {
+		t.Errorf("got %q, want %q", body, "hello\n")
+	}
+}
+
+func TestVirtualizationLogsFollowStopsWithTheGuest(t *testing.T) {
+	running := &sshrunnertest.Session{Out: "line\n"}
+	runner := &sshrunnertest.Fake{Started: []*sshrunnertest.Session{running}}
+	e := testEngine(t, runner)
+
+	stdout, _, err := e.VirtualizationLogs(t.Context(), &enginetypes.VirtualizationLogStreamOptions{ID: "w1", Follow: true})
+	if err != nil {
+		t.Fatalf("logs: %v", err)
+	}
+	want := sshrunner.Quote(sshrunner.Shell(followScript, testBinary, "w1", "SYSLOG_IDENTIFIER=eru", "ERU_ID=w1", "-f", "-o", "cat"))
+	if len(runner.Lines()) != 1 || runner.Lines()[0] != want {
+		t.Fatalf("got %q, want %q", runner.Lines(), want)
+	}
+	for _, step := range []string{"vm status --event --format json -n 1", `kill "$reader" "$watcher"`} {
+		if !strings.Contains(followScript, step) {
+			t.Errorf("the follow script does not carry %q", step)
+		}
+	}
+	if strings.Contains(followScript, "| grep") {
+		t.Error("a pipeline leaves the status producer alive until its next event, so the follow must not use one")
+	}
+	if err = stdout.Close(); err != nil {
+		t.Fatalf("close: %v", err)
+	}
+	if !running.Closed() {
+		t.Error("closing the log stream must close the ssh session")
+	}
+}
+
+func TestVirtualizationAttachRefusesStdin(t *testing.T) {
+	e := testEngine(t, &sshrunnertest.Fake{})
+
+	_, _, _, err := e.VirtualizationAttach(t.Context(), "w1", true, true)
+	if !errors.Is(err, coretypes.ErrEngineNotImplemented) {
+		t.Errorf("got %v, want ErrEngineNotImplemented", err)
+	}
+}

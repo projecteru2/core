@@ -14,13 +14,14 @@ import (
 
 var _ sshrunner.Runner = (*Fake)(nil)
 
-// Fake records the command lines it is given and answers them from Respond.
+// Fake records the command lines it is given and answers them from Respond; Dialer scripts socket forwards.
 type Fake struct {
 	Respond func(line string) *sshrunner.Result
 	// Started hands one session to each started command in order.
 	Started []*Session
 	// StartErr refuses every command started past the ones Started scripts.
 	StartErr error
+	Dialer   func(network, addr string) (net.Conn, error)
 
 	mu    sync.Mutex
 	lines []string
@@ -49,7 +50,10 @@ func (f *Fake) Contexts() []context.Context {
 	return append([]context.Context(nil), f.ctxs...)
 }
 
-func (f *Fake) Run(_ context.Context, line string, _ io.Reader) (*sshrunner.Result, error) {
+func (f *Fake) Run(ctx context.Context, line string, _ io.Reader) (*sshrunner.Result, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	f.record(line)
 	if f.Respond != nil {
 		return f.Respond(line), nil
@@ -58,6 +62,9 @@ func (f *Fake) Run(_ context.Context, line string, _ io.Reader) (*sshrunner.Resu
 }
 
 func (f *Fake) Start(ctx context.Context, line string, opts *sshrunner.StartOptions) (sshrunner.Session, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	f.record(line)
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -76,7 +83,10 @@ func (f *Fake) Files(context.Context) (sshrunner.Files, error) {
 	return nil, coretypes.ErrEngineNotImplemented
 }
 
-func (f *Fake) Dial(context.Context, string, string) (net.Conn, error) {
+func (f *Fake) Dial(_ context.Context, network, addr string) (net.Conn, error) {
+	if f.Dialer != nil {
+		return f.Dialer(network, addr)
+	}
 	return nil, coretypes.ErrEngineNotImplemented
 }
 

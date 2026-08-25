@@ -245,7 +245,11 @@ func (h *ReallocWorkloadHandler) Handle(ctx context.Context, raw any) error {
 		return err
 	}
 
-	if err = workload.Engine.VirtualizationUpdateResource(ctx, workloadID, workload.EngineParams); err != nil {
+	switch err = workload.Engine.VirtualizationUpdateResource(ctx, workloadID, workload.EngineParams); {
+	case errors.Is(err, types.ErrEngineNotImplemented):
+		logger.Warn(ctx, "the engine cannot reapply engine params, dropping the entry")
+		return nil
+	case err != nil:
 		logger.Error(ctx, err)
 		return err
 	}

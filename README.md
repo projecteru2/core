@@ -2,7 +2,7 @@
 
 Eru core is a stateless gRPC resource scheduler: it holds cluster metadata in etcd or redis, allocates
 resources through pluggable resource plugins, and deploys workloads onto containerd containers,
-bare processes or yavirt virtual machines through a single `CoreRPC` API.
+bare processes or cocoon virtual machines through a single `CoreRPC` API.
 
 **Documentation: [projecteru2.github.io/core](https://projecteru2.github.io/core/)** (source in [`docs/`](docs/)).
 
@@ -15,8 +15,8 @@ bare processes or yavirt virtual machines through a single `CoreRPC` API.
   and status streams; long-running calls (deploy, build, logs, exec) are server streams
 - **Stateless, multi-instance** — every instance keeps its state in etcd or redis and coordinates
   through distributed locks, so instances can be added and removed freely
-- **Multiple engines** — containerd over an SSH-forwarded socket (`containerd://`), yavirt VMs
-  (`virt-grpc://`), bare processes as systemd transient units over SSH (`process://`) and a mock
+- **Multiple engines** — containerd over an SSH-forwarded socket (`containerd://`), cocoon VMs over
+  SSH (`cocoon://`), bare processes as systemd transient units over SSH (`process://`) and a mock
   engine, selected per node by endpoint scheme
 - **Resource plugins** — `cpumem` is built in; external plugins are ordinary executables in
   `resource_plugin.dir`, invoked with a subcommand and JSON on stdin
@@ -69,10 +69,6 @@ See [Installation](docs/installation.md) and [Configuration](docs/configuration.
 - [resource-extend](https://github.com/projecteru2/resource-extend) — external resource plugins (gpu, storage)
 - [quickstart](https://github.com/projecteru2/quickstart) — a local Eru stack to try things against
 - [footstone](https://github.com/projecteru2/footstone) — shared base images
-
-The `virt` engine still ships and its
-[libyavirt](https://github.com/projecteru2/libyavirt) dependency still resolves, but
-[yavirt](https://github.com/projecteru2/yavirt) is an archived runtime and is no longer developed.
 
 ## Development
 
