@@ -33,11 +33,12 @@ func (s *Store) ServiceStatusStream(ctx context.Context) (chan []string, error) 
 		ch <- eps.ToSlice()
 
 		for event := range watch {
+			endpoint := utils.Tail(event.Key)
 			var changed bool
 			if event.Type == EventPut {
-				changed = eps.Add(utils.Tail(event.Key))
+				changed = eps.Add(endpoint)
 			} else {
-				changed = eps.Remove(utils.Tail(event.Key))
+				changed = eps.Remove(endpoint)
 			}
 			if changed {
 				ch <- eps.ToSlice()
