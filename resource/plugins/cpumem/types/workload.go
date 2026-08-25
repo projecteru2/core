@@ -4,7 +4,6 @@ import (
 	"maps"
 
 	"github.com/cockroachdb/errors"
-	"github.com/go-viper/mapstructure/v2"
 
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	coreutils "github.com/projecteru2/core/utils"
@@ -12,17 +11,17 @@ import (
 
 // WorkloadResource is the cpu and memory allocated to one workload.
 type WorkloadResource struct {
-	CPURequest    float64    `json:"cpu_request" mapstructure:"cpu_request"`
-	CPULimit      float64    `json:"cpu_limit" mapstructure:"cpu_limit"`
-	MemoryRequest int64      `json:"memory_request" mapstructure:"memory_request"`
-	MemoryLimit   int64      `json:"memory_limit" mapstructure:"memory_limit"`
-	CPUMap        CPUMap     `json:"cpu_map" mapstructure:"cpu_map"`
-	NUMAMemory    NUMAMemory `json:"numa_memory" mapstructure:"numa_memory"`
-	NUMANode      string     `json:"numa_node" mapstructure:"numa_node"`
+	CPURequest    float64    `json:"cpu_request"`
+	CPULimit      float64    `json:"cpu_limit"`
+	MemoryRequest int64      `json:"memory_request"`
+	MemoryLimit   int64      `json:"memory_limit"`
+	CPUMap        CPUMap     `json:"cpu_map"`
+	NUMAMemory    NUMAMemory `json:"numa_memory"`
+	NUMANode      string     `json:"numa_node"`
 }
 
 func (w *WorkloadResource) Parse(rawParams resourcetypes.RawParams) error {
-	return mapstructure.Decode(rawParams, w)
+	return resourcetypes.Decode(rawParams, w)
 }
 
 func (w *WorkloadResource) DeepCopy() *WorkloadResource {
