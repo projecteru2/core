@@ -51,13 +51,6 @@ func (r *RedisLock) Lock(ctx context.Context) (context.Context, error) {
 	return ctx, nil
 }
 
-func (r *RedisLock) TryLock(ctx context.Context) (context.Context, error) {
-	if err := r.lock(ctx, nil); err != nil {
-		return nil, err
-	}
-	return ctx, nil
-}
-
 func (r *RedisLock) Unlock(ctx context.Context) error {
 	if r.l == nil {
 		return redislock.ErrLockNotHeld

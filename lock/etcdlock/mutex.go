@@ -52,16 +52,6 @@ func (m *Mutex) Lock(ctx context.Context) (context.Context, error) {
 	return m.watchSession(ctx), nil
 }
 
-func (m *Mutex) TryLock(ctx context.Context) (context.Context, error) {
-	lockCtx, cancel := context.WithTimeout(ctx, m.timeout)
-	defer cancel()
-
-	if err := m.mutex.TryLock(lockCtx); err != nil {
-		return nil, err
-	}
-	return m.watchSession(ctx), nil
-}
-
 func (m *Mutex) Unlock(ctx context.Context) error {
 	defer func() {
 		_ = m.session.Close()

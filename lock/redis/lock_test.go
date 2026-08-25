@@ -55,18 +55,3 @@ func (s *RedisLockTestSuite) TestMutex() {
 	err = l.Unlock(ctx)
 	s.NoError(err)
 }
-
-func (s *RedisLockTestSuite) TestTryLock() {
-	l1, err := New(s.cli, "test", time.Second, time.Second)
-	s.NoError(err)
-	l2, err := New(s.cli, "test", time.Second, time.Second)
-	s.NoError(err)
-
-	ctx1, err := l1.Lock(context.Background())
-	s.Nil(ctx1.Err())
-	s.NoError(err)
-
-	ctx2, err := l2.TryLock(context.Background())
-	s.Nil(ctx2)
-	s.Error(err)
-}
