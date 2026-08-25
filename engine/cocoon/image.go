@@ -87,7 +87,7 @@ func (e *Engine) ImagesPrune(context.Context) error {
 // ImagePull hands a registry ref or a cloud-image url to cocoon; a parts artifact goes through oras and import.
 func (e *Engine) ImagePull(ctx context.Context, ref string, _ bool) (io.ReadCloser, error) {
 	argv := []string{e.cocoon.Binary, "image", "pull", ref}
-	if !isURL(ref) && e.partsArtifact(ctx, ref) {
+	if !enginetypes.IsURL(ref) && e.partsArtifact(ctx, ref) {
 		argv = sshrunner.Shell(importScript, e.cocoon.Binary, ref)
 	}
 	res, err := e.run(ctx, argv...)
@@ -121,12 +121,12 @@ func (e *Engine) ImageLocalDigests(ctx context.Context, image string) ([]string,
 	if err = json.Unmarshal([]byte(res.Stdout), &stored); err != nil {
 		return nil, err
 	}
-	return []string{imageDigest(image, stored.ID)}, nil
+	return []string{enginetypes.ImageDigest(image, stored.ID)}, nil
 }
 
 // ImageRemoteDigest asks the registry through oras; a cloud image url is its own digest.
 func (e *Engine) ImageRemoteDigest(ctx context.Context, image string) (string, error) {
-	if isURL(image) {
+	if enginetypes.IsURL(image) {
 		return image, nil
 	}
 	if !e.orasPresent(ctx) {
@@ -136,11 +136,11 @@ func (e *Engine) ImageRemoteDigest(ctx context.Context, image string) (string, e
 	if err != nil {
 		return "", err
 	}
-	digest, err := parseDescriptor(res.Stdout)
+	digest, err := enginetypes.ParseDescriptor(res.Stdout)
 	if err != nil {
 		return "", err
 	}
-	return imageDigest(image, digest), nil
+	return enginetypes.ImageDigest(image, digest), nil
 }
 
 func (e *Engine) ImageBuildFromExist(context.Context, string, []string, string) (string, error) {

@@ -66,7 +66,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		}
 	}
 
-	podname := lastEnvValue(opts.Env, podEnvKey)
+	podname := utils.LastEnvValue(opts.Env, podEnvKey)
 	if !validPodname(podname) {
 		return nil, errors.Wrapf(coretypes.ErrInvalidEngineArgs, "pod %q cannot name a systemd slice", podname)
 	}

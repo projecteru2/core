@@ -1,6 +1,9 @@
 package types
 
-import "strings"
+import (
+	"encoding/json"
+	"strings"
+)
 
 // SplitRef separates an image reference from its tag, ignoring a registry port.
 func SplitRef(ref string) (name, tag string) {
@@ -9,6 +12,31 @@ func SplitRef(ref string) (name, tag string) {
 		return ref, ""
 	}
 	return ref[:colon], ref[colon+1:]
+}
+
+// IsURL reports whether the image is a plain download url rather than a registry ref.
+func IsURL(image string) bool {
+	return strings.HasPrefix(image, "http://") || strings.HasPrefix(image, "https://")
+}
+
+// ImageDigest renders the digest form core compares; a cloud image url stands for itself.
+func ImageDigest(image, digest string) string {
+	if IsURL(image) {
+		return image
+	}
+	name, _ := SplitRef(image)
+	return name + "@" + digest
+}
+
+// ParseDescriptor reads the digest out of an OCI descriptor.
+func ParseDescriptor(out string) (string, error) {
+	descriptor := struct {
+		Digest string `json:"digest"`
+	}{}
+	if err := json.Unmarshal([]byte(out), &descriptor); err != nil {
+		return "", err
+	}
+	return descriptor.Digest, nil
 }
 
 // Image is an image's ID and tags.

@@ -225,6 +225,17 @@ func Bool2Int(a bool) int {
 	return 0
 }
 
+// LastEnvValue takes the last value of key, as core appends its own after the client's.
+func LastEnvValue(env []string, key string) string {
+	last := ""
+	for _, entry := range env {
+		if name, value, ok := strings.Cut(entry, "="); ok && name == key {
+			last = value
+		}
+	}
+	return last
+}
+
 func safeSplit(s string) []string {
 	split := strings.Split(s, " ")
 

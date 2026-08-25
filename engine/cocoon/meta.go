@@ -46,7 +46,7 @@ func newMeta(ctx context.Context, ID string, opts *enginetypes.VirtualizationCre
 		Appname:    appname,
 		Entrypoint: entrypoint,
 		Ident:      ident,
-		Podname:    lastEnvValue(opts.Env, podEnvKey),
+		Podname:    utils.LastEnvValue(opts.Env, podEnvKey),
 		Nodename:   nodename,
 		CoreID:     opts.Labels[cluster.LabelCoreID],
 		Labels:     opts.Labels,

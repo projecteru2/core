@@ -2,7 +2,6 @@ package process
 
 import (
 	"context"
-	"encoding/json"
 	"io"
 	"net/url"
 	"path/filepath"
@@ -122,11 +121,11 @@ func (e *Engine) ImageLocalDigests(ctx context.Context, image string) ([]string,
 	if res.Code != 0 {
 		return nil, nil
 	}
-	digest, err := parseDescriptor(res.Stdout)
+	digest, err := enginetypes.ParseDescriptor(res.Stdout)
 	if err != nil {
 		return nil, err
 	}
-	return []string{imageDigest(image, digest)}, nil
+	return []string{enginetypes.ImageDigest(image, digest)}, nil
 }
 
 func (e *Engine) ImageRemoteDigest(ctx context.Context, image string) (string, error) {
@@ -134,11 +133,11 @@ func (e *Engine) ImageRemoteDigest(ctx context.Context, image string) (string, e
 	if err != nil {
 		return "", err
 	}
-	digest, err := parseDescriptor(res.Stdout)
+	digest, err := enginetypes.ParseDescriptor(res.Stdout)
 	if err != nil {
 		return "", err
 	}
-	return imageDigest(image, digest), nil
+	return enginetypes.ImageDigest(image, digest), nil
 }
 
 func (e *Engine) ImageBuildFromExist(ctx context.Context, ID string, refs []string, _ string) (string, error) {
@@ -162,7 +161,7 @@ func (e *Engine) ImageBuildFromExist(ctx context.Context, ID string, refs []stri
 			return "", err
 		}
 	}
-	return parseDescriptor(res.Stdout)
+	return enginetypes.ParseDescriptor(res.Stdout)
 }
 
 // registryFlags authenticates oras against the ref's registry.
@@ -184,19 +183,4 @@ func registryHost(ref string) string {
 		return ""
 	}
 	return reference.Domain(named)
-}
-
-func parseDescriptor(out string) (string, error) {
-	descriptor := struct {
-		Digest string `json:"digest"`
-	}{}
-	if err := json.Unmarshal([]byte(out), &descriptor); err != nil {
-		return "", err
-	}
-	return descriptor.Digest, nil
-}
-
-func imageDigest(image, digest string) string {
-	name, _ := enginetypes.SplitRef(image)
-	return name + "@" + digest
 }

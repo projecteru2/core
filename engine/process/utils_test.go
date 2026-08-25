@@ -54,14 +54,6 @@ func TestSystemdEnvQuotesTheValue(t *testing.T) {
 	}
 }
 
-func TestLastEnvValueWins(t *testing.T) {
-	env := []string{"ERU_POD=client", "APP_NAME=web", "ERU_POD=prod"}
-
-	if got := lastEnvValue(env, "ERU_POD"); got != "prod" {
-		t.Errorf("got %q, want %q: core appends its own value after the client's", got, "prod")
-	}
-}
-
 func TestValidPodname(t *testing.T) {
 	tests := []struct {
 		name    string
