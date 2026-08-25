@@ -45,6 +45,7 @@ type vmRecord struct {
 	Hypervisor  string   `json:"hypervisor"`
 	State       string   `json:"state"`
 	FirstBooted bool     `json:"first_booted"`
+	PID         int      `json:"pid"`
 	Config      vmConfig `json:"config"`
 	NICs        []nic    `json:"network_configs"`
 }
@@ -55,6 +56,18 @@ func parseVM(out string) (*vmRecord, error) {
 		return nil, err
 	}
 	return vm, nil
+}
+
+func parseVMs(out string) (before, after *vmRecord, err error) {
+	decoder := json.NewDecoder(strings.NewReader(out))
+	before, after = &vmRecord{}, &vmRecord{}
+	if err = decoder.Decode(before); err != nil {
+		return nil, nil, err
+	}
+	if err = decoder.Decode(after); err != nil {
+		return nil, nil, err
+	}
+	return before, after, nil
 }
 
 func (v *vmRecord) running() bool {

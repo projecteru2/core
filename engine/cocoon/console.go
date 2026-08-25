@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"path/filepath"
+	"strconv"
 
 	"github.com/cockroachdb/errors"
 
@@ -16,9 +17,9 @@ import (
 const (
 	vmInfoURL = "http://cloud-hypervisor/api/v1/vm.info"
 
-	consoleScript = `set -e
-durable=$1; record=$2; console=$3
-sed -i "s|\"console_socket\":\"[^\"]*\"|\"console_socket\":\"$console\"|" "$durable"
+	refreshScript = `set -e
+durable=$1; record=$2; console=$3; pid=$4
+sed -i -e "s|\"console_socket\":\"[^\"]*\"|\"console_socket\":\"$console\"|" -e "s|\"netns_pid\":[0-9]*|\"netns_pid\":$pid|" "$durable"
 mkdir -p "$(dirname "$record")"
 cp -f "$durable" "$record.tmp"
 mv "$record.tmp" "$record"
@@ -67,12 +68,12 @@ func (e *Engine) console(ctx context.Context, vm *vmRecord) (string, error) {
 	return cmp.Or(info.Config.Console.File, serial), nil
 }
 
-// refreshConsole rewrites both copies of the meta record with this boot's console; a pty is new every boot.
-func (e *Engine) refreshConsole(ctx context.Context, ID string, vm *vmRecord) error {
+// refreshRecord rewrites both copies of the meta record for this boot: the console and the VMM pid are new every boot.
+func (e *Engine) refreshRecord(ctx context.Context, ID string, vm *vmRecord) error {
 	console, err := e.console(ctx, vm)
 	if err != nil {
 		return err
 	}
-	_, err = e.run(ctx, sshrunner.Shell(consoleScript, durablePath(e.cocoon.Root, ID), metaPath(ID), console)...)
+	_, err = e.run(ctx, sshrunner.Shell(refreshScript, durablePath(e.cocoon.Root, ID), metaPath(ID), console, strconv.Itoa(vm.PID))...)
 	return err
 }

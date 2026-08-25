@@ -23,12 +23,13 @@ const (
 	// guestIface is the adapter name the cocoonstack Windows images give their virtio NIC.
 	guestIface = "Ethernet"
 
-	// startScript prints the record before the boot, so the first boot of a Windows guest is known.
+	// startScript prints the record before and after the boot: first_booted is read before, the pid after.
 	startScript = `set -e
 bin=$1; vm=$2; durable=$3
 test -f "$durable" || exit 64
 "$bin" vm inspect "$vm"
 "$bin" vm start "$vm" >/dev/null
+"$bin" vm inspect "$vm"
 `
 
 	// addressScript retries until cocoon-agent answers, which takes a Windows guest a minute.
@@ -61,9 +62,9 @@ exec "$bin" vm hibernate --name "$snap" "$vm"
 	// resumeScript restores by copy, so the snapshot can go once the guest runs again.
 	resumeScript = `set -e
 bin=$1; vm=$2; snap=$3
-"$bin" vm inspect "$vm"
 "$bin" vm restore --restore-mode copy "$vm" "$snap" >/dev/null
 "$bin" snapshot rm "$snap" >/dev/null
+"$bin" vm inspect "$vm"
 `
 
 	inspectScript = `bin=$1; vm=$2; durable=$3
@@ -83,15 +84,15 @@ func (e *Engine) VirtualizationStart(ctx context.Context, ID string) error {
 	if err != nil {
 		return err
 	}
-	vm, err := parseVM(res.Stdout)
+	before, after, err := parseVMs(res.Stdout)
 	if err != nil {
 		return err
 	}
-	if err = e.refreshConsole(ctx, ID, vm); err != nil {
+	if err = e.refreshRecord(ctx, ID, after); err != nil {
 		return err
 	}
-	addr := vm.address()
-	if !vm.Config.Windows || vm.FirstBooted || addr == nil {
+	addr := before.address()
+	if !before.Config.Windows || before.FirstBooted || addr == nil {
 		return nil
 	}
 	_, err = e.run(ctx, sshrunner.Shell(addressScript, e.cocoon.Binary, ID, addr.IP, addr.mask(), addr.Gateway)...)
@@ -130,7 +131,7 @@ func (e *Engine) VirtualizationResume(ctx context.Context, ID string) error {
 	if err != nil {
 		return err
 	}
-	return e.refreshConsole(ctx, ID, vm)
+	return e.refreshRecord(ctx, ID, vm)
 }
 
 func (e *Engine) VirtualizationInspect(ctx context.Context, ID string) (*enginetypes.VirtualizationInfo, error) {

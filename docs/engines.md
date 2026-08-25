@@ -253,10 +253,10 @@ the cocoon daemon's events on it. The eru name stays in the meta file and in cor
 | `engine.API` | cocoon |
 | --- | --- |
 | `VirtualizationCreate` | `vm create --output json --name <id> [--cpu N] [--memory B] [--storage B] [--data-disk …] [--network <name>] [--windows \| --user U] <image>` — no boot; then the meta record is written. A failure after the create removes the VM again |
-| `VirtualizationStart` | `vm inspect` and `vm start` in one script; then this boot's console is read from Cloud Hypervisor's `vm.info` over a forward of the VM's `api.sock` and both copies of the meta record are rewritten with it; a Windows guest on its first boot then gets its address programmed through `vm exec` |
+| `VirtualizationStart` | `vm inspect`, `vm start` and `vm inspect` again in one script; then this boot's console is read from Cloud Hypervisor's `vm.info` over a forward of the VM's `api.sock`, and both copies of the meta record are rewritten with it and with the VMM pid; a Windows guest on its first boot then gets its address programmed through `vm exec` |
 | `VirtualizationStop` | `vm stop`, `--force` for a forced stop, `--timeout` when a grace period is given |
 | `VirtualizationRemove` | `vm rm [--force]`, then the hibernate snapshot and both copies of the meta record; a running guest is refused unless forced |
-| `VirtualizationSuspend` / `Resume` | `vm hibernate --name eru-<id>` / `vm restore --restore-mode copy` followed by `snapshot rm`, then the console rewrite as at start |
+| `VirtualizationSuspend` / `Resume` | `vm hibernate --name eru-<id>` / `vm restore --restore-mode copy` followed by `snapshot rm` and `vm inspect`, then the record rewrite as at start |
 | `VirtualizationInspect` | `vm inspect`: running when the state is `running`, the image, and the CNI address under the network's name |
 | `VirtualizationWait` | `vm status --event --format json` until the guest leaves `running`; a VM has no exit code, so the result is 0 |
 | `VirtualizationLogs` | `journalctl SYSLOG_IDENTIFIER=eru ERU_ID=<id>` with `-n`, `--since` and `--until` — eru-agent copies the guest console into journald; a followed stream ends when the guest stops |
@@ -305,13 +305,14 @@ recreate.
 The same record the process engine writes, at `<cocoon.root>/<id>.json` and
 `/run/eru/workloads/<id>.json`, refreshed on tmpfs at start and deleted at remove. For a VM it
 carries `kind: vm`, `cgroup: /sys/fs/cgroup/<cocoon.cgroup_parent>/vm-<cocoon vm id>.scope`,
-`iface`: the first tap cocoon created, and `log: {"console_socket": …}` — the guest console of the
+`netns_pid`: the VMM's pid (cocoon's `pid`; the tap lives in the VM's netns, so eru-agent reads it
+from `/proc/<pid>/net/dev`), `iface`: the first tap cocoon created, and `log: {"console_socket": …}` — the guest console of the
 current boot, which eru-agent reads and forwards into journald (`cocoon vm logs` shows only the
 VMM's own log). A direct-boot OCI image gets a Cloud Hypervisor pty, `/dev/pts/N`, new on every
 boot; a UEFI cloud image gets the serial socket
 `<cocoon.run_dir>/<cloudhypervisor|firecracker>/<cocoon vm id>/console.sock`, which is also what
 create records before the first boot. The field keeps its name for a pty; start and resume rewrite
-it, and eru-agent re-reads the file when it reconnects.
+it and the pid, and eru-agent re-reads the file when it reconnects.
 
 ### Node prerequisites
 

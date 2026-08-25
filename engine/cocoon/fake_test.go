@@ -27,9 +27,12 @@ const (
 	windowsVM = `{"id":"` + testVMID + `","hypervisor":"cloud-hypervisor","state":"created","first_booted":false,` +
 		`"config":{"cpu":2,"memory":4294967296,"image":"win11","windows":true},` +
 		`"network_configs":[{"tap":"tap01ARZ3ND-0","network":{"ip":"10.22.0.5","gateway":"10.22.0.1","prefix":16}}]}`
-	runningVM = `{"id":"` + testVMID + `","state":"running","first_booted":true,"config":{"image":"` + testImage + `"},` +
+	runningVM = `{"id":"` + testVMID + `","hypervisor":"cloud-hypervisor","state":"running","first_booted":true,"pid":4242,"config":{"image":"` + testImage + `"},` +
 		`"network_configs":[{"tap":"tap01ARZ3ND-0","network":{"ip":"10.22.0.5","gateway":"10.22.0.1","prefix":16}}]}`
-	stoppedVM = `{"id":"` + testVMID + `","state":"stopped","first_booted":true,"config":{"image":"` + testImage + `"}}`
+	stoppedVM       = `{"id":"` + testVMID + `","state":"stopped","first_booted":true,"config":{"image":"` + testImage + `"}}`
+	bootedWindowsVM = `{"id":"` + testVMID + `","hypervisor":"cloud-hypervisor","state":"running","first_booted":true,"pid":4242,` +
+		`"config":{"image":"win11","windows":true},` +
+		`"network_configs":[{"tap":"tap01ARZ3ND-0","network":{"ip":"10.22.0.5","gateway":"10.22.0.1","prefix":16}}]}`
 )
 
 func testEngine(t *testing.T, runner *sshrunnertest.Fake) *Engine {

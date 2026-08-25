@@ -17,7 +17,7 @@ import (
 func TestVirtualizationStartBootsALinuxGuestAndRecordsItsConsole(t *testing.T) {
 	dialed := ""
 	runner := &sshrunnertest.Fake{
-		Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: linuxVM} },
+		Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: linuxVM + "\n" + runningVM} },
 		Dialer:  chAPI(t, "/dev/pts/3", &dialed),
 	}
 	e := testEngine(t, runner)
@@ -27,7 +27,7 @@ func TestVirtualizationStartBootsALinuxGuestAndRecordsItsConsole(t *testing.T) {
 	}
 	want := []string{
 		sshrunner.Quote(sshrunner.Shell(startScript, testBinary, "w1", testRoot+"/w1.json")),
-		sshrunner.Quote(sshrunner.Shell(consoleScript, testRoot+"/w1.json", "/run/eru/workloads/w1.json", "/dev/pts/3")),
+		sshrunner.Quote(sshrunner.Shell(refreshScript, testRoot+"/w1.json", "/run/eru/workloads/w1.json", "/dev/pts/3", "4242")),
 	}
 	if !slices.Equal(runner.Lines(), want) {
 		t.Errorf("got %q, want %q", runner.Lines(), want)
@@ -41,7 +41,7 @@ func TestVirtualizationStartProgramsAWindowsGuestOnItsFirstBoot(t *testing.T) {
 			if strings.Contains(line, "netsh") {
 				return &sshrunner.Result{}
 			}
-			return &sshrunner.Result{Stdout: windowsVM}
+			return &sshrunner.Result{Stdout: windowsVM + "\n" + bootedWindowsVM}
 		},
 		Dialer: chAPI(t, "", &dialed),
 	}
@@ -64,11 +64,12 @@ func TestVirtualizationStartProgramsAWindowsGuestOnItsFirstBoot(t *testing.T) {
 }
 
 func TestVirtualizationStartLeavesABootedWindowsGuestAlone(t *testing.T) {
-	booted := strings.Replace(windowsVM, `"first_booted":false`, `"first_booted":true`, 1)
 	dialed := ""
 	runner := &sshrunnertest.Fake{
-		Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: booted} },
-		Dialer:  chAPI(t, "", &dialed),
+		Respond: func(string) *sshrunner.Result {
+			return &sshrunner.Result{Stdout: bootedWindowsVM + "\n" + bootedWindowsVM}
+		},
+		Dialer: chAPI(t, "", &dialed),
 	}
 	e := testEngine(t, runner)
 
@@ -118,7 +119,7 @@ func TestVirtualizationStopFlags(t *testing.T) {
 func TestVirtualizationLifecycleCommandSequence(t *testing.T) {
 	dialed := ""
 	runner := &sshrunnertest.Fake{
-		Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: linuxVM} },
+		Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: runningVM} },
 		Dialer:  chAPI(t, "/dev/pts/5", &dialed),
 	}
 	e := testEngine(t, runner)
@@ -137,7 +138,7 @@ func TestVirtualizationLifecycleCommandSequence(t *testing.T) {
 	want := []string{
 		sshrunner.Quote(sshrunner.Shell(suspendScript, testBinary, "w1", "eru-w1")),
 		sshrunner.Quote(sshrunner.Shell(resumeScript, testBinary, "w1", "eru-w1")),
-		sshrunner.Quote(sshrunner.Shell(consoleScript, testRoot+"/w1.json", "/run/eru/workloads/w1.json", "/dev/pts/5")),
+		sshrunner.Quote(sshrunner.Shell(refreshScript, testRoot+"/w1.json", "/run/eru/workloads/w1.json", "/dev/pts/5", "4242")),
 		sshrunner.Quote(sshrunner.Shell(removeScript, testBinary, "w1", testRoot+"/w1.json", "/run/eru/workloads/w1.json", "eru-w1", "1")),
 	}
 	if !slices.Equal(runner.Lines(), want) {
