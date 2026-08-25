@@ -110,6 +110,35 @@ func TestSystemdEnvQuotesTheValue(t *testing.T) {
 	}
 }
 
+func TestLastEnvValueWins(t *testing.T) {
+	env := []string{"ERU_POD=client", "APP_NAME=web", "ERU_POD=prod"}
+
+	if got := lastEnvValue(env, "ERU_POD"); got != "prod" {
+		t.Errorf("got %q, want %q: core appends its own value after the client's", got, "prod")
+	}
+}
+
+func TestValidPodname(t *testing.T) {
+	tests := []struct {
+		name    string
+		podname string
+		want    bool
+	}{
+		{"letters, digits and separators", "eru-test_1.0", true},
+		{"empty", "", false},
+		{"a slash would open a path", "eru/test", false},
+		{"a space would split the unit name", "eru test", false},
+		{"an at sign makes it a template unit", "eru@test", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := validPodname(tt.podname); got != tt.want {
+				t.Errorf("got %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestParseShow(t *testing.T) {
 	shown := parseShow("LoadState=loaded\nActiveState=active\nUser=\n")
 	if shown["ActiveState"] != "active" {

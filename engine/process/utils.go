@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/url"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -23,8 +24,12 @@ const (
 	idBytes     = 16
 )
 
-// systemd expands % specifiers in unit settings, so a literal one has to be doubled.
-var envEscaper = strings.NewReplacer(`\`, `\\`, `"`, `\"`, "%", "%%")
+var (
+	// systemd expands % specifiers in unit settings, so a literal one has to be doubled.
+	envEscaper = strings.NewReplacer(`\`, `\\`, `"`, `\"`, "%", "%%")
+
+	podnamePattern = regexp.MustCompile(`^[A-Za-z0-9_.-]+$`)
+)
 
 // parseEndpoint splits process://[user@]host[:port] into its ssh user, host and dial address.
 func parseEndpoint(endpoint string) (user, host, addr string, err error) {
@@ -132,13 +137,18 @@ func splitRef(ref string) (name, tag string) {
 	return ref[:colon], ref[colon+1:]
 }
 
-func envValue(env []string, key string) string {
+func lastEnvValue(env []string, key string) string {
+	last := ""
 	for _, entry := range env {
 		if name, value, ok := strings.Cut(entry, "="); ok && name == key {
-			return value
+			last = value
 		}
 	}
-	return ""
+	return last
+}
+
+func validPodname(podname string) bool {
+	return podnamePattern.MatchString(podname)
 }
 
 func parseShow(out string) map[string]string {

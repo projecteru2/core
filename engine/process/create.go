@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/cockroachdb/errors"
+
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
@@ -60,11 +62,16 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		}
 	}
 
+	podname := lastEnvValue(opts.Env, podEnvKey)
+	if !validPodname(podname) {
+		return nil, errors.Wrapf(coretypes.ErrInvalidEngineArgs, "pod %q cannot name a systemd slice", podname)
+	}
+
 	ID := newID()
 	dir := workloadDir(e.root, ID)
 	u := &unit{
 		ID:          ID,
-		Podname:     envValue(opts.Env, podEnvKey),
+		Podname:     podname,
 		User:        opts.User,
 		Bundle:      filepath.Join(dir, lowerDir),
 		Working:     opts.WorkingDir,

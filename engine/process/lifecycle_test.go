@@ -85,6 +85,19 @@ func TestVirtualizationCreateSkipsTheOverlayForARawWorkload(t *testing.T) {
 	}
 }
 
+func TestVirtualizationCreateRejectsAnUnusablePodname(t *testing.T) {
+	e := testEngine(t, &fakeRunner{})
+
+	_, err := e.VirtualizationCreate(t.Context(), &enginetypes.VirtualizationCreateOptions{
+		Name:  "app_web_xyz",
+		Image: "hub.io/ns/app:v1",
+		Env:   []string{"ERU_POD=bad/pod"},
+	})
+	if !errors.Is(err, coretypes.ErrInvalidEngineArgs) {
+		t.Errorf("got %v, want ErrInvalidEngineArgs", err)
+	}
+}
+
 func TestVirtualizationLifecycleCommandSequence(t *testing.T) {
 	runner := &fakeRunner{}
 	e := testEngine(t, runner)
