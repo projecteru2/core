@@ -41,8 +41,3 @@ func (e *Entrypoint) Validate() error {
 	}
 	return nil
 }
-
-type Bind struct {
-	InWorkloadPath string `yaml:"bind,omitempty"`
-	ReadOnly       bool   `yaml:"ro,omitempty"`
-}
