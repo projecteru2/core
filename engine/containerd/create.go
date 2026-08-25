@@ -1,7 +1,6 @@
 package containerd
 
 import (
-	"cmp"
 	"context"
 	"encoding/json"
 	"maps"
@@ -148,8 +147,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		e.discard(ctx, dir)
 		return nil, err
 	}
-	runAs := cmp.Or(deployUser(opts), imageConfig.User)
-	if err = e.applyImageUser(ctx, created, ID, runAs); err != nil {
+	if err = e.applyImageUser(ctx, created, ID, runAsUser(opts, imageConfig)); err != nil {
 		e.discardWorkload(ctx, created, dir)
 		return nil, err
 	}

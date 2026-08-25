@@ -210,6 +210,23 @@ func TestANamedImageUserIsReadOffTheWorkloadsOwnSnapshot(t *testing.T) {
 	}
 }
 
+func TestADefaultDeployStillRunsAsTheImagesUser(t *testing.T) {
+	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result {
+		return &sshrunner.Result{Stdout: "memcache:x:11211:11211::/home/memcache:/bin/sh\n---\n"}
+	}}
+	container := &fakeContainer{spec: &oci.Spec{Process: &specs.Process{}}}
+	opts := &enginetypes.VirtualizationCreateOptions{User: cliDefaultUser}
+
+	user := runAsUser(opts, &ocispec.ImageConfig{User: "memcache"})
+	if err := testEngine(t, runner).applyImageUser(t.Context(), container, "app_web_abc123", user); err != nil {
+		t.Fatalf("user: %v", err)
+	}
+
+	if container.spec.Process.User.UID != 11211 {
+		t.Errorf("got %d, want 11211: the cli's default --user root is not a request to run as root", container.spec.Process.User.UID)
+	}
+}
+
 func TestANumericImageUserNeedsNoSnapshot(t *testing.T) {
 	for _, user := range []string{"", "root", "11211", "11211:11211"} {
 		t.Run(user, func(t *testing.T) {

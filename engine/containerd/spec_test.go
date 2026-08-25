@@ -279,14 +279,39 @@ func TestWithProcessKeepsTheImageEntrypoint(t *testing.T) {
 	}
 }
 
-func TestWithProcessTakesRootByName(t *testing.T) {
+func TestWithProcessLeavesTheImagesUserUnderTheCliDefault(t *testing.T) {
 	spec := newTestSpec()
+	spec.Process.User = specs.User{UID: 11211, GID: 11211}
 
-	if err := withProcess(&enginetypes.VirtualizationCreateOptions{User: rootUser}, nil)(t.Context(), nil, nil, spec); err != nil {
+	if err := withProcess(&enginetypes.VirtualizationCreateOptions{User: cliDefaultUser}, nil)(t.Context(), nil, nil, spec); err != nil {
 		t.Fatalf("spec: %v", err)
 	}
-	if spec.Process.User.UID != 0 || spec.Process.User.GID != 0 {
-		t.Errorf("got %d:%d, want 0:0", spec.Process.User.UID, spec.Process.User.GID)
+	if spec.Process.User.UID != 11211 || spec.Process.User.GID != 11211 {
+		t.Errorf("got %d:%d, want 11211:11211: the cli sends root when the caller named nobody", spec.Process.User.UID, spec.Process.User.GID)
+	}
+}
+
+func TestRunAsUserTakesTheImagesUserUnlessTheDeployNamedSomeone(t *testing.T) {
+	tests := []struct {
+		name       string
+		user       string
+		privileged bool
+		image      string
+		want       string
+	}{
+		{"the cli's own default leaves the image's user standing", cliDefaultUser, false, "memcache", "memcache"},
+		{"an explicit id beats the image", "1000:1001", false, "memcache", "1000:1001"},
+		{"uid 0 is a request for root, unlike the default", "0", false, "memcache", "0"},
+		{"a privileged workload is root whatever the image declares", cliDefaultUser, true, "memcache", rootUser},
+		{"nothing to run as when neither names a user", cliDefaultUser, false, "", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opts := &enginetypes.VirtualizationCreateOptions{User: tt.user, Privileged: tt.privileged}
+			if got := runAsUser(opts, &ocispec.ImageConfig{User: tt.image}); got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
 	}
 }
 

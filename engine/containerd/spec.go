@@ -1,6 +1,7 @@
 package containerd
 
 import (
+	"cmp"
 	"context"
 	"maps"
 	"math"
@@ -31,6 +32,7 @@ const (
 	netSysctlPrefix = "net."
 	readOnlyMode    = "ro"
 	rootUser        = "root"
+	cliDefaultUser  = rootUser
 	bindType        = "bind"
 	bindOption      = "rbind"
 
@@ -369,9 +371,16 @@ func hookArgs(networks map[string]string, socket string) []string {
 	return args
 }
 
+func runAsUser(opts *enginetypes.VirtualizationCreateOptions, config *ocispec.ImageConfig) string {
+	return cmp.Or(deployUser(opts), config.User)
+}
+
 func deployUser(opts *enginetypes.VirtualizationCreateOptions) string {
 	if opts.Privileged {
 		return rootUser
+	}
+	if opts.User == cliDefaultUser {
+		return ""
 	}
 	return opts.User
 }
