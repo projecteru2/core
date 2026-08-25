@@ -53,6 +53,9 @@ func TestVirtualizationLogsFollowStopsWithTheGuest(t *testing.T) {
 	if !strings.Contains(followScript, "vm status --event") || !strings.Contains(followScript, "kill") {
 		t.Error("the follow script must watch the status stream and kill journalctl")
 	}
+	if strings.Contains(followScript, "-n 1") {
+		t.Error("cocoon answers -n 1 with the current state and exits, so the follow must watch the stream")
+	}
 	if err = stdout.Close(); err != nil {
 		t.Fatalf("close: %v", err)
 	}

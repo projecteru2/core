@@ -238,6 +238,22 @@ func TestVirtualizationWaitEndsWhenTheGuestStops(t *testing.T) {
 	if !running.Closed() {
 		t.Error("the status stream must be closed once the guest stopped")
 	}
+	if strings.Contains(waitScript, "-n 1") {
+		t.Error("cocoon answers -n 1 with the current state and exits, so the wait must follow the stream")
+	}
+}
+
+func TestVirtualizationWaitReturnsAtOnceForAGuestThatAlreadyStopped(t *testing.T) {
+	runner := &sshrunnertest.Fake{Started: []*sshrunnertest.Session{{Out: `{"event":"ADDED","vm":` + stoppedVM + "}\n"}}}
+	e := testEngine(t, runner)
+
+	waited, err := e.VirtualizationWait(t.Context(), "w1", "")
+	if err != nil {
+		t.Fatalf("wait: %v", err)
+	}
+	if waited.Code != 0 {
+		t.Errorf("got code %d, want 0", waited.Code)
+	}
 }
 
 func TestVirtualizationWaitFailsWhenTheStreamEndsEarly(t *testing.T) {

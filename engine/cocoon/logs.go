@@ -18,7 +18,7 @@ import (
 const followScript = `bin=$1; vm=$2; shift 2
 journalctl "$@" &
 reader=$!
-"$bin" vm status --event --format json -n 1 "$vm" | grep -q -v '"state":"running"'
+"$bin" vm status --event --format json "$vm" | grep -q -v '"state":"running"'
 sleep 1
 kill "$reader" 2>/dev/null || true
 wait "$reader" 2>/dev/null || true
