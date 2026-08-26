@@ -35,7 +35,6 @@ func dial(addr string, authConfig types.AuthConfig) (*grpc.ClientConn, error) {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{Time: 6 * 60 * time.Second, Timeout: time.Second}),
 		grpc.WithDefaultServiceConfig(`{"loadBalancingPolicy":"round_robin"}`), // initial policy only; the resolver's service config can override it, see https://github.com/grpc/grpc-go/blob/v1.40.x/examples/features/load_balancing/client/main.go
-		grpc.WithUnaryInterceptor(interceptor.NewUnaryRetry(interceptor.RetryOptions{Max: 0})),
 		grpc.WithStreamInterceptor(interceptor.NewStreamRetry(interceptor.RetryOptions{Max: 0})),
 	}
 	if authConfig.Username != "" {

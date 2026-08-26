@@ -106,8 +106,6 @@ type Session struct {
 	mu     sync.Mutex
 	closed bool
 	in     strings.Builder
-	height uint
-	width  uint
 }
 
 // Closed reports whether the engine has released the session.
@@ -124,13 +122,6 @@ func (s *Session) In() string {
 	return s.in.String()
 }
 
-// Resized returns the terminal geometry the engine last asked for.
-func (s *Session) Resized() (height, width uint) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.height, s.width
-}
-
 func (s *Session) Stdin() io.WriteCloser {
 	return &sessionStdin{sess: s}
 }
@@ -143,10 +134,7 @@ func (s *Session) Stderr() io.ReadCloser {
 	return io.NopCloser(strings.NewReader(s.Err))
 }
 
-func (s *Session) Resize(height, width uint) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.height, s.width = height, width
+func (s *Session) Resize(uint, uint) error {
 	return nil
 }
 

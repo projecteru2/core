@@ -201,3 +201,9 @@ func TestBool2Int(t *testing.T) {
 	assert.Equal(t, 1, Bool2Int(true))
 	assert.Equal(t, 0, Bool2Int(false))
 }
+
+func TestLastEnvValueWins(t *testing.T) {
+	env := []string{"ERU_POD=client", "APP_NAME=web", "ERU_POD=prod"}
+	assert.Equal(t, "prod", LastEnvValue(env, "ERU_POD"))
+	assert.Equal(t, "", LastEnvValue(env, "ERU_NODE_NAME"))
+}

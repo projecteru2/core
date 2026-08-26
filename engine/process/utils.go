@@ -74,16 +74,6 @@ func systemdEnv(entry string) string {
 	return key + `="` + envEscaper.Replace(value) + `"`
 }
 
-func lastEnvValue(env []string, key string) string {
-	last := ""
-	for _, entry := range env {
-		if name, value, ok := strings.Cut(entry, "="); ok && name == key {
-			last = value
-		}
-	}
-	return last
-}
-
 func validPodname(podname string) bool {
 	return podnamePattern.MatchString(podname)
 }

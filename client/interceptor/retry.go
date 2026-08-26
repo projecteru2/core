@@ -3,7 +3,6 @@ package interceptor
 import (
 	"context"
 
-	"github.com/cenkalti/backoff/v4"
 	"google.golang.org/grpc"
 
 	"github.com/projecteru2/core/log"
@@ -13,15 +12,6 @@ import (
 var RPCNeedRetry = map[string]struct{}{
 	"/pb.CoreRPC/WorkloadStatusStream": {},
 	"/pb.CoreRPC/WatchServiceStatus":   {},
-}
-
-// NewUnaryRetry makes unary RPC retry on error
-func NewUnaryRetry(retryOpts RetryOptions) grpc.UnaryClientInterceptor {
-	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-		return backoff.Retry(func() error {
-			return invoker(ctx, method, req, reply, cc, opts...)
-		}, backoff.WithMaxRetries(backoff.WithContext(backoff.NewExponentialBackOff(), ctx), retryOpts.Max))
-	}
 }
 
 // NewStreamRetry retries the stream methods listed in RPCNeedRetry.

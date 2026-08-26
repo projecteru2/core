@@ -14,14 +14,14 @@ import (
 )
 
 func TestVerblessFormatIsNotPadded(t *testing.T) {
-	assert.Equal(t, `{"level":"info","message":"server started"}`, capture(t, func() {
-		Infof(t.Context(), "server started")
+	assert.Equal(t, `{"level":"info","k":"v","message":"server started"}`, capture(t, func() {
+		WithField("k", "v").Infof(t.Context(), "server started")
 	}))
 }
 
 func TestEveryArgIsRendered(t *testing.T) {
-	assert.Equal(t, `{"level":"info","message":"a b"}`, capture(t, func() {
-		Info(t.Context(), "a", "b")
+	assert.Equal(t, `{"level":"info","k":"v","message":"a b"}`, capture(t, func() {
+		WithField("k", "v").Info(t.Context(), "a", "b")
 	}))
 	assert.Equal(t, `{"level":"debug","k":"v","message":"a b"}`, capture(t, func() {
 		WithField("k", "v").Debug(t.Context(), "a", "b")

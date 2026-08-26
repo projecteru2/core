@@ -1,6 +1,7 @@
 package sshrunner
 
 import (
+	"context"
 	"net"
 	"slices"
 	"strings"
@@ -51,4 +52,18 @@ func ExitError(argv []string, res *Result) error {
 		return nil
 	}
 	return errors.Newf("%s exited %d: %s", argv[0], res.Code, strings.TrimSpace(res.Stderr))
+}
+
+// Call runs argv on the node; a non-zero exit is reported in the result, not as an error.
+func Call(ctx context.Context, runner Runner, argv ...string) (*Result, error) {
+	return runner.Run(ctx, Quote(argv), nil)
+}
+
+// Run runs argv on the node and reports a non-zero exit as an error.
+func Run(ctx context.Context, runner Runner, argv ...string) (*Result, error) {
+	res, err := Call(ctx, runner, argv...)
+	if err != nil {
+		return nil, err
+	}
+	return res, ExitError(argv, res)
 }

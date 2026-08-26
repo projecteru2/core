@@ -17,11 +17,9 @@ type VirtualizationCreateOptions struct {
 	Env          []string
 	DNS          []string
 	Hosts        []string
-	Publish      []string
 	Sysctl       map[string]string
 	Labels       map[string]string
 
-	Debug   bool
 	Restart string
 
 	Networks map[string]string

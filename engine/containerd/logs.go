@@ -72,10 +72,7 @@ func (a *attach) watch(ctx context.Context, ID, stream string, sess sshrunner.Se
 	}
 	err := errors.Newf("%s relay ended with code %d: %s", stream, code, reason)
 	logger.Error(ctx, errors.Join(err, waitErr))
-	select {
-	case a.died <- err:
-	default:
-	}
+	a.died <- err
 }
 
 func (e *Engine) VirtualizationLogs(ctx context.Context, opts *enginetypes.VirtualizationLogStreamOptions) (stdout, stderr io.ReadCloser, err error) {

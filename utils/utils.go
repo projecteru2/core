@@ -18,6 +18,7 @@ import (
 	"github.com/cockroachdb/errors"
 
 	"github.com/projecteru2/core/cluster"
+	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 )
@@ -136,6 +137,19 @@ func DecodeMetaInLabel(ctx context.Context, labels map[string]string) *types.Lab
 	return meta
 }
 
+// NewHealthCheck renders the label's health check the way a workload record carries it.
+func NewHealthCheck(check *types.HealthCheck) *enginetypes.HealthCheck {
+	if check == nil {
+		return nil
+	}
+	return &enginetypes.HealthCheck{
+		TCPPorts: check.TCPPorts,
+		HTTPPort: check.HTTPPort,
+		HTTPURL:  check.HTTPURL,
+		HTTPCode: check.HTTPCode,
+	}
+}
+
 // ShortID returns the last 7 characters of workloadID.
 func ShortID(workloadID string) string {
 	return workloadID[max(0, len(workloadID)-shortenLength):]
@@ -223,6 +237,17 @@ func Bool2Int(a bool) int {
 		return 1
 	}
 	return 0
+}
+
+// LastEnvValue takes the last value of key, as core appends its own after the client's.
+func LastEnvValue(env []string, key string) string {
+	last := ""
+	for _, entry := range env {
+		if name, value, ok := strings.Cut(entry, "="); ok && name == key {
+			last = value
+		}
+	}
+	return last
 }
 
 func safeSplit(s string) []string {

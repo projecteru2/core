@@ -51,40 +51,6 @@ func Fatalf(ctx context.Context, err error, format string, args ...any) {
 	fatalf(ctx, err, format, nil, args...)
 }
 
-func Warnf(ctx context.Context, format string, args ...any) {
-	warnf(ctx, format, nil, args...)
-}
-
-func Warn(ctx context.Context, args ...any) {
-	Warnf(ctx, formatArgs(args), args...)
-}
-
-func Infof(ctx context.Context, format string, args ...any) {
-	infof(ctx, format, nil, args...)
-}
-
-func Info(ctx context.Context, args ...any) {
-	Infof(ctx, formatArgs(args), args...)
-}
-
-func Debugf(ctx context.Context, format string, args ...any) {
-	debugf(ctx, format, nil, args...)
-}
-
-func Debug(ctx context.Context, args ...any) {
-	Debugf(ctx, formatArgs(args), args...)
-}
-
-// Errorf logs at error level and reports to Sentry.
-func Errorf(ctx context.Context, err error, format string, args ...any) {
-	errorf(ctx, err, format, nil, args...)
-}
-
-// Error logs at error level and reports to Sentry.
-func Error(ctx context.Context, err error, args ...any) {
-	Errorf(ctx, err, formatArgs(args), args...)
-}
-
 func logWriter(cfg *types.ServerLogConfig) io.Writer {
 	switch {
 	case cfg.Filename != "":

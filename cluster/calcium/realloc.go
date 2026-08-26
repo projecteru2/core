@@ -34,24 +34,16 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 	var err error
 
 	logger := log.WithFunc("calcium.doReallocOnNode").WithField("opts", opts)
-	nodeCommit, err := c.wal.Log(eventWorkloadResourceAllocated, []*types.Node{node})
+	nodeCommit, err := c.journal(ctx, logger, eventWorkloadResourceAllocated, []*types.Node{node})
 	if err != nil {
 		return err
 	}
-	defer func() {
-		if commitErr := nodeCommit(); commitErr != nil {
-			logger.Errorf(ctx, commitErr, "commit wal failed: %s", eventWorkloadResourceAllocated)
-		}
-	}()
-	workloadCommit, err := c.wal.Log(eventWorkloadReallocated, workload.ID)
+	defer nodeCommit()
+	workloadCommit, err := c.journal(ctx, logger, eventWorkloadReallocated, workload.ID)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		if commitErr := workloadCommit(); commitErr != nil {
-			logger.Errorf(ctx, commitErr, "commit wal failed: %s", eventWorkloadReallocated)
-		}
-	}()
+	defer workloadCommit()
 
 	err = utils.Txn(
 		ctx,

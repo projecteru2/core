@@ -169,11 +169,6 @@ type ResourcePluginConfig struct {
 	Whitelist   []string      `yaml:"whitelist"`
 }
 
-type LogConfig struct {
-	Type   string            `yaml:"type" required:"true" default:"journald"` // journald, json-file or none
-	Config map[string]string `yaml:"config"`
-}
-
 type ServerLogConfig struct {
 	Level      string `yaml:"level" default:"info"`
 	UseJSON    bool   `yaml:"use_json"`

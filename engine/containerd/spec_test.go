@@ -545,5 +545,8 @@ func TestRlimitsDefaultToNofile(t *testing.T) {
 }
 
 func newTestSpec() *specs.Spec {
-	return &specs.Spec{Process: &specs.Process{}, Linux: &specs.Linux{}}
+	return &specs.Spec{
+		Process: &specs.Process{Capabilities: &specs.LinuxCapabilities{}},
+		Linux:   &specs.Linux{Resources: &specs.LinuxResources{}},
+	}
 }

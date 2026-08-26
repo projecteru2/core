@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"slices"
 	"strconv"
 	"sync"
 	"time"
@@ -447,20 +448,8 @@ func (e *ETCD) doBatchOp(ctx context.Context, transactions []ETCDTxn) (resp *cli
 			continue
 		}
 
-		n, m := len(txn.Then)/txnLimit, len(txn.Then)%txnLimit
-		for i := range n {
-			txnes = append(txnes, ETCDTxn{
-				If:   txn.If,
-				Then: txn.Then[i*txnLimit : (i+1)*txnLimit],
-				Else: txn.Else,
-			})
-		}
-		if m > 0 {
-			txnes = append(txnes, ETCDTxn{
-				If:   txn.If,
-				Then: txn.Then[n*txnLimit:],
-				Else: txn.Else,
-			})
+		for chunk := range slices.Chunk(txn.Then, txnLimit) {
+			txnes = append(txnes, ETCDTxn{If: txn.If, Then: chunk, Else: txn.Else})
 		}
 	}
 

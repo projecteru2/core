@@ -127,8 +127,7 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 		return nil, err
 	}
 	return perNode(c, nodes, func(node *types.Node, ch chan<- *types.Node) {
-		var err error
-		if node.ResourceInfo.Capacity, node.ResourceInfo.Usage, node.ResourceInfo.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false); err != nil {
+		if err := c.refreshResourceInfo(ctx, node); err != nil {
 			logger.Errorf(ctx, err, "failed to get node %s resource info", node.Name)
 		}
 		if opts.CallInfo {
@@ -150,7 +149,7 @@ func (c *Calcium) GetNode(ctx context.Context, nodename string) (node *types.Nod
 		logger.Error(ctx, err)
 		return nil, err
 	}
-	if node.ResourceInfo.Capacity, node.ResourceInfo.Usage, node.ResourceInfo.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false); err != nil {
+	if err = c.refreshResourceInfo(ctx, node); err != nil {
 		logger.Error(ctx, err)
 		return nil, err
 	}
@@ -183,8 +182,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 	return n, c.withNodePodLocked(ctx, opts.Nodename, func(ctx context.Context, node *types.Node) error {
 		logger.Info(ctx, "set node")
 		var err error
-		node.ResourceInfo.Capacity, node.ResourceInfo.Usage, node.ResourceInfo.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false)
-		if err != nil {
+		if err = c.refreshResourceInfo(ctx, node); err != nil {
 			return err
 		}
 		n = node
@@ -225,7 +223,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 					return updateErr
 				}
 				// capacity refresh is best effort; the store write already succeeded
-				n.ResourceInfo.Capacity, n.ResourceInfo.Usage, n.ResourceInfo.Diffs, _ = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false)
+				_ = c.refreshResourceInfo(ctx, n)
 				_ = c.pool.Invoke(func() { c.doSendNodeMetrics(utils.NewInheritCtx(ctx), n) })
 				_ = c.pool.Invoke(func() { c.RemapResourceAndLog(ctx, logger, node) })
 				return nil
@@ -272,6 +270,13 @@ func (c *Calcium) filterNodes(ctx context.Context, nodeFilter *types.NodeFilter)
 	return slices.DeleteFunc(listedNodes, func(n *types.Node) bool {
 		return slices.Contains(nodeFilter.Excludes, n.Name)
 	}), nil
+}
+
+// refreshResourceInfo fills the node's capacity, usage and diffs from the resource plugins.
+func (c *Calcium) refreshResourceInfo(ctx context.Context, node *types.Node) error {
+	var err error
+	node.ResourceInfo.Capacity, node.ResourceInfo.Usage, node.ResourceInfo.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false)
+	return err
 }
 
 func (c *Calcium) setAllWorkloadsOnNodeDown(ctx context.Context, nodename string) {

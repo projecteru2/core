@@ -19,7 +19,6 @@ import (
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-	"github.com/projecteru2/core/wal"
 )
 
 func (c *Calcium) CreateWorkload(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateWorkloadMessage, error) {
@@ -64,23 +63,17 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 			cancel()
 		}()
 
-		var resourceCommit wal.Commit
+		var resourceCommit func()
 		defer func() {
 			if resourceCommit != nil {
-				if err := resourceCommit(); err != nil {
-					logger.Errorf(ctx, err, "commit wal failed: %s", eventWorkloadResourceAllocated)
-				}
+				resourceCommit()
 			}
 		}()
 
-		var processingCommits map[string]wal.Commit
+		var processingCommits map[string]func()
 		defer func() {
-			for nodename := range processingCommits {
-				if commit, ok := processingCommits[nodename]; ok {
-					if err := commit(); err != nil {
-						logger.Errorf(ctx, err, "commit wal failed: %s, %s", eventProcessingCreated, nodename)
-					}
-				}
+			for _, commit := range processingCommits {
+				commit()
 			}
 		}()
 
@@ -101,7 +94,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 					nodenames := slices.Collect(maps.Keys(nodeMap))
 					nodes := slices.Collect(maps.Values(nodeMap))
 
-					if resourceCommit, err = c.wal.Log(eventWorkloadResourceAllocated, nodes); err != nil {
+					if resourceCommit, err = c.journal(ctx, logger, eventWorkloadResourceAllocated, nodes); err != nil {
 						return err
 					}
 
@@ -110,13 +103,13 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 						return err
 					}
 
-					processingCommits = make(map[string]wal.Commit)
+					processingCommits = make(map[string]func())
 					for nodename, deploy := range deployMap {
 						if workloadResourcesMap[nodename], engineParamsMap[nodename], err = c.rmgr.Alloc(ctx, nodename, deploy, opts.Resources); err != nil {
 							return err
 						}
 						processing := opts.GetProcessing(nodename)
-						if processingCommits[nodename], err = c.wal.Log(eventProcessingCreated, processing); err != nil {
+						if processingCommits[nodename], err = c.journal(ctx, logger, eventProcessingCreated, processing); err != nil {
 							return err
 						}
 						if err = c.store.CreateProcessing(ctx, processing, deploy); err != nil {
@@ -288,18 +281,14 @@ func (c *Calcium) doDeployOneWorkload(
 		CreateTime:   time.Now().Unix(),
 	}
 
-	commit, err := c.wal.Log(eventWorkloadCreated, &types.Workload{
+	commit, err := c.journal(ctx, logger, eventWorkloadCreated, &types.Workload{
 		Name:     workload.Name,
 		Nodename: workload.Nodename,
 	})
 	if err != nil {
 		return err
 	}
-	defer func() {
-		if commitErr := commit(); commitErr != nil {
-			logger.Errorf(ctx, commitErr, "commit wal %s failed", eventWorkloadCreated)
-		}
-	}()
+	defer commit()
 
 	return utils.Txn(
 		ctx,
@@ -405,14 +394,12 @@ func (c *Calcium) doMakeWorkloadOptions(ctx context.Context, no int, msg *types.
 	createOpts.Image = opts.Image
 	createOpts.Stdin = opts.OpenStdin
 	createOpts.Hosts = opts.ExtraHosts
-	createOpts.Debug = opts.Debug
 	createOpts.Networks = opts.Networks
 
 	entry := opts.Entrypoint
 	createOpts.WorkingDir = entry.Dir
 	createOpts.Privileged = entry.Privileged
 	createOpts.Sysctl = entry.Sysctls
-	createOpts.Publish = entry.Publish
 	createOpts.Restart = entry.Restart
 	suffix := utils.RandomString(6)
 	createOpts.Name = utils.MakeWorkloadName(opts.Name, opts.Entrypoint.Name, suffix)

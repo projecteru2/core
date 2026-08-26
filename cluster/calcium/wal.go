@@ -53,10 +53,7 @@ func (h *CreateLambdaHandler) Decode(bs []byte) (any, error) {
 }
 
 func (h *CreateLambdaHandler) Handle(ctx context.Context, raw any) error {
-	workloadID, ok := raw.(string)
-	if !ok {
-		return errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
-	}
+	workloadID, _ := raw.(string)
 
 	commit, err := h.wal.Log(eventCreateLambda, workloadID)
 	if err != nil {
@@ -91,7 +88,7 @@ func (h *CreateLambdaHandler) waitAndRemove(ctx context.Context, logger *log.Fie
 	if r.Code != 0 {
 		logger.Warnf(ctx, "lambda run failed: %s", r.Message)
 	}
-	return h.calcium.RemoveWorkloadSync(ctx, []string{workloadID})
+	return h.calcium.doRemoveWorkloadSync(ctx, []string{workloadID})
 }
 
 // CreateWorkloadHandler removes a workload left behind by an interrupted create.
@@ -122,7 +119,7 @@ func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw any) error {
 		return err
 	}
 	if storedID != "" {
-		return h.calcium.RemoveWorkloadSync(ctx, []string{storedID})
+		return h.calcium.doRemoveWorkloadSync(ctx, []string{storedID})
 	}
 
 	node, err := h.calcium.GetNode(ctx, wrk.Nodename)
@@ -279,19 +276,21 @@ func (h *WorkloadResourceAllocatedHandler) Handle(ctx context.Context, raw any) 
 	ctx, cancel := getReplayContext(ctx)
 	defer cancel()
 
+	errs := make([]error, len(nodes))
 	wg := &sync.WaitGroup{}
-	defer wg.Wait()
-	for _, node := range nodes {
+	for i, node := range nodes {
 		wg.Go(func() {
 			if _, e := h.calcium.NodeResource(ctx, node.Name, true); e != nil {
 				logger.Errorf(ctx, e, "failed to fix node resource: %s", node.Name)
+				errs[i] = e
 				return
 			}
 			logger.Infof(ctx, "fixed node resource: %s", node.Name)
 		})
 	}
+	wg.Wait()
 
-	return nil
+	return errors.Join(errs...)
 }
 
 // ProcessingCreatedHandler deletes processing records left by an interrupted deploy.
@@ -365,4 +364,17 @@ func getWorkloadIfExists(ctx context.Context, calcium *Calcium, ID string) (*typ
 		return nil, nil
 	}
 	return workload, err
+}
+
+// journal logs the event and hands back the commit to defer once the work it covers is done.
+func (c *Calcium) journal(ctx context.Context, logger *log.Fields, event string, item any) (func(), error) {
+	commit, err := c.wal.Log(event, item)
+	if err != nil {
+		return nil, err
+	}
+	return func() {
+		if commitErr := commit(); commitErr != nil {
+			logger.Errorf(ctx, commitErr, "commit wal failed: %s", event)
+		}
+	}, nil
 }

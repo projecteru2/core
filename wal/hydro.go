@@ -85,10 +85,7 @@ func (h *Hydro) Log(eventyp string, item any) (Commit, error) {
 	if err != nil {
 		return nil, err
 	}
-	value, err := NewHydroEvent(eventyp, bs).Encode()
-	if err != nil {
-		return nil, coretypes.ErrInvaildWALEvent
-	}
+	value, _ := NewHydroEvent(eventyp, bs).Encode()
 
 	key := fmt.Sprintf(eventKey, h.address, h.seq.Add(1))
 	ctx, cancel := h.storeContext()

@@ -2,14 +2,13 @@ package etcdlock
 
 import (
 	"context"
-	"fmt"
-	"strings"
 	"sync"
 	"time"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/concurrency"
 
+	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/types"
 )
 
@@ -24,12 +23,9 @@ type Mutex struct {
 
 // New creates a Mutex on key, released automatically after ttl.
 func New(cli *clientv3.Client, key string, ttl time.Duration) (*Mutex, error) {
-	if key == "" {
-		return nil, types.ErrLockKeyInvaild
-	}
-
-	if !strings.HasPrefix(key, "/") {
-		key = fmt.Sprintf("/%s", key)
+	key, err := lock.Key(key)
+	if err != nil {
+		return nil, err
 	}
 
 	session, err := concurrency.NewSession(cli, concurrency.WithTTL(int(ttl.Seconds())))

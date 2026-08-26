@@ -266,7 +266,6 @@ func (e *Engine) setDesiredStatus(ctx context.Context, found client.Container, l
 	return err
 }
 
-// containerSpec decodes the spec the container record already carries.
 func (e *Engine) gracePeriod(gracefulTimeout time.Duration) time.Duration {
 	if gracefulTimeout < 0 {
 		return cmp.Or(e.config.Containerd.StopTimeout, defaultStopTimeout)
@@ -284,12 +283,6 @@ func containerSpec(info containers.Container) (*oci.Spec, error) {
 
 func withSpecResources(limits *specs.LinuxResources) client.UpdateContainerOpts {
 	return withSpecUpdate(func(spec *oci.Spec) {
-		if spec.Linux == nil {
-			spec.Linux = &specs.Linux{}
-		}
-		if spec.Linux.Resources == nil {
-			spec.Linux.Resources = &specs.LinuxResources{}
-		}
 		spec.Linux.Resources.CPU = limits.CPU
 		spec.Linux.Resources.Memory = limits.Memory
 		spec.Linux.Resources.BlockIO = limits.BlockIO

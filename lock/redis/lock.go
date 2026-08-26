@@ -2,12 +2,11 @@ package redislock
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"github.com/bsm/redislock"
 
-	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/lock"
 )
 
 var opts = &redislock.Options{
@@ -25,12 +24,9 @@ type RedisLock struct {
 
 // New creates a lock on key, waiting at most waitTimeout to acquire it and holding it for lockTTL.
 func New(cli redislock.RedisClient, key string, waitTimeout, lockTTL time.Duration) (*RedisLock, error) {
-	if key == "" {
-		return nil, types.ErrLockKeyInvaild
-	}
-
-	if !strings.HasPrefix(key, "/") {
-		key = "/" + key
+	key, err := lock.Key(key)
+	if err != nil {
+		return nil, err
 	}
 
 	locker := redislock.New(cli)

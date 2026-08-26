@@ -92,17 +92,12 @@ func (e *Engine) RawEngine(context.Context, *enginetypes.RawEngineOptions) (*eng
 	return nil, coretypes.ErrEngineNotImplemented
 }
 
-// call runs argv on the node; a non-zero exit is reported in the result, not as an error.
 func (e *Engine) call(ctx context.Context, argv ...string) (*sshrunner.Result, error) {
-	return e.runner.Run(ctx, sshrunner.Quote(argv), nil)
+	return sshrunner.Call(ctx, e.runner, argv...)
 }
 
 func (e *Engine) run(ctx context.Context, argv ...string) (*sshrunner.Result, error) {
-	res, err := e.call(ctx, argv...)
-	if err != nil {
-		return nil, err
-	}
-	return res, sshrunner.ExitError(argv, res)
+	return sshrunner.Run(ctx, e.runner, argv...)
 }
 
 // workloadMeta reads the durable record and the overlay's mount state in one round trip.

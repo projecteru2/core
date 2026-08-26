@@ -48,7 +48,26 @@ func TestHandleWorkloadResourceAllocatedMultipleNodes(t *testing.T) {
 		{NodeMeta: types.NodeMeta{Name: "n3"}},
 		{NodeMeta: types.NodeMeta{Name: "n4"}},
 	}
-	require.NoError(t, h.Handle(context.Background(), nodes))
+	require.Error(t, h.Handle(context.Background(), nodes))
+}
+
+func TestHandleWorkloadResourceAllocatedKeepsEntryUntilEveryNodeIsFixed(t *testing.T) {
+	c := NewTestCluster()
+	enableTestWAL(t, c)
+	store := c.store.(*storemocks.Store)
+	lock := &lockmocks.DistributedLock{}
+	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
+	lock.On("Unlock", mock.Anything).Return(nil)
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	store.On("GetNode", mock.Anything, "n1").Return(&types.Node{NodeMeta: types.NodeMeta{Name: "n1"}}, nil)
+	store.On("ListNodeWorkloads", mock.Anything, "n1", mock.Anything).Return(nil, types.ErrMockError).Twice()
+
+	_, err := c.wal.Log(eventWorkloadResourceAllocated, []*types.Node{{NodeMeta: types.NodeMeta{Name: "n1"}}})
+	require.NoError(t, err)
+
+	c.wal.Recover(context.Background())
+	c.wal.Recover(context.Background())
+	store.AssertExpectations(t)
 }
 
 func TestHandleCreateWorkloadNoHandle(t *testing.T) {

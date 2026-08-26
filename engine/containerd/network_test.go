@@ -6,6 +6,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 
+	"github.com/projecteru2/core/engine/cni"
 	"github.com/projecteru2/core/engine/sshrunner"
 	"github.com/projecteru2/core/engine/sshrunner/sshrunnertest"
 	coretypes "github.com/projecteru2/core/types"
@@ -29,7 +30,7 @@ func TestNetworkListReadsTheCNIConfDir(t *testing.T) {
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
-	want := sshrunner.Quote(sshrunner.Shell(listNetworkScript, cniConfDir))
+	want := sshrunner.Quote(sshrunner.Shell(cni.ListScript, cni.ConfDir))
 	if len(runner.Lines()) != 1 || runner.Lines()[0] != want {
 		t.Fatalf("got %q, want %q", runner.Lines(), want)
 	}

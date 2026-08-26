@@ -169,13 +169,7 @@ func (s *RediaronTestSuite) TestUpdateNodeResource() {
 }
 
 func (s *RediaronTestSuite) TestSetNodeStatus() {
-	node := &types.Node{
-		NodeMeta: types.NodeMeta{
-			Name:     "testname",
-			Endpoint: "ep",
-			Podname:  "testpod",
-		},
-	}
+	node := s.addStatusNode()
 	s.NoError(s.rediaron.SetNodeStatus(context.Background(), node, 1))
 	key := filepath.Join(common.NodeStatusPrefix, node.Name)
 
@@ -187,7 +181,7 @@ func (s *RediaronTestSuite) TestSetNodeStatus() {
 	s.Error(err)
 }
 
-func (s *RediaronTestSuite) TestGetNodeStatus() {
+func (s *RediaronTestSuite) TestSetNodeStatusOfAnUnknownNode() {
 	node := &types.Node{
 		NodeMeta: types.NodeMeta{
 			Name:     "testname",
@@ -195,6 +189,11 @@ func (s *RediaronTestSuite) TestGetNodeStatus() {
 			Podname:  "testpod",
 		},
 	}
+	s.Error(s.rediaron.SetNodeStatus(context.Background(), node, 1))
+}
+
+func (s *RediaronTestSuite) TestGetNodeStatus() {
+	node := s.addStatusNode()
 	s.NoError(s.rediaron.SetNodeStatus(context.Background(), node, 1))
 
 	ns, err := s.rediaron.GetNodeStatus(context.Background(), node.Name)
@@ -209,13 +208,7 @@ func (s *RediaronTestSuite) TestGetNodeStatus() {
 }
 
 func (s *RediaronTestSuite) TestNodeStatusStream() {
-	node := &types.Node{
-		NodeMeta: types.NodeMeta{
-			Name:     "testname",
-			Endpoint: "ep",
-			Podname:  "testpod",
-		},
-	}
+	node := s.addStatusNode()
 
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 1000*time.Millisecond)
@@ -249,4 +242,13 @@ func (s *RediaronTestSuite) TestNodeStatusStream() {
 		s.True(m.Alive)
 	}
 	s.False(statuses[len(statuses)-1].Alive)
+}
+
+func (s *RediaronTestSuite) addStatusNode() *types.Node {
+	ctx := context.Background()
+	_, err := s.rediaron.AddPod(ctx, "testpod", "")
+	s.NoError(err)
+	node, err := s.rediaron.AddNode(ctx, &types.AddNodeOptions{Nodename: "testname", Endpoint: "mock://", Podname: "testpod"})
+	s.NoError(err)
+	return node
 }

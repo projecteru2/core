@@ -264,12 +264,6 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		entry.Commands = d.Entrypoint.Commands
 	}
 
-	if entrypoint.Log != nil && entrypoint.Log.Type != "" {
-		entry.Log = &types.LogConfig{}
-		entry.Log.Type = entrypoint.Log.Type
-		entry.Log.Config = entrypoint.Log.Config
-	}
-
 	if entrypoint.Healthcheck != nil {
 		entry.HealthCheck = &types.HealthCheck{}
 		entry.HealthCheck.TCPPorts = entrypoint.Healthcheck.TcpPorts
@@ -322,7 +316,6 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		Podname:        d.Podname,
 		NodeFilter:     nodeFilter,
 		Image:          d.Image,
-		ExtraArgs:      d.ExtraArgs,
 		Count:          int(d.Count),
 		Env:            d.Env,
 		DNS:            d.Dns,

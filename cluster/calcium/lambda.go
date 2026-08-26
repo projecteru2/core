@@ -21,10 +21,6 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 	workloadIDs := []string{}
 
 	logger := log.WithFunc("calcium.RunAndWait").WithField("opts", opts)
-	if err := opts.Validate(); err != nil {
-		logger.Error(ctx, err)
-		return workloadIDs, nil, err
-	}
 	opts.Lambda = true
 	if opts.OpenStdin && (opts.Count != 1 || opts.DeployStrategy != strategy.Auto) {
 		logger.Errorf(ctx, types.ErrRunAndWaitCountOneWithStdin, "count %d method %s", opts.Count, opts.DeployStrategy)
@@ -54,24 +50,19 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 			return eruErrMsg("", "Create workload failed %v", message.Error)
 		}
 
-		commit, err := c.wal.Log(eventCreateLambda, message.WorkloadID)
+		commit, err := c.journal(ctx, logger, eventCreateLambda, message.WorkloadID)
 		if err != nil {
 			logger.Error(ctx, err)
 			return eruErrMsg(message.WorkloadID, "Create wal failed: %s, %v", message.WorkloadID, err)
 		}
 		defer func() {
-			if commitErr := commit(); commitErr != nil {
-				logger.Errorf(ctx, commitErr, "commit wal %s failed: %s", eventCreateLambda, message.WorkloadID)
-			}
-		}()
-
-		defer func() {
 			removeCtx := utils.NewInheritCtx(ctx)
 			if removeErr := c.doRemoveWorkloadSync(removeCtx, []string{message.WorkloadID}); removeErr != nil {
 				logger.Error(removeCtx, removeErr, "remove lambda workload failed")
-			} else {
-				logger.Infof(removeCtx, "workload %s finished and removed", utils.ShortID(message.WorkloadID))
+				return
 			}
+			logger.Infof(removeCtx, "workload %s finished and removed", utils.ShortID(message.WorkloadID))
+			commit()
 		}()
 
 		workload, err := c.GetWorkload(ctx, message.WorkloadID)

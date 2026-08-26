@@ -149,9 +149,6 @@ func withProcess(opts *enginetypes.VirtualizationCreateOptions, entrypoint []str
 // withResources maps eru's knobs onto the cgroup v2 fields runc writes.
 func withResources(resource *engine.VirtualizationResource, rArgs *RawArgs, devices []blockDevice) oci.SpecOpts {
 	return func(_ context.Context, _ oci.Client, _ *containers.Container, spec *specs.Spec) error {
-		if spec.Linux == nil {
-			spec.Linux = &specs.Linux{}
-		}
 		spec.Linux.Resources = resourceSpec(resource, rArgs, devices)
 		spec.Process.Rlimits = rlimits(rArgs.Ulimits)
 		return nil
@@ -169,9 +166,6 @@ func withMounts(opts *enginetypes.VirtualizationCreateOptions, resource *engine.
 // withNetwork drops the network namespace, which is how CNI and the agent read host networking.
 func withNetwork(opts *enginetypes.VirtualizationCreateOptions) oci.SpecOpts {
 	return func(ctx context.Context, client oci.Client, container *containers.Container, spec *specs.Spec) error {
-		if spec.Linux == nil {
-			spec.Linux = &specs.Linux{}
-		}
 		sysctl := opts.Sysctl
 		if hostNetworking(opts.Networks) {
 			sysctl = withoutNetSysctls(sysctl)
@@ -213,11 +207,9 @@ func withPrivileged(privileged bool) oci.SpecOpts {
 			Effective: privilegedCaps,
 			Permitted: privilegedCaps,
 		}
-		if spec.Linux != nil {
-			spec.Linux.ReadonlyPaths = nil
-			spec.Linux.MaskedPaths = nil
-			spec.Linux.Resources = allowAllDevices(spec.Linux.Resources)
-		}
+		spec.Linux.ReadonlyPaths = nil
+		spec.Linux.MaskedPaths = nil
+		spec.Linux.Resources = allowAllDevices(spec.Linux.Resources)
 		return nil
 	}
 }
@@ -227,9 +219,6 @@ func withCapabilities(rArgs *RawArgs) oci.SpecOpts {
 	return func(_ context.Context, _ oci.Client, _ *containers.Container, spec *specs.Spec) error {
 		if len(rArgs.CapAdd) == 0 && len(rArgs.CapDrop) == 0 {
 			return nil
-		}
-		if spec.Process.Capabilities == nil {
-			spec.Process.Capabilities = &specs.LinuxCapabilities{}
 		}
 		caps := spec.Process.Capabilities
 		for _, set := range []*[]string{&caps.Bounding, &caps.Effective, &caps.Permitted} {
@@ -532,9 +521,6 @@ func allowAllDevices(limits *specs.LinuxResources) *specs.LinuxResources {
 }
 
 func allowDevice(limits *specs.LinuxResources, rule specs.LinuxDeviceCgroup) *specs.LinuxResources {
-	if limits == nil {
-		limits = &specs.LinuxResources{}
-	}
 	limits.Devices = append(limits.Devices, rule)
 	return limits
 }

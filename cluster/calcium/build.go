@@ -145,13 +145,6 @@ func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, nod
 				if errors.Is(err, io.EOF) {
 					break
 				}
-				if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-					logger.Error(ctx, err, "context timeout")
-					lastMessage.ErrorDetail.Code = -1
-					lastMessage.ErrorDetail.Message = err.Error()
-					lastMessage.Error = err.Error()
-					break
-				}
 				malformed, _ := io.ReadAll(decoder.Buffered())
 				logger.Errorf(ctx, err, "decode build image message failed, buffered: %s", malformed)
 				return
