@@ -1046,6 +1046,68 @@ func (_c *Store_GetPrefix_Call) RunAndReturn(run func(ctx context.Context, prefi
 	return _c
 }
 
+// GetServiceStatus provides a mock function for the type Store
+func (_mock *Store) GetServiceStatus(context1 context.Context) ([]string, error) {
+	ret := _mock.Called(context1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetServiceStatus")
+	}
+
+	var r0 []string
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context) ([]string, error)); ok {
+		return returnFunc(context1)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context) []string); ok {
+		r0 = returnFunc(context1)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = returnFunc(context1)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// Store_GetServiceStatus_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetServiceStatus'
+type Store_GetServiceStatus_Call struct {
+	*mock.Call
+}
+
+// GetServiceStatus is a helper method to define mock.On call
+//   - context1 context.Context
+func (_e *Store_Expecter) GetServiceStatus(context1 any) *Store_GetServiceStatus_Call {
+	return &Store_GetServiceStatus_Call{Call: _e.mock.On("GetServiceStatus", context1)}
+}
+
+func (_c *Store_GetServiceStatus_Call) Run(run func(context1 context.Context)) *Store_GetServiceStatus_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *Store_GetServiceStatus_Call) Return(strings []string, err error) *Store_GetServiceStatus_Call {
+	_c.Call.Return(strings, err)
+	return _c
+}
+
+func (_c *Store_GetServiceStatus_Call) RunAndReturn(run func(context1 context.Context) ([]string, error)) *Store_GetServiceStatus_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetWorkload provides a mock function for the type Store
 func (_mock *Store) GetWorkload(ctx context.Context, ID string) (*types.Workload, error) {
 	ret := _mock.Called(ctx, ID)

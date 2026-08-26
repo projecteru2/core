@@ -12,6 +12,14 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
+func (s *Store) GetServiceStatus(ctx context.Context) ([]string, error) {
+	eps, err := s.getServiceEndpoints(ctx, fmt.Sprintf(ServiceStatusKey, ""))
+	if err != nil {
+		return nil, err
+	}
+	return eps.ToSlice(), nil
+}
+
 func (s *Store) ServiceStatusStream(ctx context.Context) (chan []string, error) {
 	ch := make(chan []string)
 	logger := log.WithFunc("store.common.ServiceStatusStream")
@@ -36,13 +44,9 @@ func (s *Store) serviceStatusStream(ctx context.Context, prefix string, ch chan<
 	defer cancel()
 	watch := s.Watch(watchCtx, prefix)
 
-	data, err := s.GetPrefix(ctx, prefix, 0)
+	eps, err := s.getServiceEndpoints(ctx, prefix)
 	if err != nil {
 		return err
-	}
-	eps := Endpoints{}
-	for key := range data {
-		eps.Add(utils.Tail(key))
 	}
 	select {
 	case ch <- eps.ToSlice():
@@ -67,6 +71,18 @@ func (s *Store) serviceStatusStream(ctx context.Context, prefix string, ch chan<
 		}
 	}
 	return types.ErrMessageChanClosed
+}
+
+func (s *Store) getServiceEndpoints(ctx context.Context, prefix string) (Endpoints, error) {
+	data, err := s.GetPrefix(ctx, prefix, 0)
+	if err != nil {
+		return nil, err
+	}
+	eps := Endpoints{}
+	for key := range data {
+		eps.Add(utils.Tail(key))
+	}
+	return eps, nil
 }
 
 type Endpoints map[string]struct{}
