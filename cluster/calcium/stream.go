@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"math"
 	"slices"
 	"sync"
 
@@ -128,6 +129,7 @@ func (c *Calcium) processVirtualizationOutStream(
 			_ = outStream.Close()
 		}()
 		scanner := bufio.NewScanner(outStream)
+		scanner.Buffer(nil, math.MaxInt)
 		scanner.Split(splitFunc)
 		for scanner.Scan() {
 			bs := slices.Clone(scanner.Bytes())
