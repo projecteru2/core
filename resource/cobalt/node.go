@@ -251,15 +251,17 @@ func (m Manager) SetNodeResourceCapacity(ctx context.Context, nodename string, n
 				}
 				return resp, err
 			})
-			if err != nil {
-				for plugin, resp := range resps {
-					if resp == nil {
-						continue
-					}
-					rollbackPlugins = append(rollbackPlugins, plugin)
-					before[plugin.Name()] = resp.Before
-					after[plugin.Name()] = resp.After
+			for plugin, resp := range resps {
+				if resp == nil {
+					continue
 				}
+				if err != nil {
+					rollbackPlugins = append(rollbackPlugins, plugin)
+				}
+				before[plugin.Name()] = resp.Before
+				after[plugin.Name()] = resp.After
+			}
+			if err != nil {
 				logger.Errorf(ctx, err, "failed to set node resource for node %+v", nodename)
 				return err
 			}
