@@ -17,7 +17,7 @@ import (
 )
 
 func TestEveryAPIMethodIsAnswered(t *testing.T) {
-	api, err := MakeClient(t.Context(), coretypes.Config{}, "node", PrefixKey+"host", "", "", "")
+	api, err := MakeClient(t.Context(), coretypes.Config{}, "node", PrefixKey+"host")
 	require.NoError(t, err)
 
 	for _, tt := range apiCalls() {
@@ -28,7 +28,7 @@ func TestEveryAPIMethodIsAnswered(t *testing.T) {
 }
 
 func TestStreamsAreFreshOnEveryCall(t *testing.T) {
-	api, err := MakeClient(t.Context(), coretypes.Config{}, "node", PrefixKey+"host", "", "", "")
+	api, err := MakeClient(t.Context(), coretypes.Config{}, "node", PrefixKey+"host")
 	require.NoError(t, err)
 
 	for _, tt := range []struct {
@@ -54,7 +54,7 @@ func TestStreamsAreFreshOnEveryCall(t *testing.T) {
 }
 
 func TestVirtualizationInspectReportsTheRequestedID(t *testing.T) {
-	api, err := MakeClient(t.Context(), coretypes.Config{}, "node", PrefixKey+"host", "", "", "")
+	api, err := MakeClient(t.Context(), coretypes.Config{}, "node", PrefixKey+"host")
 	require.NoError(t, err)
 
 	info, err := api.VirtualizationInspect(t.Context(), "workload-id")

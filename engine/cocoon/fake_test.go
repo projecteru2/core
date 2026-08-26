@@ -41,7 +41,7 @@ func testEngine(t *testing.T, runner *sshrunnertest.Fake) *Engine {
 	t.Helper()
 	return &Engine{
 		cocoon: coretypes.CocoonConfig{Binary: testBinary, Root: testRoot, RunDir: testRunDir, CgroupParent: defaultCgroupParent},
-		ep:     enginetypes.NewParams("node1", Prefix+"10.0.0.1", "", "", ""),
+		ep:     enginetypes.NewParams("node1", Prefix+"10.0.0.1"),
 		runner: runner,
 		execs:  map[string]sshrunner.Session{},
 	}

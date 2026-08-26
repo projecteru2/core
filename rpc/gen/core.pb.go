@@ -1222,9 +1222,6 @@ type AddNodeOptions struct {
 	Nodename      string                 `protobuf:"bytes,1001,opt,name=nodename,proto3" json:"nodename,omitempty"`
 	Endpoint      string                 `protobuf:"bytes,1002,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
 	Podname       string                 `protobuf:"bytes,1003,opt,name=podname,proto3" json:"podname,omitempty"`
-	Ca            string                 `protobuf:"bytes,1004,opt,name=ca,proto3" json:"ca,omitempty"`
-	Cert          string                 `protobuf:"bytes,1005,opt,name=cert,proto3" json:"cert,omitempty"`
-	Key           string                 `protobuf:"bytes,1006,opt,name=key,proto3" json:"key,omitempty"`
 	Labels        map[string]string      `protobuf:"bytes,1007,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	Resources     map[string][]byte      `protobuf:"bytes,1008,rep,name=resources,proto3" json:"resources,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	Test          bool                   `protobuf:"varint,1009,opt,name=test,proto3" json:"test,omitempty"`
@@ -1279,27 +1276,6 @@ func (x *AddNodeOptions) GetEndpoint() string {
 func (x *AddNodeOptions) GetPodname() string {
 	if x != nil {
 		return x.Podname
-	}
-	return ""
-}
-
-func (x *AddNodeOptions) GetCa() string {
-	if x != nil {
-		return x.Ca
-	}
-	return ""
-}
-
-func (x *AddNodeOptions) GetCert() string {
-	if x != nil {
-		return x.Cert
-	}
-	return ""
-}
-
-func (x *AddNodeOptions) GetKey() string {
-	if x != nil {
-		return x.Key
 	}
 	return ""
 }
@@ -1553,15 +1529,11 @@ type SetNodeOptions struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Nodename      string                 `protobuf:"bytes,1001,opt,name=nodename,proto3" json:"nodename,omitempty"`
 	Endpoint      string                 `protobuf:"bytes,1002,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
-	Ca            string                 `protobuf:"bytes,1003,opt,name=ca,proto3" json:"ca,omitempty"`
-	Cert          string                 `protobuf:"bytes,1004,opt,name=cert,proto3" json:"cert,omitempty"`
-	Key           string                 `protobuf:"bytes,1005,opt,name=key,proto3" json:"key,omitempty"`
 	Labels        map[string]string      `protobuf:"bytes,1006,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	Resources     map[string][]byte      `protobuf:"bytes,1007,rep,name=resources,proto3" json:"resources,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	Delta         bool                   `protobuf:"varint,1008,opt,name=delta,proto3" json:"delta,omitempty"`
 	WorkloadsDown bool                   `protobuf:"varint,1009,opt,name=workloads_down,json=workloadsDown,proto3" json:"workloads_down,omitempty"`
 	Bypass        TriOpt                 `protobuf:"varint,1010,opt,name=bypass,proto3,enum=pb.TriOpt" json:"bypass,omitempty"`
-	UpdateTls     bool                   `protobuf:"varint,1011,opt,name=update_tls,json=updateTls,proto3" json:"update_tls,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1610,27 +1582,6 @@ func (x *SetNodeOptions) GetEndpoint() string {
 	return ""
 }
 
-func (x *SetNodeOptions) GetCa() string {
-	if x != nil {
-		return x.Ca
-	}
-	return ""
-}
-
-func (x *SetNodeOptions) GetCert() string {
-	if x != nil {
-		return x.Cert
-	}
-	return ""
-}
-
-func (x *SetNodeOptions) GetKey() string {
-	if x != nil {
-		return x.Key
-	}
-	return ""
-}
-
 func (x *SetNodeOptions) GetLabels() map[string]string {
 	if x != nil {
 		return x.Labels
@@ -1664,13 +1615,6 @@ func (x *SetNodeOptions) GetBypass() TriOpt {
 		return x.Bypass
 	}
 	return TriOpt_KEEP
-}
-
-func (x *SetNodeOptions) GetUpdateTls() bool {
-	if x != nil {
-		return x.UpdateTls
-	}
-	return false
 }
 
 type SetNodeStatusOptions struct {
@@ -5740,14 +5684,11 @@ const file_rpc_gen_core_proto_rawDesc = "" +
 	"\x10RemovePodOptions\x12\x13\n" +
 	"\x04name\x18\xe9\a \x01(\tR\x04name\"$\n" +
 	"\rGetPodOptions\x12\x13\n" +
-	"\x04name\x18\xe9\a \x01(\tR\x04name\"\xa7\x03\n" +
+	"\x04name\x18\xe9\a \x01(\tR\x04name\"\x95\x03\n" +
 	"\x0eAddNodeOptions\x12\x1b\n" +
 	"\bnodename\x18\xe9\a \x01(\tR\bnodename\x12\x1b\n" +
 	"\bendpoint\x18\xea\a \x01(\tR\bendpoint\x12\x19\n" +
-	"\apodname\x18\xeb\a \x01(\tR\apodname\x12\x0f\n" +
-	"\x02ca\x18\xec\a \x01(\tR\x02ca\x12\x13\n" +
-	"\x04cert\x18\xed\a \x01(\tR\x04cert\x12\x11\n" +
-	"\x03key\x18\xee\a \x01(\tR\x03key\x127\n" +
+	"\apodname\x18\xeb\a \x01(\tR\apodname\x127\n" +
 	"\x06labels\x18\xef\a \x03(\v2\x1e.pb.AddNodeOptions.LabelsEntryR\x06labels\x12@\n" +
 	"\tresources\x18\xf0\a \x03(\v2!.pb.AddNodeOptions.ResourcesEntryR\tresources\x12\x13\n" +
 	"\x04test\x18\xf1\a \x01(\bR\x04test\x1a9\n" +
@@ -5756,7 +5697,7 @@ const file_rpc_gen_core_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a<\n" +
 	"\x0eResourcesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\fR\x05value:\x028\x01\"0\n" +
+	"\x05value\x18\x02 \x01(\fR\x05value:\x028\x01J\x06\b\xec\a\x10\xed\aJ\x06\b\xed\a\x10\xee\aJ\x06\b\xee\a\x10\xef\aR\x02caR\x04certR\x03key\"0\n" +
 	"\x11RemoveNodeOptions\x12\x1b\n" +
 	"\bnodename\x18\xe9\a \x01(\tR\bnodename\"\xa1\x01\n" +
 	"\x0eGetNodeOptions\x12\x1b\n" +
@@ -5776,27 +5717,23 @@ const file_rpc_gen_core_proto_rawDesc = "" +
 	"\tskip_info\x18\xed\a \x01(\bR\bskipInfo\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xfb\x03\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xdd\x03\n" +
 	"\x0eSetNodeOptions\x12\x1b\n" +
 	"\bnodename\x18\xe9\a \x01(\tR\bnodename\x12\x1b\n" +
-	"\bendpoint\x18\xea\a \x01(\tR\bendpoint\x12\x0f\n" +
-	"\x02ca\x18\xeb\a \x01(\tR\x02ca\x12\x13\n" +
-	"\x04cert\x18\xec\a \x01(\tR\x04cert\x12\x11\n" +
-	"\x03key\x18\xed\a \x01(\tR\x03key\x127\n" +
+	"\bendpoint\x18\xea\a \x01(\tR\bendpoint\x127\n" +
 	"\x06labels\x18\xee\a \x03(\v2\x1e.pb.SetNodeOptions.LabelsEntryR\x06labels\x12@\n" +
 	"\tresources\x18\xef\a \x03(\v2!.pb.SetNodeOptions.ResourcesEntryR\tresources\x12\x15\n" +
 	"\x05delta\x18\xf0\a \x01(\bR\x05delta\x12&\n" +
 	"\x0eworkloads_down\x18\xf1\a \x01(\bR\rworkloadsDown\x12#\n" +
 	"\x06bypass\x18\xf2\a \x01(\x0e2\n" +
-	".pb.TriOptR\x06bypass\x12\x1e\n" +
-	"\n" +
-	"update_tls\x18\xf3\a \x01(\bR\tupdateTls\x1a9\n" +
+	".pb.TriOptR\x06bypass\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a<\n" +
 	"\x0eResourcesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\fR\x05value:\x028\x01\"F\n" +
+	"\x05value\x18\x02 \x01(\fR\x05value:\x028\x01J\x06\b\xeb\a\x10\xec\aJ\x06\b\xec\a\x10\xed\aJ\x06\b\xed\a\x10\xee\aJ\x06\b\xf3\a\x10\xf4\aR\x02caR\x04certR\x03keyR\n" +
+	"update_tls\"F\n" +
 	"\x14SetNodeStatusOptions\x12\x1b\n" +
 	"\bnodename\x18\xe9\a \x01(\tR\bnodename\x12\x11\n" +
 	"\x03ttl\x18\xea\a \x01(\x03R\x03ttl\"3\n" +

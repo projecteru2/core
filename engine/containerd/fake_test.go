@@ -15,7 +15,7 @@ func testEngine(t *testing.T, runner *sshrunnertest.Fake) *Engine {
 	return newEngine(&Engine{
 		runner:    runner,
 		config:    coretypes.Config{},
-		ep:        enginetypes.NewParams("node1", Prefix+"10.0.0.1", "", "", ""),
+		ep:        enginetypes.NewParams("node1", Prefix+"10.0.0.1"),
 		namespace: defaultNamespace,
 		socket:    defaultSocket,
 		host:      "10.0.0.1",

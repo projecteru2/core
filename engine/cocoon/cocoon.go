@@ -55,7 +55,7 @@ type Engine struct {
 	hasOras bool
 }
 
-func MakeClient(_ context.Context, config coretypes.Config, nodename, endpoint, ca, cert, key string) (engine.API, error) {
+func MakeClient(_ context.Context, config coretypes.Config, nodename, endpoint string) (engine.API, error) {
 	user, _, addr, err := sshrunner.ParseEndpoint(endpoint, Prefix)
 	if err != nil {
 		return nil, err
@@ -72,7 +72,7 @@ func MakeClient(_ context.Context, config coretypes.Config, nodename, endpoint, 
 			RunDir:       cmp.Or(config.Cocoon.RunDir, defaultRunDir),
 			CgroupParent: cmp.Or(config.Cocoon.CgroupParent, defaultCgroupParent),
 		},
-		ep:     enginetypes.NewParams(nodename, endpoint, ca, cert, key),
+		ep:     enginetypes.NewParams(nodename, endpoint),
 		runner: sshrunner.New(addr, clientConfig),
 		execs:  map[string]sshrunner.Session{},
 	}, nil

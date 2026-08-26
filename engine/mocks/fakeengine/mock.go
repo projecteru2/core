@@ -27,14 +27,11 @@ const (
 )
 
 // MakeClient builds an engine.API whose calls return canned data.
-func MakeClient(_ context.Context, _ coretypes.Config, nodename, endpoint, ca, cert, key string) (engine.API, error) {
+func MakeClient(_ context.Context, _ coretypes.Config, nodename, endpoint string) (engine.API, error) {
 	e := &enginemocks.API{}
 	params := &enginetypes.Params{
 		Nodename: nodename,
 		Endpoint: endpoint,
-		CA:       ca,
-		Cert:     cert,
-		Key:      key,
 	}
 	e.On("Info", mock.Anything).Return(&enginetypes.Info{NCPU: 100, MemTotal: units.GiB * 100, StorageTotal: units.GiB * 100}, nil)
 	e.On("Ping", mock.Anything).Return(nil)

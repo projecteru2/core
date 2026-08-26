@@ -34,7 +34,7 @@ var (
 	engineCache *EngineCache
 )
 
-type factory func(ctx context.Context, config types.Config, nodename, endpoint, ca, cert, key string) (engine.API, error)
+type factory func(ctx context.Context, config types.Config, nodename, endpoint string) (engine.API, error)
 
 // EngineCache holds one engine client per node endpoint and keeps it alive.
 type EngineCache struct {
@@ -149,7 +149,7 @@ func (e *EngineCache) checkNodeStatus(ctx context.Context) {
 					ep := v.(engine.API).GetParams()
 					if ep.Nodename == ns.Nodename {
 						logger.Infof(ctx, "remove engine %+v from cache", ep.CacheKey())
-						RemoveEngineFromCache(ctx, ep.Endpoint, ep.CA, ep.Cert, ep.Key)
+						RemoveEngineFromCache(ctx, ep.Endpoint)
 					}
 					return true
 				})
@@ -171,25 +171,24 @@ func InitEngineCache(ctx context.Context, config types.Config, stor store.Store)
 }
 
 // GetEngineFromCache returns the cached engine for an endpoint, or nil.
-func GetEngineFromCache(_ context.Context, endpoint, ca, cert, key string) engine.API {
-	return engineCache.Get(enginetypes.EndpointCacheKey(endpoint, ca, cert, key))
+func GetEngineFromCache(_ context.Context, endpoint string) engine.API {
+	return engineCache.Get(endpoint)
 }
 
 // RemoveEngineFromCache drops the cached engine for an endpoint.
-func RemoveEngineFromCache(ctx context.Context, endpoint, ca, cert, key string) {
-	cacheKey := enginetypes.EndpointCacheKey(endpoint, ca, cert, key)
-	log.WithFunc("engine.factory.RemoveEngineFromCache").Infof(ctx, "remove engine %+v from cache", cacheKey)
-	engineCache.Delete(cacheKey)
+func RemoveEngineFromCache(ctx context.Context, endpoint string) {
+	log.WithFunc("engine.factory.RemoveEngineFromCache").Infof(ctx, "remove engine %+v from cache", endpoint)
+	engineCache.Delete(endpoint)
 }
 
 // GetEngine returns the cached engine for an endpoint, building one if absent.
-func GetEngine(ctx context.Context, config types.Config, nodename, endpoint, ca, cert, key string) (client engine.API, err error) {
+func GetEngine(ctx context.Context, config types.Config, nodename, endpoint string) (client engine.API, err error) {
 	logger := log.WithFunc("engine.factory.GetEngine")
-	if client = GetEngineFromCache(ctx, endpoint, ca, cert, key); client != nil {
+	if client = GetEngineFromCache(ctx, endpoint); client != nil {
 		return client, nil
 	}
 
-	params := enginetypes.NewParams(nodename, endpoint, ca, cert, key)
+	params := enginetypes.NewParams(nodename, endpoint)
 	defer func() {
 		cacheKey := params.CacheKey()
 		if err == nil {
@@ -238,7 +237,7 @@ func newEngine(ctx context.Context, config types.Config, params *enginetypes.Par
 		return nil, types.ErrInvaildEngineEndpoint
 	}
 	utils.WithTimeout(ctx, config.ConnectionTimeout, func(ctx context.Context) {
-		client, err = e(ctx, config, params.Nodename, params.Endpoint, params.CA, params.Cert, params.Key)
+		client, err = e(ctx, config, params.Nodename, params.Endpoint)
 	})
 	if err != nil {
 		return nil, err

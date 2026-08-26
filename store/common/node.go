@@ -24,10 +24,6 @@ func (s *Store) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*types
 	}
 
 	data := map[string]string{}
-	addIfNotEmpty(data, fmt.Sprintf(NodeCaKey, opts.Nodename), opts.Ca)
-	addIfNotEmpty(data, fmt.Sprintf(NodeCertKey, opts.Nodename), opts.Cert)
-	addIfNotEmpty(data, fmt.Sprintf(NodeKeyKey, opts.Nodename), opts.Key)
-
 	node := &types.Node{
 		Name:      opts.Nodename,
 		Endpoint:  opts.Endpoint,
@@ -53,12 +49,12 @@ func (s *Store) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*types
 	return node, nil
 }
 
-// certs are written before the node record, so a failed create leaves them behind
 func (s *Store) RemoveNode(ctx context.Context, node *types.Node) error {
 	if node == nil {
 		return nil
 	}
 
+	// cert keys linger from the docker era; deleting them keeps removals clean
 	err := s.Delete(ctx, []string{
 		fmt.Sprintf(NodeInfoKey, node.Name),
 		fmt.Sprintf(NodePodKey, node.Podname, node.Name),
@@ -127,9 +123,6 @@ func (s *Store) UpdateNodes(ctx context.Context, nodes ...*types.Node) error {
 		d := string(bytes)
 		data[fmt.Sprintf(NodeInfoKey, node.Name)] = d
 		data[fmt.Sprintf(NodePodKey, node.Podname, node.Name)] = d
-		addIfNotEmpty(data, fmt.Sprintf(NodeCaKey, node.Name), node.Ca)
-		addIfNotEmpty(data, fmt.Sprintf(NodeCertKey, node.Name), node.Cert)
-		addIfNotEmpty(data, fmt.Sprintf(NodeKeyKey, node.Name), node.Key)
 	}
 	return s.Put(ctx, data)
 }
@@ -185,16 +178,10 @@ func (s *Store) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
 }
 
 func (s *Store) MakeClient(ctx context.Context, node *types.Node) (engine.API, error) {
-	// cache lookup ignores ca/cert/key
-	if client := enginefactory.GetEngineFromCache(ctx, node.Endpoint, "", "", ""); client != nil {
+	if client := enginefactory.GetEngineFromCache(ctx, node.Endpoint); client != nil {
 		return client, nil
 	}
-
-	ca, cert, key, err := s.loadCert(ctx, node.Name)
-	if err != nil {
-		return nil, err
-	}
-	return enginefactory.GetEngine(ctx, s.Config, node.Name, node.Endpoint, ca, cert, key)
+	return enginefactory.GetEngine(ctx, s.Config, node.Name, node.Endpoint)
 }
 
 func (s *Store) nodeStatusStream(ctx context.Context, logger *log.Fields, ch chan<- *types.NodeStatus) error {
@@ -220,22 +207,6 @@ func (s *Store) nodeStatusStream(ctx context.Context, logger *log.Fields, ch cha
 	return types.ErrMessageChanClosed
 }
 
-func (s *Store) loadCert(ctx context.Context, nodename string) (ca, cert, key string, err error) {
-	data := []string{"", "", ""}
-	for i, format := range []string{NodeCaKey, NodeCertKey, NodeKeyKey} {
-		v, err := s.GetOne(ctx, fmt.Sprintf(format, nodename))
-		if err != nil {
-			if !s.NotFound(err) {
-				log.WithFunc("store.common.loadCert").Error(ctx, err, "get key")
-				return "", "", "", err
-			}
-			continue
-		}
-		data[i] = v
-	}
-	return data[0], data[1], data[2], nil
-}
-
 func (s *Store) doGetNodes(
 	ctx context.Context, kvs map[string]string,
 	labels map[string]string, all, withoutEngine bool,
@@ -246,7 +217,7 @@ func (s *Store) doGetNodes(
 		if err := json.Unmarshal([]byte(value), node); err != nil {
 			return nil, err
 		}
-		node.Engine = &fake.EngineWithErr{DefaultErr: types.ErrNilEngine, EP: enginetypes.NewParams(node.Name, node.Endpoint, node.Ca, node.Cert, node.Key)}
+		node.Engine = &fake.EngineWithErr{DefaultErr: types.ErrNilEngine, EP: enginetypes.NewParams(node.Name, node.Endpoint)}
 		if utils.LabelsFilter(node.Labels, labels) {
 			allNodes = append(allNodes, node)
 		}
@@ -291,10 +262,4 @@ func (s *Store) doGetNodes(
 	}
 
 	return nodes, nil
-}
-
-func addIfNotEmpty(data map[string]string, key, value string) {
-	if value != "" {
-		data[key] = value
-	}
 }

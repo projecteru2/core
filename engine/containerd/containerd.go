@@ -64,7 +64,7 @@ type Engine struct {
 }
 
 // MakeClient builds a containerd engine for endpoint.
-func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint, ca, cert, key string) (engine.API, error) {
+func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint string) (engine.API, error) {
 	user, host, addr, err := sshrunner.ParseEndpoint(endpoint, Prefix)
 	if err != nil {
 		return nil, err
@@ -102,7 +102,7 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 		client:    cli,
 		runner:    runner,
 		config:    config,
-		ep:        enginetypes.NewParams(nodename, endpoint, ca, cert, key),
+		ep:        enginetypes.NewParams(nodename, endpoint),
 		namespace: namespace,
 		socket:    socket,
 		host:      host,

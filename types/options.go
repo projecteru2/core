@@ -177,9 +177,6 @@ type AddNodeOptions struct {
 	Nodename  string
 	Endpoint  string
 	Podname   string
-	Ca        string
-	Cert      string
-	Key       string
 	Labels    map[string]string
 	Resources resourcetypes.Resources
 	Test      bool
@@ -206,10 +203,6 @@ type SetNodeOptions struct {
 	Delta         bool
 	Labels        map[string]string
 	Bypass        TriOptions
-	UpdateTLS     bool
-	Ca            string
-	Cert          string
-	Key           string
 }
 
 func (o *SetNodeOptions) Validate() error {
