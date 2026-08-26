@@ -3,7 +3,6 @@ package calcium
 import (
 	"context"
 	"io"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -19,10 +18,6 @@ func TestSendLarge(t *testing.T) {
 	c := NewTestCluster()
 	ctx := t.Context()
 
-	tmpfile, err := os.CreateTemp("", "example")
-	assert.NoError(t, err)
-	defer os.RemoveAll(tmpfile.Name())
-	defer tmpfile.Close()
 	opts := &types.SendLargeFileOptions{
 		IDs:   []string{"cid"},
 		Size:  1,
@@ -49,8 +44,6 @@ func TestSendLarge(t *testing.T) {
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(
 		[]*types.Workload{{ID: "cid", Engine: engine}}, nil,
 	)
-	content, _ := io.ReadAll(tmpfile)
-	opts.Chunk = content
 	engine.err = types.ErrMockError
 	optsChan = make(chan *types.SendLargeFileOptions)
 	ch = c.SendLargeFile(ctx, optsChan)

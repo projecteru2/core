@@ -23,7 +23,6 @@ func (s *RediaronTestSuite) TestDeploy() {
 	_, err = s.rediaron.cli.Set(ctx, key, "", 0).Result()
 	s.NoError(err)
 	key = filepath.Join(common.WorkloadDeployPrefix, opts.Name, opts.Entrypoint.Name, "node", "id2")
-	s.NoError(err)
 	_, err = s.rediaron.cli.Set(ctx, key, "", 0).Result()
 	s.NoError(err)
 	nodeCount, err = s.rediaron.GetDeployStatus(ctx, opts.Name, opts.Entrypoint.Name)

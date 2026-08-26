@@ -40,6 +40,7 @@ func TestCacheImage(t *testing.T) {
 	engine.On("ImageRemoteDigest", mock.Anything, mock.Anything).Return("", types.ErrMockError).Once()
 	engine.On("ImagePull", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch, err := c.CacheImage(ctx, &types.ImageOptions{Podname: "podname", Images: []string{"xx"}})
+	assert.NoError(t, err)
 	for c := range ch {
 		assert.False(t, c.Success)
 	}
@@ -47,6 +48,7 @@ func TestCacheImage(t *testing.T) {
 	engine.On("ImageLocalDigests", mock.Anything, mock.Anything).Return([]string{"xx"}, nil)
 	engine.On("ImagePull", mock.Anything, mock.Anything, mock.Anything).Return(io.NopCloser(bytes.NewReader([]byte{})), nil)
 	ch, err = c.CacheImage(ctx, &types.ImageOptions{Podname: "podname", Images: []string{"xx"}})
+	assert.NoError(t, err)
 	for c := range ch {
 		assert.True(t, c.Success)
 	}
@@ -78,17 +80,20 @@ func TestRemoveImage(t *testing.T) {
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil)
 	engine.On("ImageRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch, err := c.RemoveImage(ctx, &types.ImageOptions{Podname: "podname", Images: []string{"xx"}})
+	assert.NoError(t, err)
 	for c := range ch {
 		assert.False(t, c.Success)
 	}
 	engine.On("ImageRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]string{"xx"}, nil)
 	engine.On("ImagesPrune", mock.Anything).Return(types.ErrMockError).Once()
 	ch, err = c.RemoveImage(ctx, &types.ImageOptions{Podname: "podname", Images: []string{"xx"}, Prune: true})
+	assert.NoError(t, err)
 	for c := range ch {
 		assert.True(t, c.Success)
 	}
 	engine.On("ImagesPrune", mock.Anything).Return(nil)
 	ch, err = c.RemoveImage(ctx, &types.ImageOptions{Podname: "podname", Images: []string{"xx"}, Prune: true})
+	assert.NoError(t, err)
 	for c := range ch {
 		assert.True(t, c.Success)
 	}
@@ -121,12 +126,14 @@ func TestListImage(t *testing.T) {
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil)
 	engine.On("ImageList", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch, err := c.ListImage(ctx, &types.ImageOptions{Podname: "podname"})
+	assert.NoError(t, err)
 	msg := <-ch
 	assert.Error(t, msg.Error)
 	engine.On("ImageList", mock.Anything, mock.Anything).Return(
 		[]*enginetypes.Image{{ID: "123"}}, nil,
 	)
 	ch, err = c.ListImage(ctx, &types.ImageOptions{Podname: "podname"})
+	assert.NoError(t, err)
 	msg = <-ch
 	assert.Equal(t, msg.Images[0].ID, "123")
 	store.AssertExpectations(t)

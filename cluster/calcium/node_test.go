@@ -153,7 +153,7 @@ func TestListPodNodes(t *testing.T) {
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, types.ErrMockError)
 	opts.CallInfo = true
 
-	ns, err := c.ListPodNodes(ctx, &types.ListNodesOptions{})
+	ns, err := c.ListPodNodes(ctx, opts)
 	assert.NoError(t, err)
 	cnt := 0
 	for range ns {
@@ -206,7 +206,7 @@ func TestGetNodeEngine(t *testing.T) {
 
 	store := c.store.(*storemocks.Store)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
-	_, err = c.GetNode(ctx, nodename)
+	_, err = c.GetNodeEngineInfo(ctx, nodename)
 	assert.Error(t, err)
 
 	engine := &enginemocks.API{}

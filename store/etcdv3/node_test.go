@@ -18,7 +18,6 @@ func TestAddNode(t *testing.T) {
 	ctx := t.Context()
 	nodename := "testnode"
 	nodename2 := "testnode2"
-	endpoint := "tcp://128.0.0.1:2376"
 	podname := "testpod"
 	_, err := m.AddPod(ctx, podname, "test")
 	assert.NoError(t, err)
@@ -26,7 +25,7 @@ func TestAddNode(t *testing.T) {
 	assert.NoError(t, err)
 	labels := map[string]string{"test": "1"}
 
-	endpoint = "mock://fakeengine"
+	endpoint := "mock://fakeengine"
 	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: "abc", Labels: labels})
 	assert.Error(t, err)
 	node, err := m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: podname, Labels: labels})

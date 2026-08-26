@@ -3,7 +3,6 @@ package rpc
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 )
 
@@ -15,7 +14,6 @@ func TestStatusCodesAreUnique(t *testing.T) {
 		}
 		seen[code] = name
 	}
-	assert.Len(t, seen, len(allStatusCodes()))
 }
 
 func allStatusCodes() map[string]codes.Code {

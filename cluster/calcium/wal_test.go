@@ -406,7 +406,6 @@ func enableTestWAL(t *testing.T, c *Calcium) {
 	c.wal = journal
 }
 
-// mockWALStore backs the journal's three store calls with one map, so entries survive a Log.
 func mockWALStore(store *storemocks.Store) {
 	mutex := &sync.Mutex{}
 	data := map[string]string{}

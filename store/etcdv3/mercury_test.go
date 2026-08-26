@@ -1,9 +1,7 @@
 package etcdv3
 
 import (
-	"context"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -14,19 +12,13 @@ import (
 
 func NewMercury(t *testing.T) *Mercury {
 	config := types.Config{}
-	config.LockTimeout = 10 * time.Second
-	config.GlobalTimeout = 30 * time.Second
 	config.Etcd = types.EtcdConfig{
-		Machines:   []string{"127.0.0.1:2379"},
 		Prefix:     "/eru-test",
 		LockPrefix: "/eru-test-lock",
 	}
-	config.ProbeTarget = "8.8.8.8:80"
 	config.MaxConcurrency = 100000
 
-	ctx, cancel := context.WithCancel(t.Context())
-	defer cancel()
-	factory.InitEngineCache(ctx, config, nil)
+	factory.InitEngineCache(t.Context(), config, nil)
 
 	cluster, err := embedded.New(t.TempDir())
 	assert.NoError(t, err)

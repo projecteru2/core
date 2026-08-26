@@ -365,31 +365,6 @@ func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {
 		}, nil,
 	)
 
-	store.On("GetDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(map[string]int{}, nil)
-	old := strategy.Plans[strategy.Auto]
-	strategy.Plans[strategy.Auto] = func(ctx context.Context, sis []strategy.Info, need, total, _ int) (map[string]int, error) {
-		deployInfos := make(map[string]int)
-		for _, si := range sis {
-			deployInfos[si.Nodename] = 1
-		}
-		return deployInfos, nil
-	}
-	defer func() {
-		strategy.Plans[strategy.Auto] = old
-	}()
-
-	store.On("GetNode",
-		mock.AnythingOfType("*context.timerCtx"),
-		mock.AnythingOfType("string"),
-	).Return(
-		func(_ context.Context, name string) (node *types.Node) {
-			node = node1
-			if name == "n2" {
-				node = node2
-			}
-			return node
-		}, nil,
-	)
 	engine := node1.Engine.(*enginemocks.API)
 
 	engine.On("ImageLocalDigests", mock.Anything, mock.Anything).Return([]string{""}, nil)

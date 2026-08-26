@@ -91,15 +91,6 @@ func (s *RediaronTestSuite) TestUpdateNode() {
 	s.NoError(s.rediaron.UpdateNodes(ctx, node))
 }
 
-func (s *RediaronTestSuite) TestUpdateNodeResource() {
-	ctx := s.T().Context()
-	_, err := s.rediaron.AddPod(ctx, "testpod", "")
-	s.NoError(err)
-	node, err := s.rediaron.AddNode(ctx, &types.AddNodeOptions{Nodename: "test", Endpoint: "mock://", Podname: "testpod", Labels: map[string]string{"x": "y"}})
-	s.NoError(err)
-	s.Equal(node.Name, "test")
-}
-
 func (s *RediaronTestSuite) TestSetNodeStatus() {
 	node := s.addStatusNode()
 	s.NoError(s.rediaron.SetNodeStatus(s.T().Context(), node, 1))

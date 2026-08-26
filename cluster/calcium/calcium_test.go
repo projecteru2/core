@@ -2,6 +2,7 @@ package calcium
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -31,39 +32,22 @@ func TestNewCluster(t *testing.T) {
 	assert.NoError(t, err)
 
 	c.Finalizer()
-	privFile, err := os.CreateTemp("", "priv")
-	assert.NoError(t, err)
-	_, err = privFile.WriteString("privkey")
-	assert.NoError(t, err)
-	defer privFile.Close()
+	privFile := filepath.Join(t.TempDir(), "priv")
+	assert.NoError(t, os.WriteFile(privFile, []byte("privkey"), 0o600))
 
-	config.Git = types.GitConfig{PrivateKey: privFile.Name()}
-
-	config1 := types.Config{
-		Bind:        ":5001",
-		ProbeTarget: "8.8.8.8:80",
-		Git: types.GitConfig{
-			SCMType:    "gitlab",
-			PrivateKey: privFile.Name(),
-		},
-		HAKeepaliveInterval: 16 * time.Second,
+	for _, scmtype := range []string{"gitlab", "github"} {
+		scm, err := New(ctx, types.Config{
+			Bind:        ":5001",
+			ProbeTarget: "8.8.8.8:80",
+			Git: types.GitConfig{
+				SCMType:    scmtype,
+				PrivateKey: privFile,
+			},
+			HAKeepaliveInterval: 16 * time.Second,
+		}, embeddedETCD)
+		assert.NoError(t, err)
+		scm.Finalizer()
 	}
-	c1, err := New(ctx, config1, embeddedETCD)
-	assert.NoError(t, err)
-	c1.Finalizer()
-
-	config2 := types.Config{
-		Bind:        ":5001",
-		ProbeTarget: "8.8.8.8:80",
-		Git: types.GitConfig{
-			SCMType:    "github",
-			PrivateKey: privFile.Name(),
-		},
-		HAKeepaliveInterval: 16 * time.Second,
-	}
-	c2, err := New(ctx, config2, embeddedETCD)
-	assert.NoError(t, err)
-	c2.Finalizer()
 }
 
 func TestFinalizer(t *testing.T) {

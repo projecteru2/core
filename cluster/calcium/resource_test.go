@@ -93,8 +93,6 @@ func TestNodeResource(t *testing.T) {
 	}
 	engine := &enginemocks.API{}
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
-	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		resourcetypes.Resources{"test": {"abc": 123}},
 		resourcetypes.Resources{"test": {"abc": 123}},

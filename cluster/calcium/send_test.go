@@ -1,8 +1,6 @@
 package calcium
 
 import (
-	"io"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,10 +21,6 @@ func TestSend(t *testing.T) {
 	_, err = c.Send(ctx, &types.SendOptions{IDs: []string{"id"}})
 	assert.Error(t, err)
 
-	tmpfile, err := os.CreateTemp("", "example")
-	assert.NoError(t, err)
-	defer os.RemoveAll(tmpfile.Name())
-	defer tmpfile.Close()
 	opts := &types.SendOptions{
 		IDs: []string{"cid"},
 		Files: []types.LinuxFile{
@@ -51,8 +45,6 @@ func TestSend(t *testing.T) {
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(
 		[]*types.Workload{{ID: "cid", Engine: engine}}, nil,
 	)
-	content, _ := io.ReadAll(tmpfile)
-	opts.Files[0].Content = content
 	engine.On("VirtualizationCopyChunkTo",
 		mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything,

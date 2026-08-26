@@ -53,7 +53,6 @@ func (s *RediaronTestSuite) TestServiceStatusStream() {
 	sort.Strings(endpoints)
 	s.Equal(endpoints, []string{"127.0.0.1:5001", "127.0.0.1:5002"})
 
-	_, _, err = m.RegisterService(ctx, "127.0.0.1:5002", time.Second)
 	unregisterService1()
 	time.Sleep(500 * time.Millisecond)
 	triggerMockedKeyspaceNotification(s.rediaron.cli, fmt.Sprintf(common.ServiceStatusKey, "127.0.0.1:5001"), actionDel)

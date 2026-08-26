@@ -110,6 +110,7 @@ func (s *RediaronTestSuite) TestGetWorkloadStatus() {
 	})
 	s.NoError(err)
 	c, err := s.rediaron.GetWorkloadStatus(ctx, id)
+	s.NoError(err)
 	s.Nil(c)
 }
 
@@ -235,8 +236,6 @@ func (s *RediaronTestSuite) TestWorkloadStatusStream() {
 			Endpoint: "tcp://127.0.0.1:2376",
 		},
 	}
-	_, err := json.Marshal(workload)
-	s.NoError(err)
 	nodeBytes, err := json.Marshal(node)
 	s.NoError(err)
 	_, err = m.AddPod(ctx, podname, "CPU")

@@ -234,8 +234,6 @@ func TestWorkloadStatusStream(t *testing.T) {
 			Endpoint: "tcp://127.0.0.1:2376",
 		},
 	}
-	_, err := json.Marshal(workload)
-	assert.NoError(t, err)
 	nodeBytes, err := json.Marshal(node)
 	assert.NoError(t, err)
 	_, err = m.AddPod(ctx, podname, "CPU")
