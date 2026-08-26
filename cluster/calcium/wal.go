@@ -33,10 +33,6 @@ type CreateLambdaHandler struct {
 	wal     wal.WAL
 }
 
-func newCreateLambdaHandler(calcium *Calcium, wal wal.WAL) *CreateLambdaHandler {
-	return &CreateLambdaHandler{calcium: calcium, wal: wal}
-}
-
 func (h *CreateLambdaHandler) Typ() string {
 	return eventCreateLambda
 }
@@ -97,10 +93,6 @@ type CreateWorkloadHandler struct {
 	walBase[*types.Workload]
 
 	calcium *Calcium
-}
-
-func newCreateWorkloadHandler(calcium *Calcium) *CreateWorkloadHandler {
-	return &CreateWorkloadHandler{calcium: calcium}
 }
 
 func (h *CreateWorkloadHandler) Typ() string {
@@ -184,10 +176,6 @@ type ReplaceWorkloadHandler struct {
 	calcium *Calcium
 }
 
-func newReplaceWorkloadHandler(calcium *Calcium) *ReplaceWorkloadHandler {
-	return &ReplaceWorkloadHandler{calcium: calcium}
-}
-
 func (h *ReplaceWorkloadHandler) Typ() string {
 	return eventWorkloadReplaced
 }
@@ -224,10 +212,6 @@ type ReallocWorkloadHandler struct {
 	calcium *Calcium
 }
 
-func newReallocWorkloadHandler(calcium *Calcium) *ReallocWorkloadHandler {
-	return &ReallocWorkloadHandler{calcium: calcium}
-}
-
 func (h *ReallocWorkloadHandler) Typ() string {
 	return eventWorkloadReallocated
 }
@@ -262,10 +246,6 @@ type remapNodeHandler struct {
 	calcium *Calcium
 }
 
-func newRemapNodeHandler(calcium *Calcium) *remapNodeHandler {
-	return &remapNodeHandler{calcium: calcium}
-}
-
 func (h *remapNodeHandler) Typ() string {
 	return eventNodeRemapped
 }
@@ -278,7 +258,11 @@ func (h *remapNodeHandler) Handle(ctx context.Context, raw any) error {
 	defer cancel()
 
 	err := h.calcium.withNodeOperationLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
-		return h.calcium.remapNodeWorkloads(ctx, logger, node)
+		engineParamsMap, workloads, err := h.calcium.computeRemap(ctx, node)
+		if err != nil {
+			return err
+		}
+		return h.calcium.applyRemap(ctx, logger, workloads, engineParamsMap)
 	})
 	if err != nil && (errors.Is(err, types.ErrNodeNotExists) || h.calcium.store.NotFound(err)) {
 		logger.Info(ctx, "node is gone, nothing to remap")
@@ -292,10 +276,6 @@ type WorkloadResourceAllocatedHandler struct {
 	walBase[[]*types.Node]
 
 	calcium *Calcium
-}
-
-func newWorkloadResourceAllocatedHandler(calcium *Calcium) *WorkloadResourceAllocatedHandler {
-	return &WorkloadResourceAllocatedHandler{calcium: calcium}
 }
 
 func (h *WorkloadResourceAllocatedHandler) Typ() string {
@@ -333,10 +313,6 @@ type ProcessingCreatedHandler struct {
 	store store.Store
 }
 
-func newProcessingCreatedHandler(store store.Store) *ProcessingCreatedHandler {
-	return &ProcessingCreatedHandler{store: store}
-}
-
 func (h *ProcessingCreatedHandler) Typ() string {
 	return eventProcessingCreated
 }
@@ -353,7 +329,7 @@ func (h *ProcessingCreatedHandler) Handle(ctx context.Context, raw any) (err err
 		return err
 	}
 	logger.Info(ctx, "obsolete processing deleted")
-	return err
+	return nil
 }
 
 type walBase[T any] struct{}
@@ -378,13 +354,13 @@ func enableWAL(ctx context.Context, config types.Config, calcium *Calcium, store
 		return nil, err
 	}
 
-	hydro.Register(newCreateLambdaHandler(calcium, hydro))
-	hydro.Register(newCreateWorkloadHandler(calcium))
-	hydro.Register(newReplaceWorkloadHandler(calcium))
-	hydro.Register(newReallocWorkloadHandler(calcium))
-	hydro.Register(newRemapNodeHandler(calcium))
-	hydro.Register(newWorkloadResourceAllocatedHandler(calcium))
-	hydro.Register(newProcessingCreatedHandler(store))
+	hydro.Register(&CreateLambdaHandler{calcium: calcium, wal: hydro})
+	hydro.Register(&CreateWorkloadHandler{calcium: calcium})
+	hydro.Register(&ReplaceWorkloadHandler{calcium: calcium})
+	hydro.Register(&ReallocWorkloadHandler{calcium: calcium})
+	hydro.Register(&remapNodeHandler{calcium: calcium})
+	hydro.Register(&WorkloadResourceAllocatedHandler{calcium: calcium})
+	hydro.Register(&ProcessingCreatedHandler{store: store})
 	return hydro, nil
 }
 

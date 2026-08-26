@@ -30,8 +30,8 @@ func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 
 				workload, err := c.GetWorkload(ctx, ID)
 				if err != nil {
+					logger.Error(ctx, err)
 					for _, path := range paths {
-						logger.Error(ctx, err)
 						ch <- &types.CopyMessage{
 							ID:    ID,
 							Path:  path,

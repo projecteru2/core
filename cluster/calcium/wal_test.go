@@ -40,7 +40,7 @@ func TestHandleWorkloadResourceAllocatedMultipleNodes(t *testing.T) {
 		resourcetypes.Resources{}, resourcetypes.Resources{}, []string{}, nil,
 	)
 
-	h := newWorkloadResourceAllocatedHandler(c)
+	h := &WorkloadResourceAllocatedHandler{calcium: c}
 	nodes := []*types.Node{
 		{NodeMeta: types.NodeMeta{Name: "n1"}},
 		{NodeMeta: types.NodeMeta{Name: "n2"}},

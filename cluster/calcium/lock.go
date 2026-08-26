@@ -95,29 +95,11 @@ func (c *Calcium) withWorkloadsLocked(ctx context.Context, ignoreLock bool, IDs 
 }
 
 func (c *Calcium) withNodePodLocked(ctx context.Context, nodename string, f nodeHandler) error {
-	nodeFilter := &types.NodeFilter{
-		Includes: []string{nodename},
-		All:      true,
-	}
-	return c.withNodesPodLocked(ctx, nodeFilter, func(ctx context.Context, nodes map[string]*types.Node) error {
-		if n, ok := nodes[nodename]; ok {
-			return f(ctx, n)
-		}
-		return types.ErrNodeNotExists
-	})
+	return withNodeLocked(ctx, nodename, c.withNodesPodLocked, f)
 }
 
 func (c *Calcium) withNodeOperationLocked(ctx context.Context, nodename string, f nodeHandler) error {
-	nodeFilter := &types.NodeFilter{
-		Includes: []string{nodename},
-		All:      true,
-	}
-	return c.withNodesOperationLocked(ctx, nodeFilter, func(ctx context.Context, nodes map[string]*types.Node) error {
-		if n, ok := nodes[nodename]; ok {
-			return f(ctx, n)
-		}
-		return types.ErrNodeNotExists
-	})
+	return withNodeLocked(ctx, nodename, c.withNodesOperationLocked, f)
 }
 
 func (c *Calcium) withNodesOperationLocked(ctx context.Context, nodeFilter *types.NodeFilter, f nodesHandler) error {
@@ -166,4 +148,17 @@ func (c *Calcium) withNodesLocked(ctx context.Context, nodeFilter *types.NodeFil
 		nodes[n.Name] = n
 	}
 	return f(ctx, nodes)
+}
+
+func withNodeLocked(ctx context.Context, nodename string, withNodes func(context.Context, *types.NodeFilter, nodesHandler) error, f nodeHandler) error {
+	nodeFilter := &types.NodeFilter{
+		Includes: []string{nodename},
+		All:      true,
+	}
+	return withNodes(ctx, nodeFilter, func(ctx context.Context, nodes map[string]*types.Node) error {
+		if n, ok := nodes[nodename]; ok {
+			return f(ctx, n)
+		}
+		return types.ErrNodeNotExists
+	})
 }

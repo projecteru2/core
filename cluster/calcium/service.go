@@ -29,7 +29,7 @@ func (c *Calcium) RegisterService(ctx context.Context) (unregister func(), err e
 		unregisterService func()
 	)
 	for {
-		if expiry, unregisterService, err = c.registerService(ctx, c.serviceAddress); err == nil {
+		if expiry, unregisterService, err = c.store.RegisterService(ctx, c.serviceAddress, c.config.GRPCConfig.ServiceHeartbeatInterval); err == nil {
 			break
 		}
 		if errors.Is(err, types.ErrKeyExists) {
@@ -53,7 +53,7 @@ func (c *Calcium) RegisterService(ctx context.Context) (unregister func(), err e
 		for {
 			select {
 			case <-expiry:
-				if ne, us, err := c.registerService(ctx, c.serviceAddress); err != nil {
+				if ne, us, err := c.store.RegisterService(ctx, c.serviceAddress, c.config.GRPCConfig.ServiceHeartbeatInterval); err != nil {
 					logger.Error(ctx, err, "failed to re-register service")
 					time.Sleep(c.config.GRPCConfig.ServiceHeartbeatInterval)
 				} else {
@@ -71,8 +71,4 @@ func (c *Calcium) RegisterService(ctx context.Context) (unregister func(), err e
 		cancel()
 		wg.Wait()
 	}, nil
-}
-
-func (c *Calcium) registerService(ctx context.Context, addr string) (<-chan struct{}, func(), error) {
-	return c.store.RegisterService(ctx, addr, c.config.GRPCConfig.ServiceHeartbeatInterval)
 }

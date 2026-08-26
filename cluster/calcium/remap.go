@@ -41,14 +41,6 @@ func (c *Calcium) doRemapResource(ctx context.Context, logger *log.Fields, node 
 	return nil
 }
 
-func (c *Calcium) remapNodeWorkloads(ctx context.Context, logger *log.Fields, node *types.Node) error {
-	engineParamsMap, workloads, err := c.computeRemap(ctx, node)
-	if err != nil {
-		return err
-	}
-	return c.applyRemap(ctx, logger, workloads, engineParamsMap)
-}
-
 func (c *Calcium) computeRemap(ctx context.Context, node *types.Node) (map[string]resourcetypes.Resources, []*types.Workload, error) {
 	workloads, err := c.store.ListNodeWorkloads(ctx, node.Name, nil)
 	if err != nil {

@@ -18,6 +18,7 @@ import (
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 func TestAddNode(t *testing.T) {
@@ -336,9 +337,11 @@ func TestFilterNodesDedupesIncludes(t *testing.T) {
 	c := NewTestCluster()
 	ctx := t.Context()
 	store := c.store.(*storemocks.Store)
-	store.On("GetNode", mock.Anything, mock.Anything).Return(
-		func(_ context.Context, name string) *types.Node {
-			return &types.Node{NodeMeta: types.NodeMeta{Name: name}}
+	store.On("GetNodes", mock.Anything, mock.Anything).Return(
+		func(_ context.Context, names []string) []*types.Node {
+			return utils.Map(names, func(name string) *types.Node {
+				return &types.Node{NodeMeta: types.NodeMeta{Name: name}}
+			})
 		}, nil,
 	)
 

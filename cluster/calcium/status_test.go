@@ -88,10 +88,10 @@ func TestGetWorkloadsStatus(t *testing.T) {
 	store := c.store.(*storemocks.Store)
 	cs := &types.StatusMeta{}
 
-	store.On("GetWorkloadStatus", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	_, err := c.GetWorkloadsStatus(ctx, []string{"a"})
 	assert.Error(t, err)
-	store.On("GetWorkloadStatus", mock.Anything, mock.Anything).Return(cs, nil)
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{{StatusMeta: cs}}, nil)
 	r, err := c.GetWorkloadsStatus(ctx, []string{"a"})
 	assert.NoError(t, err)
 	assert.Len(t, r, 1)
@@ -110,7 +110,7 @@ func TestSetWorkloadsStatus(t *testing.T) {
 	ctx := t.Context()
 	store := c.store.(*storemocks.Store)
 
-	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	_, err := c.SetWorkloadsStatus(ctx, []*types.StatusMeta{{ID: "123"}}, nil)
 	assert.Error(t, err)
 
@@ -118,12 +118,12 @@ func TestSetWorkloadsStatus(t *testing.T) {
 		ID:   "123",
 		Name: "invalid",
 	}
-	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil).Once()
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil).Once()
 	_, err = c.SetWorkloadsStatus(ctx, []*types.StatusMeta{{ID: "123"}}, nil)
 	assert.Error(t, err)
 
 	workload.Name = "a_b_c"
-	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
 	store.On("SetWorkloadStatus",
 		mock.Anything,
 		mock.Anything,

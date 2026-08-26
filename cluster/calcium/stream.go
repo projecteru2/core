@@ -173,21 +173,18 @@ func (c *Calcium) processStdStream(ctx context.Context, stdout, stderr io.ReadCl
 
 	wg := sync.WaitGroup{}
 
-	wg.Add(1)
-	_ = c.pool.Invoke(func() {
-		defer wg.Done()
-		for data := range c.processVirtualizationOutStream(ctx, stdout, splitFunc, split) {
-			ch <- types.StdStreamMessage{Data: data, StdStreamType: types.Stdout}
-		}
-	})
-
-	wg.Add(1)
-	_ = c.pool.Invoke(func() {
-		defer wg.Done()
-		for data := range c.processVirtualizationOutStream(ctx, stderr, splitFunc, split) {
-			ch <- types.StdStreamMessage{Data: data, StdStreamType: types.Stderr}
-		}
-	})
+	for _, source := range []struct {
+		stream io.ReadCloser
+		typ    types.StdStreamType
+	}{{stdout, types.Stdout}, {stderr, types.Stderr}} {
+		wg.Add(1)
+		_ = c.pool.Invoke(func() {
+			defer wg.Done()
+			for data := range c.processVirtualizationOutStream(ctx, source.stream, splitFunc, split) {
+				ch <- types.StdStreamMessage{Data: data, StdStreamType: source.typ}
+			}
+		})
+	}
 
 	_ = c.pool.Invoke(func() {
 		defer close(ch)

@@ -25,7 +25,6 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 	}
 	var res resourcetypes.Resources
 	var node *types.Node
-	var err error
 
 	client, err := enginefactory.GetEngine(ctx, c.config, opts.Nodename, opts.Endpoint)
 	if err != nil {
@@ -181,7 +180,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 		return nil, err
 	}
 	var n *types.Node
-	return n, c.withNodePodLocked(ctx, opts.Nodename, func(ctx context.Context, node *types.Node) error {
+	err := c.withNodePodLocked(ctx, opts.Nodename, func(ctx context.Context, node *types.Node) error {
 		logger.Info(ctx, "set node")
 		var err error
 		if err = c.refreshResourceInfo(ctx, node); err != nil {
@@ -189,20 +188,20 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 		}
 		n = node
 
-		n.Bypass = (opts.Bypass == types.TriTrue) || (opts.Bypass == types.TriKeep && n.Bypass)
-		if n.IsDown() {
+		node.Bypass = (opts.Bypass == types.TriTrue) || (opts.Bypass == types.TriKeep && node.Bypass)
+		if node.IsDown() {
 			logger.Warnf(ctx, "node marked down: %s", opts.Nodename)
 		}
 
 		if opts.WorkloadsDown {
-			c.setAllWorkloadsOnNodeDown(ctx, n.Name)
+			c.setAllWorkloadsOnNodeDown(ctx, node.Name)
 		}
 
 		if opts.Endpoint != "" {
-			n.Endpoint = opts.Endpoint
+			node.Endpoint = opts.Endpoint
 		}
 		if len(opts.Labels) != 0 {
-			n.Labels = opts.Labels
+			node.Labels = opts.Labels
 		}
 
 		var origin resourcetypes.Resources
@@ -211,17 +210,17 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 				if len(opts.Resources) == 0 {
 					return nil
 				}
-				origin, _, err = c.rmgr.SetNodeResourceCapacity(ctx, n.Name, nil, opts.Resources, opts.Delta, plugins.Incr)
+				origin, _, err = c.rmgr.SetNodeResourceCapacity(ctx, node.Name, nil, opts.Resources, opts.Delta, plugins.Incr)
 				return err
 			},
 			func(ctx context.Context) error {
 				defer enginefactory.RemoveEngineFromCache(ctx, node.Endpoint)
-				if updateErr := c.store.UpdateNodes(ctx, n); updateErr != nil {
+				if updateErr := c.store.UpdateNodes(ctx, node); updateErr != nil {
 					return updateErr
 				}
 				// capacity refresh is best effort; the store write already succeeded
-				_ = c.refreshResourceInfo(ctx, n)
-				_ = c.pool.Invoke(func() { c.doSendNodeMetrics(context.WithoutCancel(ctx), n) })
+				_ = c.refreshResourceInfo(ctx, node)
+				_ = c.pool.Invoke(func() { c.doSendNodeMetrics(context.WithoutCancel(ctx), node) })
 				_ = c.pool.Invoke(func() { c.RemapResourceAndLog(ctx, logger, node) })
 				return nil
 			},
@@ -232,12 +231,13 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 				if len(opts.Resources) == 0 {
 					return nil
 				}
-				_, _, err = c.rmgr.SetNodeResourceCapacity(ctx, n.Name, nil, origin, false, plugins.Decr)
+				_, _, err = c.rmgr.SetNodeResourceCapacity(ctx, node.Name, nil, origin, false, plugins.Decr)
 				return err
 			},
 			c.config.GlobalTimeout)
 		return txnErr
 	})
+	return n, err
 }
 
 func (c *Calcium) filterNodes(ctx context.Context, nodeFilter *types.NodeFilter) (ns []*types.Node, err error) {
@@ -246,15 +246,15 @@ func (c *Calcium) filterNodes(ctx context.Context, nodeFilter *types.NodeFilter)
 		ns = slices.CompactFunc(ns, func(a, b *types.Node) bool { return a.Name == b.Name })
 	}()
 
-	if len(nodeFilter.Includes) != 0 {
-		for _, nodename := range nodeFilter.Includes {
-			node, getErr := c.store.GetNode(ctx, nodename)
-			if getErr != nil {
-				return nil, getErr
-			}
-			ns = append(ns, node)
+	if len(nodeFilter.Includes) == 1 {
+		node, err := c.store.GetNode(ctx, nodeFilter.Includes[0])
+		if err != nil {
+			return nil, err
 		}
-		return ns, nil
+		return []*types.Node{node}, nil
+	}
+	if len(nodeFilter.Includes) != 0 {
+		return c.store.GetNodes(ctx, nodeFilter.Includes)
 	}
 
 	listedNodes, err := c.store.GetNodesByPod(ctx, nodeFilter, false)
@@ -270,7 +270,6 @@ func (c *Calcium) filterNodes(ctx context.Context, nodeFilter *types.NodeFilter)
 	}), nil
 }
 
-// refreshResourceInfo fills the node's capacity, usage and diffs from the resource plugins.
 func (c *Calcium) refreshResourceInfo(ctx context.Context, node *types.Node) error {
 	var err error
 	node.ResourceInfo.Capacity, node.ResourceInfo.Usage, node.ResourceInfo.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false)

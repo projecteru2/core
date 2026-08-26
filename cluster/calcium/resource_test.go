@@ -35,7 +35,6 @@ func TestPodResource(t *testing.T) {
 		},
 	}
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
-	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()

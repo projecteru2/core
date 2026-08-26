@@ -29,36 +29,43 @@ func (c *Calcium) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
 }
 
 func (c *Calcium) GetWorkloadsStatus(ctx context.Context, IDs []string) ([]*types.StatusMeta, error) {
-	r := []*types.StatusMeta{}
-	for _, ID := range IDs {
-		s, err := c.store.GetWorkloadStatus(ctx, ID)
-		if err != nil {
-			log.WithFunc("calcium.GetWorkloadsStatus").WithField("IDs", IDs).Error(ctx, err)
-			return r, err
-		}
-		r = append(r, s)
+	workloads, err := c.store.GetWorkloads(ctx, IDs)
+	if err != nil {
+		log.WithFunc("calcium.GetWorkloadsStatus").WithField("IDs", IDs).Error(ctx, err)
+		return nil, err
 	}
-	return r, nil
+	return utils.Map(workloads, func(workload *types.Workload) *types.StatusMeta { return workload.StatusMeta }), nil
 }
 
 func (c *Calcium) SetWorkloadsStatus(ctx context.Context, statusMetas []*types.StatusMeta, ttls map[string]int64) ([]*types.StatusMeta, error) {
 	logger := log.WithFunc("calcium.SetWorkloadsStatus").WithField("count", len(statusMetas)).WithField("ttls", ttls)
+	// old callers omit appname, nodename and entrypoint; look them up
+	missing := []string{}
+	for _, statusMeta := range statusMetas {
+		if statusMeta.Appname == "" || statusMeta.Nodename == "" || statusMeta.Entrypoint == "" {
+			missing = append(missing, statusMeta.ID)
+		}
+	}
+	workloads := map[string]*types.Workload{}
+	if len(missing) > 0 {
+		ws, err := c.store.GetWorkloads(ctx, missing)
+		if err != nil {
+			logger.Error(ctx, err)
+			return nil, err
+		}
+		for _, workload := range ws {
+			workloads[workload.ID] = workload
+		}
+	}
+
 	r := []*types.StatusMeta{}
 	for _, statusMeta := range statusMetas {
-		// old callers omit appname, nodename and entrypoint; look them up
-		if statusMeta.Appname == "" || statusMeta.Nodename == "" || statusMeta.Entrypoint == "" {
-			workload, err := c.store.GetWorkload(ctx, statusMeta.ID)
-			if err != nil {
-				logger.Error(ctx, err)
-				return nil, err
-			}
-
+		if workload, ok := workloads[statusMeta.ID]; ok {
 			appname, entrypoint, _, err := utils.ParseWorkloadName(workload.Name)
 			if err != nil {
 				logger.Error(ctx, err)
 				return nil, err
 			}
-
 			statusMeta.Appname = appname
 			statusMeta.Nodename = workload.Nodename
 			statusMeta.Entrypoint = entrypoint
