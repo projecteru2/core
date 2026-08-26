@@ -10,6 +10,7 @@ import (
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 func (e *ETCD) StartEphemeral(ctx context.Context, path string, heartbeat time.Duration) (<-chan struct{}, func(), error) {
@@ -36,9 +37,6 @@ func (e *ETCD) StartEphemeral(ctx context.Context, path string, heartbeat time.D
 	wg.Go(func() {
 		defer close(expiry)
 
-		tick := time.NewTicker(heartbeat / 3)
-		defer tick.Stop()
-
 		defer func() {
 			revokeCtx, revokeCancel := context.WithTimeout(context.WithoutCancel(ctx), time.Minute)
 			defer revokeCancel()
@@ -47,17 +45,13 @@ func (e *ETCD) StartEphemeral(ctx context.Context, path string, heartbeat time.D
 			}
 		}()
 
-		for {
-			select {
-			case <-tick.C:
-				if _, err := e.cliv3.KeepAliveOnce(ctx, lease.ID); err != nil {
-					logger.Errorf(ctx, err, "keepalive %d with %s failed", lease.ID, path)
-					return
-				}
-			case <-ctx.Done():
-				return
+		_ = utils.KeepAlive(ctx, heartbeat/3, func(ctx context.Context) error {
+			if _, err := e.cliv3.KeepAliveOnce(ctx, lease.ID); err != nil {
+				logger.Errorf(ctx, err, "keepalive %d with %s failed", lease.ID, path)
+				return err
 			}
-		}
+			return nil
+		})
 	})
 
 	return expiry, func() {

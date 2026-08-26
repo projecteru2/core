@@ -108,32 +108,18 @@ func (n *NodeStatusWatcher) withActiveLock(parentCtx context.Context, f func(ctx
 // replayDeadJournals hands the journals of unregistered instances to this one, for as long as it stays active.
 func (n *NodeStatusWatcher) replayDeadJournals(ctx context.Context) {
 	logger := log.WithFunc("selfmon.replayDeadJournals").WithField("ID", n.ID)
-	services, err := n.store.ServiceStatusStream(ctx)
-	if err != nil {
-		logger.Error(ctx, err, "failed to watch service status")
-		return
-	}
-
-	ticker := time.NewTicker(n.config.GRPCConfig.ServiceHeartbeatInterval)
-	defer ticker.Stop()
-
-	var live []string
-	var known bool
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case addresses, ok := <-services:
-			if !ok {
-				return
-			}
-			live, known = addresses, true
-		case <-ticker.C:
-			if known {
-				n.wal.Takeover(ctx, live)
-			}
+	_ = utils.KeepAlive(ctx, n.config.GRPCConfig.ServiceHeartbeatInterval, func(ctx context.Context) error {
+		live, err := n.store.GetServiceStatus(ctx)
+		if err != nil {
+			logger.Error(ctx, err, "failed to read service status")
+			return nil
 		}
-	}
+		if len(live) == 0 {
+			return nil
+		}
+		n.wal.Takeover(ctx, live)
+		return nil
+	})
 }
 
 func (n *NodeStatusWatcher) initNodeStatus(ctx context.Context) {

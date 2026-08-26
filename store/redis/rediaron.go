@@ -73,13 +73,14 @@ func (r *Rediaron) KNotify(ctx context.Context, pattern string) chan *KNotifyMes
 	prefix := fmt.Sprintf(keyNotifyPrefix, r.Config.Redis.DB, "")
 	channel := fmt.Sprintf(keyNotifyPrefix, r.Config.Redis.DB, pattern)
 	pubsub := r.cli.PSubscribe(ctx, channel)
-	subC := pubsub.Channel()
+	subC := pubsub.ChannelWithSubscriptions()
 	_ = r.Pool.Invoke(func() {
 		defer close(ch)
 		defer func() {
 			_ = pubsub.Close()
 		}()
 
+		subscribed := false
 		for {
 			select {
 			case <-ctx.Done():
@@ -89,9 +90,22 @@ func (r *Rediaron) KNotify(ctx context.Context, pattern string) chan *KNotifyMes
 					logger.Warn(ctx, "channel closed, knotify returns")
 					return
 				}
-				ch <- &KNotifyMessage{
-					Key:    strings.TrimPrefix(v.Channel, prefix),
-					Action: strings.ToLower(v.Payload),
+				switch v := v.(type) {
+				case *redis.Subscription:
+					if subscribed {
+						return
+					}
+					subscribed = true
+				case *redis.Message:
+					message := &KNotifyMessage{
+						Key:    strings.TrimPrefix(v.Channel, prefix),
+						Action: strings.ToLower(v.Payload),
+					}
+					select {
+					case ch <- message:
+					case <-ctx.Done():
+						return
+					}
 				}
 			}
 		}

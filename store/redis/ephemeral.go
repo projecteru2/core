@@ -6,15 +6,29 @@ import (
 	"time"
 
 	"github.com/cockroachdb/errors"
+	goredis "github.com/redis/go-redis/v9"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
-const ephemeralValue = "__aaron__"
+var (
+	refreshEphemeralScript = goredis.NewScript(`
+if redis.call("get", KEYS[1]) == ARGV[1] then
+    return redis.call("pexpire", KEYS[1], ARGV[2])
+end
+return 0`)
+	revokeEphemeralScript = goredis.NewScript(`
+if redis.call("get", KEYS[1]) == ARGV[1] then
+    return redis.call("del", KEYS[1])
+end
+return 0`)
+)
 
 func (r *Rediaron) StartEphemeral(ctx context.Context, path string, heartbeat time.Duration) (<-chan struct{}, func(), error) {
-	set, err := r.cli.SetNX(ctx, path, ephemeralValue, heartbeat).Result()
+	token := utils.RandomID()
+	set, err := r.cli.SetNX(ctx, path, token, heartbeat).Result()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -30,26 +44,14 @@ func (r *Rediaron) StartEphemeral(ctx context.Context, path string, heartbeat ti
 	if err := r.Pool.Invoke(func() {
 		defer wg.Done()
 		defer close(expiry)
-
-		tick := time.NewTicker(heartbeat / 3)
-		defer tick.Stop()
-
-		for {
-			select {
-			case <-tick.C:
-				if err := r.refreshEphemeral(ctx, path, heartbeat); err != nil {
-					r.revokeEphemeral(ctx, path)
-					return
-				}
-			case <-ctx.Done():
-				r.revokeEphemeral(ctx, path)
-				return
-			}
-		}
+		defer r.revokeEphemeral(ctx, path, token)
+		_ = utils.KeepAlive(ctx, heartbeat/3, func(ctx context.Context) error {
+			return r.refreshEphemeral(ctx, path, token, heartbeat)
+		})
 	}); err != nil {
 		wg.Done()
 		cancel()
-		r.revokeEphemeral(ctx, path)
+		r.revokeEphemeral(ctx, path, token)
 		return nil, nil, err
 	}
 
@@ -59,17 +61,23 @@ func (r *Rediaron) StartEphemeral(ctx context.Context, path string, heartbeat ti
 	}, nil
 }
 
-func (r *Rediaron) revokeEphemeral(ctx context.Context, path string) {
+func (r *Rediaron) revokeEphemeral(ctx context.Context, path, token string) {
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Second)
 	defer cancel()
-	if _, err := r.cli.Del(ctx, path).Result(); err != nil {
+	if _, err := revokeEphemeralScript.Run(ctx, r.cli, []string{path}, token).Result(); err != nil {
 		log.WithFunc("store.redis.revokeEphemeral").Errorf(ctx, err, "revoke %s failed", path)
 	}
 }
 
-func (r *Rediaron) refreshEphemeral(ctx context.Context, path string, ttl time.Duration) error {
+func (r *Rediaron) refreshEphemeral(ctx context.Context, path, token string, ttl time.Duration) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
-	_, err := r.cli.Expire(ctx, path, ttl).Result()
-	return err
+	refreshed, err := refreshEphemeralScript.Run(ctx, r.cli, []string{path}, token, max(ttl.Milliseconds(), int64(1))).Int()
+	if err != nil {
+		return err
+	}
+	if refreshed == 0 {
+		return errors.Wrap(types.ErrKeyNotExists, path)
+	}
+	return nil
 }

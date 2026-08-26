@@ -246,6 +246,78 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	engine.AssertExpectations(t)
 }
 
+func TestCreateWorkloadRollsBackAllocatedResourcesAfterProcessingFailure(t *testing.T) {
+	for _, tc := range []struct {
+		name                string
+		rollbackErr         error
+		deleteProcessingErr error
+		resourceCommitted   bool
+		processingCommitted bool
+	}{
+		{name: "rollback succeeds", resourceCommitted: true, processingCommitted: true},
+		{name: "rollback fails", rollbackErr: types.ErrMockError, processingCommitted: true},
+		{name: "processing cleanup fails", deleteProcessingErr: types.ErrMockError, resourceCommitted: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			c, nodes := newCreateWorkloadCluster(t, types.ErrMockError, tc.deleteProcessingErr)
+			ctx := context.Background()
+			opts := &types.DeployOptions{
+				Name:           "zc:name",
+				Count:          1,
+				DeployStrategy: strategy.Auto,
+				Podname:        "p1",
+				Resources:      resourcetypes.Resources{},
+				Image:          "zc:test",
+				Entrypoint:     &types.Entrypoint{Name: "good-entrypoint"},
+				NodeFilter:     &types.NodeFilter{},
+			}
+
+			store := c.store.(*storemocks.Store)
+			rmgr := c.rmgr.(*resourcemocks.Manager)
+			mwal := &walmocks.WAL{}
+			c.wal = mwal
+			var resourceCommitted atomic.Bool
+			var processingCommitted atomic.Bool
+			mwal.On("Log", eventWorkloadResourceAllocated, mock.Anything).Return(wal.Commit(func() error {
+				resourceCommitted.Store(true)
+				return nil
+			}), nil).Once()
+			mwal.On("Log", eventProcessingCreated, mock.Anything).Return(wal.Commit(func() error {
+				processingCommitted.Store(true)
+				return nil
+			}), nil).Once()
+
+			node := nodes[0]
+			rmgr.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(
+				map[string]*plugintypes.NodeDeployCapacity{
+					node.Name: {Capacity: 1, Weight: 1},
+				},
+				1,
+				nil,
+			).Once()
+			store.On("GetDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(map[string]int{}, nil).Once()
+			rmgr.On("Alloc", mock.Anything, node.Name, 1, mock.Anything).Return(
+				[]resourcetypes.Resources{{}},
+				[]resourcetypes.Resources{{}},
+				nil,
+			).Once()
+			rmgr.On("RollbackAlloc", mock.Anything, node.Name, []resourcetypes.Resources{{}}).Return(tc.rollbackErr).Once()
+
+			ch, err := c.CreateWorkload(ctx, opts)
+			require.NoError(t, err)
+			messages := []*types.CreateWorkloadMessage{}
+			for message := range ch {
+				messages = append(messages, message)
+			}
+			require.Len(t, messages, 1)
+			assert.ErrorIs(t, messages[0].Error, types.ErrMockError)
+			assert.Equal(t, tc.resourceCommitted, resourceCommitted.Load())
+			assert.Equal(t, tc.processingCommitted, processingCommitted.Load())
+			mwal.AssertExpectations(t)
+		})
+	}
+}
+
 func TestCreateWorkloadIngorePullTxn(t *testing.T) {
 	c, nodes := newCreateWorkloadCluster(t)
 	ctx := context.Background()
@@ -502,6 +574,35 @@ func TestDoDeployOneWorkloadRollbackRemovesTheContainerTheEngineKept(t *testing.
 	engine.AssertExpectations(t)
 }
 
+func TestDoDeployOneWorkloadKeepsJournalWhenRollbackFails(t *testing.T) {
+	c := NewTestCluster()
+	ctx := context.Background()
+	var committed atomic.Bool
+	mwal := &walmocks.WAL{}
+	mwal.On("Log", eventWorkloadCreated, mock.Anything).Return(wal.Commit(func() error {
+		committed.Store(true)
+		return nil
+	}), nil).Once()
+	c.wal = mwal
+
+	store := c.store.(*storemocks.Store)
+	store.On("AddWorkload", mock.Anything, mock.Anything, mock.Anything).Return(types.ErrMockError).Once()
+	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil).Once()
+	engine := &enginemocks.API{}
+	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationCreated{ID: "wrkid"}, nil).Once()
+	engine.On("VirtualizationRemove", mock.Anything, "wrkid", true, true).Return(types.ErrMockError).Once()
+	node := &types.Node{NodeMeta: types.NodeMeta{Name: "n1"}, Engine: engine}
+
+	opts := &types.DeployOptions{Name: "app", Podname: "pod", Entrypoint: &types.Entrypoint{Name: "entry"}}
+	createOpts := &enginetypes.VirtualizationCreateOptions{Name: "app_entry_abcdef"}
+
+	assert.Error(t, c.doDeployOneWorkload(ctx, node, opts, &types.CreateWorkloadMessage{}, createOpts, false))
+	assert.False(t, committed.Load())
+	mwal.AssertExpectations(t)
+	store.AssertExpectations(t)
+	engine.AssertExpectations(t)
+}
+
 func TestDoMakeWorkloadOptionsEnvIsolation(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
@@ -532,7 +633,7 @@ func TestDoMakeWorkloadOptionsEnvIsolation(t *testing.T) {
 	assert.Equal(t, []string{"A=1", "B=2"}, opts.Env)
 }
 
-func newCreateWorkloadCluster(_ *testing.T) (*Calcium, []*types.Node) {
+func newCreateWorkloadCluster(_ *testing.T, processingErrors ...error) (*Calcium, []*types.Node) {
 	c := NewTestCluster()
 
 	engine := &enginemocks.API{}
@@ -551,8 +652,16 @@ func newCreateWorkloadCluster(_ *testing.T) (*Calcium, []*types.Node) {
 	nodes := []*types.Node{node1, node2}
 
 	store := c.store.(*storemocks.Store)
-	store.On("CreateProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	store.On("DeleteProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	var processingErr error
+	if len(processingErrors) > 0 {
+		processingErr = processingErrors[0]
+	}
+	store.On("CreateProcessing", mock.Anything, mock.Anything, mock.Anything).Return(processingErr)
+	var deleteProcessingErr error
+	if len(processingErrors) > 1 {
+		deleteProcessingErr = processingErrors[1]
+	}
+	store.On("DeleteProcessing", mock.Anything, mock.Anything, mock.Anything).Return(deleteProcessingErr)
 
 	lock := &lockmocks.DistributedLock{}
 	lock.On("Lock", mock.Anything).Return(context.Background(), nil)

@@ -84,6 +84,33 @@ func TestRemoveNodeRollbackRestoresNonWhitelistedPlugins(t *testing.T) {
 	assert.Equal(t, capacity, <-restored)
 }
 
+func TestSetNodeResourceCapacityReturnsSuccessfulChange(t *testing.T) {
+	beforeResource := plugintypes.NodeResource{"memory": int64(1024)}
+	afterResource := plugintypes.NodeResource{"memory": int64(2048)}
+
+	plugin := pluginmocks.NewPlugin(t)
+	plugin.On("Name").Return("cpumem").Maybe()
+	plugin.On("SetNodeResourceCapacity", mock.Anything, "n1", mock.Anything, afterResource, false, true).
+		Return(&plugintypes.SetNodeResourceCapacityResponse{Before: beforeResource, After: afterResource}, nil).
+		Once()
+
+	m, err := New(coretypes.Config{GlobalTimeout: time.Minute})
+	assert.NoError(t, err)
+	m.AddPlugins(plugin)
+
+	before, after, err := m.SetNodeResourceCapacity(
+		t.Context(),
+		"n1",
+		resourcetypes.Resources{},
+		resourcetypes.Resources{"cpumem": afterResource},
+		false,
+		true,
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, beforeResource, before["cpumem"])
+	assert.Equal(t, afterResource, after["cpumem"])
+}
+
 func newCapacityPlugin(t *testing.T, name string, capacities map[string]*plugintypes.NodeDeployCapacity) *pluginmocks.Plugin {
 	p := pluginmocks.NewPlugin(t)
 	p.On("Name").Return(name).Maybe()

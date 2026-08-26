@@ -60,7 +60,7 @@ func (s *RediaronTestSuite) TestEphemeralDeregister() {
 
 	v, err := s.rediaron.GetOne(ctx, path)
 	s.NoError(err)
-	s.Equal(ephemeralValue, v)
+	s.NotEmpty(v)
 
 	stop()
 	v, err = s.rediaron.GetOne(ctx, path)
@@ -79,12 +79,12 @@ func (s *RediaronTestSuite) TestEphemeral() {
 
 	v, err := s.rediaron.GetOne(ctx, path)
 	s.NoError(err)
-	s.Equal(ephemeralValue, v)
+	s.NotEmpty(v)
 
 	time.Sleep(heartbeat * 2)
 	v, err = s.rediaron.GetOne(ctx, path)
 	s.NoError(err)
-	s.Equal(ephemeralValue, v)
+	s.NotEmpty(v)
 
 	select {
 	case <-expiry:
@@ -118,4 +118,26 @@ func (s *RediaronTestSuite) TestEphemeralFailedAsPutAlready() {
 
 	_, _, err = s.rediaron.StartEphemeral(ctx, path, heartbeat)
 	s.Error(err)
+}
+
+func (s *RediaronTestSuite) TestEphemeralStopsAfterOwnershipChanges() {
+	ctx := context.Background()
+	path := "/ident"
+	heartbeat := 90 * time.Millisecond
+	expiry, stop, err := s.rediaron.StartEphemeral(ctx, path, heartbeat)
+	s.Require().NoError(err)
+
+	replacement := utils.RandomID()
+	s.Require().NoError(s.rediaron.cli.Set(ctx, path, replacement, time.Second).Err())
+
+	select {
+	case <-expiry:
+	case <-time.After(time.Second):
+		s.FailNow("lease ownership loss was not reported")
+	}
+	stop()
+
+	value, err := s.rediaron.GetOne(ctx, path)
+	s.NoError(err)
+	s.Equal(replacement, value)
 }

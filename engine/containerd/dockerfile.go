@@ -168,7 +168,7 @@ func recreateDir(path string) error {
 	if err := os.RemoveAll(path); err != nil {
 		return err
 	}
-	return os.MkdirAll(path, os.ModeDir)
+	return os.MkdirAll(path, 0o750)
 }
 
 func writeDockerfile(dockerfile, buildDir string) (err error) {

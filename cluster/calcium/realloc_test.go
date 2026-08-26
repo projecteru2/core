@@ -89,6 +89,7 @@ func TestRealloc(t *testing.T) {
 	rmgr.On("RollbackRealloc", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	store.On("UpdateWorkload", mock.Anything, mock.Anything).Return(types.ErrMockError).Once()
+	store.On("UpdateWorkload", mock.Anything, mock.Anything).Return(nil).Once()
 	err = c.ReallocResource(ctx, opts)
 	assert.True(t, errors.Is(err, types.ErrMockError))
 	store.AssertExpectations(t)
@@ -138,4 +139,45 @@ func TestReallocJournalsRepairEntries(t *testing.T) {
 	assert.NoError(t, c.doReallocOnNode(ctx, node, workload, *workload, opts))
 	assert.Equal(t, []string{eventWorkloadResourceAllocated, eventWorkloadReallocated}, logged)
 	assert.Equal(t, 2, committed)
+}
+
+func TestReallocKeepsRepairEntriesUntilRollbackCompletes(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		rollback  error
+		committed int
+	}{
+		{name: "rollback succeeds", committed: 2},
+		{name: "rollback fails", rollback: types.ErrMockError},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			c := NewTestCluster()
+			ctx := context.Background()
+
+			committed := 0
+			mwal := &walmocks.WAL{}
+			mwal.On("Log", mock.Anything, mock.Anything).Return(func(_ string, _ any) (wal.Commit, error) {
+				return func() error { committed++; return nil }, nil
+			})
+			c.wal = mwal
+
+			engine := &enginemocks.API{}
+			node := &types.Node{NodeMeta: types.NodeMeta{Name: "node1"}, Engine: engine}
+			workload := &types.Workload{ID: "c1", Nodename: node.Name, Engine: engine, Resources: resourcetypes.Resources{}}
+
+			store := c.store.(*storemocks.Store)
+			store.On("UpdateWorkload", mock.Anything, workload).Return(types.ErrMockError).Once()
+			store.On("UpdateWorkload", mock.Anything, mock.Anything).Return(nil).Once()
+			rmgr := c.rmgr.(*resourcemocks.Manager)
+			rmgr.On("Realloc", mock.Anything, node.Name, mock.Anything, mock.Anything).Return(
+				resourcetypes.Resources{}, resourcetypes.Resources{}, resourcetypes.Resources{}, nil,
+			).Once()
+			rmgr.On("RollbackRealloc", mock.Anything, node.Name, mock.Anything).Return(tc.rollback).Once()
+
+			opts := &types.ReallocOptions{ID: workload.ID, Resources: resourcetypes.Resources{}}
+			assert.ErrorIs(t, c.doReallocOnNode(ctx, node, workload, *workload, opts), types.ErrMockError)
+			assert.Equal(t, tc.committed, committed)
+			mwal.AssertExpectations(t)
+		})
+	}
 }

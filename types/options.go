@@ -277,8 +277,8 @@ func (o *SendLargeFileOptions) Validate() error {
 	if len(o.IDs) == 0 {
 		return ErrNoWorkloadIDs
 	}
-	if len(o.Chunk) == 0 {
-		return ErrNoFilesToSend
+	if o.Dst == "" {
+		return ErrEmptyFileDst
 	}
 	if o.UID == 0 && o.GID == 0 && o.Mode == 0 {
 		o.Mode = 0o755

@@ -2,6 +2,8 @@ package containerd
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -134,6 +136,20 @@ func TestMakeUserPartCreatesTheDeployUser(t *testing.T) {
 	}
 	if !strings.Contains(got, "USER eru") || !strings.Contains(got, "eru::1023:1023:") {
 		t.Errorf("got %q, want the user added and selected", got)
+	}
+}
+
+func TestRecreateDirCreatesATraversableDirectory(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "repo")
+	if err := recreateDir(path); err != nil {
+		t.Fatalf("recreate directory: %v", err)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("stat directory: %v", err)
+	}
+	if info.Mode().Perm()&0o700 != 0o700 {
+		t.Fatalf("got permissions %#o, want owner access", info.Mode().Perm())
 	}
 }
 

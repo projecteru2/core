@@ -177,21 +177,8 @@ func (s *Store) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
 			logger.Info(ctx, "close NodeStatusStream channel")
 			close(ch)
 		}()
-
-		logger.Infof(ctx, "watch on %s", NodeStatusPrefix)
-		for event := range s.Watch(ctx, NodeStatusPrefix) {
-			nodename := utils.Tail(event.Key)
-			status := &types.NodeStatus{
-				Nodename: nodename,
-				Alive:    event.Type == EventPut,
-			}
-			node, err := s.GetNode(ctx, nodename)
-			if err != nil {
-				status.Error = err
-			} else {
-				status.Podname = node.Podname
-			}
-			ch <- status
+		if err := s.nodeStatusStream(ctx, logger, ch); err != nil && ctx.Err() == nil {
+			logger.Error(ctx, err, "node status stream interrupted")
 		}
 	})
 	return ch
@@ -208,6 +195,29 @@ func (s *Store) MakeClient(ctx context.Context, node *types.Node) (engine.API, e
 		return nil, err
 	}
 	return enginefactory.GetEngine(ctx, s.Config, node.Name, node.Endpoint, ca, cert, key)
+}
+
+func (s *Store) nodeStatusStream(ctx context.Context, logger *log.Fields, ch chan<- *types.NodeStatus) error {
+	logger.Infof(ctx, "watch on %s", NodeStatusPrefix)
+	for event := range s.Watch(ctx, NodeStatusPrefix) {
+		nodename := utils.Tail(event.Key)
+		status := &types.NodeStatus{
+			Nodename: nodename,
+			Alive:    event.Type == EventPut,
+		}
+		node, err := s.GetNode(ctx, nodename)
+		if err != nil {
+			status.Error = err
+		} else {
+			status.Podname = node.Podname
+		}
+		select {
+		case ch <- status:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	return types.ErrMessageChanClosed
 }
 
 func (s *Store) loadCert(ctx context.Context, nodename string) (ca, cert, key string, err error) {

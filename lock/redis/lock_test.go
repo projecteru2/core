@@ -23,14 +23,16 @@ func TestRedisLock(t *testing.T) {
 	})
 	defer cli.Close()
 	suite.Run(t, &RedisLockTestSuite{
-		cli: cli,
+		cli:    cli,
+		server: s,
 	})
 }
 
 type RedisLockTestSuite struct {
 	suite.Suite
 
-	cli *redis.Client
+	cli    *redis.Client
+	server *miniredis.Miniredis
 }
 
 func (s *RedisLockTestSuite) SetupTest() {
@@ -54,4 +56,54 @@ func (s *RedisLockTestSuite) TestMutex() {
 
 	err = l.Unlock(ctx)
 	s.NoError(err)
+}
+
+func (s *RedisLockTestSuite) TestLostLeaseCancelsContext() {
+	l, err := New(s.cli, "test", time.Second, 90*time.Millisecond)
+	s.Require().NoError(err)
+
+	ctx, err := l.Lock(context.Background())
+	s.Require().NoError(err)
+	s.server.Del("/test")
+
+	select {
+	case <-ctx.Done():
+	case <-time.After(time.Second):
+		s.FailNow("lock context was not canceled")
+	}
+	s.Error(l.Unlock(context.Background()))
+}
+
+func (s *RedisLockTestSuite) TestTransientRefreshErrorKeepsContext() {
+	l, err := New(s.cli, "test", time.Second, 900*time.Millisecond)
+	s.Require().NoError(err)
+
+	ctx, err := l.Lock(context.Background())
+	s.Require().NoError(err)
+	s.server.SetError("mock outage")
+
+	select {
+	case <-ctx.Done():
+		s.FailNow("transient refresh error canceled the lock context")
+	case <-time.After(400 * time.Millisecond):
+	}
+	s.server.SetError("")
+	s.NoError(l.Unlock(context.Background()))
+}
+
+func (s *RedisLockTestSuite) TestUnrefreshedLockCancelsAfterTTL() {
+	l, err := New(s.cli, "test", time.Second, 90*time.Millisecond)
+	s.Require().NoError(err)
+
+	ctx, err := l.Lock(context.Background())
+	s.Require().NoError(err)
+	s.server.SetError("mock outage")
+
+	select {
+	case <-ctx.Done():
+	case <-time.After(time.Second):
+		s.FailNow("lock context outlived an unrefreshed ttl")
+	}
+	s.server.SetError("")
+	s.NoError(l.Unlock(context.Background()))
 }

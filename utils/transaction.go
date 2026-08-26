@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"cmp"
 	"context"
 	"time"
 
@@ -12,18 +13,16 @@ type (
 	rollbackFunc func(context.Context, bool) error
 )
 
-// Txn runs cond then then; on any error it runs rollback under a fresh ttl-bounded context.
-func Txn(ctx context.Context, cond, then contextFunc, rollback rollbackFunc, ttl time.Duration) (txnErr error) {
+// Txn runs cond then then, rolling back under a fresh ttl-bounded context on error; settled reports full compensation.
+func Txn(ctx context.Context, cond, then contextFunc, rollback rollbackFunc, ttl time.Duration) (settled bool, txnErr error) {
 	var condErr, thenErr error
 	txnCtx, txnCancel := context.WithTimeout(ctx, ttl)
 	defer txnCancel()
 	logger := log.WithFunc("utils.Txn")
 	defer func() {
-		txnErr = condErr
+		txnErr = cmp.Or(condErr, thenErr)
 		if txnErr == nil {
-			txnErr = thenErr
-		}
-		if txnErr == nil {
+			settled = true
 			return
 		}
 		if rollback == nil {
@@ -39,7 +38,9 @@ func Txn(ctx context.Context, cond, then contextFunc, rollback rollbackFunc, ttl
 		failureByCond := condErr != nil
 		if err := rollback(rollbackCtx, failureByCond); err != nil {
 			logger.Warnf(ctx, "txn failed but rollback also failed: %+v", err)
+			return
 		}
+		settled = true
 	}()
 
 	if cond != nil {
@@ -56,15 +57,16 @@ func Txn(ctx context.Context, cond, then contextFunc, rollback rollbackFunc, ttl
 		thenErr = then(thenCtx)
 	}
 
-	return txnErr
+	return settled, txnErr
 }
 
 // PCR runs prepare, commit and rollback; prepare must be side-effect free.
 func PCR(ctx context.Context, prepare, commit, rollback contextFunc, ttl time.Duration) error {
-	return Txn(ctx, prepare, commit, func(ctx context.Context, failureByCond bool) error {
+	_, err := Txn(ctx, prepare, commit, func(ctx context.Context, failureByCond bool) error {
 		if !failureByCond && rollback != nil {
 			return rollback(ctx)
 		}
 		return nil
 	}, ttl)
+	return err
 }

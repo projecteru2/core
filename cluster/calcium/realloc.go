@@ -3,6 +3,7 @@ package calcium
 import (
 	"context"
 
+	"github.com/cockroachdb/errors"
 	"github.com/sanity-io/litter"
 
 	"github.com/projecteru2/core/log"
@@ -32,20 +33,20 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 	var deltaResources resourcetypes.Resources
 	var engineParams resourcetypes.Resources
 	var err error
+	var reallocated bool
 
 	logger := log.WithFunc("calcium.doReallocOnNode").WithField("opts", opts)
 	nodeCommit, err := c.journal(ctx, logger, eventWorkloadResourceAllocated, []*types.Node{node})
 	if err != nil {
 		return err
 	}
-	defer nodeCommit()
 	workloadCommit, err := c.journal(ctx, logger, eventWorkloadReallocated, workload.ID)
 	if err != nil {
+		nodeCommit()
 		return err
 	}
-	defer workloadCommit()
 
-	err = utils.Txn(
+	settled, err := utils.Txn(
 		ctx,
 		func(ctx context.Context) error {
 			// Realloc mutates node resource meta in the resource plugin
@@ -53,6 +54,7 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 			if err != nil {
 				return err
 			}
+			reallocated = true
 			logger.Debugf(ctx, "realloc workload %+v, resource args %+v, engine args %+v", workload.ID, litter.Sdump(resources), litter.Sdump(engineParams))
 			workload.EngineParams = engineParams
 			workload.Resources = resources
@@ -61,18 +63,23 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 		func(ctx context.Context) error {
 			return node.Engine.VirtualizationUpdateResource(ctx, opts.ID, engineParams)
 		},
-		func(ctx context.Context, failureByCond bool) error {
-			if failureByCond {
+		func(ctx context.Context, _ bool) error {
+			if !reallocated {
 				return nil
 			}
-			if rollbackErr := c.rmgr.RollbackRealloc(ctx, workload.Nodename, deltaResources); rollbackErr != nil {
+			var rollbackErr error
+			if resourceErr := c.rmgr.RollbackRealloc(ctx, workload.Nodename, deltaResources); resourceErr != nil {
+				rollbackErr = errors.Join(rollbackErr, resourceErr)
 				logger.Errorf(ctx, rollbackErr, "failed to rollback workload %+v, resource args %+v, engine args %+v", workload.ID, litter.Sdump(resources), litter.Sdump(engineParams))
-				// don't return here, so the node resource can still be fixed
 			}
-			return c.store.UpdateWorkload(ctx, &originWorkload)
+			return errors.Join(rollbackErr, c.store.UpdateWorkload(ctx, &originWorkload))
 		},
 		c.config.GlobalTimeout,
 	)
+	if settled {
+		nodeCommit()
+		workloadCommit()
+	}
 	if err != nil {
 		return err
 	}

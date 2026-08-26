@@ -2,6 +2,7 @@ package calcium
 
 import (
 	"context"
+	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,6 +14,8 @@ import (
 	resourcemocks "github.com/projecteru2/core/resource/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/wal"
+	walmocks "github.com/projecteru2/core/wal/mocks"
 )
 
 func TestReplaceWorkload(t *testing.T) {
@@ -177,6 +180,17 @@ func TestReplaceWorkload(t *testing.T) {
 	engine.On("VirtualizationCopyChunkTo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{User: "test"}, nil)
 	store.On("AddWorkload", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	var replacementCommitted atomic.Bool
+	mwal := &walmocks.WAL{}
+	mwal.On("Log", mock.Anything, mock.Anything).Return(func(event string, _ any) (wal.Commit, error) {
+		return func() error {
+			if event == eventWorkloadReplaced {
+				replacementCommitted.Store(true)
+			}
+			return nil
+		}, nil
+	})
+	c.wal = mwal
 	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(types.ErrMockError).Once()
 	ch, err = c.ReplaceWorkload(ctx, opts)
 	assert.NoError(t, err)
@@ -187,6 +201,7 @@ func TestReplaceWorkload(t *testing.T) {
 		assert.False(t, r.Remove.Success)
 		assert.Nil(t, r.Create.Error)
 	}
+	assert.False(t, replacementCommitted.Load())
 	store.AssertExpectations(t)
 	engine.AssertExpectations(t)
 
@@ -201,4 +216,5 @@ func TestReplaceWorkload(t *testing.T) {
 		assert.True(t, r.Remove.Success)
 		assert.Nil(t, r.Create.Error)
 	}
+	assert.True(t, replacementCommitted.Load())
 }

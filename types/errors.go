@@ -90,6 +90,7 @@ var (
 
 	ErrNoFilesToSend = errors.New("no files to send")
 	ErrNoFilesToCopy = errors.New("no files to copy")
+	ErrEmptyFileDst  = errors.New("empty file destination")
 
 	ErrMockError = errors.New("mock error")
 

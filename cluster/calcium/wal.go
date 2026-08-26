@@ -20,6 +20,7 @@ const (
 	eventWorkloadCreated           = "create-workload" // created but yet to start
 	eventWorkloadReplaced          = "replace-workload"
 	eventWorkloadReallocated       = "realloc-workload"
+	eventNodeRemapped              = "remap-node"
 	eventWorkloadResourceAllocated = "allocate-workload" // resource updated in node meta but yet to create all workloads
 	eventProcessingCreated         = "create-processing" // processing created but yet to delete
 
@@ -143,8 +144,9 @@ func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw any) error {
 
 func (h *CreateWorkloadHandler) storedWorkloadID(ctx context.Context, wrk *types.Workload) (string, error) {
 	if wrk.ID != "" {
-		if _, err := h.calcium.GetWorkload(ctx, wrk.ID); err != nil {
-			return "", nil
+		workload, err := getWorkloadIfExists(ctx, h.calcium, wrk.ID)
+		if err != nil || workload == nil {
+			return "", err
 		}
 		return wrk.ID, nil
 	}
@@ -254,6 +256,37 @@ func (h *ReallocWorkloadHandler) Handle(ctx context.Context, raw any) error {
 	return nil
 }
 
+type remapNodeHandler struct {
+	walBase[string]
+
+	calcium *Calcium
+}
+
+func newRemapNodeHandler(calcium *Calcium) *remapNodeHandler {
+	return &remapNodeHandler{calcium: calcium}
+}
+
+func (h *remapNodeHandler) Typ() string {
+	return eventNodeRemapped
+}
+
+func (h *remapNodeHandler) Handle(ctx context.Context, raw any) error {
+	nodename, _ := raw.(string)
+	logger := log.WithFunc("calcium.remapNodeHandler.Handle").WithField("node", nodename)
+
+	ctx, cancel := getReplayContext(ctx)
+	defer cancel()
+
+	err := h.calcium.withNodeOperationLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
+		return h.calcium.remapNodeWorkloads(ctx, logger, node)
+	})
+	if err != nil && (errors.Is(err, types.ErrNodeNotExists) || h.calcium.store.NotFound(err)) {
+		logger.Info(ctx, "node is gone, nothing to remap")
+		return nil
+	}
+	return err
+}
+
 // WorkloadResourceAllocatedHandler replays a dangling resource allocation by refreshing node resources.
 type WorkloadResourceAllocatedHandler struct {
 	walBase[[]*types.Node]
@@ -349,6 +382,7 @@ func enableWAL(ctx context.Context, config types.Config, calcium *Calcium, store
 	hydro.Register(newCreateWorkloadHandler(calcium))
 	hydro.Register(newReplaceWorkloadHandler(calcium))
 	hydro.Register(newReallocWorkloadHandler(calcium))
+	hydro.Register(newRemapNodeHandler(calcium))
 	hydro.Register(newWorkloadResourceAllocatedHandler(calcium))
 	hydro.Register(newProcessingCreatedHandler(store))
 	return hydro, nil

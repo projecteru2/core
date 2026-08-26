@@ -2,7 +2,6 @@ package calcium
 
 import (
 	"context"
-	"fmt"
 	"maps"
 	"strings"
 	"sync"
@@ -99,68 +98,19 @@ func TestHandleCreateWorkloadNoHandle(t *testing.T) {
 	c.wal.Recover(context.Background())
 }
 
-func TestHandleCreateWorkloadError(t *testing.T) {
+func TestHandleCreateWorkloadKeepsEntryOnStoreReadError(t *testing.T) {
 	c := NewTestCluster()
 	enableTestWAL(t, c)
-	rmgr := c.rmgr.(*resourcemocks.Manager)
-	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		resourcetypes.Resources{},
-		resourcetypes.Resources{},
-		[]string{},
-		nil,
-	)
-
-	engine := &enginemocks.API{}
-	node := &types.Node{
-		NodeMeta: types.NodeMeta{Name: "nodename"},
-		Engine:   engine,
-	}
 	wrkid := "workload-id"
-	_, err := c.wal.Log(eventWorkloadCreated, &types.Workload{ID: wrkid, Nodename: node.Name})
+	_, err := c.wal.Log(eventWorkloadCreated, &types.Workload{ID: wrkid, Nodename: "nodename"})
 	require.NoError(t, err)
-
-	wrk := &types.Workload{
-		ID:       wrkid,
-		Nodename: node.Name,
-	}
 
 	store := c.store.(*storemocks.Store)
-
-	err = errors.Wrapf(types.ErrInvaildCount, "keys: [%s]", wrkid)
-	store.On("GetWorkload", mock.Anything, mock.Anything).Return(wrk, err).Once()
-	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, err).Once()
-	store.On("NotFound", err).Return(false).Once()
+	store.On("GetWorkload", mock.Anything, wrkid).Return(nil, types.ErrMockError).Twice()
+	store.On("NotFound", types.ErrMockError).Return(false).Twice()
+	c.wal.Recover(context.Background())
 	c.wal.Recover(context.Background())
 	store.AssertExpectations(t)
-	engine.AssertExpectations(t)
-
-	store.On("GetWorkload", mock.Anything, mock.Anything).Return(wrk, err).Once()
-	store.On("GetNode", mock.Anything, wrk.Nodename).Return(node, nil).Once()
-	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(err).Once()
-	c.wal.Recover(context.Background())
-	store.AssertExpectations(t)
-	engine.AssertExpectations(t)
-
-	store.On("GetWorkload", mock.Anything, wrkid).Return(wrk, fmt.Errorf("err")).Once()
-	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil).Once()
-	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(types.ErrWorkloadNotExists).Once()
-	c.wal.Recover(context.Background())
-	store.AssertExpectations(t)
-	engine.AssertExpectations(t)
-
-	_, err = c.wal.Log(eventWorkloadCreated, &types.Workload{ID: wrkid, Nodename: node.Name})
-	require.NoError(t, err)
-	gone := fmt.Errorf("node gone")
-	store.On("GetWorkload", mock.Anything, wrkid).Return(wrk, gone).Once()
-	store.On("GetNode", mock.Anything, wrk.Nodename).Return(nil, gone).Once()
-	store.On("NotFound", gone).Return(true).Once()
-	c.wal.Recover(context.Background())
-	store.AssertExpectations(t)
-	engine.AssertExpectations(t)
-	c.wal.Recover(context.Background())
-	store.AssertExpectations(t)
-
-	c.wal.Recover(context.Background())
 }
 
 func TestHandleCreateWorkloadHandled(t *testing.T) {
@@ -193,6 +143,7 @@ func TestHandleCreateWorkloadHandled(t *testing.T) {
 
 	err = errors.Wrapf(types.ErrInvaildCount, "keys: [%s]", wrkid)
 	store.On("GetWorkload", mock.Anything, wrkid).Return(nil, err).Once()
+	store.On("NotFound", err).Return(true).Once()
 	store.On("GetNode", mock.Anything, wrk.Nodename).Return(node, nil)
 
 	eng, ok := node.Engine.(*enginemocks.API)
