@@ -58,16 +58,8 @@ func parseVM(out string) (*vmRecord, error) {
 	return vm, nil
 }
 
-func parseVMs(out string) (before, after *vmRecord, err error) {
-	decoder := json.NewDecoder(strings.NewReader(out))
-	before, after = &vmRecord{}, &vmRecord{}
-	if err = decoder.Decode(before); err != nil {
-		return nil, nil, err
-	}
-	if err = decoder.Decode(after); err != nil {
-		return nil, nil, err
-	}
-	return before, after, nil
+func parseVMs(out string) (*vmRecord, *vmRecord, error) {
+	return decodePair[vmRecord, vmRecord](out)
 }
 
 func (v *vmRecord) running() bool {

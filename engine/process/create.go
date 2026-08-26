@@ -14,6 +14,7 @@ import (
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/engine/sshrunner"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/engine/workloadmeta"
 	"github.com/projecteru2/core/log"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -99,8 +100,8 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	}
 	overlay := strconv.Itoa(utils.Bool2Int(!rArgs.Raw))
 	argv := sshrunner.Shell(createScript, slices.Concat([]string{
-		dir, opts.Image, imageDir(e.root, opts.Image), sshrunner.Quote(u.argv()), metaPath(ID), overlay, string(record),
-		strings.Join(bindSources(resource.Volumes, opts.Env), "\n"),
+		dir, opts.Image, imageDir(e.root, opts.Image), sshrunner.Quote(u.argv()), workloadmeta.Path(ID), overlay, string(record),
+		strings.Join(bindSources(u.binds()), "\n"),
 	}, e.registryFlags(opts.Image))...)
 	if _, err = e.run(ctx, argv...); err != nil {
 		return nil, err

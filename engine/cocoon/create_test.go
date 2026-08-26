@@ -12,6 +12,7 @@ import (
 	"github.com/projecteru2/core/engine/sshrunner"
 	"github.com/projecteru2/core/engine/sshrunner/sshrunnertest"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/engine/workloadmeta"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	coretypes "github.com/projecteru2/core/types"
 )
@@ -56,7 +57,7 @@ func TestVirtualizationCreateRendersTheVMAndRecordsIt(t *testing.T) {
 	}
 	for _, field := range []string{
 		durablePath(testRoot, created.ID),
-		metaPath(created.ID),
+		workloadmeta.Path(created.ID),
 		`"kind":"vm"`,
 		`"user":"` + testUser + `"`,
 		`"podname":"vms"`,

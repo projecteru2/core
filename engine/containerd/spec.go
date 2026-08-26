@@ -317,27 +317,17 @@ func throttles(devices []blockDevice) *specs.LinuxBlockIO {
 }
 
 func volumeMounts(volumes, env []string) []specs.Mount {
-	lookup := make(map[string]string, len(env))
-	for _, entry := range env {
-		if key, held, ok := strings.Cut(entry, "="); ok {
-			lookup[key] = held
-		}
-	}
-	expand := func(key string) string { return lookup[key] }
-	mounts := []specs.Mount{}
-	for _, volume := range volumes {
-		parts := strings.Split(os.Expand(volume, expand), ":")
-		if len(parts) < 2 || parts[0] == "" || parts[1] == "" {
-			continue
-		}
+	binds := utils.ParseVolumeBinds(volumes, env)
+	mounts := make([]specs.Mount, 0, len(binds))
+	for _, bind := range binds {
 		mode := "rw"
-		if len(parts) > 2 && parts[2] == readOnlyMode {
+		if bind.ReadOnly {
 			mode = readOnlyMode
 		}
 		mounts = append(mounts, specs.Mount{
 			Type:        bindType,
-			Source:      parts[0],
-			Destination: parts[1],
+			Source:      bind.Source,
+			Destination: bind.Dest,
 			Options:     []string{bindOption, mode},
 		})
 	}
@@ -536,9 +526,5 @@ func deviceType(mode int64) string {
 }
 
 func parseRate(rate string) uint64 {
-	parsed, err := utils.ParseRAMInHuman(rate)
-	if err != nil || parsed < 0 {
-		return 0
-	}
-	return uint64(parsed)
+	return uint64(utils.ParseRate(rate))
 }

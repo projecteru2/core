@@ -11,6 +11,7 @@ import (
 
 	"github.com/projecteru2/core/engine/sshrunner"
 	"github.com/projecteru2/core/engine/sshrunner/sshrunnertest"
+	"github.com/projecteru2/core/engine/workloadmeta"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	coretypes "github.com/projecteru2/core/types"
 )
@@ -97,7 +98,7 @@ func TestVirtualizationStartRecordsTheSerialSocketWhenCocoonReportsNoConsole(t *
 }
 
 func TestVirtualizationStartReportsAMissingWorkload(t *testing.T) {
-	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Code: notExistsCode} }}
+	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Code: workloadmeta.NotExistsCode} }}
 	e := testEngine(t, runner)
 
 	if err := e.VirtualizationStart(t.Context(), "w1"); !errors.Is(err, coretypes.ErrWorkloadNotExists) {
@@ -133,7 +134,7 @@ func TestVirtualizationStopFlags(t *testing.T) {
 }
 
 func TestVirtualizationStopReportsAMissingWorkload(t *testing.T) {
-	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Code: notExistsCode} }}
+	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Code: workloadmeta.NotExistsCode} }}
 	e := testEngine(t, runner)
 
 	if err := e.VirtualizationStop(t.Context(), "w1", 0); !errors.Is(err, coretypes.ErrWorkloadNotExists) {
@@ -178,7 +179,7 @@ func TestVirtualizationLifecycleCommandSequence(t *testing.T) {
 }
 
 func TestVirtualizationRemoveReportsAMissingWorkload(t *testing.T) {
-	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Code: notExistsCode} }}
+	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Code: workloadmeta.NotExistsCode} }}
 	e := testEngine(t, runner)
 
 	if err := e.VirtualizationRemove(t.Context(), "w1", true, false); !errors.Is(err, coretypes.ErrWorkloadNotExists) {
@@ -225,7 +226,7 @@ func TestVirtualizationInspectParsesTheVMRecord(t *testing.T) {
 }
 
 func TestVirtualizationInspectReportsAMissingWorkload(t *testing.T) {
-	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Code: notExistsCode} }}
+	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Code: workloadmeta.NotExistsCode} }}
 	e := testEngine(t, runner)
 
 	if _, err := e.VirtualizationInspect(t.Context(), "w1"); !errors.Is(err, coretypes.ErrWorkloadNotExists) {

@@ -13,6 +13,7 @@ import (
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/engine/sshrunner"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/engine/workloadmeta"
 	"github.com/projecteru2/core/log"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	coretypes "github.com/projecteru2/core/types"
@@ -20,8 +21,7 @@ import (
 )
 
 const (
-	notExistsCode = 64
-	runningCode   = 65
+	runningCode = 65
 
 	// systemctl exits 1 on a transient unit that is already unloaded, so ask before acting on one.
 	loadedFunc = `loaded() { [ "$(systemctl show "$1" -p LoadState --value 2>/dev/null)" = loaded ]; }
@@ -71,13 +71,13 @@ systemctl reset-failed "$unit" 2>/dev/null || true
 fi
 if mountpoint -q "$dir/merged"; then umount -l "$dir/merged"; fi
 rm -rf "$dir" "$record"
-`, notExistsCode, subStateRunning, runningCode)
+`, workloadmeta.NotExistsCode, subStateRunning, runningCode)
 
 	inspectScript = fmt.Sprintf(`set -e
 dir=$1; unit=$2
 test -d "$dir" || exit %d
 systemctl show "$unit" -p %s
-`, notExistsCode, showProperties)
+`, workloadmeta.NotExistsCode, showProperties)
 
 	updateScript = "set -e\n" + loadedFunc + `unit=$1; shift
 loaded "$unit" || exit 0
@@ -86,7 +86,7 @@ exec systemctl set-property --runtime "$unit" "$@"
 )
 
 func (e *Engine) VirtualizationStart(ctx context.Context, ID string) error {
-	_, err := e.run(ctx, sshrunner.Shell(startScript, workloadDir(e.root, ID), unitName(ID), metaPath(ID))...)
+	_, err := e.run(ctx, sshrunner.Shell(startScript, workloadDir(e.root, ID), unitName(ID), workloadmeta.Path(ID))...)
 	return err
 }
 
@@ -97,13 +97,13 @@ func (e *Engine) VirtualizationStop(ctx context.Context, ID string, gracefulTime
 }
 
 func (e *Engine) VirtualizationRemove(ctx context.Context, ID string, _, force bool) error {
-	argv := sshrunner.Shell(removeScript, unitName(ID), workloadDir(e.root, ID), metaPath(ID), strconv.Itoa(utils.Bool2Int(force)))
+	argv := sshrunner.Shell(removeScript, unitName(ID), workloadDir(e.root, ID), workloadmeta.Path(ID), strconv.Itoa(utils.Bool2Int(force)))
 	res, err := e.call(ctx, argv...)
 	if err != nil {
 		return err
 	}
 	switch res.Code {
-	case notExistsCode:
+	case workloadmeta.NotExistsCode:
 		return coretypes.ErrWorkloadNotExists
 	case runningCode:
 		return errors.Wrapf(coretypes.ErrInvaildWorkloadOps, "workload %s is running, stop it first or force the removal", ID)
@@ -127,7 +127,7 @@ func (e *Engine) VirtualizationInspect(ctx context.Context, ID string) (*enginet
 	if err != nil {
 		return nil, err
 	}
-	if res.Code == notExistsCode {
+	if res.Code == workloadmeta.NotExistsCode {
 		return nil, errors.Wrapf(coretypes.ErrWorkloadNotExists, "no workload directory for %s", ID)
 	}
 	if err = sshrunner.ExitError(argv, res); err != nil {

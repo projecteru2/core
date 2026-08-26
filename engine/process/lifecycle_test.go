@@ -14,6 +14,7 @@ import (
 	"github.com/projecteru2/core/engine/sshrunner"
 	"github.com/projecteru2/core/engine/sshrunner/sshrunnertest"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/engine/workloadmeta"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	coretypes "github.com/projecteru2/core/types"
 )
@@ -70,7 +71,7 @@ func TestVirtualizationCreateRecordsTheUnitAndTheMetaFile(t *testing.T) {
 		"oras pull",
 		imageDir(testRoot, "hub.io/ns/app:v1"),
 		workloadDir(testRoot, created.ID),
-		metaPath(created.ID),
+		workloadmeta.Path(created.ID),
 		`"$dir/meta.json"`,
 		"--unit=" + unitName(created.ID),
 		"--slice=eru-prod.slice",
@@ -184,7 +185,7 @@ func TestVirtualizationStopOnlyKillsWhenForced(t *testing.T) {
 }
 
 func TestVirtualizationRemoveReportsAMissingWorkload(t *testing.T) {
-	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Code: notExistsCode} }}
+	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Code: workloadmeta.NotExistsCode} }}
 	e := testEngine(t, runner)
 
 	if err := e.VirtualizationRemove(t.Context(), "w1", true, false); !errors.Is(err, coretypes.ErrWorkloadNotExists) {
@@ -227,7 +228,7 @@ func TestVirtualizationInspectReportsAnExitedWorkloadAsStopped(t *testing.T) {
 }
 
 func TestVirtualizationInspectReportsAMissingWorkload(t *testing.T) {
-	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Code: notExistsCode} }}
+	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Code: workloadmeta.NotExistsCode} }}
 	e := testEngine(t, runner)
 
 	_, err := e.VirtualizationInspect(t.Context(), "w1")
@@ -316,8 +317,8 @@ func TestRemoveScriptReportsAMissingWorkloadDirectory(t *testing.T) {
 		t.Fatalf("setup: %v", err)
 	}
 
-	if code := node.run(t, removeScript, "eru-w1.service", node.dir, node.record, "1"); code != notExistsCode {
-		t.Fatalf("got exit %d, want %d", code, notExistsCode)
+	if code := node.run(t, removeScript, "eru-w1.service", node.dir, node.record, "1"); code != workloadmeta.NotExistsCode {
+		t.Fatalf("got exit %d, want %d", code, workloadmeta.NotExistsCode)
 	}
 }
 

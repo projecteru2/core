@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"maps"
 	"math"
-	"os"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -39,6 +38,10 @@ type unit struct {
 	Resource    *engine.VirtualizationResource
 }
 
+func (u *unit) binds() []utils.VolumeBind {
+	return utils.ParseVolumeBinds(u.Resource.Volumes, u.Opts.Env)
+}
+
 func (u *unit) argv() []string {
 	argv := []string{
 		"systemd-run",
@@ -63,7 +66,7 @@ func (u *unit) argv() []string {
 	for _, property := range properties(u.Resource, u.TasksMax) {
 		argv = append(argv, "-p", property)
 	}
-	for _, property := range bindPaths(u.Resource.Volumes, u.Opts.Env) {
+	for _, property := range bindPaths(u.binds()) {
 		argv = append(argv, "-p", property)
 	}
 	if policy := restartPolicy(u.Opts.Restart); policy != "" {
@@ -174,39 +177,25 @@ func cpuWeight(quota float64, remap bool) int {
 }
 
 // a bind needs no RootDirectory, so raw workloads carry them too
-func bindPaths(volumes, env []string) []string {
-	lookup := make(map[string]string, len(env))
-	for _, entry := range env {
-		if key, value, ok := strings.Cut(entry, "="); ok {
-			lookup[key] = value
-		}
-	}
-
-	props := []string{}
-	for _, volume := range volumes {
-		parts := strings.Split(os.Expand(volume, func(key string) string { return lookup[key] }), ":")
-		if len(parts) < 2 || parts[0] == "" || parts[1] == "" {
-			continue
-		}
+func bindPaths(binds []utils.VolumeBind) []string {
+	props := make([]string, 0, len(binds))
+	for _, bind := range binds {
 		property := "BindPaths="
-		if len(parts) > 2 && parts[2] == readOnlyMode {
+		if bind.ReadOnly {
 			property = "BindReadOnlyPaths="
 		}
-		props = append(props, property+parts[0]+":"+parts[1])
+		props = append(props, property+bind.Source+":"+bind.Dest)
 	}
 	return props
 }
 
 // bindSources lists the read-write host paths the unit binds; docker creates a missing bind source.
-func bindSources(volumes, env []string) []string {
+func bindSources(binds []utils.VolumeBind) []string {
 	sources := []string{}
-	for _, property := range bindPaths(volumes, env) {
-		spec, ok := strings.CutPrefix(property, "BindPaths=")
-		if !ok {
-			continue
+	for _, bind := range binds {
+		if !bind.ReadOnly {
+			sources = append(sources, bind.Source)
 		}
-		source, _, _ := strings.Cut(spec, ":")
-		sources = append(sources, source)
 	}
 	return sources
 }
@@ -215,22 +204,14 @@ func throttles(options map[string]string) []string {
 	properties := []string{}
 	for _, device := range slices.Sorted(maps.Keys(options)) {
 		rates := strings.Split(options[device], ":")
-		for len(rates) < len(throttleKeys) {
-			rates = append(rates, "0")
-		}
 		for i, key := range throttleKeys {
-			if rate := parseRate(rates[i]); rate > 0 {
+			if i >= len(rates) {
+				break
+			}
+			if rate := utils.ParseRate(rates[i]); rate > 0 {
 				properties = append(properties, fmt.Sprintf("%s=%s %d", key, device, rate))
 			}
 		}
 	}
 	return properties
-}
-
-func parseRate(rate string) int64 {
-	parsed, err := utils.ParseRAMInHuman(rate)
-	if err != nil || parsed < 0 {
-		return 0
-	}
-	return parsed
 }

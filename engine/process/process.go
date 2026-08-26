@@ -13,6 +13,7 @@ import (
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/engine/sshrunner"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/engine/workloadmeta"
 	coretypes "github.com/projecteru2/core/types"
 )
 
@@ -23,7 +24,6 @@ const (
 
 	defaultRoot        = "/var/lib/eru/process"
 	defaultStopTimeout = 10 * time.Second
-	metaDir            = "/run/eru/workloads"
 	hostNetwork        = "host"
 )
 
@@ -31,7 +31,7 @@ var metaScript = fmt.Sprintf(`dir=$1
 test -f "$dir/meta.json" || exit %d
 if mountpoint -q "$dir/merged"; then echo 1; else echo 0; fi
 cat "$dir/meta.json"
-`, notExistsCode)
+`, workloadmeta.NotExistsCode)
 
 var _ engine.API = (*Engine)(nil)
 

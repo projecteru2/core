@@ -16,8 +16,6 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-var errExecNotFound = errors.New("exec not found")
-
 // Execute runs the command through cocoon-agent in pipe mode; a pty is projecteru2/core#660.
 func (e *Engine) Execute(ctx context.Context, ID string, config *enginetypes.ExecConfig) (execID string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
 	argv, err := e.guestArgv(ctx, ID, config)
@@ -30,9 +28,7 @@ func (e *Engine) Execute(ctx context.Context, ID string, config *enginetypes.Exe
 	}
 
 	execID = utils.RandomID()
-	e.mu.Lock()
-	e.execs[execID] = running
-	e.mu.Unlock()
+	e.execs.Add(execID, running)
 	if config.AttachStdin {
 		stdin = running.Stdin()
 	}
@@ -44,17 +40,7 @@ func (e *Engine) ExecResize(context.Context, string, uint, uint) error {
 }
 
 func (e *Engine) ExecExitCode(_ context.Context, _, execID string) (int, error) {
-	e.mu.Lock()
-	running, ok := e.execs[execID]
-	delete(e.execs, execID)
-	e.mu.Unlock()
-	if !ok {
-		return -1, errors.Wrap(errExecNotFound, execID)
-	}
-	defer func() {
-		_ = running.Close()
-	}()
-	return running.Wait()
+	return e.execs.ExitCode(execID)
 }
 
 func (e *Engine) guestArgv(ctx context.Context, ID string, config *enginetypes.ExecConfig) ([]string, error) {

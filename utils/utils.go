@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"os"
 	"strings"
 	"time"
 
@@ -226,6 +227,42 @@ func Bool2Int(a bool) int {
 		return 1
 	}
 	return 0
+}
+
+// VolumeBind is one host bind parsed from "source:dest[:ro]" after env expansion.
+type VolumeBind struct {
+	Source   string
+	Dest     string
+	ReadOnly bool
+}
+
+// ParseVolumeBinds keeps the well-formed binds and expands $VAR from env.
+func ParseVolumeBinds(volumes, env []string) []VolumeBind {
+	lookup := make(map[string]string, len(env))
+	for _, entry := range env {
+		if key, value, ok := strings.Cut(entry, "="); ok {
+			lookup[key] = value
+		}
+	}
+	expand := func(key string) string { return lookup[key] }
+	binds := make([]VolumeBind, 0, len(volumes))
+	for _, volume := range volumes {
+		parts := strings.Split(os.Expand(volume, expand), ":")
+		if len(parts) < 2 || parts[0] == "" || parts[1] == "" {
+			continue
+		}
+		binds = append(binds, VolumeBind{Source: parts[0], Dest: parts[1], ReadOnly: len(parts) > 2 && parts[2] == "ro"})
+	}
+	return binds
+}
+
+// ParseRate reads a human byte rate, treating junk and negatives as zero.
+func ParseRate(rate string) int64 {
+	parsed, err := ParseRAMInHuman(rate)
+	if err != nil || parsed < 0 {
+		return 0
+	}
+	return parsed
 }
 
 // LastEnvValue takes the last value of key, as core appends its own after the client's.

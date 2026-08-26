@@ -15,6 +15,7 @@ import (
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/engine/sshrunner"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/engine/workloadmeta"
 	"github.com/projecteru2/core/log"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -28,14 +29,17 @@ const (
 
 	discardTimeout = 30 * time.Second
 
-	recordScript = `set -e
-durable=$1; record=$2; body=$3
-mkdir -p "$(dirname "$durable")" "$(dirname "$record")"
-printf '%s\n' "$body" > "$durable.tmp"
-mv "$durable.tmp" "$durable"
+	publishRecord = `mkdir -p "$(dirname "$record")"
 cp -f "$durable" "$record.tmp"
 mv "$record.tmp" "$record"
 `
+
+	recordScript = `set -e
+durable=$1; record=$2; body=$3
+mkdir -p "$(dirname "$durable")"
+printf '%s\n' "$body" > "$durable.tmp"
+mv "$durable.tmp" "$durable"
+` + publishRecord
 )
 
 // RawArgs carries vm-specific workload options through core untouched.
@@ -87,7 +91,7 @@ func (e *Engine) record(ctx context.Context, ID string, opts *enginetypes.Virtua
 	if err != nil {
 		return err
 	}
-	_, err = e.run(ctx, sshrunner.Shell(recordScript, durablePath(e.cocoon.Root, ID), metaPath(ID), string(body))...)
+	_, err = e.run(ctx, sshrunner.Shell(recordScript, durablePath(e.cocoon.Root, ID), workloadmeta.Path(ID), string(body))...)
 	return err
 }
 

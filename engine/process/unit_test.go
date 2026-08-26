@@ -7,6 +7,7 @@ import (
 
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/utils"
 )
 
 func TestUnitArgvRendersABoundWorkload(t *testing.T) {
@@ -154,7 +155,7 @@ func TestUnitCommandLeavesAnAbsolutePathAlone(t *testing.T) {
 func TestBindSourcesListOnlyWritablePaths(t *testing.T) {
 	volumes := []string{"/rw/src:/dst", "/ro/src:/dst2:ro"}
 
-	if got := bindSources(volumes, nil); !slices.Equal(got, []string{"/rw/src"}) {
+	if got := bindSources(utils.ParseVolumeBinds(volumes, nil)); !slices.Equal(got, []string{"/rw/src"}) {
 		t.Errorf("got %q, want %q", got, []string{"/rw/src"})
 	}
 }
@@ -180,7 +181,7 @@ func TestBindPaths(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := bindPaths(tt.volumes, tt.env); !slices.Equal(got, tt.want) {
+			if got := bindPaths(utils.ParseVolumeBinds(tt.volumes, tt.env)); !slices.Equal(got, tt.want) {
 				t.Errorf("got %q, want %q", got, tt.want)
 			}
 		})

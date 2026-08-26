@@ -12,6 +12,7 @@ import (
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/engine/sshrunner"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/engine/workloadmeta"
 	"github.com/projecteru2/core/log"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	coretypes "github.com/projecteru2/core/types"
@@ -19,8 +20,7 @@ import (
 )
 
 const (
-	notExistsCode = 64
-	eventDeleted  = "DELETED"
+	eventDeleted = "DELETED"
 	// guestIface is the adapter name the cocoonstack Windows images give their virtio NIC.
 	guestIface = "Ethernet"
 
@@ -38,10 +38,7 @@ test -f "$durable" || exit 64
 	refreshScript = `set -e
 durable=$1; record=$2; console=$3; pid=$4
 sed -i -e "s|\"console_socket\":\"[^\"]*\"|\"console_socket\":\"$console\"|" -e "s|\"netns_pid\":[0-9]*|\"netns_pid\":$pid|" "$durable"
-mkdir -p "$(dirname "$record")"
-cp -f "$durable" "$record.tmp"
-mv "$record.tmp" "$record"
-`
+` + publishRecord
 
 	// addressScript retries until cocoon-agent answers, which takes a Windows guest a minute.
 	addressScript = `bin=$1; vm=$2; shift 2
@@ -128,7 +125,7 @@ func (e *Engine) VirtualizationStop(ctx context.Context, ID string, gracefulTime
 }
 
 func (e *Engine) VirtualizationRemove(ctx context.Context, ID string, _, force bool) error {
-	argv := sshrunner.Shell(removeScript, e.cocoon.Binary, ID, durablePath(e.cocoon.Root, ID), metaPath(ID), snapshotName(ID), strconv.Itoa(utils.Bool2Int(force)))
+	argv := sshrunner.Shell(removeScript, e.cocoon.Binary, ID, durablePath(e.cocoon.Root, ID), workloadmeta.Path(ID), snapshotName(ID), strconv.Itoa(utils.Bool2Int(force)))
 	_, err := e.runRecorded(ctx, argv, ID)
 	return err
 }
@@ -205,7 +202,7 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, en
 
 // refreshRecord rewrites both copies of the meta record for this boot: the console and the VMM pid are new every boot.
 func (e *Engine) refreshRecord(ctx context.Context, ID string, vm *vmRecord) error {
-	argv := sshrunner.Shell(refreshScript, durablePath(e.cocoon.Root, ID), metaPath(ID), vm.console(e.cocoon.RunDir), strconv.Itoa(vm.PID))
+	argv := sshrunner.Shell(refreshScript, durablePath(e.cocoon.Root, ID), workloadmeta.Path(ID), vm.console(e.cocoon.RunDir), strconv.Itoa(vm.PID))
 	_, err := e.run(ctx, argv...)
 	return err
 }
@@ -232,7 +229,7 @@ func (e *Engine) runRecorded(ctx context.Context, argv []string, ID string) (*ss
 	if err != nil {
 		return nil, err
 	}
-	if res.Code == notExistsCode {
+	if res.Code == workloadmeta.NotExistsCode {
 		return nil, errors.Wrapf(coretypes.ErrWorkloadNotExists, "no record for %s", ID)
 	}
 	return res, sshrunner.ExitError(argv, res)

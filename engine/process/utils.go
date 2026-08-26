@@ -5,13 +5,14 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/projecteru2/core/engine/workloadmeta"
 )
 
 const (
 	unitPrefix  = "eru-"
 	unitSuffix  = ".service"
 	sliceSuffix = ".slice"
-	cgroupRoot  = "/sys/fs/cgroup"
 	imageCache  = "_images"
 )
 
@@ -38,15 +39,11 @@ func imageDir(root, ref string) string {
 	return filepath.Join(root, imageCache, url.PathEscape(ref))
 }
 
-func metaPath(ID string) string {
-	return filepath.Join(metaDir, ID+".json")
-}
-
 // cgroupPath expands a slice name into its cgroup directory; systemd nests slices on "-".
 func cgroupPath(slice, unit string) string {
 	parts := strings.Split(strings.TrimSuffix(slice, sliceSuffix), "-")
 	segments := make([]string, 0, len(parts)+2)
-	segments = append(segments, cgroupRoot)
+	segments = append(segments, workloadmeta.CgroupRoot)
 	for i := range parts {
 		segments = append(segments, strings.Join(parts[:i+1], "-")+sliceSuffix)
 	}

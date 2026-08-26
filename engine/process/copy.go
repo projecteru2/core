@@ -78,10 +78,8 @@ func (e *Engine) VirtualizationCopyFrom(ctx context.Context, ID, path string) (c
 		if openErr != nil {
 			return nil, 0, 0, 0, openErr
 		}
-		defer func() {
-			_ = file.Close()
-		}()
 		content, err = io.ReadAll(file)
+		_ = file.Close()
 		return content, info.UID, info.GID, int64(info.Mode), err
 	}
 	return nil, 0, 0, 0, errors.Wrapf(coretypes.ErrWorkloadNotExists, "%s not found in workload %s", path, ID)
