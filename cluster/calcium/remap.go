@@ -6,6 +6,7 @@ import (
 	"github.com/cockroachdb/errors"
 
 	"github.com/projecteru2/core/log"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -25,53 +26,57 @@ func (c *Calcium) RemapResourceAndLog(ctx context.Context, logger *log.Fields, n
 
 // the caller must hold the node lock
 func (c *Calcium) doRemapResource(ctx context.Context, logger *log.Fields, node *types.Node) error {
-	workloads, err := c.store.ListNodeWorkloads(ctx, node.Name, nil)
-	if err != nil {
+	engineParamsMap, workloads, err := c.computeRemap(ctx, node)
+	if err != nil || len(engineParamsMap) == 0 {
 		return err
 	}
 
-	engineParamsMap, err := c.rmgr.Remap(ctx, node.Name, workloads)
+	commit, err := c.journal(ctx, logger, eventNodeRemapped, node.Name)
 	if err != nil {
 		return err
 	}
-
-	errList := make([]error, 0, len(engineParamsMap))
-	for workloadID, engineParams := range engineParamsMap {
-		remap := &workloadRemap{ID: workloadID, EngineParams: engineParams}
-		commit, journalErr := c.journal(ctx, logger, eventWorkloadRemapped, remap)
-		if journalErr != nil {
-			errList = append(errList, journalErr)
-			continue
-		}
-		if remapErr := c.applyWorkloadRemap(ctx, logger, remap); remapErr != nil {
-			errList = append(errList, remapErr)
-			continue
-		}
-		commit()
+	if err = c.applyRemap(ctx, logger, workloads, engineParamsMap); err != nil {
+		return err
 	}
-	return errors.Join(errList...)
+	commit()
+	return nil
 }
 
-func (c *Calcium) applyWorkloadRemap(ctx context.Context, logger *log.Fields, remap *workloadRemap) error {
-	workload, err := getWorkloadIfExists(ctx, c, remap.ID)
-	if err != nil || workload == nil {
+func (c *Calcium) remapNodeWorkloads(ctx context.Context, logger *log.Fields, node *types.Node) error {
+	engineParamsMap, workloads, err := c.computeRemap(ctx, node)
+	if err != nil {
 		return err
 	}
+	return c.applyRemap(ctx, logger, workloads, engineParamsMap)
+}
 
-	updatedWorkload := *workload
-	updatedWorkload.EngineParams = remap.EngineParams
-	if err = c.store.UpdateWorkload(ctx, &updatedWorkload); err != nil {
-		return err
+func (c *Calcium) computeRemap(ctx context.Context, node *types.Node) (map[string]resourcetypes.Resources, []*types.Workload, error) {
+	workloads, err := c.store.ListNodeWorkloads(ctx, node.Name, nil)
+	if err != nil {
+		return nil, nil, err
 	}
+	engineParamsMap, err := c.rmgr.Remap(ctx, node.Name, workloads)
+	if err != nil {
+		return nil, nil, err
+	}
+	return engineParamsMap, workloads, nil
+}
 
-	logger.Infof(ctx, "remap workload ID %+v", remap.ID)
-	switch err = workload.Engine.VirtualizationUpdateResource(ctx, remap.ID, remap.EngineParams); {
-	case errors.Is(err, types.ErrWorkloadNotExists), errors.Is(err, types.ErrEngineNotImplemented):
-		logger.Warnf(ctx, "skip remap of workload %s: %+v", remap.ID, err)
-		return nil
-	case err != nil:
-		logger.Error(ctx, err)
-		return err
+func (c *Calcium) applyRemap(ctx context.Context, logger *log.Fields, workloads []*types.Workload, engineParamsMap map[string]resourcetypes.Resources) error {
+	errList := make([]error, 0, len(engineParamsMap))
+	for _, workload := range workloads {
+		engineParams, ok := engineParamsMap[workload.ID]
+		if !ok {
+			continue
+		}
+		logger.Infof(ctx, "remap workload ID %+v", workload.ID)
+		switch err := workload.Engine.VirtualizationUpdateResource(ctx, workload.ID, engineParams); {
+		case errors.Is(err, types.ErrWorkloadNotExists), errors.Is(err, types.ErrEngineNotImplemented):
+			logger.Warnf(ctx, "skip remap of workload %s: %+v", workload.ID, err)
+		case err != nil:
+			logger.Error(ctx, err)
+			errList = append(errList, err)
+		}
 	}
-	return nil
+	return errors.Join(errList...)
 }
