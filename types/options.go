@@ -195,6 +195,8 @@ func (o *AddNodeOptions) Validate() error {
 	return nil
 }
 
+type TriOptions int
+
 type SetNodeOptions struct {
 	Nodename      string
 	Endpoint      string
@@ -241,8 +243,6 @@ type ReallocOptions struct {
 	ID        string
 	Resources resourcetypes.Resources
 }
-
-type TriOptions int
 
 type RawArgs []byte
 

@@ -82,7 +82,6 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintyp
 		},
 	}
 
-	// an unset NUMAMemory defaults to the node memory split evenly across the NUMA nodes
 	if len(req.NUMA) > 0 && len(req.NUMAMemory) == 0 {
 		numaNodes := slices.Compact(slices.Sorted(maps.Values(req.NUMA)))
 		averageMemory := req.Memory / int64(len(numaNodes))

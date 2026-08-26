@@ -247,9 +247,9 @@ func (c *Calcium) filterNodes(ctx context.Context, nodeFilter *types.NodeFilter)
 	}()
 
 	if len(nodeFilter.Includes) == 1 {
-		node, err := c.store.GetNode(ctx, nodeFilter.Includes[0])
-		if err != nil {
-			return nil, err
+		node, getErr := c.store.GetNode(ctx, nodeFilter.Includes[0])
+		if getErr != nil {
+			return nil, getErr
 		}
 		return []*types.Node{node}, nil
 	}

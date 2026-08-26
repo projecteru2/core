@@ -95,7 +95,6 @@ func (e *Engine) run(ctx context.Context, argv ...string) (*sshrunner.Result, er
 	return sshrunner.Run(ctx, e.runner, argv...)
 }
 
-// vm renders a cocoon vm subcommand under the node-side binary.
 func (e *Engine) vm(args ...string) []string {
 	return slices.Concat([]string{e.cocoon.Binary, "vm"}, args)
 }

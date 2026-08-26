@@ -526,5 +526,5 @@ func deviceType(mode int64) string {
 }
 
 func parseRate(rate string) uint64 {
-	return uint64(utils.ParseRate(rate))
+	return uint64(utils.ParseRate(rate)) //nolint:gosec // ParseRate never returns a negative
 }

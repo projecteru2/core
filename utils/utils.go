@@ -60,7 +60,7 @@ func GetGitRepoName(url string) (string, error) {
 func MakeCommandLineArgs(s string) []string {
 	result := []string{}
 	var inquote, block string
-	for _, part := range strings.Split(s, " ") {
+	for part := range strings.SplitSeq(s, " ") {
 		if inquote == "" {
 			switch {
 			case strings.HasPrefix(part, "'") || strings.HasPrefix(part, "\""):

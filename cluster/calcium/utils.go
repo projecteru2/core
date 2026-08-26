@@ -66,8 +66,8 @@ func removeWorkloadByName(ctx context.Context, node *types.Node, name string) er
 	return nil
 }
 
-func distributionInspect(ctx context.Context, node *types.Node, image string, digests []string) bool {
-	logger := log.WithFunc("calcium.distributionInspect")
+func inspectDistribution(ctx context.Context, node *types.Node, image string, digests []string) bool {
+	logger := log.WithFunc("calcium.inspectDistribution")
 	remoteDigest, err := node.Engine.ImageRemoteDigest(ctx, image)
 	if err != nil {
 		logger.Error(ctx, err, "get manifest failed")
@@ -91,7 +91,7 @@ func pullImage(ctx context.Context, node *types.Node, image string) error {
 	switch {
 	case err != nil:
 		logger.Warnf(ctx, "check image failed: %+v", err)
-	case distributionInspect(ctx, node, image, digests):
+	case inspectDistribution(ctx, node, image, digests):
 		logger.Debug(ctx, "image cached, skip pulling")
 		return nil
 	}
