@@ -61,3 +61,34 @@ func (s *RediaronTestSuite) TestServiceStatusStream() {
 	s.rediserver.FastForward(time.Second)
 	s.Equal(<-ch, []string{"127.0.0.1:5002"})
 }
+
+func (s *RediaronTestSuite) TestServiceStatusStreamResnapshotsAfterReconnect() {
+	ctx, cancel := context.WithCancel(s.T().Context())
+	defer cancel()
+	key := fmt.Sprintf(common.ServiceStatusKey, "127.0.0.1:5001")
+	s.Require().NoError(s.rediserver.Set(key, "token"))
+
+	ch, err := s.rediaron.ServiceStatusStream(ctx)
+	s.Require().NoError(err)
+	select {
+	case endpoints := <-ch:
+		s.Equal([]string{"127.0.0.1:5001"}, endpoints)
+	case <-time.After(time.Second):
+		s.FailNow("service status stream did not start")
+	}
+
+	s.Require().Eventually(func() bool {
+		count, err := s.rediaron.cli.PubSubNumPat(ctx).Result()
+		return err == nil && count > 0
+	}, time.Second, 10*time.Millisecond)
+	s.rediserver.Close()
+	s.True(s.rediserver.Del(key))
+	s.Require().NoError(s.rediserver.Restart())
+
+	select {
+	case endpoints := <-ch:
+		s.Empty(endpoints)
+	case <-time.After(5 * time.Second):
+		s.FailNow("service status stream did not resnapshot")
+	}
+}
