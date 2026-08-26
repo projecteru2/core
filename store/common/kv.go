@@ -1,7 +1,6 @@
 package common
 
 import (
-	"cmp"
 	"context"
 	"iter"
 	"time"
@@ -9,7 +8,6 @@ import (
 	"github.com/panjf2000/ants/v2"
 
 	"github.com/projecteru2/core/lock"
-	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 )
 
@@ -59,23 +57,4 @@ type Store struct {
 
 func New(kv KV, config types.Config, pool *ants.PoolWithFunc) *Store {
 	return &Store{KV: kv, Config: config, Pool: pool}
-}
-
-func (s *Store) watchRetry(ctx context.Context, logger *log.Fields, body func(context.Context) error) {
-	retryInterval := cmp.Or(s.Config.ConnectionTimeout, time.Second)
-	for ctx.Err() == nil {
-		if err := body(ctx); err != nil && ctx.Err() == nil {
-			logger.Error(ctx, err, "status stream interrupted")
-		}
-		if ctx.Err() != nil {
-			return
-		}
-		timer := time.NewTimer(retryInterval)
-		select {
-		case <-ctx.Done():
-			timer.Stop()
-			return
-		case <-timer.C:
-		}
-	}
 }

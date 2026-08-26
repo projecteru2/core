@@ -3,7 +3,6 @@ package common
 import (
 	"context"
 	"iter"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -14,54 +13,45 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-func TestNodeStatusStreamRecoversAfterWatchFailure(t *testing.T) {
+func TestNodeStatusStreamClosesWhenWatchBreaks(t *testing.T) {
 	pool, err := utils.NewPool(1)
 	require.NoError(t, err)
 	defer pool.Release()
-	ctx, cancel := context.WithCancel(context.Background())
-	store := New(&recoveringWatchKV{key: "node1"}, types.Config{ConnectionTimeout: time.Millisecond}, pool)
+	store := New(&brokenWatchKV{key: "node1"}, types.Config{ConnectionTimeout: time.Millisecond}, pool)
 
-	ch := store.NodeStatusStream(ctx)
+	ch := store.NodeStatusStream(t.Context())
 	select {
 	case status, ok := <-ch:
 		require.True(t, ok)
 		assert.Equal(t, "node1", status.Nodename)
 		assert.True(t, status.Alive)
 	case <-time.After(time.Second):
-		t.Fatal("node status stream did not recover")
+		t.Fatal("node status stream delivered nothing")
 	}
-	cancel()
 	select {
 	case _, ok := <-ch:
 		assert.False(t, ok)
 	case <-time.After(time.Second):
-		t.Fatal("node status stream did not stop")
+		t.Fatal("node status stream did not close after the watch broke")
 	}
 }
 
-type recoveringWatchKV struct {
+type brokenWatchKV struct {
 	KV
 
-	watches atomic.Int32
-	key     string
+	key string
 }
 
-func (k *recoveringWatchKV) GetOne(context.Context, string) (string, error) {
+func (k *brokenWatchKV) GetOne(context.Context, string) (string, error) {
 	return "", types.ErrMockError
 }
 
-func (k *recoveringWatchKV) GetMulti(context.Context, []string) (map[string]string, error) {
+func (k *brokenWatchKV) GetMulti(context.Context, []string) (map[string]string, error) {
 	return nil, types.ErrMockError
 }
 
-func (k *recoveringWatchKV) Watch(ctx context.Context, prefix string) iter.Seq[Event] {
+func (k *brokenWatchKV) Watch(_ context.Context, prefix string) iter.Seq[Event] {
 	return func(yield func(Event) bool) {
-		if k.watches.Add(1) == 1 {
-			return
-		}
-		if !yield(Event{Key: prefix + k.key, Type: EventPut}) {
-			return
-		}
-		<-ctx.Done()
+		yield(Event{Key: prefix + k.key, Type: EventPut})
 	}
 }

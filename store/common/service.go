@@ -1,6 +1,7 @@
 package common
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"maps"
@@ -26,9 +27,17 @@ func (s *Store) ServiceStatusStream(ctx context.Context) (chan []string, error) 
 	prefix := fmt.Sprintf(ServiceStatusKey, "")
 	if err := s.Pool.Invoke(func() {
 		defer close(ch)
-		s.watchRetry(ctx, logger, func(ctx context.Context) error {
-			return s.serviceStatusStream(ctx, prefix, ch)
-		})
+		retryInterval := cmp.Or(s.Config.ConnectionTimeout, time.Second)
+		for ctx.Err() == nil {
+			if err := s.serviceStatusStream(ctx, prefix, ch); err != nil && ctx.Err() == nil {
+				logger.Error(ctx, err, "service status stream interrupted")
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(retryInterval):
+			}
+		}
 	}); err != nil {
 		return nil, err
 	}
@@ -73,18 +82,6 @@ func (s *Store) serviceStatusStream(ctx context.Context, prefix string, ch chan<
 	return types.ErrMessageChanClosed
 }
 
-func (s *Store) getServiceEndpoints(ctx context.Context, prefix string) (Endpoints, error) {
-	data, err := s.GetPrefix(ctx, prefix, 0)
-	if err != nil {
-		return nil, err
-	}
-	eps := Endpoints{}
-	for key := range data {
-		eps.Add(utils.Tail(key))
-	}
-	return eps, nil
-}
-
 type Endpoints map[string]struct{}
 
 func (e Endpoints) Add(endpoint string) (changed bool) {
@@ -105,4 +102,16 @@ func (e Endpoints) Remove(endpoint string) (changed bool) {
 
 func (e Endpoints) ToSlice() []string {
 	return slices.Collect(maps.Keys(e))
+}
+
+func (s *Store) getServiceEndpoints(ctx context.Context, prefix string) (Endpoints, error) {
+	data, err := s.GetPrefix(ctx, prefix, 0)
+	if err != nil {
+		return nil, err
+	}
+	eps := Endpoints{}
+	for key := range data {
+		eps.Add(utils.Tail(key))
+	}
+	return eps, nil
 }

@@ -278,7 +278,10 @@ func (v *Vibranium) NodeStatusStream(_ *pb.Empty, stream pb.CoreRPC_NodeStatusSt
 		select {
 		case m, ok := <-ch:
 			if !ok {
-				return nil
+				if task.context.Err() != nil {
+					return nil
+				}
+				return types.ErrMessageChanClosed
 			}
 			r := &pb.NodeStatusStreamMessage{
 				Nodename: m.Nodename,
@@ -353,7 +356,10 @@ func (v *Vibranium) WorkloadStatusStream(opts *pb.WorkloadStatusStreamOptions, s
 		select {
 		case m, ok := <-ch:
 			if !ok {
-				return nil
+				if task.context.Err() != nil {
+					return nil
+				}
+				return types.ErrMessageChanClosed
 			}
 			r := &pb.WorkloadStatusStreamMessage{Id: m.ID, Delete: m.Delete}
 			if m.Error != nil {

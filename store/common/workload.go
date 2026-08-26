@@ -128,9 +128,9 @@ func (s *Store) WorkloadStatusStream(ctx context.Context, appname, entrypoint, n
 			logger.Info(ctx, "close WorkloadStatus channel")
 			close(ch)
 		}()
-		s.watchRetry(ctx, logger, func(ctx context.Context) error {
-			return s.workloadStatusStream(ctx, logger, statusKey, labels, ch)
-		})
+		if err := s.workloadStatusStream(ctx, logger, statusKey, labels, ch); err != nil && ctx.Err() == nil {
+			logger.Error(ctx, err, "workload status stream interrupted")
+		}
 	})
 	return ch
 }

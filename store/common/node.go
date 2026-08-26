@@ -177,9 +177,9 @@ func (s *Store) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
 			logger.Info(ctx, "close NodeStatusStream channel")
 			close(ch)
 		}()
-		s.watchRetry(ctx, logger, func(ctx context.Context) error {
-			return s.nodeStatusStream(ctx, logger, ch)
-		})
+		if err := s.nodeStatusStream(ctx, logger, ch); err != nil && ctx.Err() == nil {
+			logger.Error(ctx, err, "node status stream interrupted")
+		}
 	})
 	return ch
 }
