@@ -94,6 +94,20 @@ func TestSendOptions(t *testing.T) {
 	assert.NoError(o.Validate())
 }
 
+func TestSendLargeFileOptions(t *testing.T) {
+	assert := assert.New(t)
+
+	o := &SendLargeFileOptions{}
+	assert.Equal(ErrNoWorkloadIDs, o.Validate())
+
+	o.IDs = []string{"workload_id1"}
+	assert.Equal(ErrNoFilesToSend, o.Validate())
+
+	o.Dst = "/tmp/empty"
+	assert.NoError(o.Validate())
+	assert.EqualValues(0o755, o.Mode)
+}
+
 func TestReplaceOptions(t *testing.T) {
 	assert := assert.New(t)
 
