@@ -11,6 +11,7 @@ import (
 
 	"github.com/projecteru2/core/engine/sshrunner"
 	"github.com/projecteru2/core/engine/sshrunner/sshrunnertest"
+	"github.com/projecteru2/core/engine/workloadmeta"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	coretypes "github.com/projecteru2/core/types"
 )
@@ -96,12 +97,25 @@ func TestVirtualizationStartRecordsTheSerialSocketWhenCocoonReportsNoConsole(t *
 	}
 }
 
-func TestVirtualizationStartReportsAMissingWorkload(t *testing.T) {
-	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Code: notExistsCode} }}
-	e := testEngine(t, runner)
+func TestVirtualizationReportsAMissingWorkload(t *testing.T) {
+	tests := []struct {
+		name string
+		call func(*Engine) error
+	}{
+		{"start", func(e *Engine) error { return e.VirtualizationStart(t.Context(), "w1") }},
+		{"stop", func(e *Engine) error { return e.VirtualizationStop(t.Context(), "w1", 0) }},
+		{"remove", func(e *Engine) error { return e.VirtualizationRemove(t.Context(), "w1", true, false) }},
+		{"inspect", func(e *Engine) error { _, err := e.VirtualizationInspect(t.Context(), "w1"); return err }},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Code: workloadmeta.NotExistsCode} }}
+			e := testEngine(t, runner)
 
-	if err := e.VirtualizationStart(t.Context(), "w1"); !errors.Is(err, coretypes.ErrWorkloadNotExists) {
-		t.Errorf("got %v, want ErrWorkloadNotExists", err)
+			if err := tt.call(e); !errors.Is(err, coretypes.ErrWorkloadNotExists) {
+				t.Errorf("got %v, want ErrWorkloadNotExists", err)
+			}
+		})
 	}
 }
 
@@ -129,15 +143,6 @@ func TestVirtualizationStopFlags(t *testing.T) {
 				t.Errorf("got %q, want %q", runner.Lines(), want)
 			}
 		})
-	}
-}
-
-func TestVirtualizationStopReportsAMissingWorkload(t *testing.T) {
-	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Code: notExistsCode} }}
-	e := testEngine(t, runner)
-
-	if err := e.VirtualizationStop(t.Context(), "w1", 0); !errors.Is(err, coretypes.ErrWorkloadNotExists) {
-		t.Errorf("got %v, want ErrWorkloadNotExists", err)
 	}
 }
 
@@ -177,15 +182,6 @@ func TestVirtualizationLifecycleCommandSequence(t *testing.T) {
 	}
 }
 
-func TestVirtualizationRemoveReportsAMissingWorkload(t *testing.T) {
-	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Code: notExistsCode} }}
-	e := testEngine(t, runner)
-
-	if err := e.VirtualizationRemove(t.Context(), "w1", true, false); !errors.Is(err, coretypes.ErrWorkloadNotExists) {
-		t.Errorf("got %v, want ErrWorkloadNotExists", err)
-	}
-}
-
 func TestVirtualizationInspectParsesTheVMRecord(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -221,15 +217,6 @@ func TestVirtualizationInspectParsesTheVMRecord(t *testing.T) {
 				t.Errorf("got user %q, want the one the create recorded", info.User)
 			}
 		})
-	}
-}
-
-func TestVirtualizationInspectReportsAMissingWorkload(t *testing.T) {
-	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Code: notExistsCode} }}
-	e := testEngine(t, runner)
-
-	if _, err := e.VirtualizationInspect(t.Context(), "w1"); !errors.Is(err, coretypes.ErrWorkloadNotExists) {
-		t.Errorf("got %v, want ErrWorkloadNotExists", err)
 	}
 }
 

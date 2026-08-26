@@ -4,11 +4,7 @@ import (
 	"cmp"
 	"context"
 	"slices"
-	"strconv"
-	"strings"
 	"sync"
-
-	"github.com/cockroachdb/errors"
 
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/engine/sshrunner"
@@ -25,18 +21,6 @@ const (
 	defaultRoot         = "/var/lib/eru/cocoon"
 	defaultRunDir       = "/var/lib/cocoon/run"
 	defaultCgroupParent = "cocoon.slice"
-	metaDir             = "/run/eru/workloads"
-	kiB                 = 1024
-	infoFields          = 4
-
-	infoScript = `set -e
-mkdir -p "$1"
-id=$(cat /etc/machine-id)
-ncpu=$(nproc)
-memory=$(awk '/^MemTotal:/{print $2}' /proc/meminfo)
-storage=$(df -Pk "$1" | awk 'NR==2{print $2}')
-printf '%s\n' "$id" "$ncpu" "$memory" "$storage"
-`
 )
 
 var _ engine.API = (*Engine)(nil)
@@ -48,8 +32,7 @@ type Engine struct {
 	ep     *enginetypes.Params
 	runner sshrunner.Runner
 
-	mu    sync.Mutex
-	execs map[string]sshrunner.Session
+	execs *sshrunner.Execs
 
 	probe   sync.Mutex
 	hasOras bool
@@ -74,32 +57,17 @@ func MakeClient(_ context.Context, config coretypes.Config, nodename, endpoint s
 		},
 		ep:     enginetypes.NewParams(nodename, endpoint),
 		runner: sshrunner.New(addr, clientConfig),
-		execs:  map[string]sshrunner.Session{},
+		execs:  sshrunner.NewExecs(),
 	}, nil
 }
 
 func (e *Engine) Info(ctx context.Context) (*enginetypes.Info, error) {
-	res, err := e.run(ctx, sshrunner.Shell(infoScript, e.cocoon.RunDir)...)
+	info, err := sshrunner.NodeInfo(ctx, e.runner, e.cocoon.RunDir)
 	if err != nil {
 		return nil, err
 	}
-	fields := strings.Split(strings.TrimRight(res.Stdout, "\n"), "\n")
-	if len(fields) < infoFields {
-		return nil, errors.Wrapf(coretypes.ErrInvaildNodeEndpoint, "unexpected node info %q", res.Stdout)
-	}
-	ncpu, cpuErr := strconv.Atoi(fields[1])
-	memory, memErr := strconv.ParseInt(fields[2], 10, 64)
-	storage, storageErr := strconv.ParseInt(fields[3], 10, 64)
-	if errors.Join(cpuErr, memErr, storageErr) != nil {
-		return nil, errors.Wrapf(coretypes.ErrInvaildNodeEndpoint, "unexpected node info %q", res.Stdout)
-	}
-	return &enginetypes.Info{
-		Type:         Type,
-		ID:           fields[0],
-		NCPU:         ncpu,
-		MemTotal:     memory * kiB,
-		StorageTotal: storage * kiB,
-	}, nil
+	info.Type = Type
+	return info, nil
 }
 
 func (e *Engine) Ping(ctx context.Context) error {
@@ -127,7 +95,6 @@ func (e *Engine) run(ctx context.Context, argv ...string) (*sshrunner.Result, er
 	return sshrunner.Run(ctx, e.runner, argv...)
 }
 
-// vm renders a cocoon vm subcommand under the node-side binary.
 func (e *Engine) vm(args ...string) []string {
 	return slices.Concat([]string{e.cocoon.Binary, "vm"}, args)
 }

@@ -13,22 +13,21 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
+const (
+	workloadID       = "1234567812345678123456781234567812345678123456781234567812345678"
+	workloadName     = "test_app_1"
+	workloadNodename = "n1"
+	workloadPodname  = "test"
+)
+
 func TestAddORUpdateWorkload(t *testing.T) {
 	m := NewMercury(t)
-	ctx := context.Background()
-	ID := "1234567812345678123456781234567812345678123456781234567812345678"
-	name := "test_app_1"
-	nodename := "n1"
-	podname := "test"
-	workload := &types.Workload{
-		ID:       ID,
-		Nodename: nodename,
-		Podname:  podname,
-		Name:     "a",
-	}
+	ctx := t.Context()
+	workload := newWorkloadFixture()
+	workload.Name = "a"
 	err := m.AddWorkload(ctx, workload, nil)
 	assert.Error(t, err)
-	workload.Name = name
+	workload.Name = workloadName
 	err = m.UpdateWorkload(ctx, workload)
 	assert.Error(t, err)
 	err = m.AddWorkload(ctx, workload, nil)
@@ -42,99 +41,63 @@ func TestAddORUpdateWorkload(t *testing.T) {
 
 func TestRemoveWorkload(t *testing.T) {
 	m := NewMercury(t)
-	ctx := context.Background()
-	ID := "1234567812345678123456781234567812345678123456781234567812345678"
-	name := "test_app_1"
-	nodename := "n1"
-	podname := "test"
-	workload := &types.Workload{
-		ID:       ID,
-		Nodename: nodename,
-		Podname:  podname,
-		Name:     name,
-	}
+	ctx := t.Context()
+	workload := newWorkloadFixture()
 	err := m.AddWorkload(ctx, workload, nil)
 	assert.NoError(t, err)
 	workload.Name = "a"
 	err = m.RemoveWorkload(ctx, workload)
 	assert.Error(t, err)
-	workload.Name = name
+	workload.Name = workloadName
 	err = m.RemoveWorkload(ctx, workload)
 	assert.NoError(t, err)
 }
 
 func TestGetWorkload(t *testing.T) {
 	m := NewMercury(t)
-	ctx := context.Background()
-	ID := "1234567812345678123456781234567812345678123456781234567812345678"
-	name := "test_app_1"
-	nodename := "n1"
-	podname := "test"
-	workload := &types.Workload{
-		ID:       ID,
-		Nodename: nodename,
-		Podname:  podname,
-		Name:     name,
-	}
+	ctx := t.Context()
+	workload := newWorkloadFixture()
 	err := m.AddWorkload(ctx, workload, nil)
 	assert.NoError(t, err)
-	_, err = m.GetWorkloads(ctx, []string{ID, "xxx"})
+	_, err = m.GetWorkloads(ctx, []string{workloadID, "xxx"})
 	assert.Error(t, err)
-	_, err = m.GetWorkload(ctx, ID)
+	_, err = m.GetWorkload(ctx, workloadID)
 	assert.Error(t, err)
-	_, err = m.AddPod(ctx, podname, "")
+	_, err = m.AddPod(ctx, workloadPodname, "")
 	assert.NoError(t, err)
-	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: "mock://", Podname: podname})
+	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: workloadNodename, Endpoint: "mock://", Podname: workloadPodname})
 	assert.NoError(t, err)
-	_, err = m.GetWorkload(ctx, ID)
+	_, err = m.GetWorkload(ctx, workloadID)
 	assert.NoError(t, err)
 }
 
 func TestGetWorkloadStatus(t *testing.T) {
 	m := NewMercury(t)
-	ctx := context.Background()
-	ID := "1234567812345678123456781234567812345678123456781234567812345678"
-	name := "test_app_1"
-	nodename := "n1"
-	podname := "test"
-	workload := &types.Workload{
-		ID:       ID,
-		Nodename: nodename,
-		Podname:  podname,
-		Name:     name,
-	}
+	ctx := t.Context()
+	workload := newWorkloadFixture()
 	err := m.AddWorkload(ctx, workload, nil)
 	assert.NoError(t, err)
-	_, err = m.GetWorkloadStatus(ctx, ID)
+	_, err = m.GetWorkloadStatus(ctx, workloadID)
 	assert.Error(t, err)
-	_, err = m.AddPod(ctx, podname, "")
+	_, err = m.AddPod(ctx, workloadPodname, "")
 	assert.NoError(t, err)
-	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: "mock://", Podname: podname})
+	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: workloadNodename, Endpoint: "mock://", Podname: workloadPodname})
 	assert.NoError(t, err)
-	c, err := m.GetWorkloadStatus(ctx, ID)
+	c, err := m.GetWorkloadStatus(ctx, workloadID)
 	assert.Nil(t, c)
 }
 
 func TestSetWorkloadStatus(t *testing.T) {
 	m := NewMercury(t)
-	ctx := context.Background()
-	ID := "1234567812345678123456781234567812345678123456781234567812345678"
-	name := "test_app_1"
-	nodename := "n1"
-	podname := "test"
-	workload := &types.Workload{
-		ID:         ID,
-		Nodename:   nodename,
-		Podname:    podname,
-		StatusMeta: &types.StatusMeta{ID: ID},
-	}
+	ctx := t.Context()
+	workload := newWorkloadFixture()
+	workload.StatusMeta = &types.StatusMeta{ID: workloadID}
 	err := m.SetWorkloadStatus(ctx, workload.StatusMeta, 0)
 	assert.Error(t, err)
 
-	workload.Name = name
 	workload.StatusMeta.Appname = "test"
 	workload.StatusMeta.Entrypoint = "app"
-	workload.StatusMeta.Nodename = "n1"
+	workload.StatusMeta.Nodename = workloadNodename
 	err = m.SetWorkloadStatus(ctx, workload.StatusMeta, 10)
 	assert.Equal(t, err, types.ErrInvaildCount)
 	assert.NoError(t, m.AddWorkload(ctx, workload, nil))
@@ -151,26 +114,17 @@ func TestSetWorkloadStatus(t *testing.T) {
 
 func TestListWorkloads(t *testing.T) {
 	m := NewMercury(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	cs, err := m.ListWorkloads(ctx, "", "a", "b", 1, nil)
 	assert.NoError(t, err)
 	assert.Empty(t, cs)
-	name := "test_app_1"
-	nodename := "n1"
-	podname := "test"
-	ID := "1234567812345678123456781234567812345678123456781234567812345678"
-	workload := &types.Workload{
-		ID:       ID,
-		Nodename: nodename,
-		Podname:  podname,
-		Name:     name,
-		Labels:   map[string]string{"x": "y"},
-	}
+	workload := newWorkloadFixture()
+	workload.Labels = map[string]string{"x": "y"}
 	err = m.AddWorkload(ctx, workload, nil)
 	assert.NoError(t, err)
-	_, err = m.AddPod(ctx, podname, "")
+	_, err = m.AddPod(ctx, workloadPodname, "")
 	assert.NoError(t, err)
-	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: "mock://", Podname: podname})
+	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: workloadNodename, Endpoint: "mock://", Podname: workloadPodname})
 	assert.NoError(t, err)
 	cs, err = m.ListWorkloads(ctx, "", "a", "b", 1, nil)
 	assert.NoError(t, err)
@@ -182,74 +136,59 @@ func TestListWorkloads(t *testing.T) {
 
 func TestListNodeWorkloads(t *testing.T) {
 	m := NewMercury(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	cs, err := m.ListNodeWorkloads(ctx, "", nil)
 	assert.NoError(t, err)
 	assert.Empty(t, cs)
-	name := "test_app_1"
-	nodename := "n1"
-	podname := "test"
-	ID := "1234567812345678123456781234567812345678123456781234567812345678"
-	workload := &types.Workload{
-		ID:       ID,
-		Nodename: nodename,
-		Podname:  podname,
-		Name:     name,
-		Labels:   map[string]string{"x": "y"},
-	}
+	workload := newWorkloadFixture()
+	workload.Labels = map[string]string{"x": "y"}
 	err = m.AddWorkload(ctx, workload, nil)
 	assert.NoError(t, err)
-	_, err = m.AddPod(ctx, podname, "")
+	_, err = m.AddPod(ctx, workloadPodname, "")
 	assert.NoError(t, err)
-	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: "mock://", Podname: podname})
+	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: workloadNodename, Endpoint: "mock://", Podname: workloadPodname})
 	assert.NoError(t, err)
-	cs, err = m.ListNodeWorkloads(ctx, nodename, nil)
+	cs, err = m.ListNodeWorkloads(ctx, workloadNodename, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, cs)
-	cs, err = m.ListNodeWorkloads(ctx, nodename, map[string]string{"x": "z"})
+	cs, err = m.ListNodeWorkloads(ctx, workloadNodename, map[string]string{"x": "z"})
 	assert.NoError(t, err)
 	assert.Empty(t, cs)
 }
 
 func TestWorkloadStatusStream(t *testing.T) {
 	m := NewMercury(t)
-	ctx := context.Background()
-	ID := "1234567812345678123456781234567812345678123456781234567812345678"
-	name := "test_app_1"
+	ctx := t.Context()
 	appname := "test"
 	entrypoint := "app"
-	nodename := "n1"
-	podname := "test"
 	workload := &types.Workload{
-		ID:         ID,
-		Name:       name,
-		Nodename:   nodename,
-		Podname:    podname,
-		StatusMeta: &types.StatusMeta{ID: ID},
+		ID:         workloadID,
+		Name:       workloadName,
+		Nodename:   workloadNodename,
+		Podname:    workloadPodname,
+		StatusMeta: &types.StatusMeta{ID: workloadID},
 	}
 	node := &types.Node{
 		NodeMeta: types.NodeMeta{
-			Name:     nodename,
-			Podname:  podname,
+			Name:     workloadNodename,
+			Podname:  workloadPodname,
 			Endpoint: "tcp://127.0.0.1:2376",
 		},
 	}
-	_, err := json.Marshal(workload)
-	assert.NoError(t, err)
 	nodeBytes, err := json.Marshal(node)
 	assert.NoError(t, err)
-	_, err = m.AddPod(ctx, podname, "CPU")
+	_, err = m.AddPod(ctx, workloadPodname, "CPU")
 	assert.NoError(t, err)
-	_, err = m.kv.Create(ctx, fmt.Sprintf(common.NodeInfoKey, nodename), string(nodeBytes))
+	_, err = m.kv.Create(ctx, fmt.Sprintf(common.NodeInfoKey, workloadNodename), string(nodeBytes))
 	assert.NoError(t, err)
-	_, err = m.kv.Create(ctx, fmt.Sprintf(common.NodePodKey, podname, nodename), string(nodeBytes))
+	_, err = m.kv.Create(ctx, fmt.Sprintf(common.NodePodKey, workloadPodname, workloadNodename), string(nodeBytes))
 	assert.NoError(t, err)
 	assert.NoError(t, m.AddWorkload(ctx, workload, nil))
 	workload.StatusMeta = &types.StatusMeta{
-		ID:         ID,
+		ID:         workloadID,
 		Running:    true,
 		Appname:    appname,
-		Nodename:   nodename,
+		Nodename:   workloadNodename,
 		Entrypoint: entrypoint,
 	}
 	cctx, cancel := context.WithCancel(ctx)
@@ -262,5 +201,14 @@ func TestWorkloadStatusStream(t *testing.T) {
 	for s := range ch {
 		assert.False(t, s.Delete)
 		assert.NotNil(t, s.Workload)
+	}
+}
+
+func newWorkloadFixture() *types.Workload {
+	return &types.Workload{
+		ID:       workloadID,
+		Nodename: workloadNodename,
+		Podname:  workloadPodname,
+		Name:     workloadName,
 	}
 }

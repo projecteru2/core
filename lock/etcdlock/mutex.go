@@ -33,9 +33,7 @@ func New(cli *clientv3.Client, key string, ttl time.Duration) (*Mutex, error) {
 		return nil, err
 	}
 
-	mutex := &Mutex{mutex: concurrency.NewMutex(session, key), session: session}
-	mutex.timeout = ttl
-	return mutex, nil
+	return &Mutex{mutex: concurrency.NewMutex(session, key), session: session, timeout: ttl}, nil
 }
 
 func (m *Mutex) Lock(ctx context.Context) (context.Context, error) {

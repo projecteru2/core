@@ -34,7 +34,7 @@ func toRPCNetwork(n *enginetypes.Network) *pb.Network {
 }
 
 func toRPCNode(n *types.Node) *pb.Node {
-	node := &pb.Node{
+	return &pb.Node{
 		Name:             n.Name,
 		Endpoint:         n.Endpoint,
 		Podname:          n.Podname,
@@ -46,7 +46,6 @@ func toRPCNode(n *types.Node) *pb.Node {
 		ResourceCapacity: toRPCResources(n.ResourceInfo.Capacity),
 		ResourceUsage:    toRPCResources(n.ResourceInfo.Usage),
 	}
-	return node
 }
 
 func toRPCResources(v any) string {
@@ -101,19 +100,9 @@ func toCoreCopyOptions(b *pb.CopyOptions) *types.CopyOptions {
 }
 
 func toCoreSendOptions(b *pb.SendOptions) *types.SendOptions {
-	files := []types.LinuxFile{}
-	for filename, content := range b.Data {
-		files = append(files, types.LinuxFile{
-			Content:  content,
-			Filename: filename,
-			UID:      int(b.Owners[filename].GetUid()),
-			GID:      int(b.Owners[filename].GetGid()),
-			Mode:     b.Modes[filename].GetMode(),
-		})
-	}
 	return &types.SendOptions{
 		IDs:   b.IDs,
-		Files: files,
+		Files: toCoreLinuxFiles(b.Data, b.Owners, b.Modes),
 	}
 }
 
@@ -231,7 +220,7 @@ func toCoreReplaceOptions(r *pb.ReplaceOptions) (*types.ReplaceOptions, error) {
 		IDs:            r.IDs,
 	}
 
-	return replaceOpts, err
+	return replaceOpts, nil
 }
 
 func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
@@ -272,19 +261,11 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		entry.Hook.Force = entrypoint.Hook.Force
 	}
 
-	files := []types.LinuxFile{}
-	for filename, bs := range d.Data {
-		file := types.LinuxFile{
-			Content:  bs,
-			Filename: filename,
-			UID:      int(d.Owners[filename].GetUid()),
-			GID:      int(d.Owners[filename].GetGid()),
-			Mode:     d.Modes[filename].GetMode(),
-		}
+	files := toCoreLinuxFiles(d.Data, d.Owners, d.Modes)
+	for i, file := range files {
 		if file.Mode == 0 && file.UID == 0 && file.GID == 0 {
-			file.Mode = 0o755
+			files[i].Mode = 0o755
 		}
-		files = append(files, file)
 	}
 
 	nodeFilter := &types.NodeFilter{
@@ -448,7 +429,7 @@ func toRPCWorkloadsStatus(workloadsStatus []*types.StatusMeta) *pb.WorkloadsStat
 
 func toRPCWorkloads(ctx context.Context, workloads []*types.Workload, labels map[string]string) *pb.Workloads {
 	ret := &pb.Workloads{}
-	cs := []*pb.Workload{}
+	cs := make([]*pb.Workload, 0, len(workloads))
 	for _, c := range workloads {
 		pWorkload := toRPCWorkload(ctx, c)
 		if !utils.LabelsFilter(pWorkload.Labels, labels) {
@@ -461,7 +442,7 @@ func toRPCWorkloads(ctx context.Context, workloads []*types.Workload, labels map
 }
 
 func toRPCWorkload(ctx context.Context, c *types.Workload) *pb.Workload {
-	publish := map[string]string{}
+	var publish map[string]string
 	if c.StatusMeta != nil && len(c.StatusMeta.Networks) != 0 {
 		meta := utils.DecodeMetaInLabel(ctx, c.Labels)
 		publish = utils.EncodePublishInfo(
@@ -553,9 +534,7 @@ func toCoreResources(resources map[string][]byte) (resourcetypes.Resources, erro
 
 func toRPCListImageMessage(msg *types.ListImageMessage) *pb.ListImageMessage {
 	m := &pb.ListImageMessage{
-		Images:   []*pb.ImageItem{},
-		Nodename: "",
-		Err:      "",
+		Images: []*pb.ImageItem{},
 	}
 	if msg == nil {
 		return m
@@ -634,9 +613,22 @@ func toCoreRawEngineOptions(d *pb.RawEngineOptions) (*types.RawEngineOptions, er
 }
 
 func toRPCRawEngineMessage(c *types.RawEngineMessage) *pb.RawEngineMessage {
-	r := &pb.RawEngineMessage{
+	return &pb.RawEngineMessage{
 		Id:   c.ID,
 		Data: c.Data,
 	}
-	return r
+}
+
+func toCoreLinuxFiles(data map[string][]byte, owners map[string]*pb.FileOwner, modes map[string]*pb.FileMode) []types.LinuxFile {
+	files := make([]types.LinuxFile, 0, len(data))
+	for filename, content := range data {
+		files = append(files, types.LinuxFile{
+			Content:  content,
+			Filename: filename,
+			UID:      int(owners[filename].GetUid()),
+			GID:      int(owners[filename].GetGid()),
+			Mode:     modes[filename].GetMode(),
+		})
+	}
+	return files
 }

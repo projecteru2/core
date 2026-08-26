@@ -50,11 +50,12 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 		workloadResourcesMap = map[string][]resourcetypes.Resources{}
 	)
 
-	_ = c.pool.Invoke(func() {
+	utils.SentryGo(func() {
 		var resourceCommit func()
 		var processingCommits map[string]func()
 		defer func() {
-			cctx, cancel := context.WithTimeout(utils.NewInheritCtx(ctx), c.config.GlobalTimeout)
+			cctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), c.config.GlobalTimeout)
+			defer cancel()
 			for nodename := range deployMap {
 				processing := opts.GetProcessing(nodename)
 				if err := c.store.DeleteProcessing(cctx, processing); err != nil {
@@ -66,7 +67,6 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 				}
 			}
 			close(ch)
-			cancel()
 		}()
 
 		settled, _ := utils.Txn(
@@ -160,8 +160,13 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context,
 	deployMap map[string]int,
 ) (_ map[string][]int, err error) {
 	wg := sync.WaitGroup{}
-	wg.Add(len(deployMap))
 	logger := log.WithFunc("calcium.doDeployWorkloads").WithField("ident", opts.ProcessIdent)
+
+	total := 0
+	for _, deploy := range deployMap {
+		total += deploy
+	}
+	c.invokePoolAsync(func() { metrics.Client.SendDeployCount(ctx, total) })
 
 	seq := 0
 	rollbackLock := sync.Mutex{}
@@ -169,9 +174,8 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context,
 	for nodename, deploy := range deployMap {
 		start := seq
 		seq += deploy
-		_ = c.pool.Invoke(func() { metrics.Client.SendDeployCount(ctx, deploy) })
-		_ = c.pool.Invoke(func() {
-			defer wg.Done()
+		wg.Go(func() {
+			defer log.SentryDefer()
 			if indices, deployErr := c.doDeployWorkloadsOnNode(ctx, ch, nodename, opts, deploy, engineParamsMap[nodename], workloadResourcesMap[nodename], start); deployErr != nil {
 				rollbackLock.Lock()
 				rollbackMap[nodename] = indices
@@ -200,8 +204,8 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
 	logger := log.WithFunc("calcium.doDeployWorkloadsOnNode").WithField("node", nodename).WithField("ident", opts.ProcessIdent).WithField("deploy", deploy).WithField("seq", seq)
 	node, err := c.doGetAndPrepareNode(ctx, nodename, opts.Image, opts.IgnorePull)
 	if err != nil {
+		logger.Error(ctx, err)
 		for range deploy {
-			logger.Error(ctx, err)
 			ch <- &types.CreateWorkloadMessage{Error: err}
 		}
 		return utils.Range(deploy), err
@@ -241,7 +245,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
 	}
 	wg.Wait()
 
-	_ = c.pool.Invoke(func() { c.RemapResourceAndLog(ctx, logger, node) })
+	c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node) })
 
 	return indices, err
 }

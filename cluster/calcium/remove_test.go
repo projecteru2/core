@@ -1,7 +1,6 @@
 package calcium
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -22,7 +21,7 @@ import (
 
 func TestRemoveWorkload(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	lock := &lockmocks.DistributedLock{}
 	lock.On("Lock", mock.Anything).Return(ctx, nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
@@ -89,7 +88,7 @@ func TestRemoveWorkload(t *testing.T) {
 
 func TestRemoveWorkloadJournalsRepairEntries(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	logged := []string{}
 	committed := 0

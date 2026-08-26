@@ -1,7 +1,6 @@
 package calcium
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,7 +15,7 @@ import (
 
 func TestListNetworks(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	store := c.store.(*storemocks.Store)
 
@@ -50,7 +49,7 @@ func TestListNetworks(t *testing.T) {
 
 func TestConnectNetwork(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	store := c.store.(*storemocks.Store)
 
@@ -69,7 +68,7 @@ func TestConnectNetwork(t *testing.T) {
 
 func TestDisConnectNetwork(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	store := c.store.(*storemocks.Store)
 

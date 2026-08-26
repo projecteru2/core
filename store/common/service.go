@@ -25,7 +25,7 @@ func (s *Store) ServiceStatusStream(ctx context.Context) (chan []string, error) 
 	ch := make(chan []string)
 	logger := log.WithFunc("store.common.ServiceStatusStream")
 	prefix := fmt.Sprintf(ServiceStatusKey, "")
-	if err := s.Pool.Invoke(func() {
+	utils.SentryGo(func() {
 		defer close(ch)
 		retryInterval := cmp.Or(s.Config.ConnectionTimeout, time.Second)
 		for ctx.Err() == nil {
@@ -38,9 +38,7 @@ func (s *Store) ServiceStatusStream(ctx context.Context) (chan []string, error) 
 			case <-time.After(retryInterval):
 			}
 		}
-	}); err != nil {
-		return nil, err
-	}
+	})
 	return ch, nil
 }
 

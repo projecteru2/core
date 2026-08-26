@@ -1,7 +1,6 @@
 package types
 
 import (
-	"fmt"
 	"maps"
 	"strconv"
 	"strings"
@@ -45,10 +44,7 @@ func (r *NodeResource) Add(r1 *NodeResource) {
 	r.CPU = coreutils.Round(r.CPU + r1.CPU)
 	r.CPUMap.Add(r1.CPUMap)
 	r.Memory += r1.Memory
-
-	for numaNodeID := range r1.NUMAMemory {
-		r.NUMAMemory[numaNodeID] += r1.NUMAMemory[numaNodeID]
-	}
+	r.NUMAMemory.Add(r1.NUMAMemory)
 
 	if len(r1.NUMA) > 0 {
 		r.NUMA = r1.NUMA
@@ -59,10 +55,7 @@ func (r *NodeResource) Sub(r1 *NodeResource) {
 	r.CPU = coreutils.Round(r.CPU - r1.CPU)
 	r.CPUMap.Sub(r1.CPUMap)
 	r.Memory -= r1.Memory
-
-	for numaNodeID := range r1.NUMAMemory {
-		r.NUMAMemory[numaNodeID] -= r1.NUMAMemory[numaNodeID]
-	}
+	r.NUMAMemory.Sub(r1.NUMAMemory)
 }
 
 // NodeResourceInfo pairs a node's cpumem capacity with its usage.
@@ -72,16 +65,11 @@ type NodeResourceInfo struct {
 }
 
 func (n *NodeResourceInfo) RemoveEmptyCores() {
-	for cpu := range n.Capacity.CPUMap {
-		if n.Capacity.CPUMap[cpu] == 0 && n.Usage.CPUMap[cpu] == 0 {
-			delete(n.Capacity.CPUMap, cpu)
-		}
+	unused := func(cpu string, _ int) bool {
+		return n.Capacity.CPUMap[cpu] == 0 && n.Usage.CPUMap[cpu] == 0
 	}
-	for cpu := range n.Usage.CPUMap {
-		if n.Capacity.CPUMap[cpu] == 0 && n.Usage.CPUMap[cpu] == 0 {
-			delete(n.Usage.CPUMap, cpu)
-		}
-	}
+	maps.DeleteFunc(n.Capacity.CPUMap, unused)
+	maps.DeleteFunc(n.Usage.CPUMap, unused)
 
 	n.Capacity.CPU = float64(len(n.Capacity.CPUMap))
 }
@@ -137,9 +125,18 @@ func (n *NodeResourceInfo) Validate() error {
 		}
 	}
 
-	// DeepCopy replaces the nil CPUMap, NUMA and NUMAMemory with empty ones
-	n.Capacity = n.Capacity.DeepCopy()
-	n.Usage = n.Usage.DeepCopy()
+	// the stored record always carries objects, never nulls
+	for _, r := range []*NodeResource{n.Capacity, n.Usage} {
+		if r.CPUMap == nil {
+			r.CPUMap = CPUMap{}
+		}
+		if r.NUMAMemory == nil {
+			r.NUMAMemory = NUMAMemory{}
+		}
+		if r.NUMA == nil {
+			r.NUMA = NUMA{}
+		}
+	}
 
 	return nil
 }
@@ -173,7 +170,7 @@ func (n *NodeResourceRequest) Parse(config coretypes.Config, rawParams resourcet
 		}
 
 		for i := range cpu {
-			n.CPUMap[fmt.Sprintf("%+v", i)] = int(share)
+			n.CPUMap[strconv.FormatInt(i, 10)] = int(share)
 		}
 	} else if cpuList := rawParams.String("cpu"); cpuList != "" {
 		if err = n.parseCPUList(cpuList); err != nil {
@@ -190,14 +187,14 @@ func (n *NodeResourceRequest) Parse(config coretypes.Config, rawParams resourcet
 	n.NUMAMemory = NUMAMemory{}
 
 	for index, numaCPUList := range rawParams.StringSlice("numa-cpu") {
-		nodeID := fmt.Sprintf("%d", index)
+		nodeID := strconv.Itoa(index)
 		for cpuID := range strings.SplitSeq(numaCPUList, ",") {
 			n.NUMA[cpuID] = nodeID
 		}
 	}
 
 	for index, nodeMemory := range rawParams.StringSlice("numa-memory") {
-		nodeID := fmt.Sprintf("%d", index)
+		nodeID := strconv.Itoa(index)
 		mem, err := coreutils.ParseRAMInHuman(nodeMemory)
 		if err != nil {
 			return err

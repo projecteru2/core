@@ -86,7 +86,11 @@ func (e *Engine) VirtualizationLogs(ctx context.Context, opts *enginetypes.Virtu
 	}
 	argv := slices.Concat([]string{"journalctl", "SYSLOG_IDENTIFIER=" + journal.Identifier, "ERU_ID=" + found.ID()}, flags)
 
-	task, taskErr := found.Task(ctx, nil)
+	var task client.Task
+	var taskErr error
+	if opts.Follow {
+		task, taskErr = found.Task(ctx, nil)
+	}
 	if !opts.Follow || taskErr != nil {
 		res, runErr := e.run(ctx, argv...)
 		if runErr != nil {

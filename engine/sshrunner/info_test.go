@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/cockroachdb/errors"
@@ -32,6 +33,23 @@ func TestNodeInfoReadsTheNodeItself(t *testing.T) {
 
 func TestNodeInfoRefusesAnUnreadableNode(t *testing.T) {
 	runner := &stubRunner{stdout: "machine-1\n"}
+
+	if _, err := NodeInfo(t.Context(), runner, "/var/lib/eru"); !errors.Is(err, coretypes.ErrInvaildNodeEndpoint) {
+		t.Errorf("got %v, want ErrInvaildNodeEndpoint", err)
+	}
+}
+
+func TestInfoScriptCreatesTheRunDirAndKeepsItsFailuresVisible(t *testing.T) {
+	if !strings.HasPrefix(infoScript, "set -e\nmkdir -p") {
+		t.Error("the info script must create the run dir under set -e")
+	}
+	if strings.Contains(infoScript, "2>/dev/null") {
+		t.Error("the info script must not swallow the errors that make a node look empty")
+	}
+}
+
+func TestNodeInfoRefusesAFieldThatIsNotANumber(t *testing.T) {
+	runner := &stubRunner{stdout: "machine-1\n8\n\n1048576\n"}
 
 	if _, err := NodeInfo(t.Context(), runner, "/var/lib/eru"); !errors.Is(err, coretypes.ErrInvaildNodeEndpoint) {
 		t.Errorf("got %v, want ErrInvaildNodeEndpoint", err)

@@ -1,7 +1,6 @@
 package calcium
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,7 +13,7 @@ import (
 
 func TestAddPod(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	_, err := c.AddPod(ctx, "", "")
 	assert.Error(t, err)
@@ -34,7 +33,7 @@ func TestAddPod(t *testing.T) {
 
 func TestRemovePod(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	assert.Error(t, c.RemovePod(ctx, ""))
 
@@ -54,7 +53,7 @@ func TestRemovePod(t *testing.T) {
 
 func TestGetPod(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	_, err := c.GetPod(ctx, "")
 	assert.Error(t, err)
@@ -71,7 +70,7 @@ func TestGetPod(t *testing.T) {
 
 func TestListPods(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	name := "test"
 	pods := []*types.Pod{

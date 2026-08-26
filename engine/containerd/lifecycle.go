@@ -75,15 +75,8 @@ func (e *Engine) VirtualizationStart(ctx context.Context, ID string) (err error)
 }
 
 func (e *Engine) VirtualizationStop(ctx context.Context, ID string, gracefulTimeout time.Duration) error {
-	found, err := e.container(ctx, ID)
+	found, labels, err := e.markStopped(ctx, ID)
 	if err != nil {
-		return err
-	}
-	labels, err := found.Labels(ctx)
-	if err != nil {
-		return err
-	}
-	if err = e.setDesiredStatus(ctx, found, labels, client.Stopped); err != nil {
 		return err
 	}
 	task, err := found.Task(ctx, nil)
@@ -101,15 +94,8 @@ func (e *Engine) VirtualizationStop(ctx context.Context, ID string, gracefulTime
 }
 
 func (e *Engine) VirtualizationRemove(ctx context.Context, ID string, _, force bool) error {
-	found, err := e.container(ctx, ID)
+	found, _, err := e.markStopped(ctx, ID)
 	if err != nil {
-		return err
-	}
-	labels, err := found.Labels(ctx)
-	if err != nil {
-		return err
-	}
-	if err = e.setDesiredStatus(ctx, found, labels, client.Stopped); err != nil {
 		return err
 	}
 	if task, taskErr := found.Task(ctx, nil); taskErr == nil {
@@ -258,6 +244,21 @@ func (e *Engine) task(ctx context.Context, ID string) (client.Task, error) {
 }
 
 // setDesiredStatus tells the restart plugin what core wants; without a policy it does not watch.
+func (e *Engine) markStopped(ctx context.Context, ID string) (client.Container, map[string]string, error) {
+	found, err := e.container(ctx, ID)
+	if err != nil {
+		return nil, nil, err
+	}
+	info, err := found.Info(ctx, client.WithoutRefreshedMetadata)
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := e.setDesiredStatus(ctx, found, info.Labels, client.Stopped); err != nil {
+		return nil, nil, err
+	}
+	return found, info.Labels, nil
+}
+
 func (e *Engine) setDesiredStatus(ctx context.Context, found client.Container, labels map[string]string, status client.ProcessStatus) error {
 	if labels[restart.PolicyLabel] == "" || labels[restart.StatusLabel] == string(status) {
 		return nil

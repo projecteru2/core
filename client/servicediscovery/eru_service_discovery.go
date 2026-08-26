@@ -33,7 +33,7 @@ func New(endpoint string, authConfig types.AuthConfig) *EruServiceDiscovery {
 }
 
 func (w *EruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err error) {
-	cc, err := w.dial(w.endpoint, w.authConfig)
+	cc, err := w.dial()
 	logger := log.WithFunc("servicediscovery.Watch").WithField("endpoint", w.endpoint)
 	if err != nil {
 		logger.Error(ctx, err, "dial")
@@ -59,27 +59,18 @@ func (w *EruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err
 				}
 				continue
 			}
-			expectedInterval := time.Duration(math.MaxInt64) / time.Second
+			expectedInterval := time.Duration(math.MaxInt64)
+			watchdog := time.AfterFunc(expectedInterval, cancelWatch)
 
 			for {
-				cancelTimer := make(chan struct{})
-				go func(expectedInterval time.Duration) {
-					timer := time.NewTimer(expectedInterval * time.Second)
-					defer timer.Stop()
-					select {
-					case <-timer.C:
-						cancelWatch()
-					case <-cancelTimer:
-						return
-					}
-				}(expectedInterval)
+				watchdog.Reset(expectedInterval)
 				status, err := stream.Recv()
-				close(cancelTimer)
+				watchdog.Stop()
 				if err != nil {
 					logger.Error(ctx, err, "recv service status")
 					break
 				}
-				expectedInterval = time.Duration(status.GetIntervalInSecond())
+				expectedInterval = time.Duration(status.GetIntervalInSecond()) * time.Second
 
 				epPusher.Push(ctx, status.GetAddresses())
 			}
@@ -90,20 +81,15 @@ func (w *EruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err
 	return ch, nil
 }
 
-func (w *EruServiceDiscovery) dial(addr string, authConfig types.AuthConfig) (*grpc.ClientConn, error) {
+func (w *EruServiceDiscovery) dial() (*grpc.ClientConn, error) {
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithStreamInterceptor(interceptor.NewStreamRetry(interceptor.RetryOptions{Max: 1})),
 	}
 
-	if authConfig.Username != "" {
-		opts = append(opts, grpc.WithPerRPCCredentials(auth.NewCredential(authConfig)))
+	if w.authConfig.Username != "" {
+		opts = append(opts, grpc.WithPerRPCCredentials(auth.NewCredential(w.authConfig)))
 	}
 
-	target := makeServiceDiscoveryTarget(addr)
-	return grpc.NewClient(target, opts...)
-}
-
-func makeServiceDiscoveryTarget(addr string) string {
-	return fmt.Sprintf("lb://_/%s", addr)
+	return grpc.NewClient(fmt.Sprintf("lb://_/%s", w.endpoint), opts...)
 }

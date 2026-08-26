@@ -34,11 +34,11 @@ func TestExecsReleaseAnExecWithItsExitCode(t *testing.T) {
 func TestExecsRejectAnUnknownExec(t *testing.T) {
 	execs := NewExecs()
 
-	if _, err := execs.ExitCode("missing"); !errors.Is(err, errExecNotFound) {
-		t.Errorf("got %v, want errExecNotFound", err)
+	if _, err := execs.ExitCode("missing"); !errors.Is(err, ErrExecNotFound) {
+		t.Errorf("got %v, want ErrExecNotFound", err)
 	}
-	if err := execs.Resize("missing", 24, 80); !errors.Is(err, errExecNotFound) {
-		t.Errorf("got %v, want errExecNotFound", err)
+	if err := execs.Resize("missing", 24, 80); !errors.Is(err, ErrExecNotFound) {
+		t.Errorf("got %v, want ErrExecNotFound", err)
 	}
 }
 
@@ -49,8 +49,8 @@ func TestExecsForgetAnExecOnceItHasEnded(t *testing.T) {
 	if _, err := execs.ExitCode("e1"); err != nil {
 		t.Fatalf("exit code: %v", err)
 	}
-	if _, err := execs.ExitCode("e1"); !errors.Is(err, errExecNotFound) {
-		t.Errorf("got %v, want errExecNotFound", err)
+	if _, err := execs.ExitCode("e1"); !errors.Is(err, ErrExecNotFound) {
+		t.Errorf("got %v, want ErrExecNotFound", err)
 	}
 }
 

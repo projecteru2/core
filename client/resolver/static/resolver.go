@@ -14,7 +14,7 @@ func New(cc resolver.ClientConn, endpoints string) *Resolver {
 	for ep := range strings.SplitSeq(endpoints, ",") {
 		addresses = append(addresses, resolver.Address{Addr: ep})
 	}
-	cc.UpdateState(resolver.State{Addresses: addresses}) //nolint
+	cc.UpdateState(resolver.State{Addresses: addresses}) //nolint:errcheck,gosec
 	return &Resolver{}
 }
 

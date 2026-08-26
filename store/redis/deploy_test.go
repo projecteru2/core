@@ -1,7 +1,6 @@
 package redis
 
 import (
-	"context"
 	"path/filepath"
 
 	"github.com/projecteru2/core/store/common"
@@ -9,7 +8,7 @@ import (
 )
 
 func (s *RediaronTestSuite) TestDeploy() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	opts := &types.DeployOptions{
 		Name:         "app",
 		Entrypoint:   &types.Entrypoint{Name: "entry"},
@@ -24,7 +23,6 @@ func (s *RediaronTestSuite) TestDeploy() {
 	_, err = s.rediaron.cli.Set(ctx, key, "", 0).Result()
 	s.NoError(err)
 	key = filepath.Join(common.WorkloadDeployPrefix, opts.Name, opts.Entrypoint.Name, "node", "id2")
-	s.NoError(err)
 	_, err = s.rediaron.cli.Set(ctx, key, "", 0).Result()
 	s.NoError(err)
 	nodeCount, err = s.rediaron.GetDeployStatus(ctx, opts.Name, opts.Entrypoint.Name)

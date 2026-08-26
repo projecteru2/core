@@ -1,7 +1,6 @@
 package etcdv3
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,7 +10,7 @@ import (
 
 func TestPod(t *testing.T) {
 	m := NewMercury(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	podname := "testv3"
 
 	pod, err := m.AddPod(ctx, podname, "CPU")

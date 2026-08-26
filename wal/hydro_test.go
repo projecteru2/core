@@ -1,7 +1,6 @@
 package wal
 
 import (
-	"context"
 	"fmt"
 	"maps"
 	"slices"
@@ -89,7 +88,7 @@ func TestRecoverFailedAsNoSuchHandler(t *testing.T) {
 	require.NoError(t, err)
 	hydro.handlers.Delete(eventype)
 
-	hydro.Recover(context.Background())
+	hydro.Recover(t.Context())
 	assert.True(t, encoded)
 	assert.False(t, decoded)
 	assert.False(t, handled)
@@ -106,7 +105,7 @@ func TestRecoverFailedAsDecodeEventError(t *testing.T) {
 	hydro.Register(handler)
 	store.data[fmt.Sprintf(eventKey, hydro.address, 1)] = "not an event"
 
-	hydro.Recover(context.Background())
+	hydro.Recover(t.Context())
 	assert.False(t, decoded)
 	assert.False(t, handled)
 	assert.Len(t, store.data, 1)
@@ -125,7 +124,7 @@ func TestRecoverFailedAsReadError(t *testing.T) {
 	require.NoError(t, err)
 	store.getErr = fmt.Errorf("read error")
 
-	hydro.Recover(context.Background())
+	hydro.Recover(t.Context())
 	assert.False(t, decoded)
 	assert.False(t, handled)
 }
@@ -146,7 +145,7 @@ func TestRecoverFailedAsDecodeLogError(t *testing.T) {
 	_, err := hydro.Log(eventype, struct{}{})
 	require.NoError(t, err)
 
-	hydro.Recover(context.Background())
+	hydro.Recover(t.Context())
 	assert.True(t, encoded)
 	assert.True(t, decoded)
 	assert.False(t, handled)
@@ -165,7 +164,7 @@ func TestHydroRecover(t *testing.T) {
 	_, err := hydro.Log(eventype, struct{}{})
 	require.NoError(t, err)
 
-	hydro.Recover(context.Background())
+	hydro.Recover(t.Context())
 	assert.True(t, encoded)
 	assert.True(t, decoded)
 	assert.True(t, handled)
@@ -186,14 +185,14 @@ func TestHydroKeepsOtherAddressesAlone(t *testing.T) {
 	peer := fmt.Sprintf(eventKey, "10.0.0.2:5001", 1)
 	store.data[peer] = store.data[fmt.Sprintf(eventKey, hydro.address, 1)]
 
-	hydro.Recover(context.Background())
+	hydro.Recover(t.Context())
 	assert.True(t, handled)
 	assert.Equal(t, []string{peer}, keysOf(store))
 }
 
 func TestHydroWithRealStore(t *testing.T) {
 	address := "10.0.0.1:5001"
-	ctx := context.Background()
+	ctx := t.Context()
 	store := newTestStore(t)
 
 	handled := []string{}
@@ -246,7 +245,7 @@ func TestTakeoverReplaysAnUnregisteredInstance(t *testing.T) {
 	dead := fmt.Sprintf(eventKey, "10.0.0.9:5001", 1)
 	store.data[dead] = store.data[mine]
 
-	hydro.Takeover(context.Background(), []string{hydro.address})
+	hydro.Takeover(t.Context(), []string{hydro.address})
 	assert.True(t, handled)
 	assert.Equal(t, []string{mine}, keysOf(store))
 }
@@ -265,7 +264,7 @@ func TestTakeoverLeavesRegisteredInstancesAlone(t *testing.T) {
 	peer := "10.0.0.9:5001"
 	store.data[fmt.Sprintf(eventKey, peer, 1)] = store.data[fmt.Sprintf(eventKey, hydro.address, 1)]
 
-	hydro.Takeover(context.Background(), []string{hydro.address, peer})
+	hydro.Takeover(t.Context(), []string{hydro.address, peer})
 	assert.False(t, handled)
 	assert.Len(t, store.data, 2)
 }
@@ -284,7 +283,7 @@ func TestTakeoverWaitsForTheLiveInstances(t *testing.T) {
 	dead := fmt.Sprintf(eventKey, "10.0.0.9:5001", 1)
 	store.data[dead] = string(value)
 
-	hydro.Takeover(context.Background(), nil)
+	hydro.Takeover(t.Context(), nil)
 	assert.False(t, handled)
 	assert.Equal(t, []string{dead}, keysOf(store))
 }
@@ -303,13 +302,13 @@ func TestTakeoverFailedAsNoLock(t *testing.T) {
 	store.data[fmt.Sprintf(eventKey, "10.0.0.9:5001", 1)] = string(value)
 	store.lockErr = fmt.Errorf("lock error")
 
-	hydro.Takeover(context.Background(), []string{hydro.address})
+	hydro.Takeover(t.Context(), []string{hydro.address})
 	assert.False(t, handled)
 	assert.Len(t, store.data, 1)
 }
 
 func newTestHydro(t *testing.T, store Store) *Hydro {
-	hydro, err := NewHydro(context.Background(), store, "10.0.0.1:5001", testConfig())
+	hydro, err := NewHydro(t.Context(), store, "10.0.0.1:5001", testConfig())
 	require.NoError(t, err)
 	return hydro
 }
@@ -325,7 +324,7 @@ func newTestStore(t *testing.T) *etcdv3.Mercury {
 
 	config := types.Config{MaxConcurrency: 10, LockTimeout: 10 * time.Second, GlobalTimeout: 30 * time.Second}
 	config.Etcd = types.EtcdConfig{Machines: []string{"127.0.0.1:2379"}, Prefix: "/eru-test", LockPrefix: "/eru-test-lock"}
-	store, err := etcdv3.New(config, cluster)
+	store, err := etcdv3.New(t.Context(), config, cluster)
 	require.NoError(t, err)
 	return store
 }

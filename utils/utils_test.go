@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 	"testing"
 	"time"
 
@@ -138,19 +137,6 @@ func TestCleanStatsdMetrics(t *testing.T) {
 	assert.Equal(t, CleanStatsdMetrics(k), "a-b-c")
 }
 
-func TestTempFile(t *testing.T) {
-	buff := bytes.NewBufferString("test")
-	rc := io.NopCloser(buff)
-	fname, err := TempFile(rc)
-	assert.NoError(t, err)
-	f, err := os.Open(fname)
-	assert.NoError(t, err)
-	b, err := io.ReadAll(f)
-	assert.NoError(t, err)
-	assert.Equal(t, string(b), "test")
-	os.Remove(fname)
-}
-
 func TestRound(t *testing.T) {
 	a := 0.0199999998
 	assert.InDelta(t, Round(a), 0.02, 1e-5)
@@ -190,11 +176,6 @@ func TestWithTimeout(t *testing.T) {
 	}
 	WithTimeout(t.Context(), time.Second, f)
 	assert.False(t, r)
-}
-
-func TestSHA256(t *testing.T) {
-	str := "hhh"
-	assert.Equal(t, "24d166cd6c8b826c779040b49d5b6708d649b236558e8744339dfee6afe11999", SHA256(str))
 }
 
 func TestBool2Int(t *testing.T) {

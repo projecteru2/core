@@ -9,9 +9,7 @@ import (
 )
 
 func TestListAllExecutableFiles(t *testing.T) {
-	dir, err := os.MkdirTemp(os.TempDir(), "test*")
-	assert.NoError(t, err)
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	file, err := os.CreateTemp(dir, "abc")
 	assert.NoError(t, err)

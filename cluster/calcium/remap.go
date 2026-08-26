@@ -8,12 +8,11 @@ import (
 	"github.com/projecteru2/core/log"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 )
 
 // RemapResourceAndLog remaps node resources after a binding change and logs the outcome.
 func (c *Calcium) RemapResourceAndLog(ctx context.Context, logger *log.Fields, node *types.Node) {
-	ctx, cancel := context.WithTimeout(utils.NewInheritCtx(ctx), c.config.GlobalTimeout)
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), c.config.GlobalTimeout)
 	defer cancel()
 
 	err := c.withNodeOperationLocked(ctx, node.Name, func(ctx context.Context, node *types.Node) error {
@@ -40,14 +39,6 @@ func (c *Calcium) doRemapResource(ctx context.Context, logger *log.Fields, node 
 	}
 	commit()
 	return nil
-}
-
-func (c *Calcium) remapNodeWorkloads(ctx context.Context, logger *log.Fields, node *types.Node) error {
-	engineParamsMap, workloads, err := c.computeRemap(ctx, node)
-	if err != nil {
-		return err
-	}
-	return c.applyRemap(ctx, logger, workloads, engineParamsMap)
 }
 
 func (c *Calcium) computeRemap(ctx context.Context, node *types.Node) (map[string]resourcetypes.Resources, []*types.Workload, error) {

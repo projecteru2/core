@@ -5,6 +5,7 @@ import (
 	"iter"
 	"sync/atomic"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/stretchr/testify/assert"
@@ -14,11 +15,59 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
+func TestStatusStreamsDoNotOccupyPool(t *testing.T) {
+	tests := []struct {
+		name  string
+		start func(context.Context, *Store) error
+	}{
+		{"service", func(ctx context.Context, store *Store) error {
+			_, err := store.ServiceStatusStream(ctx)
+			return err
+		}},
+		{"node", func(ctx context.Context, store *Store) error {
+			store.NodeStatusStream(ctx)
+			return nil
+		}},
+		{"workload", func(ctx context.Context, store *Store) error {
+			store.WorkloadStatusStream(ctx, "", "", "", nil)
+			return nil
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			synctest.Test(t, func(t *testing.T) {
+				pool, err := utils.NewPool(1)
+				require.NoError(t, err)
+				defer pool.Release()
+				ctx, cancel := context.WithCancel(t.Context())
+				store := New(&blockingServiceKV{}, types.Config{}, pool)
+
+				require.NoError(t, tt.start(ctx, store))
+				ran := make(chan struct{})
+				invokeDone := make(chan error, 1)
+				go func() {
+					invokeDone <- pool.Invoke(func() { close(ran) })
+				}()
+				synctest.Wait()
+				select {
+				case <-ran:
+				default:
+					t.Errorf("%s status stream occupied the pool", tt.name)
+				}
+
+				cancel()
+				synctest.Wait()
+				require.NoError(t, <-invokeDone)
+			})
+		})
+	}
+}
+
 func TestServiceStatusStreamRecoversAfterSnapshotFailure(t *testing.T) {
 	pool, err := utils.NewPool(1)
 	require.NoError(t, err)
 	defer pool.Release()
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	store := New(&recoveringServiceKV{}, types.Config{ConnectionTimeout: time.Millisecond}, pool)
 
 	ch, err := store.ServiceStatusStream(ctx)
@@ -53,6 +102,20 @@ func (k *recoveringServiceKV) GetPrefix(context.Context, string, int64) (map[str
 }
 
 func (k *recoveringServiceKV) Watch(ctx context.Context, _ string) iter.Seq[Event] {
+	return func(func(Event) bool) {
+		<-ctx.Done()
+	}
+}
+
+type blockingServiceKV struct {
+	KV
+}
+
+func (k *blockingServiceKV) GetPrefix(context.Context, string, int64) (map[string]string, error) {
+	return map[string]string{}, nil
+}
+
+func (k *blockingServiceKV) Watch(ctx context.Context, _ string) iter.Seq[Event] {
 	return func(func(Event) bool) {
 		<-ctx.Done()
 	}

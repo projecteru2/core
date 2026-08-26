@@ -13,8 +13,7 @@ import (
 	"github.com/projecteru2/core/resource"
 	"github.com/projecteru2/core/resource/cobalt"
 	"github.com/projecteru2/core/source"
-	"github.com/projecteru2/core/source/github"
-	"github.com/projecteru2/core/source/gitlab"
+	"github.com/projecteru2/core/source/common"
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/store/etcdv3/embedded"
 	storefactory "github.com/projecteru2/core/store/factory"
@@ -40,7 +39,7 @@ type Calcium struct {
 // New returns a Calcium cluster.
 func New(ctx context.Context, config types.Config, embeddedETCD *embedded.Cluster) (*Calcium, error) {
 	logger := log.WithFunc("calcium.New")
-	store, err := storefactory.NewStore(config, embeddedETCD)
+	store, err := storefactory.NewStore(ctx, config, embeddedETCD)
 	if err != nil {
 		logger.Error(ctx, err)
 		return nil, err
@@ -50,9 +49,9 @@ func New(ctx context.Context, config types.Config, embeddedETCD *embedded.Cluste
 	scmtype := strings.ToLower(config.Git.SCMType)
 	switch scmtype {
 	case cluster.Gitlab:
-		scm, err = gitlab.New(config)
+		scm, err = common.NewGitScm(config.Git, map[string]string{"PRIVATE-TOKEN": config.Git.Token})
 	case cluster.Github:
-		scm, err = github.New(config)
+		scm, err = common.NewGitScm(config.Git, map[string]string{"Authorization": "token " + config.Git.Token})
 	default:
 		logger.Warn(ctx, "SCM not set, build API disabled")
 	}
@@ -63,11 +62,7 @@ func New(ctx context.Context, config types.Config, embeddedETCD *embedded.Cluste
 
 	watcher := helium.New(ctx, config.GRPCConfig, store)
 
-	rmgr, err := cobalt.New(config)
-	if err != nil {
-		logger.Error(ctx, err)
-		return nil, err
-	}
+	rmgr := cobalt.New(config)
 	if err = rmgr.LoadPlugins(ctx, embeddedETCD); err != nil {
 		logger.Error(ctx, err)
 		return nil, err

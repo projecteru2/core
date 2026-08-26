@@ -154,7 +154,7 @@ type CocoonConfig struct {
 	Binary       string `yaml:"binary" default:"cocoon"`               // the cocoon command on the node; a sudo wrapper works
 	Root         string `yaml:"root" default:"/var/lib/eru/cocoon"`    // durable copies of the workload records
 	RunDir       string `yaml:"run_dir" default:"/var/lib/cocoon/run"` // cocoon's run_dir, where the guest consoles live
-	CgroupParent string `yaml:"cgroup_parent" default:"cocoon.slice"`  // cocoon's cgroup_parent
+	CgroupParent string `yaml:"cgroup_parent" default:"cocoon.slice"`
 }
 
 type SchedulerConfig struct {

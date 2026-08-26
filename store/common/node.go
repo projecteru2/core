@@ -165,7 +165,7 @@ func (s *Store) GetNodeStatus(ctx context.Context, nodename string) (*types.Node
 func (s *Store) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
 	ch := make(chan *types.NodeStatus)
 	logger := log.WithFunc("store.common.NodeStatusStream")
-	_ = s.Pool.Invoke(func() {
+	utils.SentryGo(func() {
 		defer func() {
 			logger.Info(ctx, "close NodeStatusStream channel")
 			close(ch)
@@ -217,32 +217,47 @@ func (s *Store) doGetNodes(
 		if err := json.Unmarshal([]byte(value), node); err != nil {
 			return nil, err
 		}
-		node.Engine = &fake.EngineWithErr{DefaultErr: types.ErrNilEngine, EP: enginetypes.NewParams(node.Name, node.Endpoint)}
 		if utils.LabelsFilter(node.Labels, labels) {
 			allNodes = append(allNodes, node)
 		}
 	}
 	logger := log.WithFunc("store.common.doGetNodes")
 
+	var statuses map[string]string
+	if len(allNodes) > 1 {
+		var err error
+		if statuses, err = s.GetPrefix(ctx, NodeStatusPrefix, 0); err != nil {
+			logger.Error(ctx, err, "failed to list node statuses")
+			statuses = nil
+		}
+	}
+
 	wg := &sync.WaitGroup{}
 	wg.Add(len(allNodes))
-	nodesCh := make(chan *types.Node, len(allNodes))
+	mu := sync.Mutex{}
+	nodes = make([]*types.Node, 0, len(allNodes))
 
 	for _, node := range allNodes {
-		task := func() {
+		_ = s.Pool.Invoke(func() {
 			defer wg.Done()
-			if node.Test {
+			switch {
+			case node.Test:
 				node.Available = !node.Bypass
-			} else if _, err := s.GetNodeStatus(ctx, node.Name); err != nil && !s.NotFound(err) {
-				logger.Errorf(ctx, err, "failed to get node status of %+v", node.Name)
-			} else {
-				node.Available = err == nil
+			case statuses != nil:
+				_, node.Available = statuses[filepath.Join(NodeStatusPrefix, node.Name)]
+			default:
+				if _, err := s.GetNodeStatus(ctx, node.Name); err != nil && !s.NotFound(err) {
+					logger.Errorf(ctx, err, "failed to get node status of %+v", node.Name)
+				} else {
+					node.Available = err == nil
+				}
 			}
 
 			if !all && node.IsDown() {
 				return
 			}
 
+			node.Engine = &fake.EngineWithErr{DefaultErr: types.ErrNilEngine, EP: enginetypes.NewParams(node.Name, node.Endpoint)}
 			if !withoutEngine {
 				if client, err := s.MakeClient(ctx, node); err != nil {
 					logger.Errorf(ctx, err, "failed to make client for %+v", node.Name)
@@ -250,16 +265,12 @@ func (s *Store) doGetNodes(
 					node.Engine = client
 				}
 			}
-			nodesCh <- node
-		}
-		_ = s.Pool.Invoke(task)
+			mu.Lock()
+			nodes = append(nodes, node)
+			mu.Unlock()
+		})
 	}
 	wg.Wait()
-	close(nodesCh)
-
-	for node := range nodesCh {
-		nodes = append(nodes, node)
-	}
 
 	return nodes, nil
 }

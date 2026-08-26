@@ -22,8 +22,8 @@ const (
 	tarFatalCode = 2
 	noSuchFile   = "No such file"
 
-	snapshotScript = `set -e
-ctr=$1; address=$2; namespace=$3; key=$4; dir=$5; target=$6
+	snapshotMountScript = `set -e
+ctr=$1; address=$2; namespace=$3; key=$4; dir=$5
 mkdir -p "$dir"
 cleanup() {
 umount "$dir" >/dev/null 2>&1 || true
@@ -32,6 +32,9 @@ rmdir "$dir" >/dev/null 2>&1 || true
 trap cleanup EXIT
 mounts=$("$ctr" --address "$address" --namespace "$namespace" snapshots mounts "$dir" "$key")
 eval "$mounts"
+`
+
+	snapshotScript = snapshotMountScript + `target=$6
 mkdir -p "$dir/$target"
 tar -x -C "$dir/$target"
 `
@@ -73,7 +76,7 @@ func (e *Engine) VirtualizationCopyFrom(ctx context.Context, ID, path string) (c
 		}
 		return nil, 0, 0, 0, err
 	}
-	reader := tar.NewReader(bytes.NewReader([]byte(res.Stdout)))
+	reader := tar.NewReader(strings.NewReader(res.Stdout))
 	header, err := reader.Next()
 	if err != nil {
 		return nil, 0, 0, 0, err

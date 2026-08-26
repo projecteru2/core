@@ -92,7 +92,7 @@ func (c *Calcium) rawProcessVirtualizationInStream(
 	inCh <-chan []byte,
 	specialPrefixCallback map[string]prefixHandler,
 ) {
-	_ = c.pool.Invoke(func() {
+	utils.SentryGo(func() {
 		defer func() {
 			_ = inStream.Close()
 		}()
@@ -119,7 +119,7 @@ func (c *Calcium) processVirtualizationOutStream(
 	split byte,
 ) <-chan []byte {
 	outCh := make(chan []byte)
-	_ = c.pool.Invoke(func() {
+	utils.SentryGo(func() {
 		defer close(outCh)
 		if outStream == nil {
 			return
@@ -146,7 +146,7 @@ func (c *Calcium) processVirtualizationOutStream(
 
 func (c *Calcium) processBuildImageStream(ctx context.Context, reader io.ReadCloser) chan *types.BuildImageMessage {
 	ch := make(chan *types.BuildImageMessage)
-	_ = c.pool.Invoke(func() {
+	utils.SentryGo(func() {
 		defer close(ch)
 		defer utils.EnsureReaderClosed(ctx, reader)
 		decoder := json.NewDecoder(reader)
@@ -173,23 +173,19 @@ func (c *Calcium) processStdStream(ctx context.Context, stdout, stderr io.ReadCl
 
 	wg := sync.WaitGroup{}
 
-	wg.Add(1)
-	_ = c.pool.Invoke(func() {
-		defer wg.Done()
-		for data := range c.processVirtualizationOutStream(ctx, stdout, splitFunc, split) {
-			ch <- types.StdStreamMessage{Data: data, StdStreamType: types.Stdout}
-		}
-	})
+	for _, source := range []struct {
+		stream io.ReadCloser
+		typ    types.StdStreamType
+	}{{stdout, types.Stdout}, {stderr, types.Stderr}} {
+		wg.Go(func() {
+			defer log.SentryDefer()
+			for data := range c.processVirtualizationOutStream(ctx, source.stream, splitFunc, split) {
+				ch <- types.StdStreamMessage{Data: data, StdStreamType: source.typ}
+			}
+		})
+	}
 
-	wg.Add(1)
-	_ = c.pool.Invoke(func() {
-		defer wg.Done()
-		for data := range c.processVirtualizationOutStream(ctx, stderr, splitFunc, split) {
-			ch <- types.StdStreamMessage{Data: data, StdStreamType: types.Stderr}
-		}
-	})
-
-	_ = c.pool.Invoke(func() {
+	utils.SentryGo(func() {
 		defer close(ch)
 		wg.Wait()
 	})

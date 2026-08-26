@@ -1,7 +1,6 @@
 package calcium
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,7 +12,7 @@ import (
 
 func TestGetWorkload(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	ID := "testID"
 	workload := &types.Workload{ID: ID}
@@ -28,7 +27,7 @@ func TestGetWorkload(t *testing.T) {
 
 func TestGetWorkloads(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	ID := "testID"
 	workload := &types.Workload{ID: ID}
 	workloads := []*types.Workload{workload}
@@ -44,7 +43,7 @@ func TestGetWorkloads(t *testing.T) {
 
 func TestListWorkloads(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	ID := "testID"
 	workloads := []*types.Workload{
 		{ID: ID},
@@ -64,7 +63,7 @@ func TestListWorkloads(t *testing.T) {
 
 func TestListNodeWorkloads(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	ID := "testID"
 	workloads := []*types.Workload{
 		{ID: ID},

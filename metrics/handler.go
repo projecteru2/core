@@ -24,12 +24,7 @@ func (m *Metrics) ResourceMiddleware(cluster cluster.Cluster) func(http.Handler)
 			}
 			for node := range nodes {
 				m.SendPodNodeStatus(ctx, node)
-				metrics, err := m.rmgr.GetNodeMetrics(ctx, node)
-				if err != nil {
-					logger.Error(ctx, err, "failed to get node metrics")
-					continue
-				}
-				m.SendMetrics(ctx, metrics...)
+				m.SendNodeMetrics(ctx, node)
 			}
 
 			h.ServeHTTP(w, r)

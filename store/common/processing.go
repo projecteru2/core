@@ -24,9 +24,6 @@ func (s *Store) doLoadProcessing(ctx context.Context, appname, entryname string)
 	if err != nil {
 		return nil, err
 	}
-	if len(data) == 0 {
-		return nodesCount, nil
-	}
 	logger := log.WithFunc("store.common.doLoadProcessing")
 
 	for key, value := range data {

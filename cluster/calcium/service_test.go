@@ -5,20 +5,54 @@ import (
 	"fmt"
 	"sync"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
 	"github.com/projecteru2/core/discovery/helium"
 	storemocks "github.com/projecteru2/core/store/mocks"
+	"github.com/projecteru2/core/utils"
 )
+
+func TestRegisterServiceDoesNotOccupyPool(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		c := NewTestCluster()
+		c.pool.Release()
+		pool, err := utils.NewPool(1)
+		require.NoError(t, err)
+		defer pool.Release()
+		c.pool = pool
+
+		store := c.store.(*storemocks.Store)
+		store.On("RegisterService", mock.Anything, mock.Anything, mock.Anything).
+			Return(make(<-chan struct{}), func() {}, nil).Once()
+		unregister, err := c.RegisterService(t.Context())
+		require.NoError(t, err)
+
+		ran := make(chan struct{})
+		invokeDone := make(chan error, 1)
+		go func() {
+			invokeDone <- pool.Invoke(func() { close(ran) })
+		}()
+		synctest.Wait()
+		select {
+		case <-ran:
+		default:
+			t.Error("service heartbeat occupied the pool")
+		}
+
+		unregister()
+		synctest.Wait()
+		require.NoError(t, <-invokeDone)
+	})
+}
 
 func TestServiceStatusStream(t *testing.T) {
 	c := NewTestCluster()
-	c.config.Bind = ":5001"
 	c.config.GRPCConfig.ServiceHeartbeatInterval = 100 * time.Millisecond
-	c.config.GRPCConfig.ServiceDiscoveryPushInterval = 10 * time.Second
 	store := c.store.(*storemocks.Store)
 
 	var unregistered bool
@@ -26,7 +60,7 @@ func TestServiceStatusStream(t *testing.T) {
 	expiry := make(<-chan struct{})
 	store.On("RegisterService", mock.Anything, mock.Anything, mock.Anything).Return(expiry, unregister, nil).Once()
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	unregisterService, err := c.RegisterService(ctx)
 	assert.NoError(t, err)
@@ -37,9 +71,7 @@ func TestServiceStatusStream(t *testing.T) {
 
 func TestServiceStatusStreamWithMultipleRegisteringAsExpired(t *testing.T) {
 	c := NewTestCluster()
-	c.config.Bind = ":5001"
 	c.config.GRPCConfig.ServiceHeartbeatInterval = 100 * time.Millisecond
-	c.config.GRPCConfig.ServiceDiscoveryPushInterval = 10 * time.Second
 	store := c.store.(*storemocks.Store)
 
 	raw := make(chan struct{})
@@ -47,7 +79,7 @@ func TestServiceStatusStreamWithMultipleRegisteringAsExpired(t *testing.T) {
 	store.On("RegisterService", mock.Anything, mock.Anything, mock.Anything).Return(expiry, func() {}, nil).Once()
 	store.On("RegisterService", mock.Anything, mock.Anything, mock.Anything).Return(make(<-chan struct{}), func() {}, nil).Once()
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	_, err := c.RegisterService(ctx)
 	assert.NoError(t, err)
@@ -59,15 +91,13 @@ func TestServiceStatusStreamWithMultipleRegisteringAsExpired(t *testing.T) {
 
 func TestRegisterServiceFailed(t *testing.T) {
 	c := NewTestCluster()
-	c.config.Bind = ":5001"
 	c.config.GRPCConfig.ServiceHeartbeatInterval = 100 * time.Millisecond
-	c.config.GRPCConfig.ServiceDiscoveryPushInterval = 10 * time.Second
 	store := c.store.(*storemocks.Store)
 
 	experr := fmt.Errorf("error")
 	store.On("RegisterService", mock.Anything, mock.Anything, mock.Anything).Return(make(<-chan struct{}), func() {}, experr).Once()
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
 	_, err := c.RegisterService(ctx)
@@ -95,11 +125,11 @@ func TestWatchServiceStatus(t *testing.T) {
 			return ch
 		}, nil,
 	)
-	c.watcher = helium.New(context.Background(), c.config.GRPCConfig, c.store)
+	c.watcher = helium.New(t.Context(), c.config.GRPCConfig, c.store)
 
-	ch, err := c.WatchServiceStatus(context.Background())
+	ch, err := c.WatchServiceStatus(t.Context())
 	assert.NoError(t, err)
-	ch2, err := c.WatchServiceStatus(context.Background())
+	ch2, err := c.WatchServiceStatus(t.Context())
 	assert.NoError(t, err)
 	wg := sync.WaitGroup{}
 	wg.Add(2)

@@ -164,7 +164,6 @@ func (e *Engine) ImageBuildFromExist(ctx context.Context, ID string, refs []stri
 	return enginetypes.ParseDescriptor(res.Stdout)
 }
 
-// registryFlags authenticates oras against the ref's registry.
 func (e *Engine) registryFlags(ref string) []string {
 	host := registryHost(ref)
 	flags := []string{}

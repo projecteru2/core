@@ -1,7 +1,6 @@
 package etcdv3
 
 import (
-	"context"
 	"path/filepath"
 	"testing"
 
@@ -13,7 +12,7 @@ import (
 
 func TestDeploy(t *testing.T) {
 	m := NewMercury(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	opts := &types.DeployOptions{
 		Name:         "app",
 		Entrypoint:   &types.Entrypoint{Name: "entry"},

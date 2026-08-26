@@ -37,7 +37,7 @@ type Hydro struct {
 
 func NewHydro(ctx context.Context, store Store, address string, config coretypes.Config) (*Hydro, error) {
 	// the journal outlives every request that writes to it, so it keeps a context of its own
-	hydro := &Hydro{store: store, ctx: utils.NewInheritCtx(ctx), config: config, address: address}
+	hydro := &Hydro{store: store, ctx: context.WithoutCancel(ctx), config: config, address: address}
 	seq, err := hydro.lastSeq(ctx)
 	if err != nil {
 		return nil, err
@@ -112,7 +112,7 @@ func (h *Hydro) takeoverAddress(ctx context.Context, address string) error {
 		return err
 	}
 	defer func() {
-		unlockCtx, cancel := context.WithTimeout(utils.NewInheritCtx(ctx), h.config.LockTimeout)
+		unlockCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), h.config.LockTimeout)
 		defer cancel()
 		if err := journalLock.Unlock(unlockCtx); err != nil {
 			log.WithFunc("wal.hydro.takeoverAddress").Errorf(ctx, err, "failed to unlock the journal of %s", address)
@@ -183,13 +183,13 @@ func (h *Hydro) handler(eventyp string) (EventHandler, bool) {
 }
 
 func (h *Hydro) lastSeq(ctx context.Context) (uint64, error) {
-	events, err := h.store.GetPrefix(ctx, fmt.Sprintf(addressPrefix, h.address), 0)
+	keys, err := h.store.ListPrefix(ctx, fmt.Sprintf(addressPrefix, h.address))
 	if err != nil {
 		return 0, err
 	}
 
 	var last uint64
-	for key := range events {
+	for _, key := range keys {
 		seq, err := strconv.ParseUint(utils.Tail(key), 16, 64)
 		if err != nil {
 			continue

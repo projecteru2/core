@@ -6,12 +6,11 @@ import (
 
 	"github.com/cockroachdb/errors"
 
-	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 )
 
 // GlobalPlan spreads need workloads to keep Usage+Rate as even as possible across nodes.
-func GlobalPlan(ctx context.Context, infos []Info, need, total, _ int) (map[string]int, error) {
+func GlobalPlan(_ context.Context, infos []Info, need, total, _ int) (map[string]int, error) {
 	if total < need {
 		return nil, errors.Wrapf(types.ErrInsufficientResource, "need: %d, available: %d", need, total)
 	}
@@ -34,6 +33,5 @@ func GlobalPlan(ctx context.Context, infos []Info, need, total, _ int) (map[stri
 		heap.Push(h, infoWithMinUsage)
 	}
 
-	log.WithFunc("strategy.GlobalPlan").Debugf(ctx, "strategyInfos: %+v", infos)
 	return deployMap, nil
 }

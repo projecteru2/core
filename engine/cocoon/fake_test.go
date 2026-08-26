@@ -1,6 +1,8 @@
 package cocoon
 
 import (
+	"context"
+	"strings"
 	"testing"
 
 	"github.com/projecteru2/core/engine/sshrunner"
@@ -43,10 +45,26 @@ func testEngine(t *testing.T, runner *sshrunnertest.Fake) *Engine {
 		cocoon: coretypes.CocoonConfig{Binary: testBinary, Root: testRoot, RunDir: testRunDir, CgroupParent: defaultCgroupParent},
 		ep:     enginetypes.NewParams("node1", Prefix+"10.0.0.1"),
 		runner: runner,
-		execs:  map[string]sshrunner.Session{},
+		execs:  sshrunner.NewExecs(),
 	}
 }
 
 func runningRecord(string) *sshrunner.Result {
 	return &sshrunner.Result{Stdout: storedRecord + "\n" + runningVM}
+}
+
+func createdVM(line string) *sshrunner.Result {
+	if strings.Contains(line, "'create'") {
+		return &sshrunner.Result{Stdout: linuxVM}
+	}
+	return &sshrunner.Result{}
+}
+
+func createdVMThenCanceled(cancel context.CancelFunc) func(string) *sshrunner.Result {
+	return func(line string) *sshrunner.Result {
+		if strings.Contains(line, "'create'") {
+			cancel()
+		}
+		return createdVM(line)
+	}
 }

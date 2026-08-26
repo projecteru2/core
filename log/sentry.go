@@ -42,7 +42,7 @@ func genGRPCTracingInfo(ctx context.Context) string {
 	return strings.Join(tracing, "-")
 }
 
-func reportToSentry(ctx context.Context, level sentry.Level, err error, format string, args ...any) { //nolint
+func reportToSentry(ctx context.Context, level sentry.Level, err error, format string, args ...any) { //nolint:goprintffuncname
 	if sentryDSN == "" {
 		return
 	}

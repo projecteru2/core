@@ -1,7 +1,6 @@
 package redislock
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -36,11 +35,11 @@ type RedisLockTestSuite struct {
 }
 
 func (s *RedisLockTestSuite) SetupTest() {
-	s.cli.FlushAll(context.Background())
+	s.cli.FlushAll(s.T().Context())
 }
 
 func (s *RedisLockTestSuite) TearDownTest() {
-	s.cli.FlushAll(context.Background())
+	s.cli.FlushAll(s.T().Context())
 }
 
 func (s *RedisLockTestSuite) TestMutex() {
@@ -49,7 +48,7 @@ func (s *RedisLockTestSuite) TestMutex() {
 	l, err := New(s.cli, "test", time.Second, time.Second)
 	s.NoError(err)
 
-	ctx := context.Background()
+	ctx := s.T().Context()
 	ctx, err = l.Lock(ctx)
 	s.Nil(ctx.Err())
 	s.NoError(err)
@@ -62,7 +61,7 @@ func (s *RedisLockTestSuite) TestLostLeaseCancelsContext() {
 	l, err := New(s.cli, "test", time.Second, 90*time.Millisecond)
 	s.Require().NoError(err)
 
-	ctx, err := l.Lock(context.Background())
+	ctx, err := l.Lock(s.T().Context())
 	s.Require().NoError(err)
 	s.server.Del("/test")
 
@@ -71,14 +70,14 @@ func (s *RedisLockTestSuite) TestLostLeaseCancelsContext() {
 	case <-time.After(time.Second):
 		s.FailNow("lock context was not canceled")
 	}
-	s.Error(l.Unlock(context.Background()))
+	s.Error(l.Unlock(s.T().Context()))
 }
 
 func (s *RedisLockTestSuite) TestTransientRefreshErrorKeepsContext() {
 	l, err := New(s.cli, "test", time.Second, 900*time.Millisecond)
 	s.Require().NoError(err)
 
-	ctx, err := l.Lock(context.Background())
+	ctx, err := l.Lock(s.T().Context())
 	s.Require().NoError(err)
 	s.server.SetError("mock outage")
 
@@ -88,14 +87,14 @@ func (s *RedisLockTestSuite) TestTransientRefreshErrorKeepsContext() {
 	case <-time.After(400 * time.Millisecond):
 	}
 	s.server.SetError("")
-	s.NoError(l.Unlock(context.Background()))
+	s.NoError(l.Unlock(s.T().Context()))
 }
 
 func (s *RedisLockTestSuite) TestUnrefreshedLockCancelsAfterTTL() {
 	l, err := New(s.cli, "test", time.Second, 90*time.Millisecond)
 	s.Require().NoError(err)
 
-	ctx, err := l.Lock(context.Background())
+	ctx, err := l.Lock(s.T().Context())
 	s.Require().NoError(err)
 	s.server.SetError("mock outage")
 
@@ -105,5 +104,5 @@ func (s *RedisLockTestSuite) TestUnrefreshedLockCancelsAfterTTL() {
 		s.FailNow("lock context outlived an unrefreshed ttl")
 	}
 	s.server.SetError("")
-	s.NoError(l.Unlock(context.Background()))
+	s.NoError(l.Unlock(s.T().Context()))
 }

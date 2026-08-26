@@ -1,7 +1,6 @@
 package cocoon
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/cockroachdb/errors"
@@ -21,12 +20,11 @@ func TestInfoReadsTheNodeCapacity(t *testing.T) {
 	if err != nil {
 		t.Fatalf("info: %v", err)
 	}
-	if info.ID != "machine1" || info.NCPU != 8 || info.MemTotal != 16777216*kiB || info.StorageTotal != 104857600*kiB {
+	if info.ID != "machine1" || info.NCPU != 8 || info.MemTotal != 16777216*1024 || info.StorageTotal != 104857600*1024 {
 		t.Errorf("got %+v, want the machine id with cpu, memory and storage in bytes", info)
 	}
-	want := sshrunner.Quote(sshrunner.Shell(infoScript, testRunDir))
-	if len(runner.Lines()) != 1 || runner.Lines()[0] != want {
-		t.Errorf("got %q, want %q", runner.Lines(), want)
+	if info.Type != Type {
+		t.Errorf("got %q, want the cocoon engine type", info.Type)
 	}
 }
 
@@ -47,15 +45,6 @@ func TestInfoRefusesANodeItCouldNotMeasure(t *testing.T) {
 				t.Error("a node core could not measure must not register with zero capacity")
 			}
 		})
-	}
-}
-
-func TestInfoScriptCreatesTheRunDirAndKeepsItsFailuresVisible(t *testing.T) {
-	if !strings.HasPrefix(infoScript, "set -e\nmkdir -p") {
-		t.Error("the info script must create the run dir under set -e")
-	}
-	if strings.Contains(infoScript, "2>/dev/null") {
-		t.Error("the info script must not swallow the errors that make a node look empty")
 	}
 }
 

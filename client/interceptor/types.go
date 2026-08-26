@@ -35,7 +35,7 @@ func (s *retryStream) RecvMsg(m any) (err error) {
 	if err = s.ClientStream.RecvMsg(m); err == nil || errors.Is(err, context.Canceled) {
 		return err
 	}
-	logger := log.WithFunc("client.RecvMsg")
+	logger := log.WithFunc("interceptor.RecvMsg")
 
 	return backoff.Retry(func() error {
 		logger.Debug(s.ctx, "retry on new stream")

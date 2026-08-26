@@ -159,7 +159,7 @@ func TestExecResizeNeedsAPty(t *testing.T) {
 func TestExecExitCodeRejectsAnUnknownExec(t *testing.T) {
 	e := testEngine(t, &sshrunnertest.Fake{})
 
-	if _, err := e.ExecExitCode(t.Context(), "w1", "missing"); !errors.Is(err, errExecNotFound) {
-		t.Errorf("got %v, want errExecNotFound", err)
+	if _, err := e.ExecExitCode(t.Context(), "w1", "missing"); !errors.Is(err, sshrunner.ErrExecNotFound) {
+		t.Errorf("got %v, want ErrExecNotFound", err)
 	}
 }

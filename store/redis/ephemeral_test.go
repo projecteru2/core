@@ -1,7 +1,6 @@
 package redis
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -32,7 +31,7 @@ func TestEphemeralMustRevokeAfterKeepaliveFailed(t *testing.T) {
 
 	rediaron := newRediaron(cli, types.Config{}, pool)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	path := "/ident"
 	expiry, stop, err := rediaron.StartEphemeral(ctx, path, time.Millisecond)
 
@@ -50,7 +49,7 @@ func TestEphemeralMustRevokeAfterKeepaliveFailed(t *testing.T) {
 }
 
 func (s *RediaronTestSuite) TestEphemeralDeregister() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	path := "/ident"
 	heartbeat := time.Second
 	expiry, stop, err := s.rediaron.StartEphemeral(ctx, path, heartbeat)
@@ -69,7 +68,7 @@ func (s *RediaronTestSuite) TestEphemeralDeregister() {
 }
 
 func (s *RediaronTestSuite) TestEphemeral() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	path := "/ident"
 	heartbeat := time.Second
 	expiry, stop, err := s.rediaron.StartEphemeral(ctx, path, heartbeat)
@@ -106,7 +105,7 @@ func (s *RediaronTestSuite) TestEphemeral() {
 }
 
 func (s *RediaronTestSuite) TestEphemeralFailedAsPutAlready() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	path := "/ident"
 	heartbeat := time.Second
 	expiry, stop, err := s.rediaron.StartEphemeral(ctx, path, heartbeat)
@@ -121,7 +120,7 @@ func (s *RediaronTestSuite) TestEphemeralFailedAsPutAlready() {
 }
 
 func (s *RediaronTestSuite) TestEphemeralStopsAfterOwnershipChanges() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	path := "/ident"
 	heartbeat := 90 * time.Millisecond
 	expiry, stop, err := s.rediaron.StartEphemeral(ctx, path, heartbeat)

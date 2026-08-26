@@ -1,7 +1,6 @@
 package strategy
 
 import (
-	"slices"
 	"testing"
 
 	"github.com/cockroachdb/errors"
@@ -14,12 +13,7 @@ func TestAveragePlan(t *testing.T) {
 	nodes := deployedNodes()
 	r, err := AveragePlan(t.Context(), nodes, 1, 0, 0)
 	assert.NoError(t, err)
-	finalCounts := []int{}
-	for _, node := range nodes {
-		finalCounts = append(finalCounts, node.Count+r[node.Nodename])
-	}
-	slices.Sort(finalCounts)
-	assert.ElementsMatch(t, []int{3, 4, 6, 8}, finalCounts)
+	assert.ElementsMatch(t, []int{3, 4, 6, 8}, getFinalStatus(r, nodes))
 
 	nodes = deployedNodes()
 	_, err = AveragePlan(t.Context(), nodes, 100, 0, 5)

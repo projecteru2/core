@@ -40,20 +40,14 @@ func (r *Rediaron) StartEphemeral(ctx context.Context, path string, heartbeat ti
 	expiry := make(chan struct{})
 
 	var wg sync.WaitGroup
-	wg.Add(1)
-	if err := r.Pool.Invoke(func() {
-		defer wg.Done()
+	wg.Go(func() {
+		defer log.SentryDefer()
 		defer close(expiry)
 		defer r.revokeEphemeral(ctx, path, token)
 		_ = utils.KeepAlive(ctx, heartbeat/3, func(ctx context.Context) error {
 			return r.refreshEphemeral(ctx, path, token, heartbeat)
 		})
-	}); err != nil {
-		wg.Done()
-		cancel()
-		r.revokeEphemeral(ctx, path, token)
-		return nil, nil, err
-	}
+	})
 
 	return expiry, func() {
 		cancel()

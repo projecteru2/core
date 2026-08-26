@@ -1,13 +1,11 @@
 package redis
 
 import (
-	"context"
-
 	"github.com/projecteru2/core/types"
 )
 
 func (s *RediaronTestSuite) TestProcessing() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	processing := &types.Processing{
 		Appname:   "app",
 		Entryname: "entry",

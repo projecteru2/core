@@ -2,6 +2,7 @@ package cobalt
 
 import (
 	"context"
+	"maps"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resource/plugins"
@@ -11,7 +12,7 @@ import (
 )
 
 // Alloc allocates resource for deployCount workloads on nodename, keyed by plugin name in opts.
-func (m Manager) Alloc(ctx context.Context, nodename string, deployCount int, opts resourcetypes.Resources) ([]resourcetypes.Resources, []resourcetypes.Resources, error) {
+func (m *Manager) Alloc(ctx context.Context, nodename string, deployCount int, opts resourcetypes.Resources) ([]resourcetypes.Resources, []resourcetypes.Resources, error) {
 	logger := log.WithFunc("resource.cobalt.Alloc")
 
 	workloadsParams := make([]resourcetypes.Resources, deployCount)
@@ -36,17 +37,13 @@ func (m Manager) Alloc(ctx context.Context, nodename string, deployCount int, op
 			}
 
 			for plugin, resp := range resps {
-				logger.Debugf(ctx, "plugin %s calculated deploy", plugin.Name())
+				name := plugin.Name()
+				logger.Debugf(ctx, "plugin %s calculated deploy", name)
 				for index, params := range resp.WorkloadsResource {
-					workloadsParams[index][plugin.Name()] = params
+					workloadsParams[index][name] = params
 				}
 				for index, params := range resp.EnginesParams {
-					v, err := m.mergeEngineParams(ctx, engineParams[index][plugin.Name()], params)
-					if err != nil {
-						logger.Error(ctx, err, "invalid engine args")
-						return err
-					}
-					engineParams[index][plugin.Name()] = v
+					engineParams[index][name] = maps.Clone(params)
 				}
 			}
 			return nil
@@ -64,7 +61,7 @@ func (m Manager) Alloc(ctx context.Context, nodename string, deployCount int, op
 }
 
 // RollbackAlloc returns the allocated resource to the node.
-func (m Manager) RollbackAlloc(ctx context.Context, nodename string, workloadsParams []resourcetypes.Resources) error {
+func (m *Manager) RollbackAlloc(ctx context.Context, nodename string, workloadsParams []resourcetypes.Resources) error {
 	_, _, err := m.SetNodeResourceUsage(ctx, nodename, nil, nil, workloadsParams, true, plugins.Decr)
 	return err
 }

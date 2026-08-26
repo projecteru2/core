@@ -15,9 +15,14 @@ const (
 	kiB        = 1024
 	infoFields = 4
 
-	infoScript = `mkdir -p "$1" 2>/dev/null || true
-printf '%s\n' "$(cat /etc/machine-id 2>/dev/null)" "$(nproc 2>/dev/null)" ` +
-		`"$(awk '/^MemTotal:/{print $2}' /proc/meminfo 2>/dev/null)" "$(df -Pk "$1" 2>/dev/null | awk 'NR==2{print $2}')"`
+	infoScript = `set -e
+mkdir -p "$1"
+id=$(cat /etc/machine-id)
+ncpu=$(nproc)
+memory=$(awk '/^MemTotal:/{print $2}' /proc/meminfo)
+storage=$(df -Pk "$1" | awk 'NR==2{print $2}')
+printf '%s\n' "$id" "$ncpu" "$memory" "$storage"
+`
 )
 
 func NodeInfo(ctx context.Context, runner Runner, root string) (*enginetypes.Info, error) {
@@ -33,9 +38,12 @@ func NodeInfo(ctx context.Context, runner Runner, root string) (*enginetypes.Inf
 	if len(fields) < infoFields {
 		return nil, errors.Wrapf(coretypes.ErrInvaildNodeEndpoint, "unexpected node info %q", res.Stdout)
 	}
-	ncpu, _ := strconv.Atoi(fields[1])
-	memory, _ := strconv.ParseInt(fields[2], 10, 64)
-	storage, _ := strconv.ParseInt(fields[3], 10, 64)
+	ncpu, cpuErr := strconv.Atoi(fields[1])
+	memory, memErr := strconv.ParseInt(fields[2], 10, 64)
+	storage, storageErr := strconv.ParseInt(fields[3], 10, 64)
+	if errors.Join(cpuErr, memErr, storageErr) != nil {
+		return nil, errors.Wrapf(coretypes.ErrInvaildNodeEndpoint, "unexpected node info %q", res.Stdout)
+	}
 	return &enginetypes.Info{
 		ID:           fields[0],
 		NCPU:         ncpu,

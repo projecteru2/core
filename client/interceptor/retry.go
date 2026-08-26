@@ -21,7 +21,7 @@ func NewStreamRetry(retryOpts RetryOptions) grpc.StreamClientInterceptor {
 		if _, ok := RPCNeedRetry[method]; !ok {
 			return stream, err
 		}
-		logger := log.WithFunc("client.NewStreamRetry")
+		logger := log.WithFunc("interceptor.NewStreamRetry")
 		logger.Debugf(ctx, "return retryStream for method %s", method)
 		return &retryStream{
 			ctx:          ctx,

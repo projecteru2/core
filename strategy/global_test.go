@@ -54,46 +54,10 @@ func TestGlobalPlan1(t *testing.T) {
 	r, err = GlobalPlan(t.Context(), arg, 3, 100, 0)
 	assert.Equal(t, r, map[string]int{"n1": 2, "n2": 1})
 
-	n1 = Info{
-		Nodename: "n1",
-		Usage:    0.8,
-		Rate:     0.05,
-		Capacity: 4,
-	}
-	n2 = Info{
-		Nodename: "n2",
-		Usage:    0.5,
-		Rate:     0.35,
-		Capacity: 1,
-	}
-	n3 = Info{
-		Nodename: "n3",
-		Usage:    2.2,
-		Rate:     0.05,
-		Capacity: 1,
-	}
 	arg = []Info{n1, n2, n3}
 	r, err = GlobalPlan(t.Context(), arg, 100, 6, 0)
 	assert.ErrorIs(t, err, types.ErrInsufficientResource)
 
-	n1 = Info{
-		Nodename: "n1",
-		Usage:    0.8,
-		Rate:     0.05,
-		Capacity: 4,
-	}
-	n2 = Info{
-		Nodename: "n2",
-		Usage:    0.5,
-		Rate:     0.35,
-		Capacity: 1,
-	}
-	n3 = Info{
-		Nodename: "n3",
-		Usage:    2.2,
-		Rate:     0.05,
-		Capacity: 1,
-	}
 	arg = []Info{n1, n2, n3}
 	r, err = GlobalPlan(t.Context(), arg, 10, 100, 0)
 	assert.ErrorIs(t, err, types.ErrInsufficientResource)

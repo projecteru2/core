@@ -1,13 +1,10 @@
 package common
 
 import (
-	"archive/zip"
 	"context"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path"
 	"path/filepath"
 	"testing"
 	"time"
@@ -84,7 +81,7 @@ func TestSourceCode(t *testing.T) {
 	}
 	g, err := NewGitScm(config, nil)
 	assert.NoError(t, err)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	dname, err := os.MkdirTemp("", "source")
 	assert.NoError(t, err)
@@ -120,16 +117,7 @@ func TestSourceCode(t *testing.T) {
 func TestArtifact(t *testing.T) {
 	rawString := "test"
 	authValue := "test"
-	origFile, err := os.CreateTemp("", "orig")
-	assert.NoError(t, err)
-	origFile.WriteString(rawString)
-	origFile.Close()
-	zipFile, err := os.CreateTemp("", "zip")
-	assert.NoError(t, err)
-	assert.NoError(t, zipFiles(zipFile, []string{origFile.Name()}))
-
-	data, err := os.ReadFile(zipFile.Name())
-	assert.NoError(t, err)
+	data := zipOf(t, map[string]string{"orig.txt": rawString})
 	savedDir, err := os.MkdirTemp("", "saved")
 	assert.NoError(t, err)
 
@@ -143,23 +131,21 @@ func TestArtifact(t *testing.T) {
 		res.Write(data)
 	}))
 	defer testServer.Close()
-	err = g.Artifact(context.Background(), "invaildurl", savedDir)
+	err = g.Artifact(t.Context(), "invaildurl", savedDir)
 	assert.Error(t, err)
-	err = g.Artifact(context.Background(), testServer.URL, savedDir)
+	err = g.Artifact(t.Context(), testServer.URL, savedDir)
 	assert.Error(t, err)
 	g.AuthHeaders = map[string]string{"TEST": authValue}
-	err = g.Artifact(context.Background(), testServer.URL, savedDir)
+	err = g.Artifact(t.Context(), testServer.URL, savedDir)
 	assert.NoError(t, err)
 
-	fname := filepath.Join(savedDir, path.Base(origFile.Name()))
+	fname := filepath.Join(savedDir, "orig.txt")
 	_, err = os.Stat(fname)
 	assert.NoError(t, err)
 	saved, err := os.ReadFile(fname)
 	assert.NoError(t, err)
 	assert.Equal(t, string(saved), rawString)
 
-	os.Remove(origFile.Name())
-	os.Remove(zipFile.Name())
 	os.RemoveAll(savedDir)
 }
 
@@ -187,42 +173,4 @@ func TestArtifactHonoursContextCancellation(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("Artifact ignored the cancelled context: the request carries no deadline at all")
 	}
-}
-
-func zipFiles(newfile *os.File, files []string) error {
-	defer newfile.Close()
-
-	zipWriter := zip.NewWriter(newfile)
-	defer zipWriter.Close()
-
-	for _, file := range files {
-
-		zipfile, err := os.Open(file)
-		if err != nil {
-			return err
-		}
-		defer zipfile.Close()
-
-		info, err := zipfile.Stat()
-		if err != nil {
-			return err
-		}
-
-		header, err := zip.FileInfoHeader(info)
-		if err != nil {
-			return err
-		}
-
-		header.Method = zip.Deflate
-
-		writer, err := zipWriter.CreateHeader(header)
-		if err != nil {
-			return err
-		}
-		_, err = io.Copy(writer, zipfile)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }

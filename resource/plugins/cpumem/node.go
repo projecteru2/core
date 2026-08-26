@@ -82,7 +82,6 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintyp
 		},
 	}
 
-	// an unset NUMAMemory defaults to the node memory split evenly across the NUMA nodes
 	if len(req.NUMA) > 0 && len(req.NUMAMemory) == 0 {
 		numaNodes := slices.Compact(slices.Sorted(maps.Values(req.NUMA)))
 		averageMemory := req.Memory / int64(len(numaNodes))
@@ -121,7 +120,7 @@ func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, 
 		return nil, err
 	}
 
-	nodesDeployCapacityMap := map[string]*plugintypes.NodeDeployCapacity{}
+	nodesDeployCapacityMap := make(map[string]*plugintypes.NodeDeployCapacity, len(nodenames))
 	total := 0
 
 	nodesResourceInfos, err := p.doGetNodesResourceInfo(ctx, nodenames)
@@ -338,11 +337,11 @@ func (p Plugin) doGetNodeResourceInfo(ctx context.Context, nodename string) (*cp
 	if err != nil {
 		return nil, err
 	}
-	return resp[nodename], err
+	return resp[nodename], nil
 }
 
 func (p Plugin) doGetNodesResourceInfo(ctx context.Context, nodenames []string) (map[string]*cpumemtypes.NodeResourceInfo, error) {
-	keys := []string{}
+	keys := make([]string, 0, len(nodenames))
 	for _, nodename := range nodenames {
 		keys = append(keys, fmt.Sprintf(nodeResourceInfoKey, nodename))
 	}
@@ -351,8 +350,7 @@ func (p Plugin) doGetNodesResourceInfo(ctx context.Context, nodenames []string) 
 		return nil, err
 	}
 
-	result := map[string]*cpumemtypes.NodeResourceInfo{}
-
+	result := make(map[string]*cpumemtypes.NodeResourceInfo, len(resps))
 	for _, resp := range resps {
 		r := &cpumemtypes.NodeResourceInfo{}
 		if err := json.Unmarshal(resp.Value, r); err != nil {
@@ -378,8 +376,6 @@ func (p Plugin) doSetNodeResourceInfo(ctx context.Context, nodename string, reso
 }
 
 func (p Plugin) doGetNodeDeployCapacity(nodeResourceInfo *cpumemtypes.NodeResourceInfo, req *cpumemtypes.WorkloadResourceRequest) *plugintypes.NodeDeployCapacity {
-	availableResource := nodeResourceInfo.GetAvailableResource()
-
 	capacityInfo := &plugintypes.NodeDeployCapacity{
 		Weight: 1,
 	}
@@ -392,7 +388,8 @@ func (p Plugin) doGetNodeDeployCapacity(nodeResourceInfo *cpumemtypes.NodeResour
 			capacityInfo.Capacity = math.MaxInt
 			capacityInfo.Rate = 0
 		} else {
-			capacityInfo.Capacity = int(availableResource.Memory / req.MemRequest)
+			availableMemory := nodeResourceInfo.Capacity.Memory - nodeResourceInfo.Usage.Memory
+			capacityInfo.Capacity = int(availableMemory / req.MemRequest)
 			capacityInfo.Rate = utils.AdvancedDivide(float64(req.MemRequest), float64(nodeResourceInfo.Capacity.Memory))
 		}
 		capacityInfo.Usage = utils.AdvancedDivide(float64(nodeResourceInfo.Usage.Memory), float64(nodeResourceInfo.Capacity.Memory))
@@ -411,7 +408,7 @@ func (p Plugin) doGetNodeDeployCapacity(nodeResourceInfo *cpumemtypes.NodeResour
 func (p Plugin) calculateNodeResource(req *cpumemtypes.NodeResourceRequest, nodeResource, origin *cpumemtypes.NodeResource, workloadsResource []*cpumemtypes.WorkloadResource, delta, incr bool) *cpumemtypes.NodeResource {
 	var resp *cpumemtypes.NodeResource
 	if origin == nil || !delta { // no delta means node resource rewrite with whole new data
-		resp = (&cpumemtypes.NodeResource{}).DeepCopy()
+		resp = &cpumemtypes.NodeResource{CPUMap: cpumemtypes.CPUMap{}, NUMAMemory: cpumemtypes.NUMAMemory{}, NUMA: cpumemtypes.NUMA{}}
 		// a full rewrite must add onto the zero value; subtracting would store negative amounts
 		incr = true
 	} else {

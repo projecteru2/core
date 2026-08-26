@@ -15,7 +15,7 @@ func NewHydroEvent(typ string, item []byte) *HydroEvent {
 }
 
 func (e HydroEvent) Encode() ([]byte, error) {
-	return json.MarshalIndent(e, "", "\t")
+	return json.Marshal(e)
 }
 
 func decodeHydroEvent(value string) (event HydroEvent, err error) {

@@ -1,6 +1,8 @@
 package etcdv3
 
 import (
+	"context"
+
 	"github.com/projecteru2/core/store/common"
 	"github.com/projecteru2/core/store/etcdv3/embedded"
 	"github.com/projecteru2/core/store/etcdv3/meta"
@@ -16,12 +18,12 @@ type Mercury struct {
 }
 
 // New creates a Mercury on the given etcd cluster.
-func New(config types.Config, embeddedETCD *embedded.Cluster) (*Mercury, error) {
+func New(ctx context.Context, config types.Config, embeddedETCD *embedded.Cluster) (*Mercury, error) {
 	pool, err := utils.NewPool(config.MaxConcurrency)
 	if err != nil {
 		return nil, err
 	}
-	kv, err := meta.NewETCD(config.Etcd, embeddedETCD)
+	kv, err := meta.NewETCD(ctx, config.Etcd, embeddedETCD)
 	if err != nil {
 		return nil, err
 	}

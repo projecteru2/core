@@ -20,8 +20,7 @@ func NewPlugin(_ context.Context, path string, config coretypes.Config) (*Plugin
 	if err != nil {
 		return nil, err
 	}
-	plugin := &Plugin{name: ppath.Base(path), path: p, config: config}
-	return plugin, nil
+	return &Plugin{name: ppath.Base(path), path: p, config: config}, nil
 }
 
 func (p Plugin) Name() string {

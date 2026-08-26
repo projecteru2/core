@@ -10,7 +10,6 @@ import (
 	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
-	promClient "github.com/prometheus/client_model/go"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resource"
@@ -106,28 +105,25 @@ func (m *Metrics) SendMetrics(ctx context.Context, metrics ...*plugintypes.Metri
 	}
 }
 
+// SendNodeMetrics refreshes a node's resource metrics and pushes them.
+func (m *Metrics) SendNodeMetrics(ctx context.Context, node *types.Node) {
+	nodeMetrics, err := m.rmgr.GetNodeMetrics(ctx, node)
+	if err != nil {
+		log.WithFunc("metrics.SendNodeMetrics").Errorf(ctx, err, "convert node %s resource info to metrics failed", node.Name)
+		return
+	}
+	m.SendMetrics(ctx, nodeMetrics...)
+}
+
 // RemoveInvalidNodes drops Prometheus label sets for a node that no longer exists.
 func (m *Metrics) RemoveInvalidNodes(invalidNode string) {
-	metrics, _ := prometheus.DefaultGatherer.Gather()
+	labels := prometheus.Labels{"nodename": invalidNode}
 	for _, collector := range m.Collectors {
-		for _, metric := range metrics {
-			for _, mf := range metric.GetMetric() {
-				if !slices.ContainsFunc(mf.Label, func(label *promClient.LabelPair) bool {
-					return label.GetName() == "nodename" && label.GetValue() == invalidNode
-				}) {
-					continue
-				}
-				labels := prometheus.Labels{}
-				for _, label := range mf.Label {
-					labels[label.GetName()] = label.GetValue()
-				}
-				switch c := collector.(type) {
-				case *prometheus.GaugeVec:
-					c.Delete(labels)
-				case *prometheus.CounterVec:
-					c.Delete(labels)
-				}
-			}
+		switch c := collector.(type) {
+		case *prometheus.GaugeVec:
+			c.DeletePartialMatch(labels)
+		case *prometheus.CounterVec:
+			c.DeletePartialMatch(labels)
 		}
 	}
 }

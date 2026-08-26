@@ -13,10 +13,7 @@ import (
 
 func (c *Calcium) WatchServiceStatus(ctx context.Context) (<-chan types.ServiceStatus, error) {
 	id, ch := c.watcher.Subscribe(ctx)
-	_ = c.pool.Invoke(func() {
-		<-ctx.Done()
-		c.watcher.Unsubscribe(id)
-	})
+	context.AfterFunc(ctx, func() { c.watcher.Unsubscribe(id) })
 	return ch, nil
 }
 
@@ -29,7 +26,7 @@ func (c *Calcium) RegisterService(ctx context.Context) (unregister func(), err e
 		unregisterService func()
 	)
 	for {
-		if expiry, unregisterService, err = c.registerService(ctx, c.serviceAddress); err == nil {
+		if expiry, unregisterService, err = c.store.RegisterService(ctx, c.serviceAddress, c.config.GRPCConfig.ServiceHeartbeatInterval); err == nil {
 			break
 		}
 		if errors.Is(err, types.ErrKeyExists) {
@@ -41,19 +38,18 @@ func (c *Calcium) RegisterService(ctx context.Context) (unregister func(), err e
 		return nil, err
 	}
 
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
+	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(ctx)
-	_ = c.pool.Invoke(func() {
+	wg.Go(func() {
+		defer log.SentryDefer()
 		defer func() {
 			unregisterService()
-			wg.Done()
 		}()
 
 		for {
 			select {
 			case <-expiry:
-				if ne, us, err := c.registerService(ctx, c.serviceAddress); err != nil {
+				if ne, us, err := c.store.RegisterService(ctx, c.serviceAddress, c.config.GRPCConfig.ServiceHeartbeatInterval); err != nil {
 					logger.Error(ctx, err, "failed to re-register service")
 					time.Sleep(c.config.GRPCConfig.ServiceHeartbeatInterval)
 				} else {
@@ -71,8 +67,4 @@ func (c *Calcium) RegisterService(ctx context.Context) (unregister func(), err e
 		cancel()
 		wg.Wait()
 	}, nil
-}
-
-func (c *Calcium) registerService(ctx context.Context, addr string) (<-chan struct{}, func(), error) {
-	return c.store.RegisterService(ctx, addr, c.config.GRPCConfig.ServiceHeartbeatInterval)
 }

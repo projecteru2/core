@@ -26,7 +26,7 @@ import (
 
 func TestRunAndWaitFailedThenWALCommitted(t *testing.T) {
 	assert := assert.New(t)
-	c, _ := newCreateWorkloadCluster(t)
+	c, _ := newCreateWorkloadCluster(t, nil, nil)
 
 	rmgr := &resourcemocks.Manager{}
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
@@ -39,26 +39,12 @@ func TestRunAndWaitFailedThenWALCommitted(t *testing.T) {
 	defer mwal.AssertNotCalled(t, "Log")
 	mwal.On("Log", mock.Anything, mock.Anything).Return(nil, nil)
 
-	opts := &types.DeployOptions{
-		Name:           "zc:name",
-		Count:          2,
-		DeployStrategy: strategy.Auto,
-		Podname:        "p1",
-		Resources:      resourcetypes.Resources{},
-		Image:          "zc:test",
-		Entrypoint: &types.Entrypoint{
-			Name: "good-entrypoint",
-		},
-		NodeFilter: &types.NodeFilter{},
-	}
+	opts := lambdaOptions()
 
-	_, ch, err := c.RunAndWait(context.Background(), opts, make(chan []byte))
+	_, ch, err := c.RunAndWait(t.Context(), opts, make(chan []byte))
 	assert.NoError(err)
 	assert.NotNil(ch)
-	ms := []*types.AttachWorkloadMessage{}
-	for m := range ch {
-		ms = append(ms, m)
-	}
+	ms := drainAttachMessages(ch)
 	m := ms[0]
 	assert.Equal(m.WorkloadID, "")
 	assert.True(strings.HasPrefix(string(m.Data), "Create workload failed"))
@@ -75,44 +61,19 @@ func TestLambdaWithWorkloadIDReturned(t *testing.T) {
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
 
-	opts := &types.DeployOptions{
-		Name:           "zc:name",
-		Count:          2,
-		DeployStrategy: strategy.Auto,
-		Podname:        "p1",
-		Resources:      resourcetypes.Resources{},
-		Image:          "zc:test",
-		Entrypoint: &types.Entrypoint{
-			Name: "good-entrypoint",
-		},
-		NodeFilter: &types.NodeFilter{},
-	}
+	opts := lambdaOptions()
 
-	r1, w1 := io.Pipe()
-	go func() {
-		w1.Write([]byte("stdout line1\n"))
-		w1.Write([]byte("stdout line2\n"))
-		w1.Close()
-	}()
-	r2, w2 := io.Pipe()
-	go func() {
-		w2.Write([]byte("stderr line1\n"))
-		w2.Write([]byte("stderr line2\n"))
-		w2.Close()
-	}()
-	engine.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(io.NopCloser(r1), io.NopCloser(r2), nil)
+	stdout, stderr := stdPipes()
+	engine.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(stdout, stderr, nil)
 	engine.On("VirtualizationWait", mock.Anything, mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationWaitResult{Code: 0}, nil)
 
-	ids, ch, err := c.RunAndWait(context.Background(), opts, make(chan []byte))
+	ids, ch, err := c.RunAndWait(t.Context(), opts, make(chan []byte))
 	assert.NoError(err)
 	assert.NotNil(ch)
 	assert.Equal(len(ids), 2)
 	assert.Equal(ids[0], "workloadfortonictest")
 
-	ms := []*types.AttachWorkloadMessage{}
-	for m := range ch {
-		ms = append(ms, m)
-	}
+	ms := drainAttachMessages(ch)
 	assert.Equal(len(ms), 6)
 	assert.True(strings.HasPrefix(string(ms[5].Data), exitDataPrefix))
 	assert.Equal(ms[5].StdStreamType, types.Stdout)
@@ -127,21 +88,10 @@ func TestLambdaWithError(t *testing.T) {
 	store := c.store.(*storemocks.Store)
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
 
-	opts := &types.DeployOptions{
-		Name:           "zc:name",
-		Count:          2,
-		DeployStrategy: strategy.Auto,
-		Podname:        "p1",
-		Resources:      resourcetypes.Resources{},
-		Image:          "zc:test",
-		Entrypoint: &types.Entrypoint{
-			Name: "good-entrypoint",
-		},
-		NodeFilter: &types.NodeFilter{},
-	}
+	opts := lambdaOptions()
 
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, fmt.Errorf("error")).Twice()
-	_, ch0, err := c.RunAndWait(context.Background(), opts, make(chan []byte))
+	_, ch0, err := c.RunAndWait(t.Context(), opts, make(chan []byte))
 	assert.NoError(err)
 	assert.NotNil(ch0)
 	m0 := <-ch0
@@ -152,7 +102,7 @@ func TestLambdaWithError(t *testing.T) {
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
 
 	engine.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(nil, nil, fmt.Errorf("error")).Twice()
-	_, ch1, err := c.RunAndWait(context.Background(), opts, make(chan []byte))
+	_, ch1, err := c.RunAndWait(t.Context(), opts, make(chan []byte))
 	assert.NoError(err)
 	assert.NotNil(ch1)
 	m1 := <-ch1
@@ -160,31 +110,17 @@ func TestLambdaWithError(t *testing.T) {
 	assert.True(strings.HasPrefix(string(m1.Data), "Fetch log for workload"))
 	assert.Equal(m1.StdStreamType, types.EruError)
 
-	r1, w1 := io.Pipe()
-	go func() {
-		w1.Write([]byte("stdout line1\n"))
-		w1.Write([]byte("stdout line2\n"))
-		w1.Close()
-	}()
-	r2, w2 := io.Pipe()
-	go func() {
-		w2.Write([]byte("stderr line1\n"))
-		w2.Write([]byte("stderr line2\n"))
-		w2.Close()
-	}()
-	engine.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(io.NopCloser(r1), io.NopCloser(r2), nil)
+	stdout, stderr := stdPipes()
+	engine.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(stdout, stderr, nil)
 
 	engine.On("VirtualizationWait", mock.Anything, mock.Anything, mock.Anything).Return(nil, fmt.Errorf("error"))
-	ids, ch2, err := c.RunAndWait(context.Background(), opts, make(chan []byte))
+	ids, ch2, err := c.RunAndWait(t.Context(), opts, make(chan []byte))
 	assert.NoError(err)
 	assert.NotNil(ch2)
 	assert.Equal(ids[0], "workloadfortonictest")
 	assert.Equal(ids[1], "workloadfortonictest")
 
-	ms := []*types.AttachWorkloadMessage{}
-	for m := range ch2 {
-		ms = append(ms, m)
-	}
+	ms := drainAttachMessages(ch2)
 	assert.Equal(len(ms), 6)
 	assert.Equal(ms[5].WorkloadID, "workloadfortonictest")
 	assert.True(strings.HasPrefix(string(ms[5].Data), "Wait workload"))
@@ -203,26 +139,13 @@ func TestLambdaWithStdinOpensNoFollowStream(t *testing.T) {
 	engine.On("VirtualizationAttach", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(nil, nil, nil, types.ErrEngineNotImplemented)
 
-	opts := &types.DeployOptions{
-		Name:           "zc:name",
-		Count:          1,
-		OpenStdin:      true,
-		DeployStrategy: strategy.Auto,
-		Podname:        "p1",
-		Resources:      resourcetypes.Resources{},
-		Image:          "zc:test",
-		Entrypoint: &types.Entrypoint{
-			Name: "good-entrypoint",
-		},
-		NodeFilter: &types.NodeFilter{},
-	}
+	opts := lambdaOptions()
+	opts.Count = 1
+	opts.OpenStdin = true
 
-	_, ch, err := c.RunAndWait(context.Background(), opts, make(chan []byte))
+	_, ch, err := c.RunAndWait(t.Context(), opts, make(chan []byte))
 	assert.NoError(err)
-	ms := []*types.AttachWorkloadMessage{}
-	for m := range ch {
-		ms = append(ms, m)
-	}
+	ms := drainAttachMessages(ch)
 	assert.Len(ms, 1)
 	assert.True(strings.HasPrefix(string(ms[0].Data), "Attach to workload"))
 	assert.Equal(ms[0].StdStreamType, types.EruError)
@@ -242,7 +165,7 @@ func TestLambdaKeepsTheJournalEntryWhenTheRemoveFails(t *testing.T) {
 	committed := &atomic.Int64{}
 	c.wal = lambdaWAL(committed)
 
-	ids, ch, err := c.RunAndWait(context.Background(), lambdaOptions(), make(chan []byte))
+	ids, ch, err := c.RunAndWait(t.Context(), lambdaOptions(), make(chan []byte))
 	assert.NoError(err)
 	assert.Len(drainAttachMessages(ch), len(ids))
 	assert.Zero(committed.Load())
@@ -266,10 +189,26 @@ func TestLambdaCommitsTheJournalEntryAfterTheRemove(t *testing.T) {
 	committed := &atomic.Int64{}
 	c.wal = lambdaWAL(committed)
 
-	ids, ch, err := c.RunAndWait(context.Background(), lambdaOptions(), make(chan []byte))
+	ids, ch, err := c.RunAndWait(t.Context(), lambdaOptions(), make(chan []byte))
 	assert.NoError(err)
 	assert.Len(drainAttachMessages(ch), len(ids))
 	assert.Equal(int64(len(ids)), committed.Load())
+}
+
+func stdPipes() (stdout, stderr io.ReadCloser) {
+	r1, w1 := io.Pipe()
+	go func() {
+		w1.Write([]byte("stdout line1\n"))
+		w1.Write([]byte("stdout line2\n"))
+		w1.Close()
+	}()
+	r2, w2 := io.Pipe()
+	go func() {
+		w2.Write([]byte("stderr line1\n"))
+		w2.Write([]byte("stderr line2\n"))
+		w2.Close()
+	}()
+	return io.NopCloser(r1), io.NopCloser(r2)
 }
 
 func drainAttachMessages(ch <-chan *types.AttachWorkloadMessage) []*types.AttachWorkloadMessage {
@@ -306,7 +245,7 @@ func lambdaWAL(committed *atomic.Int64) *walmocks.WAL {
 }
 
 func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {
-	c, nodes := newCreateWorkloadCluster(t)
+	c, nodes := newCreateWorkloadCluster(t, nil, nil)
 	node1, node2 := nodes[0], nodes[1]
 
 	store := c.store.(*storemocks.Store)
@@ -348,7 +287,7 @@ func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {
 	store.On("DeleteProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
+	lock.On("Lock", mock.Anything).Return(t.Context(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil)
@@ -365,31 +304,6 @@ func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {
 		}, nil,
 	)
 
-	store.On("GetDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(map[string]int{}, nil)
-	old := strategy.Plans[strategy.Auto]
-	strategy.Plans[strategy.Auto] = func(ctx context.Context, sis []strategy.Info, need, total, _ int) (map[string]int, error) {
-		deployInfos := make(map[string]int)
-		for _, si := range sis {
-			deployInfos[si.Nodename] = 1
-		}
-		return deployInfos, nil
-	}
-	defer func() {
-		strategy.Plans[strategy.Auto] = old
-	}()
-
-	store.On("GetNode",
-		mock.AnythingOfType("*context.timerCtx"),
-		mock.AnythingOfType("string"),
-	).Return(
-		func(_ context.Context, name string) (node *types.Node) {
-			node = node1
-			if name == "n2" {
-				node = node2
-			}
-			return node
-		}, nil,
-	)
 	engine := node1.Engine.(*enginemocks.API)
 
 	engine.On("ImageLocalDigests", mock.Anything, mock.Anything).Return([]string{""}, nil)

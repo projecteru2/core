@@ -21,18 +21,19 @@ func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOption
 	}
 	return c.withNodePodLocked(ctx, workload.Nodename, func(ctx context.Context, node *types.Node) error {
 		return c.withWorkloadLocked(ctx, opts.ID, false, func(ctx context.Context, workload *types.Workload) error {
-			err := c.doReallocOnNode(ctx, node, workload, *workload, opts)
+			err := c.doReallocOnNode(ctx, node, workload, opts)
 			logger.Error(ctx, err)
 			return err
 		})
 	})
 }
 
-func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workload *types.Workload, originWorkload types.Workload, opts *types.ReallocOptions) error {
+func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workload *types.Workload, opts *types.ReallocOptions) error {
+	originWorkload := *workload
+
 	var resources resourcetypes.Resources
 	var deltaResources resourcetypes.Resources
 	var engineParams resourcetypes.Resources
-	var err error
 	var reallocated bool
 
 	logger := log.WithFunc("calcium.doReallocOnNode").WithField("opts", opts)
@@ -83,6 +84,6 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 	if err != nil {
 		return err
 	}
-	_ = c.pool.Invoke(func() { c.RemapResourceAndLog(ctx, logger, node) })
+	c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node) })
 	return nil
 }

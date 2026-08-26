@@ -6,6 +6,7 @@ import (
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *types.CopyMessage, error) {
@@ -16,7 +17,7 @@ func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 	}
 
 	ch := make(chan *types.CopyMessage)
-	_ = c.pool.Invoke(func() {
+	utils.SentryGo(func() {
 		defer close(ch)
 
 		wg := sync.WaitGroup{}
@@ -30,8 +31,8 @@ func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 
 				workload, err := c.GetWorkload(ctx, ID)
 				if err != nil {
+					logger.Error(ctx, err)
 					for _, path := range paths {
-						logger.Error(ctx, err)
 						ch <- &types.CopyMessage{
 							ID:    ID,
 							Path:  path,

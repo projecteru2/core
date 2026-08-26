@@ -371,7 +371,8 @@ and a socket that do not exist, and the workload never reports healthy.
 
 `cocoon.run_dir` is created by the node info probe itself, which reads `/etc/machine-id`, `nproc`,
 `MemTotal` and `df -Pk <cocoon.run_dir>`; a probe that cannot read any of them fails the `AddNode`,
-so a node is never registered with zero CPU, memory and storage.
+so a node is never registered with zero CPU, memory and storage. The containerd and process
+engines run the same strict probe rooted at their own directories.
 
 `oras` is optional: without it the remote digest check is skipped and every deploy runs
 `image pull`; with it (and the node's own registry credentials) the check runs and split-qcow2

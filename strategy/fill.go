@@ -7,13 +7,11 @@ import (
 
 	"github.com/cockroachdb/errors"
 
-	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 )
 
 // FillPlan tops every node up to need workloads; need is a per-node ceiling, limit 0 means every node.
-func FillPlan(ctx context.Context, infos []Info, need, _, limit int) (_ map[string]int, err error) {
-	log.WithFunc("strategy.FillPlan").Debugf(ctx, "need %d limit %d infos %+v", need, limit, infos)
+func FillPlan(_ context.Context, infos []Info, need, _, limit int) (_ map[string]int, err error) {
 	scheduleInfosLength := len(infos)
 	if limit == 0 {
 		limit = scheduleInfosLength
@@ -27,8 +25,9 @@ func FillPlan(ctx context.Context, infos []Info, need, _, limit int) (_ map[stri
 	deployMap, toDeploy := make(map[string]int), 0
 	for _, info := range infos {
 		if info.Count+info.Capacity >= need {
-			deployMap[info.Nodename] += max(need-info.Count, 0)
-			toDeploy += deployMap[info.Nodename]
+			deploy := max(need-info.Count, 0)
+			deployMap[info.Nodename] = deploy
+			toDeploy += deploy
 			limit--
 			if limit == 0 {
 				if toDeploy == 0 {

@@ -19,7 +19,6 @@ func TestRawParams(t *testing.T) {
 	assert.Equal(t, r.String("abc"), "")
 	assert.Equal(t, r.String("cde"), "")
 	assert.Len(t, r.StringSlice("bef"), 1)
-	assert.Nil(t, r.OneOfStringSlice("efg"))
 	assert.Nil(t, r.RawParams("fgd"))
 
 	r = RawParams{
@@ -51,7 +50,6 @@ func TestRawParams(t *testing.T) {
 	assert.Equal(t, r.Float64("float64"), 1.999999999999999999999)
 	assert.Equal(t, r.String("string"), "string")
 	assert.Equal(t, r.StringSlice("string-slice"), []string{"string", "string"})
-	assert.Equal(t, r.OneOfStringSlice("?", "string-slice"), []string{"string", "string"})
 	assert.Equal(t, r.Bool("bool"), true)
 	assert.Equal(t, r.RawParams("raw-params")["int64"], 1)
 	assert.Equal(t, r.SliceRawParams("slice-raw-params")[0]["int"], 1)

@@ -26,7 +26,7 @@ func (s *Store) AddPod(ctx context.Context, name, desc string) (*types.Pod, erro
 }
 
 func (s *Store) RemovePod(ctx context.Context, podname string) error {
-	ns, err := s.GetNodesByPod(ctx, &types.NodeFilter{Podname: podname, All: true}, false)
+	ns, err := s.GetNodesByPod(ctx, &types.NodeFilter{Podname: podname, All: true}, true)
 	if err != nil {
 		return err
 	}

@@ -5,6 +5,7 @@ import (
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 func (c *Calcium) DissociateWorkload(ctx context.Context, IDs []string) (chan *types.DissociateWorkloadMessage, error) {
@@ -17,7 +18,7 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, IDs []string) (chan *t
 	}
 
 	ch := make(chan *types.DissociateWorkloadMessage)
-	_ = c.pool.Invoke(func() {
+	utils.SentryGo(func() {
 		defer close(ch)
 
 		for nodename, workloadIDs := range nodeWorkloadGroup {
@@ -34,7 +35,7 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, IDs []string) (chan *t
 					}
 					ch <- msg
 				}
-				_ = c.pool.Invoke(func() { c.RemapResourceAndLog(ctx, logger, node) })
+				c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node) })
 				return nil
 			}); nodeErr != nil {
 				logger.WithField("node", nodename).Error(ctx, nodeErr, "failed to lock node")

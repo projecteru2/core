@@ -124,10 +124,10 @@ func TestBuild(t *testing.T) {
 	opts.NodeFilter = nil
 	store := c.store.(*storemocks.Store)
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrInvaildWorkloadMeta).Once()
-	ch, err := c.BuildImage(ctx, opts)
+	_, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{}, nil).Once()
-	ch, err = c.BuildImage(ctx, opts)
+	_, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	engine := &enginemocks.API{}
 	node := &types.Node{
@@ -142,7 +142,7 @@ func TestBuild(t *testing.T) {
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 	rmgr.On("GetMostIdleNode", mock.Anything, mock.Anything).Return("", types.ErrInvaildCount).Once()
-	ch, err = c.BuildImage(ctx, opts)
+	_, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	rmgr.On("GetMostIdleNode", mock.Anything, mock.Anything).Return("test", nil)
 	c.config.Registry.Hub = "test.com"
@@ -157,29 +157,27 @@ func TestBuild(t *testing.T) {
 	buildImageMessage.ErrorDetail.Code = 0
 	buildImageResp, err := json.Marshal(buildImageMessage)
 	assert.NoError(t, err)
-	buildImageResp2, err := json.Marshal(buildImageMessage)
-	assert.NoError(t, err)
 	buildImageRespReader := io.NopCloser(bytes.NewReader(buildImageResp))
-	buildImageRespReader2 := io.NopCloser(bytes.NewReader(buildImageResp2))
+	buildImageRespReader2 := io.NopCloser(bytes.NewReader(buildImageResp))
 	engine.On("BuildRefs", mock.Anything, mock.Anything, mock.Anything).Return([]string{"t1", "t2"})
 	engine.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return("", nil, types.ErrInvaildCount).Once()
-	ch, err = c.BuildImage(ctx, opts)
+	_, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	b := io.NopCloser(bytes.NewReader([]byte{}))
 	engine.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return("", b, nil)
 	opts.BuildMethod = types.BuildFromRaw
 	engine.On("ImageBuild", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNilEngine).Once()
-	ch, err = c.BuildImage(ctx, opts)
+	_, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	opts.BuildMethod = types.BuildFromExist
 	opts.ExistID = "123"
 	engine.On("ImageBuildFromExist", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return("", types.ErrEngineNotImplemented).Once()
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(&types.Workload{Nodename: "123"}, nil)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(&types.Node{Engine: engine}, nil)
-	ch, err = c.BuildImage(ctx, opts)
+	_, err = c.BuildImage(ctx, opts)
 	assert.EqualError(t, err, types.ErrEngineNotImplemented.Error())
 	opts.BuildMethod = types.BuildFromUnknown
-	ch, err = c.BuildImage(ctx, opts)
+	_, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	engine.On("ImageBuild", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(buildImageRespReader, nil)
 	engine.On("ImagePush", mock.Anything, mock.Anything).Return(buildImageRespReader2, nil)
@@ -187,7 +185,7 @@ func TestBuild(t *testing.T) {
 	engine.On("ImageBuildCachePrune", mock.Anything, mock.Anything).Return(uint64(1024), nil)
 	engine.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return("", nil, nil)
 	opts.BuildMethod = types.BuildFromSCM
-	ch, err = c.BuildImage(ctx, opts)
+	ch, err := c.BuildImage(ctx, opts)
 	if assert.NoError(t, err) {
 		for range ch {
 			assert.NoError(t, err)

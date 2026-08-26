@@ -6,6 +6,7 @@ import (
 
 	"github.com/projecteru2/core/engine/sshrunner"
 	"github.com/projecteru2/core/engine/sshrunner/sshrunnertest"
+	"github.com/projecteru2/core/engine/workloadmeta"
 )
 
 func TestHostPaths(t *testing.T) {
@@ -39,7 +40,7 @@ func TestHostPaths(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			code := 0
 			if tt.wantErr {
-				code = notExistsCode
+				code = workloadmeta.NotExistsCode
 			}
 			e := testEngine(t, &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: tt.stdout, Code: code} }})
 

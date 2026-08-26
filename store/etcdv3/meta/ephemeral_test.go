@@ -1,7 +1,6 @@
 package meta
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -11,7 +10,7 @@ import (
 func TestEphemeralDeregister(t *testing.T) {
 	m := NewEmbeddedETCD(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	path := "/ident"
 	heartbeat := time.Millisecond
 	expiry, stop, err := m.StartEphemeral(ctx, path, heartbeat)
@@ -27,12 +26,17 @@ func TestEphemeralDeregister(t *testing.T) {
 	kv, err = m.GetOne(ctx, path)
 	require.Error(t, err)
 	require.Nil(t, kv)
+	select {
+	case <-expiry:
+	case <-time.After(time.Second * 8):
+		require.FailNow(t, path+" should expire after stop")
+	}
 }
 
 func TestEphemeral(t *testing.T) {
 	m := NewEmbeddedETCD(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	path := "/ident"
 	heartbeat := time.Millisecond
 	expiry, stop, err := m.StartEphemeral(ctx, path, heartbeat)
@@ -71,7 +75,7 @@ func TestEphemeral(t *testing.T) {
 func TestEphemeralFailedAsPutAlready(t *testing.T) {
 	m := NewEmbeddedETCD(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	path := "/ident"
 	heartbeat := time.Millisecond
 	expiry, stop, err := m.StartEphemeral(ctx, path, heartbeat)
@@ -83,22 +87,4 @@ func TestEphemeralFailedAsPutAlready(t *testing.T) {
 
 	_, _, err = m.StartEphemeral(ctx, path, heartbeat)
 	require.Error(t, err)
-}
-
-func TestEphemeralMustRevokeAfterKeepaliveFailed(t *testing.T) {
-	m := NewEmbeddedETCD(t)
-
-	ctx := context.Background()
-	path := "/ident"
-	expiry, stop, err := m.StartEphemeral(ctx, path, time.Millisecond)
-	require.NoError(t, err)
-	require.NotNil(t, stop)
-	require.NotNil(t, expiry)
-
-	stop()
-	select {
-	case <-expiry:
-	case <-time.After(time.Second * 8):
-		require.FailNow(t, path+" had been removed")
-	}
 }

@@ -8,13 +8,11 @@ import (
 
 	"github.com/cockroachdb/errors"
 
-	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 )
 
 // AveragePlan puts need workloads on each of limit nodes; need is per node, limit 0 means every node.
-func AveragePlan(ctx context.Context, infos []Info, need, _, limit int) (map[string]int, error) {
-	log.WithFunc("strategy.AveragePlan").Debugf(ctx, "need %d limit %d infos %+v", need, limit, infos)
+func AveragePlan(_ context.Context, infos []Info, need, _, limit int) (map[string]int, error) {
 	scheduleInfosLength := len(infos)
 	if limit == 0 {
 		limit = scheduleInfosLength

@@ -34,11 +34,16 @@ func ParseEndpoint(endpoint, prefix string) (user, host, addr string, err error)
 
 // Quote renders argv as one shell line, so no argument is ever interpolated.
 func Quote(argv []string) string {
-	words := make([]string, len(argv))
+	var b strings.Builder
 	for i, arg := range argv {
-		words[i] = "'" + strings.ReplaceAll(arg, "'", `'\''`) + "'"
+		if i > 0 {
+			b.WriteByte(' ')
+		}
+		b.WriteByte('\'')
+		b.WriteString(strings.ReplaceAll(arg, "'", `'\''`))
+		b.WriteByte('\'')
 	}
-	return strings.Join(words, " ")
+	return b.String()
 }
 
 // Shell wraps a script body into an argv whose positional parameters carry args.

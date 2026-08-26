@@ -13,13 +13,6 @@ type cpuCore struct {
 	pieces int
 }
 
-func (c cpuCore) Less(c1 *cpuCore) bool {
-	if c.pieces == c1.pieces {
-		return c.ID < c1.ID
-	}
-	return c.pieces < c1.pieces
-}
-
 type cpuCoreHeap []*cpuCore
 
 func (c cpuCoreHeap) Len() int {
@@ -27,7 +20,7 @@ func (c cpuCoreHeap) Len() int {
 }
 
 func (c cpuCoreHeap) Less(i, j int) bool {
-	return !c[i].Less(c[j])
+	return byLoad(c[i], c[j]) >= 0
 }
 
 func (c cpuCoreHeap) Swap(i, j int) {
@@ -58,8 +51,8 @@ func newHost(cpuMap types.CPUMap, shareBase, maxFragmentCores int) *host {
 	h := &host{
 		shareBase:        shareBase,
 		maxFragmentCores: maxFragmentCores,
-		fullCores:        []*cpuCore{},
-		fragmentCores:    []*cpuCore{},
+		fullCores:        make([]*cpuCore, 0, len(cpuMap)),
+		fragmentCores:    make([]*cpuCore, 0, len(cpuMap)),
 	}
 
 	for cpu, pieces := range cpuMap {
@@ -71,7 +64,6 @@ func newHost(cpuMap types.CPUMap, shareBase, maxFragmentCores int) *host {
 	}
 
 	// busier cores go first so idle cores stay whole
-	byLoad := func(a, b *cpuCore) int { return cmp.Or(cmp.Compare(a.pieces, b.pieces), cmp.Compare(a.ID, b.ID)) }
 	slices.SortStableFunc(h.fullCores, byLoad)
 	slices.SortStableFunc(h.fragmentCores, byLoad)
 
@@ -87,8 +79,8 @@ func (h *host) getCPUPlans(cpuRequest float64) []types.CPUMap {
 	fragment := piecesRequest % h.shareBase
 
 	maxFragmentCores := len(h.fullCores) + len(h.fragmentCores) - full
-	if h.maxFragmentCores == -1 || h.maxFragmentCores > maxFragmentCores {
-		h.maxFragmentCores = maxFragmentCores
+	if h.maxFragmentCores != -1 && h.maxFragmentCores < maxFragmentCores {
+		maxFragmentCores = h.maxFragmentCores
 	}
 
 	if fragment == 0 {
@@ -96,7 +88,7 @@ func (h *host) getCPUPlans(cpuRequest float64) []types.CPUMap {
 	}
 
 	if full == 0 {
-		diff := max(h.maxFragmentCores-len(h.fragmentCores), 0)
+		diff := max(maxFragmentCores-len(h.fragmentCores), 0)
 		h.fragmentCores = append(h.fragmentCores, h.fullCores[:diff]...)
 		h.fullCores = h.fullCores[diff:]
 		return h.getFragmentCPUPlans(h.fragmentCores, fragment)
@@ -116,7 +108,7 @@ func (h *host) getCPUPlans(cpuRequest float64) []types.CPUMap {
 		totalFragmentCapacity += fragmentCapacityMap[core.ID]
 	}
 
-	for len(h.fragmentCores) < h.maxFragmentCores {
+	for len(h.fragmentCores) < maxFragmentCores {
 		newFragmentCore := h.fullCores[0]
 		h.fragmentCores = append(h.fragmentCores, newFragmentCore)
 		h.fullCores = h.fullCores[1:]
@@ -313,4 +305,8 @@ func reorderByAffinity(oldH, newH *host) {
 	slices.SortStableFunc(newH.fullCores, sortFunc(oldFull))
 	slices.SortStableFunc(newH.fragmentCores, sortFunc(oldFragment))
 	newH.affinity = true
+}
+
+func byLoad(a, b *cpuCore) int {
+	return cmp.Or(cmp.Compare(a.pieces, b.pieces), cmp.Compare(a.ID, b.ID))
 }

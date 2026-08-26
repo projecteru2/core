@@ -22,7 +22,7 @@ func TestGetOneError(t *testing.T) {
 	e := NewMockedETCD(t)
 	expErr := fmt.Errorf("exp")
 	e.cliv3.(*mocks.ETCDClientV3).On("Get", mock.Anything, mock.Anything).Return(nil, expErr)
-	kv, err := e.GetOne(context.Background(), "foo")
+	kv, err := e.GetOne(t.Context(), "foo")
 	require.Equal(t, expErr, err)
 	require.Nil(t, kv)
 }
@@ -31,14 +31,14 @@ func TestGetOneFailedAsRespondMore(t *testing.T) {
 	e := NewMockedETCD(t)
 	expResp := &clientv3.GetResponse{Count: 2}
 	e.cliv3.(*mocks.ETCDClientV3).On("Get", mock.Anything, mock.Anything).Return(expResp, nil)
-	kv, err := e.GetOne(context.Background(), "foo")
+	kv, err := e.GetOne(t.Context(), "foo")
 	require.Error(t, err)
 	require.Nil(t, kv)
 }
 
 func TestGetMultiWithNoKeys(t *testing.T) {
 	e := NewEmbeddedETCD(t)
-	kvs, err := e.GetMulti(context.Background(), []string{})
+	kvs, err := e.GetMulti(t.Context(), []string{})
 	require.NoError(t, err)
 	require.Equal(t, 0, len(kvs))
 }
@@ -52,7 +52,7 @@ func TestGetMultiFailedAsBatchGetError(t *testing.T) {
 	expTxn.On("Else", mock.Anything).Return(expTxn)
 	expTxn.On("Commit").Return(nil, expErr)
 	e.cliv3.(*mocks.ETCDClientV3).On("Txn", mock.Anything).Return(expTxn)
-	kvs, err := e.GetMulti(context.Background(), []string{"foo"})
+	kvs, err := e.GetMulti(t.Context(), []string{"foo"})
 	require.Equal(t, expErr, err)
 	require.Nil(t, kvs)
 }
@@ -61,7 +61,7 @@ func TestGrant(t *testing.T) {
 	e := NewMockedETCD(t)
 	expErr := fmt.Errorf("exp")
 	e.cliv3.(*mocks.ETCDClientV3).On("Grant", mock.Anything, mock.Anything).Return(nil, expErr)
-	resp, err := e.grant(context.Background(), 1)
+	resp, err := e.cliv3.Grant(t.Context(), 1)
 	require.Equal(t, expErr, err)
 	require.Nil(t, resp)
 }
@@ -71,7 +71,7 @@ func TestBindStatusFailedAsGrantError(t *testing.T) {
 	defer assert()
 	expErr := fmt.Errorf("exp")
 	etcd.On("Grant", mock.Anything, mock.Anything).Return(nil, expErr)
-	require.Equal(t, expErr, e.BindStatus(context.Background(), "/entity", "/status", "status", 1))
+	require.Equal(t, expErr, e.BindStatus(t.Context(), "/entity", "/status", "status", 1))
 }
 
 func TestBindStatusFailedAsCommitError(t *testing.T) {
@@ -88,7 +88,7 @@ func TestBindStatusFailedAsCommitError(t *testing.T) {
 
 	etcd.On("Grant", mock.Anything, mock.Anything).Return(&clientv3.LeaseGrantResponse{}, nil)
 	etcd.On("Txn", mock.Anything).Return(txn)
-	require.Equal(t, expErr, e.BindStatus(context.Background(), "/entity", "/status", "status", 1))
+	require.Equal(t, expErr, e.BindStatus(t.Context(), "/entity", "/status", "status", 1))
 }
 
 func TestBindStatusButEntityTxnUnsuccessful(t *testing.T) {
@@ -105,7 +105,7 @@ func TestBindStatusButEntityTxnUnsuccessful(t *testing.T) {
 
 	etcd.On("Grant", mock.Anything, mock.Anything).Return(&clientv3.LeaseGrantResponse{}, nil)
 	etcd.On("Txn", mock.Anything).Return(txn)
-	require.Equal(t, types.ErrInvaildCount, e.BindStatus(context.Background(), "/entity", "/status", "status", 1))
+	require.Equal(t, types.ErrInvaildCount, e.BindStatus(t.Context(), "/entity", "/status", "status", 1))
 }
 
 func TestBindStatusButStatusTxnUnsuccessful(t *testing.T) {
@@ -131,7 +131,7 @@ func TestBindStatusButStatusTxnUnsuccessful(t *testing.T) {
 	etcd.On("Grant", mock.Anything, mock.Anything).Return(&clientv3.LeaseGrantResponse{}, nil)
 	etcd.On("Txn", mock.Anything).Return(txn)
 	etcd.On("Get", mock.Anything, mock.Anything).Return(&clientv3.GetResponse{}, nil)
-	require.Equal(t, nil, e.BindStatus(context.Background(), "/entity", "/status", "status", 1))
+	require.Equal(t, nil, e.BindStatus(t.Context(), "/entity", "/status", "status", 1))
 }
 
 func TestBindStatusWithZeroTTL(t *testing.T) {
@@ -158,7 +158,7 @@ func TestBindStatusWithZeroTTL(t *testing.T) {
 	etcd.On("Txn", mock.Anything).Return(txn)
 
 	etcd.On("Get", mock.Anything, mock.Anything).Return(&clientv3.GetResponse{}, nil)
-	require.Equal(t, nil, e.BindStatus(context.Background(), "/entity", "/status", "status", 0))
+	require.Equal(t, nil, e.BindStatus(t.Context(), "/entity", "/status", "status", 0))
 }
 
 func TestBindStatusButValueTxnUnsuccessful(t *testing.T) {
@@ -194,7 +194,7 @@ func TestBindStatusButValueTxnUnsuccessful(t *testing.T) {
 	etcd.On("Txn", mock.Anything).Return(txn)
 	etcd.On("Grant", mock.Anything, mock.Anything).Return(&clientv3.LeaseGrantResponse{}, nil)
 	etcd.On("Get", mock.Anything, mock.Anything).Return(&clientv3.GetResponse{}, nil)
-	require.Equal(t, nil, e.BindStatus(context.Background(), "/entity", "/status", "status", 1))
+	require.Equal(t, nil, e.BindStatus(t.Context(), "/entity", "/status", "status", 1))
 }
 
 func TestBindStatus(t *testing.T) {
@@ -245,12 +245,12 @@ func TestBindStatus(t *testing.T) {
 	etcd.On("Grant", mock.Anything, mock.Anything).Return(&clientv3.LeaseGrantResponse{}, nil)
 	etcd.On("Txn", mock.Anything).Return(txn)
 	etcd.On("Get", mock.Anything, mock.Anything).Return(&clientv3.GetResponse{}, nil)
-	require.Equal(t, nil, e.BindStatus(context.Background(), "/entity", "/status", "status", 1))
+	require.Equal(t, nil, e.BindStatus(t.Context(), "/entity", "/status", "status", 1))
 }
 
 func TestETCD(t *testing.T) {
 	m := NewEmbeddedETCD(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	_, err := m.CreateLock("test", 5)
 	require.NoError(t, err)
@@ -323,47 +323,47 @@ func TestETCD(t *testing.T) {
 		"bcad_k1": "v1",
 		"bcad_k2": "v1",
 	}
-	err = m.BatchCreateAndDecr(context.Background(), data, "bcad_process")
+	err = m.BatchCreateAndDecr(t.Context(), data, "bcad_process")
 	require.EqualError(t, err, "bcad_process: key not exists")
 
-	_, err = m.Put(context.Background(), "bcad_process", "a")
+	_, err = m.Put(t.Context(), "bcad_process", "a")
 	require.NoError(t, err)
-	err = m.BatchCreateAndDecr(context.Background(), data, "bcad_process")
+	err = m.BatchCreateAndDecr(t.Context(), data, "bcad_process")
 	require.EqualError(t, err, "strconv.Atoi: parsing \"a\": invalid syntax")
 
-	_, err = m.Put(context.Background(), "bcad_process", "20")
+	_, err = m.Put(t.Context(), "bcad_process", "20")
 	require.NoError(t, err)
-	err = m.BatchCreateAndDecr(context.Background(), data, "bcad_process")
+	err = m.BatchCreateAndDecr(t.Context(), data, "bcad_process")
 	require.NoError(t, err)
-	resp, err = m.Get(context.Background(), "bcad_process")
+	resp, err = m.Get(t.Context(), "bcad_process")
 	require.NoError(t, err)
 	processCnt, err := strconv.Atoi(string(resp.Kvs[0].Value))
 	require.NoError(t, err)
 	require.EqualValues(t, 19, processCnt)
 
-	_, err = m.Put(context.Background(), "bcad_process", "200")
+	_, err = m.Put(t.Context(), "bcad_process", "200")
 	require.NoError(t, err)
 	wg := sync.WaitGroup{}
 	for range 200 {
 		wg.Go(func() {
-			m.BatchCreateAndDecr(context.Background(), data, "bcad_process")
+			m.BatchCreateAndDecr(t.Context(), data, "bcad_process")
 		})
 	}
 	wg.Wait()
-	resp, err = m.Get(context.Background(), "bcad_process")
+	resp, err = m.Get(t.Context(), "bcad_process")
 	require.NoError(t, err)
 	processCnt, err = strconv.Atoi(string(resp.Kvs[0].Value))
 	require.NoError(t, err)
 	require.EqualValues(t, 0, processCnt)
 
-	_, err = m.doBatchOp(context.Background(), nil)
+	_, err = m.doBatchOp(t.Context(), nil)
 	require.EqualError(t, err, "no txn ops")
 
 	txnes := []ETCDTxn{}
 	for range 999 {
 		txnes = append(txnes, ETCDTxn{Then: []clientv3.Op{clientv3.OpGet("a")}})
 	}
-	txnResp, err := m.doBatchOp(context.Background(), txnes)
+	txnResp, err := m.doBatchOp(t.Context(), txnes)
 	require.NoError(t, err)
 	require.True(t, txnResp.Succeeded)
 	require.EqualValues(t, 999, len(txnResp.Responses))
@@ -373,7 +373,7 @@ func TestETCD(t *testing.T) {
 		txnes[0].Then = append(txnes[0].Then, clientv3.OpGet("a"))
 		txnes[1].Then = append(txnes[1].Then, clientv3.OpGet("a"), clientv3.OpGet("b"))
 	}
-	txnResp, err = m.doBatchOp(context.Background(), txnes)
+	txnResp, err = m.doBatchOp(t.Context(), txnes)
 	require.NoError(t, err)
 	require.True(t, txnResp.Succeeded)
 	require.EqualValues(t, 999*3, len(txnResp.Responses))
@@ -381,17 +381,17 @@ func TestETCD(t *testing.T) {
 	txnes = []ETCDTxn{{If: []clientv3.Cmp{
 		clientv3.Compare(clientv3.Value("a"), "=", string("123")),
 	}}}
-	txnResp, err = m.doBatchOp(context.Background(), txnes)
+	txnResp, err = m.doBatchOp(t.Context(), txnes)
 	require.NoError(t, err)
 	require.False(t, txnResp.Succeeded)
 	require.EqualValues(t, 0, len(txnResp.Responses))
 
-	_, err = m.GetMulti(context.Background(), []string{"a", "b"})
+	_, err = m.GetMulti(t.Context(), []string{"a", "b"})
 	require.EqualError(t, err, "key: a: bad `Count` value, entity count invalid")
 
-	m.Put(context.Background(), "a", "b")
-	m.Put(context.Background(), "b", "c")
-	kvs, err := m.GetMulti(context.Background(), []string{"a", "b"})
+	m.Put(t.Context(), "a", "b")
+	m.Put(t.Context(), "b", "c")
+	kvs, err := m.GetMulti(t.Context(), []string{"a", "b"})
 	require.NoError(t, err)
 	require.EqualValues(t, 2, len(kvs))
 
@@ -399,13 +399,9 @@ func TestETCD(t *testing.T) {
 		"aa": "bb",
 		"cc": "dd",
 	}
-	limit := map[string]map[string]string{
-		"aa": {cmpValue: "!="},
-		"cc": {cmpValue: "!="},
-	}
-	m.Put(context.Background(), "aa", "aa")
-	m.Put(context.Background(), "cc", "cc")
-	txnResp, err = m.batchPut(context.Background(), data, limit)
+	m.Put(t.Context(), "aa", "aa")
+	m.Put(t.Context(), "cc", "cc")
+	txnResp, err = m.batchPut(t.Context(), data, &txnCond{method: cmpValue, condition: "!="})
 	require.NoError(t, err)
 	require.True(t, txnResp.Succeeded)
 }
@@ -425,7 +421,7 @@ func NewEmbeddedETCD(t *testing.T) *ETCD {
 	cluster, err := embedded.New(t.TempDir())
 	require.NoError(t, err)
 	t.Cleanup(cluster.Close)
-	e, err := NewETCD(config, cluster)
+	e, err := NewETCD(t.Context(), config, cluster)
 	require.NoError(t, err)
 	return e
 }

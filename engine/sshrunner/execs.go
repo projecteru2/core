@@ -6,7 +6,7 @@ import (
 	"github.com/cockroachdb/errors"
 )
 
-var errExecNotFound = errors.New("exec not found")
+var ErrExecNotFound = errors.New("exec not found")
 
 type Execs struct {
 	mu      sync.Mutex
@@ -28,7 +28,7 @@ func (e *Execs) Resize(execID string, height, width uint) error {
 	running, ok := e.running[execID]
 	e.mu.Unlock()
 	if !ok {
-		return errors.Wrap(errExecNotFound, execID)
+		return errors.Wrap(ErrExecNotFound, execID)
 	}
 	return running.Resize(height, width)
 }
@@ -39,7 +39,7 @@ func (e *Execs) ExitCode(execID string) (int, error) {
 	delete(e.running, execID)
 	e.mu.Unlock()
 	if !ok {
-		return -1, errors.Wrap(errExecNotFound, execID)
+		return -1, errors.Wrap(ErrExecNotFound, execID)
 	}
 	defer func() {
 		_ = running.Close()

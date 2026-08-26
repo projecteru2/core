@@ -7,6 +7,7 @@ import (
 	"maps"
 	"path/filepath"
 	"slices"
+	"sync"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
@@ -123,7 +124,7 @@ func (s *Store) WorkloadStatusStream(ctx context.Context, appname, entrypoint, n
 	statusKey := filepath.Join(WorkloadStatusPrefix, appname, entrypoint, nodename) + "/"
 	ch := make(chan *types.WorkloadStatus)
 	logger := log.WithFunc("store.common.WorkloadStatusStream")
-	_ = s.Pool.Invoke(func() {
+	utils.SentryGo(func() {
 		defer func() {
 			logger.Info(ctx, "close WorkloadStatus channel")
 			close(ch)
@@ -175,9 +176,7 @@ func (s *Store) filterWorkloads(ctx context.Context, data, labels map[string]str
 }
 
 func (s *Store) bindWorkloadsAdditions(ctx context.Context, workloads []*types.Workload) ([]*types.Workload, error) {
-	nodes := map[string]*types.Node{}
-	nodenames := []string{}
-	nodenameCache := map[string]struct{}{}
+	nodenames := map[string]struct{}{}
 	statusKeys := map[string]string{}
 	logger := log.WithFunc("store.common.bindWorkloadsAdditions")
 	for _, workload := range workloads {
@@ -186,35 +185,42 @@ func (s *Store) bindWorkloadsAdditions(ctx context.Context, workloads []*types.W
 			return nil, err
 		}
 		statusKeys[workload.ID] = filepath.Join(WorkloadStatusPrefix, appname, entrypoint, workload.Nodename, workload.ID)
-		if _, ok := nodenameCache[workload.Nodename]; !ok {
-			nodenameCache[workload.Nodename] = struct{}{}
-			nodenames = append(nodenames, workload.Nodename)
-		}
+		nodenames[workload.Nodename] = struct{}{}
 	}
-	ns, err := s.GetNodes(ctx, nodenames)
+	ns, err := s.GetNodes(ctx, slices.Collect(maps.Keys(nodenames)))
 	if err != nil {
 		return nil, err
 	}
+	nodes := map[string]*types.Node{}
 	for _, node := range ns {
 		nodes[node.Name] = node
 	}
-
-	for index, workload := range workloads {
-		if _, ok := nodes[workload.Nodename]; !ok {
+	for _, workload := range workloads {
+		node, ok := nodes[workload.Nodename]
+		if !ok {
 			return nil, types.ErrInvaildWorkloadMeta
 		}
-		workloads[index].Engine = nodes[workload.Nodename].Engine
-		value, err := s.GetOne(ctx, statusKeys[workload.ID])
-		if err != nil {
-			continue
-		}
-		status := &types.StatusMeta{}
-		if err := json.Unmarshal([]byte(value), &status); err != nil {
-			logger.Errorf(ctx, err, "unmarshal status of %s, raw: %s", workload.ID, value)
-			continue
-		}
-		workloads[index].StatusMeta = status
+		workload.Engine = node.Engine
 	}
+
+	wg := &sync.WaitGroup{}
+	wg.Add(len(workloads))
+	for _, workload := range workloads {
+		_ = s.Pool.Invoke(func() {
+			defer wg.Done()
+			value, err := s.GetOne(ctx, statusKeys[workload.ID])
+			if err != nil {
+				return
+			}
+			status := &types.StatusMeta{}
+			if err := json.Unmarshal([]byte(value), &status); err != nil {
+				logger.Errorf(ctx, err, "unmarshal status of %s, raw: %s", workload.ID, value)
+				return
+			}
+			workload.StatusMeta = status
+		})
+	}
+	wg.Wait()
 	return workloads, nil
 }
 

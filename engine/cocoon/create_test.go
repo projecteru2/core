@@ -12,17 +12,13 @@ import (
 	"github.com/projecteru2/core/engine/sshrunner"
 	"github.com/projecteru2/core/engine/sshrunner/sshrunnertest"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/engine/workloadmeta"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	coretypes "github.com/projecteru2/core/types"
 )
 
 func TestVirtualizationCreateRendersTheVMAndRecordsIt(t *testing.T) {
-	runner := &sshrunnertest.Fake{Respond: func(line string) *sshrunner.Result {
-		if strings.Contains(line, "'create'") {
-			return &sshrunner.Result{Stdout: linuxVM}
-		}
-		return &sshrunner.Result{}
-	}}
+	runner := &sshrunnertest.Fake{Respond: createdVM}
 	e := testEngine(t, runner)
 
 	created, err := e.VirtualizationCreate(t.Context(), &enginetypes.VirtualizationCreateOptions{
@@ -56,7 +52,7 @@ func TestVirtualizationCreateRendersTheVMAndRecordsIt(t *testing.T) {
 	}
 	for _, field := range []string{
 		durablePath(testRoot, created.ID),
-		metaPath(created.ID),
+		workloadmeta.Path(created.ID),
 		`"kind":"vm"`,
 		`"user":"` + testUser + `"`,
 		`"podname":"vms"`,
@@ -97,13 +93,7 @@ func TestVirtualizationCreateDiscardsAVMWhoseRecordFailed(t *testing.T) {
 func TestVirtualizationCreateDiscardsAVMWhoseDeadlineExpired(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
-	runner := &sshrunnertest.Fake{Respond: func(line string) *sshrunner.Result {
-		if strings.Contains(line, "'create'") {
-			cancel()
-			return &sshrunner.Result{Stdout: linuxVM}
-		}
-		return &sshrunner.Result{}
-	}}
+	runner := &sshrunnertest.Fake{Respond: createdVMThenCanceled(cancel)}
 	e := testEngine(t, runner)
 
 	if _, err := e.VirtualizationCreate(ctx, &enginetypes.VirtualizationCreateOptions{Name: "app_web_xyz", Image: testImage}); err == nil {
@@ -116,12 +106,7 @@ func TestVirtualizationCreateDiscardsAVMWhoseDeadlineExpired(t *testing.T) {
 }
 
 func TestVirtualizationCreateKeepsTheConflistOfAnInheritedNetwork(t *testing.T) {
-	runner := &sshrunnertest.Fake{Respond: func(line string) *sshrunner.Result {
-		if strings.Contains(line, "'create'") {
-			return &sshrunner.Result{Stdout: linuxVM}
-		}
-		return &sshrunner.Result{}
-	}}
+	runner := &sshrunnertest.Fake{Respond: createdVM}
 	e := testEngine(t, runner)
 
 	if _, err := e.VirtualizationCreate(t.Context(), &enginetypes.VirtualizationCreateOptions{

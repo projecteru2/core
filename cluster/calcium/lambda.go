@@ -39,24 +39,22 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 	)
 
 	lambda := func(message *types.CreateWorkloadMessage) (attachMessage *types.AttachWorkloadMessage) {
-		defer wg.Done()
-
 		defer func() {
 			runMsgCh <- attachMessage
 		}()
 
 		if message.Error != nil || message.WorkloadID == "" {
 			logger.Error(ctx, message.Error, "create workload failed")
-			return eruErrMsg("", "Create workload failed %v", message.Error)
+			return newEruErrMsg("", "Create workload failed %v", message.Error)
 		}
 
 		commit, err := c.journal(ctx, logger, eventCreateLambda, message.WorkloadID)
 		if err != nil {
 			logger.Error(ctx, err)
-			return eruErrMsg(message.WorkloadID, "Create wal failed: %s, %v", message.WorkloadID, err)
+			return newEruErrMsg(message.WorkloadID, "Create wal failed: %s, %v", message.WorkloadID, err)
 		}
 		defer func() {
-			removeCtx := utils.NewInheritCtx(ctx)
+			removeCtx := context.WithoutCancel(ctx)
 			if removeErr := c.doRemoveWorkloadSync(removeCtx, []string{message.WorkloadID}); removeErr != nil {
 				logger.Error(removeCtx, removeErr, "remove lambda workload failed")
 				return
@@ -68,7 +66,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		workload, err := c.GetWorkload(ctx, message.WorkloadID)
 		if err != nil {
 			logger.Error(ctx, err, "get workload failed")
-			return eruErrMsg(message.WorkloadID, "Get workload %s failed %v", message.WorkloadID, err)
+			return newEruErrMsg(message.WorkloadID, "Get workload %s failed %v", message.WorkloadID, err)
 		}
 
 		var stdout, stderr io.ReadCloser
@@ -79,7 +77,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 			stdout, stderr, inStream, err = workload.Engine.VirtualizationAttach(ctx, message.WorkloadID, true, true)
 			if err != nil {
 				logger.Errorf(ctx, err, "cannot attach workload %s", message.WorkloadID)
-				return eruErrMsg(message.WorkloadID, "Attach to workload %s failed %v", message.WorkloadID, err)
+				return newEruErrMsg(message.WorkloadID, "Attach to workload %s failed %v", message.WorkloadID, err)
 			}
 
 			c.processVirtualizationInStream(ctx, inStream, inCh, func(height, width uint) error {
@@ -94,7 +92,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 			Stderr: true,
 		}); err != nil {
 			logger.Errorf(ctx, err, "cannot fetch log of workload %s", message.WorkloadID)
-			return eruErrMsg(message.WorkloadID, "Fetch log for workload %s failed %v", message.WorkloadID, err)
+			return newEruErrMsg(message.WorkloadID, "Fetch log for workload %s failed %v", message.WorkloadID, err)
 		}
 
 		for m := range c.processStdStream(ctx, stdout, stderr, splitFunc, split) {
@@ -108,7 +106,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		r, err := workload.Engine.VirtualizationWait(ctx, message.WorkloadID, "")
 		if err != nil {
 			logger.Errorf(ctx, err, "%s wait failed", utils.ShortID(message.WorkloadID))
-			return eruErrMsg(message.WorkloadID, "Wait workload %s failed %v", message.WorkloadID, err)
+			return newEruErrMsg(message.WorkloadID, "Wait workload %s failed %v", message.WorkloadID, err)
 		}
 
 		if r.Code != 0 {
@@ -125,11 +123,13 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 
 	for message := range createChan {
 		workloadIDs = append(workloadIDs, message.WorkloadID)
-		wg.Add(1)
-		_ = c.pool.Invoke(func() { lambda(message) })
+		wg.Go(func() {
+			defer log.SentryDefer()
+			lambda(message)
+		})
 	}
 
-	_ = c.pool.Invoke(func() {
+	utils.SentryGo(func() {
 		defer close(runMsgCh)
 		wg.Wait()
 
@@ -139,7 +139,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 	return workloadIDs, runMsgCh, nil
 }
 
-func eruErrMsg(workloadID, format string, args ...any) *types.AttachWorkloadMessage {
+func newEruErrMsg(workloadID, format string, args ...any) *types.AttachWorkloadMessage {
 	return &types.AttachWorkloadMessage{
 		WorkloadID:    workloadID,
 		Data:          []byte(fmt.Sprintf(format, args...)),

@@ -15,7 +15,7 @@ type infoHeap struct {
 }
 
 func newInfoHeap(infos []Info, less infoLess, admit infoAdmit) *infoHeap {
-	h := &infoHeap{less: less, admit: admit}
+	h := &infoHeap{infos: make([]Info, 0, len(infos)), less: less, admit: admit}
 	for _, info := range infos {
 		h.Push(info)
 	}
@@ -37,7 +37,7 @@ func (h *infoHeap) Swap(i, j int) {
 
 func (h *infoHeap) Push(x any) {
 	info := x.(Info)
-	if h.admit != nil && !h.admit(info) {
+	if !h.admit(info) {
 		return
 	}
 	h.infos = append(h.infos, info)

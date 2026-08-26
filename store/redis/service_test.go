@@ -11,7 +11,7 @@ import (
 
 func (s *RediaronTestSuite) TestRegisterServiceWithDeregister() {
 	m := s.rediaron
-	ctx := context.Background()
+	ctx := s.T().Context()
 	svc := "svc"
 	path := fmt.Sprintf(common.ServiceStatusKey, svc)
 	_, deregister, err := m.RegisterService(ctx, svc, time.Minute)
@@ -29,7 +29,7 @@ func (s *RediaronTestSuite) TestRegisterServiceWithDeregister() {
 
 func (s *RediaronTestSuite) TestServiceStatusStream() {
 	m := s.rediaron
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(s.T().Context())
 
 	go func() {
 		time.Sleep(3 * time.Second)
@@ -53,7 +53,6 @@ func (s *RediaronTestSuite) TestServiceStatusStream() {
 	sort.Strings(endpoints)
 	s.Equal(endpoints, []string{"127.0.0.1:5001", "127.0.0.1:5002"})
 
-	_, _, err = m.RegisterService(ctx, "127.0.0.1:5002", time.Second)
 	unregisterService1()
 	time.Sleep(500 * time.Millisecond)
 	triggerMockedKeyspaceNotification(s.rediaron.cli, fmt.Sprintf(common.ServiceStatusKey, "127.0.0.1:5001"), actionDel)

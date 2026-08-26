@@ -1,7 +1,6 @@
 package calcium
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -17,7 +16,7 @@ import (
 
 func TestPodResource(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	podname := "testpod"
 	nodename := "testnode"
 	store := c.store.(*storemocks.Store)
@@ -36,7 +35,6 @@ func TestPodResource(t *testing.T) {
 		},
 	}
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
-	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
@@ -78,7 +76,7 @@ func TestPodResource(t *testing.T) {
 
 func TestNodeResource(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	nodename := "testnode"
 	store := c.store.(*storemocks.Store)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
@@ -94,8 +92,6 @@ func TestNodeResource(t *testing.T) {
 	}
 	engine := &enginemocks.API{}
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
-	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		resourcetypes.Resources{"test": {"abc": 123}},
 		resourcetypes.Resources{"test": {"abc": 123}},

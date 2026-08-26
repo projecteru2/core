@@ -190,7 +190,7 @@ func (c *Calcium) getWorkloadNode(ctx context.Context, ID string) (*types.Node, 
 
 func (c *Calcium) withImageBuiltChannel(f func(chan *types.BuildImageMessage)) chan *types.BuildImageMessage {
 	ch := make(chan *types.BuildImageMessage)
-	_ = c.pool.Invoke(func() {
+	utils.SentryGo(func() {
 		defer close(ch)
 		f(ch)
 	})
@@ -199,7 +199,7 @@ func (c *Calcium) withImageBuiltChannel(f func(chan *types.BuildImageMessage)) c
 
 func cleanupNodeImages(ctx context.Context, node *types.Node, IDs []string, ttl time.Duration) {
 	logger := log.WithFunc("calcium.cleanupNodeImages").WithField("node", node).WithField("IDs", IDs).WithField("ttl", ttl)
-	ctx, cancel := context.WithTimeout(utils.NewInheritCtx(ctx), ttl)
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), ttl)
 	defer cancel()
 	for _, ID := range IDs {
 		if _, err := node.Engine.ImageRemove(ctx, ID, false, true); err != nil {

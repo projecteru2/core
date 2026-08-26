@@ -18,11 +18,12 @@ import (
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 func TestAddNode(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	factory.InitEngineCache(ctx, c.config, nil)
 
 	opts := &types.AddNodeOptions{}
@@ -66,7 +67,7 @@ func TestAddNode(t *testing.T) {
 
 func TestAddNodeRedoesTheStalePluginMetadata(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	factory.InitEngineCache(ctx, c.config, nil)
 
 	nodename := "nodename"
@@ -96,7 +97,7 @@ func TestAddNodeRedoesTheStalePluginMetadata(t *testing.T) {
 
 func TestRemoveNode(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	store := c.store.(*storemocks.Store)
 
 	lock := &lockmocks.DistributedLock{}
@@ -131,7 +132,7 @@ func TestRemoveNode(t *testing.T) {
 
 func TestListPodNodes(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	opts := &types.ListNodesOptions{}
 	store := c.store.(*storemocks.Store)
@@ -153,7 +154,7 @@ func TestListPodNodes(t *testing.T) {
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, types.ErrMockError)
 	opts.CallInfo = true
 
-	ns, err := c.ListPodNodes(ctx, &types.ListNodesOptions{})
+	ns, err := c.ListPodNodes(ctx, opts)
 	assert.NoError(t, err)
 	cnt := 0
 	for range ns {
@@ -166,7 +167,7 @@ func TestListPodNodes(t *testing.T) {
 
 func TestGetNode(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	_, err := c.GetNode(ctx, "")
 	assert.Error(t, err)
 	nodename := "test"
@@ -198,7 +199,7 @@ func TestGetNode(t *testing.T) {
 
 func TestGetNodeEngine(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	_, err := c.GetNodeEngineInfo(ctx, "")
 	assert.Error(t, err)
@@ -206,7 +207,7 @@ func TestGetNodeEngine(t *testing.T) {
 
 	store := c.store.(*storemocks.Store)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
-	_, err = c.GetNode(ctx, nodename)
+	_, err = c.GetNodeEngineInfo(ctx, nodename)
 	assert.Error(t, err)
 
 	engine := &enginemocks.API{}
@@ -225,7 +226,7 @@ func TestGetNodeEngine(t *testing.T) {
 
 func TestSetNode(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	opts := &types.SetNodeOptions{}
 
@@ -287,7 +288,7 @@ func TestSetNode(t *testing.T) {
 
 func TestFilterNodes(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	store := c.store.(*storemocks.Store)
 
 	nf := &types.NodeFilter{Includes: []string{"test"}}
@@ -334,11 +335,13 @@ func TestFilterNodes(t *testing.T) {
 
 func TestFilterNodesDedupesIncludes(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	store := c.store.(*storemocks.Store)
-	store.On("GetNode", mock.Anything, mock.Anything).Return(
-		func(_ context.Context, name string) *types.Node {
-			return &types.Node{NodeMeta: types.NodeMeta{Name: name}}
+	store.On("GetNodes", mock.Anything, mock.Anything).Return(
+		func(_ context.Context, names []string) []*types.Node {
+			return utils.Map(names, func(name string) *types.Node {
+				return &types.Node{NodeMeta: types.NodeMeta{Name: name}}
+			})
 		}, nil,
 	)
 

@@ -22,7 +22,7 @@ import (
 
 func TestRealloc(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	store := c.store.(*storemocks.Store)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
@@ -56,7 +56,7 @@ func TestRealloc(t *testing.T) {
 		}
 	}
 
-	store.On("GetWorkload", mock.Anything, "c1").Return(newC1(context.Background(), nil)[0], nil)
+	store.On("GetWorkload", mock.Anything, "c1").Return(newC1(t.Context(), nil)[0], nil)
 	opts := &types.ReallocOptions{
 		ID:        "c1",
 		Resources: resourcetypes.Resources{},
@@ -107,7 +107,7 @@ func TestRealloc(t *testing.T) {
 
 func TestReallocJournalsRepairEntries(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	logged := []string{}
 	committed := 0
@@ -136,7 +136,7 @@ func TestReallocJournalsRepairEntries(t *testing.T) {
 	)
 
 	opts := &types.ReallocOptions{ID: "c1", Resources: resourcetypes.Resources{}}
-	assert.NoError(t, c.doReallocOnNode(ctx, node, workload, *workload, opts))
+	assert.NoError(t, c.doReallocOnNode(ctx, node, workload, opts))
 	assert.Equal(t, []string{eventWorkloadResourceAllocated, eventWorkloadReallocated}, logged)
 	assert.Equal(t, 2, committed)
 }
@@ -152,7 +152,7 @@ func TestReallocKeepsRepairEntriesUntilRollbackCompletes(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			c := NewTestCluster()
-			ctx := context.Background()
+			ctx := t.Context()
 
 			committed := 0
 			mwal := &walmocks.WAL{}
@@ -175,7 +175,7 @@ func TestReallocKeepsRepairEntriesUntilRollbackCompletes(t *testing.T) {
 			rmgr.On("RollbackRealloc", mock.Anything, node.Name, mock.Anything).Return(tc.rollback).Once()
 
 			opts := &types.ReallocOptions{ID: workload.ID, Resources: resourcetypes.Resources{}}
-			assert.ErrorIs(t, c.doReallocOnNode(ctx, node, workload, *workload, opts), types.ErrMockError)
+			assert.ErrorIs(t, c.doReallocOnNode(ctx, node, workload, opts), types.ErrMockError)
 			assert.Equal(t, tc.committed, committed)
 			mwal.AssertExpectations(t)
 		})

@@ -19,6 +19,7 @@ func TestDeploy(t *testing.T) {
 	Plans["test"] = func(_ context.Context, _ []Info, _, _, _ int) (map[string]int, error) {
 		return nil, nil
 	}
+	t.Cleanup(func() { delete(Plans, "test") })
 	_, err = Deploy(ctx, "test", 1, 3, nil, 2)
 	assert.NoError(t, err)
 }

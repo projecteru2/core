@@ -34,9 +34,13 @@ func (c *Calcium) withResourceReleased(ctx context.Context, node *types.Node, wo
 	return err
 }
 
+func (c *Calcium) invokePoolAsync(f func()) {
+	utils.SentryGo(func() { _ = c.pool.Invoke(f) })
+}
+
 func perNode[T any](c *Calcium, nodes []*types.Node, work func(*types.Node, chan<- T)) chan T {
 	ch := make(chan T)
-	_ = c.pool.Invoke(func() {
+	utils.SentryGo(func() {
 		defer close(ch)
 		wg := &sync.WaitGroup{}
 		wg.Add(len(nodes))
@@ -66,8 +70,8 @@ func removeWorkloadByName(ctx context.Context, node *types.Node, name string) er
 	return nil
 }
 
-func distributionInspect(ctx context.Context, node *types.Node, image string, digests []string) bool {
-	logger := log.WithFunc("calcium.distributionInspect")
+func inspectDistribution(ctx context.Context, node *types.Node, image string, digests []string) bool {
+	logger := log.WithFunc("calcium.inspectDistribution")
 	remoteDigest, err := node.Engine.ImageRemoteDigest(ctx, image)
 	if err != nil {
 		logger.Error(ctx, err, "get manifest failed")
@@ -91,7 +95,7 @@ func pullImage(ctx context.Context, node *types.Node, image string) error {
 	switch {
 	case err != nil:
 		logger.Warnf(ctx, "check image failed: %+v", err)
-	case distributionInspect(ctx, node, image, digests):
+	case inspectDistribution(ctx, node, image, digests):
 		logger.Debug(ctx, "image cached, skip pulling")
 		return nil
 	}

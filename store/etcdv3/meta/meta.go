@@ -16,19 +16,19 @@ type KV interface {
 
 	Get(ctx context.Context, key string, opts ...clientv3.OpOption) (*clientv3.GetResponse, error)
 	GetOne(ctx context.Context, key string, opts ...clientv3.OpOption) (*mvccpb.KeyValue, error)
-	GetMulti(ctx context.Context, keys []string, opts ...clientv3.OpOption) (kvs []*mvccpb.KeyValue, err error)
+	GetMulti(ctx context.Context, keys []string) ([]*mvccpb.KeyValue, error)
 	Watch(ctx context.Context, key string, opts ...clientv3.OpOption) clientv3.WatchChan
 
-	Create(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error)
-	Put(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.PutResponse, error)
-	Delete(ctx context.Context, key string, opts ...clientv3.OpOption) (*clientv3.DeleteResponse, error)
+	Create(ctx context.Context, key, val string) (*clientv3.TxnResponse, error)
+	Put(ctx context.Context, key, val string) (*clientv3.PutResponse, error)
+	Delete(ctx context.Context, key string) (*clientv3.DeleteResponse, error)
 
 	BatchCreateAndDecr(ctx context.Context, data map[string]string, decrKey string) error
 
-	BatchCreate(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error)
-	BatchUpdate(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error)
-	BatchDelete(ctx context.Context, keys []string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error)
-	BatchPut(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error)
+	BatchCreate(ctx context.Context, data map[string]string) (*clientv3.TxnResponse, error)
+	BatchUpdate(ctx context.Context, data map[string]string) (*clientv3.TxnResponse, error)
+	BatchDelete(ctx context.Context, keys []string) (*clientv3.TxnResponse, error)
+	BatchPut(ctx context.Context, data map[string]string) (*clientv3.TxnResponse, error)
 
 	StartEphemeral(ctx context.Context, path string, heartbeat time.Duration) (<-chan struct{}, func(), error)
 	CreateLock(key string, ttl time.Duration) (lock.DistributedLock, error)

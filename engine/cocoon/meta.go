@@ -2,73 +2,35 @@ package cocoon
 
 import (
 	"context"
-	"encoding/json"
-	"strings"
 
-	"github.com/projecteru2/core/cluster"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/engine/workloadmeta"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
 
 const kindVM = "vm"
 
-// meta is the workload record core writes next to an SSH-managed workload for eru-agent.
 type meta struct {
-	ID          string                   `json:"id"`
-	Kind        string                   `json:"kind"`
-	Name        string                   `json:"name"`
-	User        string                   `json:"user,omitempty"`
-	Appname     string                   `json:"appname"`
-	Entrypoint  string                   `json:"entrypoint"`
-	Ident       string                   `json:"ident"`
-	Podname     string                   `json:"podname"`
-	Nodename    string                   `json:"nodename"`
-	CoreID      string                   `json:"coreid"`
-	Labels      map[string]string        `json:"labels,omitempty"`
-	HealthCheck *enginetypes.HealthCheck `json:"healthcheck,omitempty"`
-	Publish     []string                 `json:"publish,omitempty"`
-	Networks    map[string]string        `json:"networks,omitempty"`
-	Cgroup      string                   `json:"cgroup"`
-	NetnsPID    int                      `json:"netns_pid"`
-	Iface       string                   `json:"iface,omitempty"`
-	Log         logMeta                  `json:"log"`
+	workloadmeta.Record
+	User string  `json:"user,omitempty"`
+	Log  logMeta `json:"log"`
 }
 
 func newMeta(ctx context.Context, ID string, opts *enginetypes.VirtualizationCreateOptions, vm *vmRecord, nodename string, cocoon coretypes.CocoonConfig) *meta {
-	appname, entrypoint, ident, _ := utils.ParseWorkloadName(opts.Name)
-	label := utils.DecodeMetaInLabel(ctx, opts.Labels)
-	return &meta{
-		ID:          ID,
-		Kind:        kindVM,
-		Name:        opts.Name,
-		User:        opts.User,
-		Appname:     appname,
-		Entrypoint:  entrypoint,
-		Ident:       ident,
-		Podname:     utils.LastEnvValue(opts.Env, podEnvKey),
-		Nodename:    nodename,
-		CoreID:      opts.Labels[cluster.LabelCoreID],
-		Labels:      opts.Labels,
-		HealthCheck: utils.NewHealthCheck(label.HealthCheck),
-		Publish:     label.Publish,
-		Networks:    vm.networks(),
-		Cgroup:      scopePath(cocoon.CgroupParent, vm.ID),
-		Iface:       vm.tap(),
-		Log:         logMeta{ConsoleSocket: vm.console(cocoon.RunDir)},
+	m := &meta{
+		Record: workloadmeta.NewRecord(ctx, ID, kindVM, opts.Name, utils.LastEnvValue(opts.Env, podEnvKey), nodename, opts.Labels),
+		User:   opts.User,
+		Log:    logMeta{ConsoleSocket: vm.console(cocoon.RunDir)},
 	}
+	m.Networks = vm.networks()
+	m.Cgroup = scopePath(cocoon.CgroupParent, vm.ID)
+	m.Iface = vm.tap()
+	return m
 }
 
 func parseInspect(out string) (*meta, *vmRecord, error) {
-	decoder := json.NewDecoder(strings.NewReader(out))
-	record, vm := &meta{}, &vmRecord{}
-	if err := decoder.Decode(record); err != nil {
-		return nil, nil, err
-	}
-	if err := decoder.Decode(vm); err != nil {
-		return nil, nil, err
-	}
-	return record, vm, nil
+	return decodePair[meta, vmRecord](out)
 }
 
 type logMeta struct {
