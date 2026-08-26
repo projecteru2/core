@@ -44,22 +44,10 @@ func (r *Rediaron) StartEphemeral(ctx context.Context, path string, heartbeat ti
 	if err := r.Pool.Invoke(func() {
 		defer wg.Done()
 		defer close(expiry)
-
-		tick := time.NewTicker(heartbeat / 3)
-		defer tick.Stop()
-
-		for {
-			select {
-			case <-tick.C:
-				if err := r.refreshEphemeral(ctx, path, token, heartbeat); err != nil {
-					r.revokeEphemeral(ctx, path, token)
-					return
-				}
-			case <-ctx.Done():
-				r.revokeEphemeral(ctx, path, token)
-				return
-			}
-		}
+		defer r.revokeEphemeral(ctx, path, token)
+		_ = utils.KeepAlive(ctx, heartbeat/3, func(ctx context.Context) error {
+			return r.refreshEphemeral(ctx, path, token, heartbeat)
+		})
 	}); err != nil {
 		wg.Done()
 		cancel()

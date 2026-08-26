@@ -10,6 +10,7 @@ import (
 
 	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/utils"
 )
 
 var opts = &redislock.Options{
@@ -55,24 +56,18 @@ func (r *RedisLock) Lock(ctx context.Context) (context.Context, error) {
 	r.cancel = cancel
 	interval := r.ttl / 3
 	r.wg.Go(func() {
-		ticker := time.NewTicker(interval)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				refreshCtx, refreshCancel := context.WithTimeout(ctx, interval)
-				err := l.Refresh(refreshCtx, r.ttl, opts)
-				refreshCancel()
-				switch {
-				case errors.Is(err, redislock.ErrNotObtained):
-					cancel()
-					return
-				case err != nil && ctx.Err() == nil:
-					log.WithFunc("redislock.Lock").Warnf(ctx, "refresh lock %s failed: %+v", r.key, err)
-				}
+		err := utils.KeepAlive(ctx, interval, func(ctx context.Context) error {
+			refreshCtx, refreshCancel := context.WithTimeout(ctx, interval)
+			defer refreshCancel()
+			err := l.Refresh(refreshCtx, r.ttl, opts)
+			if err != nil && !errors.Is(err, redislock.ErrNotObtained) && ctx.Err() == nil {
+				log.WithFunc("redislock.Lock").Warnf(ctx, "refresh lock %s failed: %+v", r.key, err)
+				return nil
 			}
+			return err
+		})
+		if err != nil {
+			cancel()
 		}
 	})
 	return ctx, nil
