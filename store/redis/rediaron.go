@@ -122,22 +122,22 @@ func (r *Rediaron) GetOne(ctx context.Context, key string) (string, error) {
 }
 
 func (r *Rediaron) GetMulti(ctx context.Context, keys []string) (map[string]string, error) {
-	cmds := make([]*redis.StringCmd, 0, len(keys))
-	_, err := r.cli.Pipelined(ctx, func(pipe redis.Pipeliner) error {
-		for _, k := range keys {
-			cmds = append(cmds, pipe.Get(ctx, k))
-		}
-		return nil
-	})
-
 	data := make(map[string]string, len(keys))
-	for i, cmd := range cmds {
-		if isRedisNoKeyError(cmd.Err()) {
-			return nil, errors.Wrapf(cmd.Err(), "key not found: %s", keys[i])
-		}
-		data[keys[i]] = cmd.Val()
+	if len(keys) == 0 {
+		return data, nil
 	}
-	return data, err
+	vals, err := r.cli.MGet(ctx, keys...).Result()
+	if err != nil {
+		return nil, err
+	}
+	for i, val := range vals {
+		value, ok := val.(string)
+		if !ok {
+			return nil, errors.Wrapf(redis.Nil, "key not found: %s", keys[i])
+		}
+		data[keys[i]] = value
+	}
+	return data, nil
 }
 
 func (r *Rediaron) BatchUpdate(ctx context.Context, data map[string]string) error {
@@ -152,15 +152,7 @@ func (r *Rediaron) BatchUpdate(ctx context.Context, data map[string]string) erro
 		return ErrKeyNotExists
 	}
 
-	update := func(pipe redis.Pipeliner) error {
-		for key, value := range data {
-			pipe.Set(ctx, key, value, 0)
-		}
-		return nil
-	}
-
-	_, err = r.cli.TxPipelined(ctx, update)
-	return err
+	return r.BatchPut(ctx, data)
 }
 
 func (r *Rediaron) BatchCreate(ctx context.Context, data map[string]string) error {
@@ -209,14 +201,10 @@ func (r *Rediaron) BatchCreateAndDecr(ctx context.Context, data map[string]strin
 }
 
 func (r *Rediaron) BatchDelete(ctx context.Context, keys []string) error {
-	del := func(pipe redis.Pipeliner) error {
-		for _, key := range keys {
-			pipe.Del(ctx, key)
-		}
+	if len(keys) == 0 {
 		return nil
 	}
-	_, err := r.cli.TxPipelined(ctx, del)
-	return err
+	return r.cli.Del(ctx, keys...).Err()
 }
 
 func (r *Rediaron) BindStatus(ctx context.Context, entityKey, statusKey, statusValue string, ttl int64) error {
