@@ -1,7 +1,6 @@
 package calcium
 
 import (
-	"context"
 	"sync/atomic"
 	"testing"
 
@@ -41,14 +40,14 @@ func TestRemapResource(t *testing.T) {
 		Resources: resourcetypes.Resources{},
 	}
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
-	assert.Nil(t, c.doRemapResource(context.Background(), log.WithField("test", "zc"), node))
+	assert.Nil(t, c.doRemapResource(t.Context(), log.WithField("test", "zc"), node))
 
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
+	lock.On("Lock", mock.Anything).Return(t.Context(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	c.RemapResourceAndLog(context.Background(), log.WithField("test", "zc"), node)
+	c.RemapResourceAndLog(t.Context(), log.WithField("test", "zc"), node)
 }
 
 func TestRemapJournalRetainsUntilEngineSuccess(t *testing.T) {
@@ -111,7 +110,7 @@ func TestRemapReplayRecomputesFromLiveState(t *testing.T) {
 
 	store := c.store.(*storemocks.Store)
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
+	lock.On("Lock", mock.Anything).Return(t.Context(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	store.On("GetNode", mock.Anything, node.Name).Return(node, nil)

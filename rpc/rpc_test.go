@@ -22,10 +22,10 @@ func TestAddPod(t *testing.T) {
 	opts := &pb.AddPodOptions{}
 	cluster := v.cluster.(*clustermock.Cluster)
 	cluster.On("AddPod", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
-	_, err := v.AddPod(context.Background(), opts)
+	_, err := v.AddPod(t.Context(), opts)
 	assert.Error(t, err)
 	cluster.On("AddPod", mock.Anything, mock.Anything, mock.Anything).Return(&types.Pod{Name: "test", Desc: "test"}, nil)
-	_, err = v.AddPod(context.Background(), opts)
+	_, err = v.AddPod(t.Context(), opts)
 	assert.NoError(t, err)
 }
 
@@ -38,7 +38,7 @@ func TestAddNode(t *testing.T) {
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 	).Return(nil, types.ErrMockError).Once()
-	_, err := v.AddNode(context.Background(), opts)
+	_, err := v.AddNode(t.Context(), opts)
 	assert.Error(t, err)
 	engine := &enginemock.API{}
 	node := &types.Node{
@@ -53,7 +53,7 @@ func TestAddNode(t *testing.T) {
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 	).Return(node, nil)
-	_, err = v.AddNode(context.Background(), opts)
+	_, err = v.AddNode(t.Context(), opts)
 	assert.NoError(t, err)
 }
 
@@ -79,7 +79,7 @@ func TestRunAndWaitSync(t *testing.T) {
 	v := newVibranium()
 
 	stream := &grpcmocks.BidiStreamingServer[pb.RunAndWaitOptions, pb.AttachWorkloadMessage]{}
-	stream.On("Context").Return(context.Background())
+	stream.On("Context").Return(t.Context())
 	stream.On("Recv").Return(&pb.RunAndWaitOptions{
 		DeployOptions: &pb.DeployOptions{
 			Name: "deploy",
@@ -137,7 +137,7 @@ func TestRunAndWaitAsync(t *testing.T) {
 	v := newVibranium()
 
 	stream := &grpcmocks.BidiStreamingServer[pb.RunAndWaitOptions, pb.AttachWorkloadMessage]{}
-	stream.On("Context").Return(context.Background())
+	stream.On("Context").Return(t.Context())
 	stream.On("Recv").Return(&pb.RunAndWaitOptions{
 		DeployOptions: &pb.DeployOptions{
 			Name: "deploy",
@@ -202,7 +202,7 @@ func TestSendLargeFileReportsItsOwnStatusCode(t *testing.T) {
 	v := newVibranium()
 
 	stream := &grpcmocks.BidiStreamingServer[pb.FileOptions, pb.SendMessage]{}
-	stream.On("Context").Return(context.Background())
+	stream.On("Context").Return(t.Context())
 	stream.On("Recv").Return(nil, types.ErrMockError)
 
 	cluster := v.cluster.(*clustermock.Cluster)
@@ -234,7 +234,7 @@ func TestSendRejectsInvalidOptions(t *testing.T) {
 func TestReallocResourceStatusHidesStackTrace(t *testing.T) {
 	v := newVibranium()
 
-	_, err := v.ReallocResource(context.Background(), &pb.ReallocOptions{})
+	_, err := v.ReallocResource(t.Context(), &pb.ReallocOptions{})
 	assert.Error(t, err)
 	assert.NotContains(t, grpcstatus.Convert(err).Message(), ".go:")
 }

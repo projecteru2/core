@@ -1,7 +1,6 @@
 package redis
 
 import (
-	"context"
 	"path/filepath"
 
 	"github.com/projecteru2/core/store/common"
@@ -9,7 +8,7 @@ import (
 )
 
 func (s *RediaronTestSuite) TestDeploy() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	opts := &types.DeployOptions{
 		Name:         "app",
 		Entrypoint:   &types.Entrypoint{Name: "entry"},

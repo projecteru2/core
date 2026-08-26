@@ -15,7 +15,7 @@ import (
 
 func TestAddORUpdateWorkload(t *testing.T) {
 	m := NewMercury(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	ID := "1234567812345678123456781234567812345678123456781234567812345678"
 	name := "test_app_1"
 	nodename := "n1"
@@ -42,7 +42,7 @@ func TestAddORUpdateWorkload(t *testing.T) {
 
 func TestRemoveWorkload(t *testing.T) {
 	m := NewMercury(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	ID := "1234567812345678123456781234567812345678123456781234567812345678"
 	name := "test_app_1"
 	nodename := "n1"
@@ -65,7 +65,7 @@ func TestRemoveWorkload(t *testing.T) {
 
 func TestGetWorkload(t *testing.T) {
 	m := NewMercury(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	ID := "1234567812345678123456781234567812345678123456781234567812345678"
 	name := "test_app_1"
 	nodename := "n1"
@@ -92,7 +92,7 @@ func TestGetWorkload(t *testing.T) {
 
 func TestGetWorkloadStatus(t *testing.T) {
 	m := NewMercury(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	ID := "1234567812345678123456781234567812345678123456781234567812345678"
 	name := "test_app_1"
 	nodename := "n1"
@@ -117,7 +117,7 @@ func TestGetWorkloadStatus(t *testing.T) {
 
 func TestSetWorkloadStatus(t *testing.T) {
 	m := NewMercury(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	ID := "1234567812345678123456781234567812345678123456781234567812345678"
 	name := "test_app_1"
 	nodename := "n1"
@@ -151,7 +151,7 @@ func TestSetWorkloadStatus(t *testing.T) {
 
 func TestListWorkloads(t *testing.T) {
 	m := NewMercury(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	cs, err := m.ListWorkloads(ctx, "", "a", "b", 1, nil)
 	assert.NoError(t, err)
 	assert.Empty(t, cs)
@@ -182,7 +182,7 @@ func TestListWorkloads(t *testing.T) {
 
 func TestListNodeWorkloads(t *testing.T) {
 	m := NewMercury(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	cs, err := m.ListNodeWorkloads(ctx, "", nil)
 	assert.NoError(t, err)
 	assert.Empty(t, cs)
@@ -213,7 +213,7 @@ func TestListNodeWorkloads(t *testing.T) {
 
 func TestWorkloadStatusStream(t *testing.T) {
 	m := NewMercury(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	ID := "1234567812345678123456781234567812345678123456781234567812345678"
 	name := "test_app_1"
 	appname := "test"

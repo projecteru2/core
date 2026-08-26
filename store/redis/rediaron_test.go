@@ -27,7 +27,7 @@ func TestRediaron(t *testing.T) {
 	config.GlobalTimeout = 30 * time.Second
 	config.MaxConcurrency = 100000
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	factory.InitEngineCache(ctx, config, nil)
 
@@ -53,26 +53,26 @@ type RediaronTestSuite struct {
 }
 
 func (s *RediaronTestSuite) SetupTest() {
-	s.rediaron.cli.FlushAll(context.Background())
+	s.rediaron.cli.FlushAll(s.T().Context())
 }
 
 func (s *RediaronTestSuite) TearDownTest() {
-	s.rediaron.cli.FlushAll(context.Background())
+	s.rediaron.cli.FlushAll(s.T().Context())
 }
 
 func (s *RediaronTestSuite) TestIsRedisNoKeyError() {
-	_, err := s.rediaron.cli.Get(context.Background(), "thiskeydoesnotexistsofcourseitdoesnt").Result()
+	_, err := s.rediaron.cli.Get(s.T().Context(), "thiskeydoesnotexistsofcourseitdoesnt").Result()
 	s.True(isRedisNoKeyError(err))
 
-	s.rediaron.cli.Set(context.Background(), "key1", "value1", 0)
-	_, err = s.rediaron.cli.Get(context.Background(), "key1").Result()
+	s.rediaron.cli.Set(s.T().Context(), "key1", "value1", 0)
+	_, err = s.rediaron.cli.Get(s.T().Context(), "key1").Result()
 	s.False(isRedisNoKeyError(err))
 
 	s.False(isRedisNoKeyError(fmt.Errorf("i am not redis no key error")))
 }
 
 func (s *RediaronTestSuite) TestGetMultiWrapsTheMissingKeysOwnError() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	s.NoError(s.rediaron.cli.HSet(ctx, "hash", "f", "v").Err())
 
 	_, err := s.rediaron.GetMulti(ctx, []string{"hash", "absent"})
@@ -81,7 +81,7 @@ func (s *RediaronTestSuite) TestGetMultiWrapsTheMissingKeysOwnError() {
 }
 
 func (s *RediaronTestSuite) TestKeyNotify() {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(s.T().Context())
 	ch := s.rediaron.KNotify(ctx, "a*")
 	go func() {
 		time.Sleep(2 * time.Second)
@@ -89,13 +89,13 @@ func (s *RediaronTestSuite) TestKeyNotify() {
 	}()
 
 	time.Sleep(time.Second)
-	s.rediaron.cli.Set(context.Background(), "aaa", 1, 0)
+	s.rediaron.cli.Set(s.T().Context(), "aaa", 1, 0)
 	triggerMockedKeyspaceNotification(s.rediaron.cli, "aaa", actionSet)
-	s.rediaron.cli.Set(context.Background(), "aab", 1, 0)
+	s.rediaron.cli.Set(s.T().Context(), "aab", 1, 0)
 	triggerMockedKeyspaceNotification(s.rediaron.cli, "aab", actionSet)
-	s.rediaron.cli.Set(context.Background(), "bab", 1, 0)
+	s.rediaron.cli.Set(s.T().Context(), "bab", 1, 0)
 	triggerMockedKeyspaceNotification(s.rediaron.cli, "bab", actionSet)
-	s.rediaron.cli.Del(context.Background(), "aaa")
+	s.rediaron.cli.Del(s.T().Context(), "aaa")
 	triggerMockedKeyspaceNotification(s.rediaron.cli, "aaa", actionDel)
 
 	messages := []*KNotifyMessage{}
@@ -112,10 +112,10 @@ func (s *RediaronTestSuite) TestKeyNotify() {
 }
 
 func (s *RediaronTestSuite) TestKeyNotifyCancellationUnblocksPendingMessage() {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(s.T().Context())
 	ch := s.rediaron.KNotify(ctx, "a*")
 	s.Require().Eventually(func() bool {
-		count, err := s.rediaron.cli.PubSubNumPat(context.Background()).Result()
+		count, err := s.rediaron.cli.PubSubNumPat(s.T().Context()).Result()
 		return err == nil && count > 0
 	}, time.Second, 10*time.Millisecond)
 
@@ -123,7 +123,7 @@ func (s *RediaronTestSuite) TestKeyNotifyCancellationUnblocksPendingMessage() {
 	time.Sleep(50 * time.Millisecond)
 	cancel()
 	s.Require().Eventually(func() bool {
-		count, err := s.rediaron.cli.PubSubNumPat(context.Background()).Result()
+		count, err := s.rediaron.cli.PubSubNumPat(s.T().Context()).Result()
 		return err == nil && count == 0
 	}, time.Second, 10*time.Millisecond)
 

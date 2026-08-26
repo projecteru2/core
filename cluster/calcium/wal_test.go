@@ -27,7 +27,7 @@ func TestHandleWorkloadResourceAllocatedMultipleNodes(t *testing.T) {
 	store := c.store.(*storemocks.Store)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
+	lock.On("Lock", mock.Anything).Return(t.Context(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
@@ -47,7 +47,7 @@ func TestHandleWorkloadResourceAllocatedMultipleNodes(t *testing.T) {
 		{NodeMeta: types.NodeMeta{Name: "n3"}},
 		{NodeMeta: types.NodeMeta{Name: "n4"}},
 	}
-	require.Error(t, h.Handle(context.Background(), nodes))
+	require.Error(t, h.Handle(t.Context(), nodes))
 }
 
 func TestHandleWorkloadResourceAllocatedKeepsEntryUntilEveryNodeIsFixed(t *testing.T) {
@@ -55,7 +55,7 @@ func TestHandleWorkloadResourceAllocatedKeepsEntryUntilEveryNodeIsFixed(t *testi
 	enableTestWAL(t, c)
 	store := c.store.(*storemocks.Store)
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
+	lock.On("Lock", mock.Anything).Return(t.Context(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	store.On("GetNode", mock.Anything, "n1").Return(&types.Node{NodeMeta: types.NodeMeta{Name: "n1"}}, nil)
@@ -64,8 +64,8 @@ func TestHandleWorkloadResourceAllocatedKeepsEntryUntilEveryNodeIsFixed(t *testi
 	_, err := c.wal.Log(eventWorkloadResourceAllocated, []*types.Node{{NodeMeta: types.NodeMeta{Name: "n1"}}})
 	require.NoError(t, err)
 
-	c.wal.Recover(context.Background())
-	c.wal.Recover(context.Background())
+	c.wal.Recover(t.Context())
+	c.wal.Recover(t.Context())
 	store.AssertExpectations(t)
 }
 
@@ -92,10 +92,10 @@ func TestHandleCreateWorkloadNoHandle(t *testing.T) {
 	store.On("GetWorkload", mock.Anything, wrkid).Return(wrk, nil).Once()
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, nil)
 
-	c.wal.Recover(context.Background())
+	c.wal.Recover(t.Context())
 	store.AssertExpectations(t)
 
-	c.wal.Recover(context.Background())
+	c.wal.Recover(t.Context())
 }
 
 func TestHandleCreateWorkloadKeepsEntryOnStoreReadError(t *testing.T) {
@@ -108,8 +108,8 @@ func TestHandleCreateWorkloadKeepsEntryOnStoreReadError(t *testing.T) {
 	store := c.store.(*storemocks.Store)
 	store.On("GetWorkload", mock.Anything, wrkid).Return(nil, types.ErrMockError).Twice()
 	store.On("NotFound", types.ErrMockError).Return(false).Twice()
-	c.wal.Recover(context.Background())
-	c.wal.Recover(context.Background())
+	c.wal.Recover(t.Context())
+	c.wal.Recover(t.Context())
 	store.AssertExpectations(t)
 }
 
@@ -152,11 +152,11 @@ func TestHandleCreateWorkloadHandled(t *testing.T) {
 		Return(nil).
 		Once()
 
-	c.wal.Recover(context.Background())
+	c.wal.Recover(t.Context())
 	store.AssertExpectations(t)
 	eng.AssertExpectations(t)
 
-	c.wal.Recover(context.Background())
+	c.wal.Recover(t.Context())
 }
 
 func TestHandleCreateWorkloadByNameFromTheStore(t *testing.T) {
@@ -173,10 +173,10 @@ func TestHandleCreateWorkloadByNameFromTheStore(t *testing.T) {
 	).Once()
 	store.On("GetWorkloads", mock.Anything, []string{"wrkid"}).Return(nil, nil).Once()
 
-	c.wal.Recover(context.Background())
+	c.wal.Recover(t.Context())
 	store.AssertExpectations(t)
 
-	c.wal.Recover(context.Background())
+	c.wal.Recover(t.Context())
 }
 
 func TestHandleCreateWorkloadByNameFromTheEngine(t *testing.T) {
@@ -200,11 +200,11 @@ func TestHandleCreateWorkloadByNameFromTheEngine(t *testing.T) {
 	engine.On("VirtualizationInspect", mock.Anything, name).Return(&enginetypes.VirtualizationInfo{ID: "wrkid"}, nil).Once()
 	engine.On("VirtualizationRemove", mock.Anything, "wrkid", true, true).Return(nil).Once()
 
-	c.wal.Recover(context.Background())
+	c.wal.Recover(t.Context())
 	store.AssertExpectations(t)
 	engine.AssertExpectations(t)
 
-	c.wal.Recover(context.Background())
+	c.wal.Recover(t.Context())
 }
 
 func TestHandleCreateWorkloadByNameUnknownToBoth(t *testing.T) {
@@ -227,11 +227,11 @@ func TestHandleCreateWorkloadByNameUnknownToBoth(t *testing.T) {
 	store.On("GetNode", mock.Anything, "nodename").Return(node, nil).Once()
 	engine.On("VirtualizationInspect", mock.Anything, name).Return(nil, types.ErrWorkloadNotExists).Once()
 
-	c.wal.Recover(context.Background())
+	c.wal.Recover(t.Context())
 	store.AssertExpectations(t)
 	engine.AssertExpectations(t)
 
-	c.wal.Recover(context.Background())
+	c.wal.Recover(t.Context())
 }
 
 func TestHandleReplaceWorkload(t *testing.T) {
@@ -249,11 +249,11 @@ func TestHandleReplaceWorkload(t *testing.T) {
 	store.On("RemoveWorkload", mock.Anything, oldWorkload).Return(nil).Once()
 	engine.On("VirtualizationRemove", mock.Anything, "old", true, true).Return(nil).Once()
 
-	c.wal.Recover(context.Background())
+	c.wal.Recover(t.Context())
 	store.AssertExpectations(t)
 	engine.AssertExpectations(t)
 
-	c.wal.Recover(context.Background())
+	c.wal.Recover(t.Context())
 }
 
 func TestHandleReplaceWorkloadKeepsTheOldOneWhenTheNewOneIsGone(t *testing.T) {
@@ -267,7 +267,7 @@ func TestHandleReplaceWorkloadKeepsTheOldOneWhenTheNewOneIsGone(t *testing.T) {
 	store.On("GetWorkload", mock.Anything, "new").Return(nil, types.ErrMockError).Once()
 	store.On("NotFound", types.ErrMockError).Return(true).Once()
 
-	c.wal.Recover(context.Background())
+	c.wal.Recover(t.Context())
 	store.AssertExpectations(t)
 }
 
@@ -286,11 +286,11 @@ func TestHandleReallocWorkload(t *testing.T) {
 	).Once()
 	engine.On("VirtualizationUpdateResource", mock.Anything, "workloadid", engineParams).Return(nil).Once()
 
-	c.wal.Recover(context.Background())
+	c.wal.Recover(t.Context())
 	store.AssertExpectations(t)
 	engine.AssertExpectations(t)
 
-	c.wal.Recover(context.Background())
+	c.wal.Recover(t.Context())
 }
 
 func TestHandleReallocWorkloadOnAnEngineThatCannotReplayIt(t *testing.T) {
@@ -309,11 +309,11 @@ func TestHandleReallocWorkloadOnAnEngineThatCannotReplayIt(t *testing.T) {
 	engine.On("VirtualizationUpdateResource", mock.Anything, "workloadid", engineParams).
 		Return(types.ErrEngineNotImplemented).Once()
 
-	c.wal.Recover(context.Background())
+	c.wal.Recover(t.Context())
 	store.AssertExpectations(t)
 	engine.AssertExpectations(t)
 
-	c.wal.Recover(context.Background())
+	c.wal.Recover(t.Context())
 }
 
 func TestHandleCreateLambda(t *testing.T) {
@@ -369,13 +369,13 @@ func TestHandleCreateLambda(t *testing.T) {
 		Once()
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil).Once()
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
+	lock.On("Lock", mock.Anything).Return(t.Context(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 
-	c.wal.Recover(context.Background())
+	c.wal.Recover(t.Context())
 	time.Sleep(500 * time.Millisecond)
-	c.wal.Recover(context.Background())
+	c.wal.Recover(t.Context())
 	time.Sleep(500 * time.Millisecond)
 	store.AssertExpectations(t)
 	eng.AssertExpectations(t)
@@ -392,16 +392,16 @@ func TestHandleCreateLambdaKeepsEntryUntilRemoved(t *testing.T) {
 	store.On("GetWorkload", mock.Anything, "workloadid").Return(nil, types.ErrMockError).Twice()
 	store.On("NotFound", types.ErrMockError).Return(false).Twice()
 
-	c.wal.Recover(context.Background())
+	c.wal.Recover(t.Context())
 	time.Sleep(500 * time.Millisecond)
-	c.wal.Recover(context.Background())
+	c.wal.Recover(t.Context())
 	time.Sleep(500 * time.Millisecond)
 	store.AssertExpectations(t)
 }
 
 func enableTestWAL(t *testing.T, c *Calcium) {
 	mockWALStore(c.store.(*storemocks.Store))
-	journal, err := enableWAL(context.Background(), c.config, c, c.store)
+	journal, err := enableWAL(t.Context(), c.config, c, c.store)
 	require.NoError(t, err)
 	c.wal = journal
 }

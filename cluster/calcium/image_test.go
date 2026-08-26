@@ -2,7 +2,6 @@ package calcium
 
 import (
 	"bytes"
-	"context"
 	"io"
 	"testing"
 
@@ -17,7 +16,7 @@ import (
 
 func TestCacheImage(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	store := c.store.(*storemocks.Store)
 	_, err := c.CacheImage(ctx, &types.ImageOptions{Podname: ""})
 	assert.Error(t, err)
@@ -57,7 +56,7 @@ func TestCacheImage(t *testing.T) {
 
 func TestRemoveImage(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	store := c.store.(*storemocks.Store)
 	_, err := c.RemoveImage(ctx, &types.ImageOptions{Podname: ""})
 	assert.Error(t, err)
@@ -99,7 +98,7 @@ func TestRemoveImage(t *testing.T) {
 
 func TestListImage(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	store := c.store.(*storemocks.Store)
 	_, err := c.ListImage(ctx, &types.ImageOptions{})
 	assert.ErrorIs(t, err, types.ErrEmptyPodName)

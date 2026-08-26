@@ -15,7 +15,7 @@ import (
 
 func TestAddNode(t *testing.T) {
 	m := NewMercury(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	nodename := "testnode"
 	nodename2 := "testnode2"
 	endpoint := "tcp://128.0.0.1:2376"
@@ -51,7 +51,7 @@ func TestAddNode(t *testing.T) {
 
 func TestRemoveNode(t *testing.T) {
 	m := NewMercury(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	_, err := m.AddPod(ctx, "testpod", "")
 	assert.NoError(t, err)
 	node, err := m.AddNode(ctx, &types.AddNodeOptions{Nodename: "test", Endpoint: "mock://", Podname: "testpod"})
@@ -63,7 +63,7 @@ func TestRemoveNode(t *testing.T) {
 
 func TestGetNode(t *testing.T) {
 	m := NewMercury(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	_, err := m.AddPod(ctx, "testpod", "")
 	assert.NoError(t, err)
 	node, err := m.AddNode(ctx, &types.AddNodeOptions{Nodename: "test", Endpoint: "mock://", Podname: "testpod"})
@@ -78,7 +78,7 @@ func TestGetNode(t *testing.T) {
 
 func TestGetNodesByPod(t *testing.T) {
 	m := NewMercury(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	_, err := m.AddPod(ctx, "testpod", "")
 	assert.NoError(t, err)
 	node, err := m.AddNode(ctx, &types.AddNodeOptions{Nodename: "test", Endpoint: "mock://", Podname: "testpod"})
@@ -100,7 +100,7 @@ func TestGetNodesByPod(t *testing.T) {
 
 func TestUpdateNode(t *testing.T) {
 	m := NewMercury(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	_, err := m.AddPod(ctx, "testpod", "")
 	assert.NoError(t, err)
 	node, err := m.AddNode(ctx, &types.AddNodeOptions{Nodename: "test", Endpoint: "mock://", Podname: "testpod"})
@@ -130,21 +130,21 @@ func TestSetNodeStatus(t *testing.T) {
 			Podname:  "testpod",
 		},
 	}
-	_, err := m.AddPod(context.Background(), node.Podname, "")
+	_, err := m.AddPod(t.Context(), node.Podname, "")
 	assert.NoError(err)
-	_, err = m.AddNode(context.Background(), &types.AddNodeOptions{
+	_, err = m.AddNode(t.Context(), &types.AddNodeOptions{
 		Nodename: node.Name,
 		Endpoint: node.Endpoint,
 		Podname:  node.Podname,
 	})
 	assert.NoError(err)
-	assert.NoError(m.SetNodeStatus(context.Background(), node, 1))
+	assert.NoError(m.SetNodeStatus(t.Context(), node, 1))
 	key := filepath.Join(common.NodeStatusPrefix, node.Name)
 
-	_, err = m.kv.GetOne(context.Background(), key)
+	_, err = m.kv.GetOne(t.Context(), key)
 	assert.NoError(err)
 	time.Sleep(2000 * time.Millisecond)
-	_, err = m.kv.GetOne(context.Background(), key)
+	_, err = m.kv.GetOne(t.Context(), key)
 	assert.Error(err)
 }
 
@@ -159,22 +159,22 @@ func TestGetNodeStatus(t *testing.T) {
 			Podname:  "testpod",
 		},
 	}
-	_, err := m.AddPod(context.Background(), node.Podname, "")
+	_, err := m.AddPod(t.Context(), node.Podname, "")
 	assert.NoError(err)
-	_, err = m.AddNode(context.Background(), &types.AddNodeOptions{
+	_, err = m.AddNode(t.Context(), &types.AddNodeOptions{
 		Nodename: node.Name,
 		Endpoint: node.Endpoint,
 		Podname:  node.Podname,
 	})
 	assert.NoError(err)
-	assert.NoError(m.SetNodeStatus(context.Background(), node, 1))
+	assert.NoError(m.SetNodeStatus(t.Context(), node, 1))
 
-	ns, err := m.GetNodeStatus(context.Background(), node.Name)
+	ns, err := m.GetNodeStatus(t.Context(), node.Name)
 	assert.NoError(err)
 	assert.Equal(ns.Nodename, node.Name)
 	assert.True(ns.Alive)
 	time.Sleep(2 * time.Second)
-	ns1, err := m.GetNodeStatus(context.Background(), node.Name)
+	ns1, err := m.GetNodeStatus(t.Context(), node.Name)
 	assert.Error(err)
 	assert.Nil(ns1)
 }
@@ -191,9 +191,9 @@ func TestNodeStatusStream(t *testing.T) {
 		},
 	}
 
-	_, err := m.AddPod(context.Background(), node.Podname, "")
+	_, err := m.AddPod(t.Context(), node.Podname, "")
 	assert.NoError(err)
-	_, err = m.AddNode(context.Background(), &types.AddNodeOptions{
+	_, err = m.AddNode(t.Context(), &types.AddNodeOptions{
 		Nodename: node.Name,
 		Endpoint: node.Endpoint,
 		Podname:  node.Podname,
@@ -201,7 +201,7 @@ func TestNodeStatusStream(t *testing.T) {
 	assert.NoError(err)
 
 	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 		defer cancel()
 		for {
 			select {
@@ -210,11 +210,11 @@ func TestNodeStatusStream(t *testing.T) {
 			default:
 			}
 			time.Sleep(500 * time.Millisecond)
-			assert.NoError(m.SetNodeStatus(context.Background(), node, 1))
+			assert.NoError(m.SetNodeStatus(t.Context(), node, 1))
 		}
 	}()
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	ch := m.NodeStatusStream(ctx)
 	go func() {
 		time.Sleep(3000 * time.Millisecond)

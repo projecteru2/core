@@ -1,13 +1,11 @@
 package redis
 
 import (
-	"context"
-
 	"github.com/projecteru2/core/types"
 )
 
 func (s *RediaronTestSuite) TestPod() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	podname := "testv3"
 
 	pod, err := s.rediaron.AddPod(ctx, podname, "CPU")

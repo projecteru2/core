@@ -24,7 +24,7 @@ func NewMercury(t *testing.T) *Mercury {
 	config.ProbeTarget = "8.8.8.8:80"
 	config.MaxConcurrency = 100000
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	factory.InitEngineCache(ctx, config, nil)
 

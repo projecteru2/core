@@ -20,7 +20,7 @@ const reapTimeout = 30 * time.Second
 
 func TestExecuteWorkload(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	store := c.store.(*storemocks.Store)
 
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrInvaildCount).Once()
@@ -92,7 +92,7 @@ func TestExecuteWorkloadReleasesTheExecWhenTheCallerIsGone(t *testing.T) {
 	engine.On("ExecExitCode", mock.Anything, "abc", "exec1").
 		Run(func(mock.Arguments) { close(reaped) }).Return(0, nil)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 	c.ExecuteWorkload(ctx, &types.ExecuteWorkloadOptions{WorkloadID: "abc"}, nil)
 

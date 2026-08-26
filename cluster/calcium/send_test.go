@@ -1,7 +1,6 @@
 package calcium
 
 import (
-	"context"
 	"io"
 	"os"
 	"testing"
@@ -17,7 +16,7 @@ import (
 
 func TestSend(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	_, err := c.Send(ctx, &types.SendOptions{IDs: []string{}, Files: []types.LinuxFile{{Content: []byte("xxx")}}})
 	assert.Error(t, err)

@@ -22,7 +22,7 @@ import (
 
 func TestRealloc(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	store := c.store.(*storemocks.Store)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
@@ -56,7 +56,7 @@ func TestRealloc(t *testing.T) {
 		}
 	}
 
-	store.On("GetWorkload", mock.Anything, "c1").Return(newC1(context.Background(), nil)[0], nil)
+	store.On("GetWorkload", mock.Anything, "c1").Return(newC1(t.Context(), nil)[0], nil)
 	opts := &types.ReallocOptions{
 		ID:        "c1",
 		Resources: resourcetypes.Resources{},
@@ -107,7 +107,7 @@ func TestRealloc(t *testing.T) {
 
 func TestReallocJournalsRepairEntries(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	logged := []string{}
 	committed := 0
@@ -152,7 +152,7 @@ func TestReallocKeepsRepairEntriesUntilRollbackCompletes(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			c := NewTestCluster()
-			ctx := context.Background()
+			ctx := t.Context()
 
 			committed := 0
 			mwal := &walmocks.WAL{}

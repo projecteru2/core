@@ -18,7 +18,7 @@ func TestServiceStatusStreamRecoversAfterSnapshotFailure(t *testing.T) {
 	pool, err := utils.NewPool(1)
 	require.NoError(t, err)
 	defer pool.Release()
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	store := New(&recoveringServiceKV{}, types.Config{ConnectionTimeout: time.Millisecond}, pool)
 
 	ch, err := store.ServiceStatusStream(ctx)

@@ -11,7 +11,7 @@ import (
 
 func (s *RediaronTestSuite) TestRegisterServiceWithDeregister() {
 	m := s.rediaron
-	ctx := context.Background()
+	ctx := s.T().Context()
 	svc := "svc"
 	path := fmt.Sprintf(common.ServiceStatusKey, svc)
 	_, deregister, err := m.RegisterService(ctx, svc, time.Minute)
@@ -29,7 +29,7 @@ func (s *RediaronTestSuite) TestRegisterServiceWithDeregister() {
 
 func (s *RediaronTestSuite) TestServiceStatusStream() {
 	m := s.rediaron
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(s.T().Context())
 
 	go func() {
 		time.Sleep(3 * time.Second)

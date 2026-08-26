@@ -15,7 +15,7 @@ import (
 func TestRegisterServiceWithDeregister(t *testing.T) {
 	m := NewMercury(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	svc := "svc"
 	path := fmt.Sprintf(common.ServiceStatusKey, svc)
 	_, deregister, err := m.RegisterService(ctx, svc, time.Minute)
@@ -33,7 +33,7 @@ func TestRegisterServiceWithDeregister(t *testing.T) {
 
 func TestServiceStatusStream(t *testing.T) {
 	m := NewMercury(t)
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	_, unregisterService1, err := m.RegisterService(ctx, "127.0.0.1:5001", time.Second)
 	assert.NoError(t, err)

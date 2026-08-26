@@ -1,7 +1,6 @@
 package meta
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -11,7 +10,7 @@ import (
 func TestEphemeralDeregister(t *testing.T) {
 	m := NewEmbeddedETCD(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	path := "/ident"
 	heartbeat := time.Millisecond
 	expiry, stop, err := m.StartEphemeral(ctx, path, heartbeat)
@@ -32,7 +31,7 @@ func TestEphemeralDeregister(t *testing.T) {
 func TestEphemeral(t *testing.T) {
 	m := NewEmbeddedETCD(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	path := "/ident"
 	heartbeat := time.Millisecond
 	expiry, stop, err := m.StartEphemeral(ctx, path, heartbeat)
@@ -71,7 +70,7 @@ func TestEphemeral(t *testing.T) {
 func TestEphemeralFailedAsPutAlready(t *testing.T) {
 	m := NewEmbeddedETCD(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	path := "/ident"
 	heartbeat := time.Millisecond
 	expiry, stop, err := m.StartEphemeral(ctx, path, heartbeat)
@@ -88,7 +87,7 @@ func TestEphemeralFailedAsPutAlready(t *testing.T) {
 func TestEphemeralMustRevokeAfterKeepaliveFailed(t *testing.T) {
 	m := NewEmbeddedETCD(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	path := "/ident"
 	expiry, stop, err := m.StartEphemeral(ctx, path, time.Millisecond)
 	require.NoError(t, err)

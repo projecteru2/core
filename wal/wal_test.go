@@ -37,7 +37,7 @@ func TestRecover(t *testing.T) {
 	}
 
 	var wal WAL
-	wal, err := NewHydro(context.Background(), newMemStore(), "127.0.0.1:5001", testConfig())
+	wal, err := NewHydro(t.Context(), newMemStore(), "127.0.0.1:5001", testConfig())
 	require.NoError(t, err)
 
 	eventype := "create"
@@ -51,7 +51,7 @@ func TestRecover(t *testing.T) {
 	_, err = wal.Log(eventype, struct{}{})
 	require.NoError(t, err)
 
-	wal.Recover(context.Background())
+	wal.Recover(t.Context())
 	assert.True(t, handled)
 	assert.True(t, encoded)
 	assert.True(t, decoded)

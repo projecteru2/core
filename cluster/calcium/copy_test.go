@@ -1,7 +1,6 @@
 package calcium
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,7 +14,7 @@ import (
 
 func TestCopy(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	_, err := c.Copy(ctx, &types.CopyOptions{
 		Targets: map[string][]string{},

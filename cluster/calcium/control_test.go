@@ -2,7 +2,6 @@ package calcium
 
 import (
 	"bytes"
-	"context"
 	"io"
 	"testing"
 
@@ -18,7 +17,7 @@ import (
 
 func TestControlStart(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	store := c.store.(*storemocks.Store)
 	lock := &lockmocks.DistributedLock{}
 	lock.On("Lock", mock.Anything).Return(ctx, nil)
@@ -91,7 +90,7 @@ func TestControlStart(t *testing.T) {
 
 func TestControlStop(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	store := c.store.(*storemocks.Store)
 	lock := &lockmocks.DistributedLock{}
 	lock.On("Lock", mock.Anything).Return(ctx, nil)
@@ -132,7 +131,7 @@ func TestControlStop(t *testing.T) {
 
 func TestControlRestart(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	store := c.store.(*storemocks.Store)
 	lock := &lockmocks.DistributedLock{}
 	lock.On("Lock", mock.Anything).Return(ctx, nil)
@@ -168,7 +167,7 @@ func TestControlRestart(t *testing.T) {
 
 func TestControlSuspend(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	store := c.store.(*storemocks.Store)
 	lock := &lockmocks.DistributedLock{}
 	lock.On("Lock", mock.Anything).Return(ctx, nil)
@@ -209,7 +208,7 @@ func TestControlSuspend(t *testing.T) {
 
 func TestControlResume(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	store := c.store.(*storemocks.Store)
 	lock := &lockmocks.DistributedLock{}
 	lock.On("Lock", mock.Anything).Return(ctx, nil)

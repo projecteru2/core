@@ -18,7 +18,7 @@ import (
 
 func TestDoLock(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	store := c.store.(*storemocks.Store)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	_, _, err := c.doLock(ctx, "somename", 1)
@@ -26,7 +26,7 @@ func TestDoLock(t *testing.T) {
 
 	lock := &lockmocks.DistributedLock{}
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	lock.On("Lock", mock.Anything).Return(context.Background(), types.ErrMockError).Once()
+	lock.On("Lock", mock.Anything).Return(t.Context(), types.ErrMockError).Once()
 	lock.On("Unlock", mock.Anything).Return(nil).Once()
 	_, _, err = c.doLock(ctx, "somename", 1)
 	assert.Error(t, err)
@@ -37,11 +37,11 @@ func TestDoLock(t *testing.T) {
 
 func TestDoLockUnlocksWithDetachedContext(t *testing.T) {
 	c := NewTestCluster()
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	store := c.store.(*storemocks.Store)
 	lock := &lockmocks.DistributedLock{}
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	lock.On("Lock", mock.Anything).Return(context.Background(), types.ErrMockError).Once()
+	lock.On("Lock", mock.Anything).Return(t.Context(), types.ErrMockError).Once()
 
 	var unlockCtxErr error
 	lock.On("Unlock", mock.Anything).Return(nil).Once().Run(func(args mock.Arguments) {
@@ -62,18 +62,18 @@ func TestDoUnlockAll(t *testing.T) {
 	locks["somename"] = lock
 
 	lock.On("Unlock", mock.Anything).Return(types.ErrMockError)
-	c.doUnlockAll(context.Background(), locks, []string{"somename"})
+	c.doUnlockAll(t.Context(), locks, []string{"somename"})
 }
 
 func TestWithWorkloadsLocked(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	store := c.store.(*storemocks.Store)
 
 	lock := &lockmocks.DistributedLock{}
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
-	lock.On("Lock", mock.Anything).Return(context.Background(), types.ErrMockError).Once()
+	lock.On("Lock", mock.Anything).Return(t.Context(), types.ErrMockError).Once()
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{{}}, nil).Once()
 	err := c.withWorkloadsLocked(ctx, false, []string{"c1", "c2"}, func(ctx context.Context, workloads map[string]*types.Workload) error { return nil })
 	assert.Error(t, err)
@@ -96,13 +96,13 @@ func TestWithWorkloadsLocked(t *testing.T) {
 
 func TestWithWorkloadLocked(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	store := c.store.(*storemocks.Store)
 
 	lock := &lockmocks.DistributedLock{}
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
-	lock.On("Lock", mock.Anything).Return(context.Background(), types.ErrMockError).Once()
+	lock.On("Lock", mock.Anything).Return(t.Context(), types.ErrMockError).Once()
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{{}}, nil).Once()
 	err := c.withWorkloadLocked(ctx, "c1", false, func(ctx context.Context, workload *types.Workload) error { return nil })
 	assert.Error(t, err)
@@ -125,7 +125,7 @@ func TestWithWorkloadLocked(t *testing.T) {
 
 func TestWithNodesPodLocked(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	store := c.store.(*storemocks.Store)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
@@ -159,7 +159,7 @@ func TestWithNodesPodLocked(t *testing.T) {
 	lock := &lockmocks.DistributedLock{}
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
-	lock.On("Lock", mock.Anything).Return(context.Background(), types.ErrMockError).Once()
+	lock.On("Lock", mock.Anything).Return(t.Context(), types.ErrMockError).Once()
 	err = c.withNodesPodLocked(ctx, &types.NodeFilter{Podname: "test", Includes: []string{"test"}, All: false}, func(ctx context.Context, nodes map[string]*types.Node) error { return nil })
 	assert.Error(t, err)
 	lock.On("Lock", mock.Anything).Return(ctx, nil)
@@ -176,7 +176,7 @@ func TestWithNodesPodLocked(t *testing.T) {
 
 func TestWithNodePodLocked(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	store := c.store.(*storemocks.Store)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
@@ -208,7 +208,7 @@ func TestWithNodePodLocked(t *testing.T) {
 
 func TestWithNodesOperationLocked(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	store := c.store.(*storemocks.Store)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
@@ -241,7 +241,7 @@ func TestWithNodesOperationLocked(t *testing.T) {
 	lock := &lockmocks.DistributedLock{}
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
-	lock.On("Lock", mock.Anything).Return(context.Background(), types.ErrMockError).Once()
+	lock.On("Lock", mock.Anything).Return(t.Context(), types.ErrMockError).Once()
 	err = c.withNodesOperationLocked(ctx, &types.NodeFilter{Podname: "test", Includes: []string{"test"}, All: false}, func(ctx context.Context, nodes map[string]*types.Node) error { return nil })
 	assert.Error(t, err)
 	lock.On("Lock", mock.Anything).Return(ctx, nil)
@@ -258,7 +258,7 @@ func TestWithNodesOperationLocked(t *testing.T) {
 
 func TestWithNodeOperationLocked(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	store := c.store.(*storemocks.Store)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)

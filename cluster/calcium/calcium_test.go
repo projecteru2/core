@@ -1,7 +1,6 @@
 package calcium
 
 import (
-	"context"
 	"os"
 	"testing"
 	"time"
@@ -20,7 +19,7 @@ import (
 )
 
 func TestNewCluster(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	config := types.Config{Bind: ":5001", ProbeTarget: "8.8.8.8:80", HAKeepaliveInterval: 16 * time.Second}
 	_, err := New(ctx, config, nil)
 	assert.Error(t, err)

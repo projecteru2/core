@@ -2,7 +2,6 @@ package calcium
 
 import (
 	"bytes"
-	"context"
 	"io"
 	"testing"
 
@@ -23,7 +22,7 @@ func TestLogStream(t *testing.T) {
 		ID:     ID,
 		Engine: engine,
 	}
-	ctx := context.Background()
+	ctx := t.Context()
 	opts := &types.LogStreamOptions{ID: ID}
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch, err := c.LogStream(ctx, opts)

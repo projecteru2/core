@@ -11,7 +11,7 @@ import (
 )
 
 func (s *RediaronTestSuite) TestAddORUpdateWorkload() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	id := "1234567812345678123456781234567812345678123456781234567812345678"
 	name := "test_app_1"
 	nodename := "n1"
@@ -34,7 +34,7 @@ func (s *RediaronTestSuite) TestAddORUpdateWorkload() {
 }
 
 func (s *RediaronTestSuite) TestRemoveWorkload() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	id := "1234567812345678123456781234567812345678123456781234567812345678"
 	name := "test_app_1"
 	nodename := "n1"
@@ -56,7 +56,7 @@ func (s *RediaronTestSuite) TestRemoveWorkload() {
 }
 
 func (s *RediaronTestSuite) TestGetWorkload() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	id := "1234567812345678123456781234567812345678123456781234567812345678"
 	name := "test_app_1"
 	nodename := "n1"
@@ -86,7 +86,7 @@ func (s *RediaronTestSuite) TestGetWorkload() {
 }
 
 func (s *RediaronTestSuite) TestGetWorkloadStatus() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	id := "1234567812345678123456781234567812345678123456781234567812345678"
 	name := "test_app_1"
 	nodename := "n1"
@@ -115,7 +115,7 @@ func (s *RediaronTestSuite) TestGetWorkloadStatus() {
 
 func (s *RediaronTestSuite) TestSetWorkloadStatus() {
 	m := s.rediaron
-	ctx := context.Background()
+	ctx := s.T().Context()
 	id := "1234567812345678123456781234567812345678123456781234567812345678"
 	name := "test_app_1"
 	nodename := "n1"
@@ -148,7 +148,7 @@ func (s *RediaronTestSuite) TestSetWorkloadStatus() {
 
 func (s *RediaronTestSuite) TestListWorkloads() {
 	m := s.rediaron
-	ctx := context.Background()
+	ctx := s.T().Context()
 	cs, err := m.ListWorkloads(ctx, "", "a", "b", 1, nil)
 	s.NoError(err)
 	s.Empty(cs)
@@ -183,7 +183,7 @@ func (s *RediaronTestSuite) TestListWorkloads() {
 
 func (s *RediaronTestSuite) TestListNodeWorkloads() {
 	m := s.rediaron
-	ctx := context.Background()
+	ctx := s.T().Context()
 	cs, err := m.ListNodeWorkloads(ctx, "", nil)
 	s.NoError(err)
 	s.Empty(cs)
@@ -214,7 +214,7 @@ func (s *RediaronTestSuite) TestListNodeWorkloads() {
 
 func (s *RediaronTestSuite) TestWorkloadStatusStream() {
 	m := s.rediaron
-	ctx := context.Background()
+	ctx := s.T().Context()
 	id := "1234567812345678123456781234567812345678123456781234567812345678"
 	name := "test_app_1"
 	appname := "test"

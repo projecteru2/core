@@ -1,7 +1,6 @@
 package calcium
 
 import (
-	"context"
 	"sync/atomic"
 	"testing"
 
@@ -20,7 +19,7 @@ import (
 
 func TestReplaceWorkload(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	lock := &lockmocks.DistributedLock{}
 	lock.On("Lock", mock.Anything).Return(ctx, nil)
 	lock.On("Unlock", mock.Anything).Return(nil)

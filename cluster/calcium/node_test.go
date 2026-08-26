@@ -22,7 +22,7 @@ import (
 
 func TestAddNode(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	factory.InitEngineCache(ctx, c.config, nil)
 
 	opts := &types.AddNodeOptions{}
@@ -66,7 +66,7 @@ func TestAddNode(t *testing.T) {
 
 func TestAddNodeRedoesTheStalePluginMetadata(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	factory.InitEngineCache(ctx, c.config, nil)
 
 	nodename := "nodename"
@@ -96,7 +96,7 @@ func TestAddNodeRedoesTheStalePluginMetadata(t *testing.T) {
 
 func TestRemoveNode(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	store := c.store.(*storemocks.Store)
 
 	lock := &lockmocks.DistributedLock{}
@@ -131,7 +131,7 @@ func TestRemoveNode(t *testing.T) {
 
 func TestListPodNodes(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	opts := &types.ListNodesOptions{}
 	store := c.store.(*storemocks.Store)
@@ -166,7 +166,7 @@ func TestListPodNodes(t *testing.T) {
 
 func TestGetNode(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	_, err := c.GetNode(ctx, "")
 	assert.Error(t, err)
 	nodename := "test"
@@ -198,7 +198,7 @@ func TestGetNode(t *testing.T) {
 
 func TestGetNodeEngine(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	_, err := c.GetNodeEngineInfo(ctx, "")
 	assert.Error(t, err)
@@ -225,7 +225,7 @@ func TestGetNodeEngine(t *testing.T) {
 
 func TestSetNode(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	opts := &types.SetNodeOptions{}
 
@@ -287,7 +287,7 @@ func TestSetNode(t *testing.T) {
 
 func TestFilterNodes(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	store := c.store.(*storemocks.Store)
 
 	nf := &types.NodeFilter{Includes: []string{"test"}}
@@ -334,7 +334,7 @@ func TestFilterNodes(t *testing.T) {
 
 func TestFilterNodesDedupesIncludes(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	store := c.store.(*storemocks.Store)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(
 		func(_ context.Context, name string) *types.Node {

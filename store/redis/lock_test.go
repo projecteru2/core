@@ -1,12 +1,11 @@
 package redis
 
 import (
-	"context"
 	"time"
 )
 
 func (s *RediaronTestSuite) TestCreateLock() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 
 	lock, err := s.rediaron.CreateLock("test", time.Second)
 	s.NoError(err)

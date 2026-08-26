@@ -84,7 +84,7 @@ func TestSourceCode(t *testing.T) {
 	}
 	g, err := NewGitScm(config, nil)
 	assert.NoError(t, err)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	dname, err := os.MkdirTemp("", "source")
 	assert.NoError(t, err)
@@ -143,12 +143,12 @@ func TestArtifact(t *testing.T) {
 		res.Write(data)
 	}))
 	defer testServer.Close()
-	err = g.Artifact(context.Background(), "invaildurl", savedDir)
+	err = g.Artifact(t.Context(), "invaildurl", savedDir)
 	assert.Error(t, err)
-	err = g.Artifact(context.Background(), testServer.URL, savedDir)
+	err = g.Artifact(t.Context(), testServer.URL, savedDir)
 	assert.Error(t, err)
 	g.AuthHeaders = map[string]string{"TEST": authValue}
-	err = g.Artifact(context.Background(), testServer.URL, savedDir)
+	err = g.Artifact(t.Context(), testServer.URL, savedDir)
 	assert.NoError(t, err)
 
 	fname := filepath.Join(savedDir, path.Base(origFile.Name()))

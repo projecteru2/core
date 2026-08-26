@@ -1,7 +1,6 @@
 package etcdv3
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,7 +10,7 @@ import (
 
 func TestProcessing(t *testing.T) {
 	m := NewMercury(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	processing := &types.Processing{
 		Appname:   "app",
 		Entryname: "entry",

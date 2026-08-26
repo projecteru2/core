@@ -1,7 +1,6 @@
 package calcium
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -17,7 +16,7 @@ import (
 
 func TestPodResource(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	podname := "testpod"
 	nodename := "testnode"
 	store := c.store.(*storemocks.Store)
@@ -78,7 +77,7 @@ func TestPodResource(t *testing.T) {
 
 func TestNodeResource(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	nodename := "testnode"
 	store := c.store.(*storemocks.Store)
 	rmgr := c.rmgr.(*resourcemocks.Manager)

@@ -1,7 +1,6 @@
 package calcium
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,7 +12,7 @@ import (
 
 func TestGetNodeStatus(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	store := c.store.(*storemocks.Store)
 
 	ns := &types.NodeStatus{
@@ -35,7 +34,7 @@ func TestGetNodeStatus(t *testing.T) {
 
 func TestSetNodeStatus(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	store := c.store.(*storemocks.Store)
 
 	node := &types.Node{
@@ -64,7 +63,7 @@ func TestSetNodeStatus(t *testing.T) {
 
 func TestNodeStatusStream(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	dataCh := make(chan *types.NodeStatus)
 	store := c.store.(*storemocks.Store)
 	store.On("NodeStatusStream", mock.Anything).Return(dataCh)
@@ -85,7 +84,7 @@ func TestNodeStatusStream(t *testing.T) {
 
 func TestGetWorkloadsStatus(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	store := c.store.(*storemocks.Store)
 	cs := &types.StatusMeta{}
 
@@ -101,14 +100,14 @@ func TestGetWorkloadsStatus(t *testing.T) {
 
 func TestSetWorkloadsStatusEmpty(t *testing.T) {
 	c := NewTestCluster()
-	r, err := c.SetWorkloadsStatus(context.Background(), []*types.StatusMeta{}, nil)
+	r, err := c.SetWorkloadsStatus(t.Context(), []*types.StatusMeta{}, nil)
 	assert.NoError(t, err)
 	assert.Empty(t, r)
 }
 
 func TestSetWorkloadsStatus(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	store := c.store.(*storemocks.Store)
 
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
@@ -146,7 +145,7 @@ func TestSetWorkloadsStatus(t *testing.T) {
 
 func TestWorkloadStatusStream(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	dataCh := make(chan *types.WorkloadStatus)
 	store := c.store.(*storemocks.Store)
 

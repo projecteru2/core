@@ -26,7 +26,7 @@ func TestServiceStatusStream(t *testing.T) {
 	expiry := make(<-chan struct{})
 	store.On("RegisterService", mock.Anything, mock.Anything, mock.Anything).Return(expiry, unregister, nil).Once()
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	unregisterService, err := c.RegisterService(ctx)
 	assert.NoError(t, err)
@@ -47,7 +47,7 @@ func TestServiceStatusStreamWithMultipleRegisteringAsExpired(t *testing.T) {
 	store.On("RegisterService", mock.Anything, mock.Anything, mock.Anything).Return(expiry, func() {}, nil).Once()
 	store.On("RegisterService", mock.Anything, mock.Anything, mock.Anything).Return(make(<-chan struct{}), func() {}, nil).Once()
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	_, err := c.RegisterService(ctx)
 	assert.NoError(t, err)
@@ -67,7 +67,7 @@ func TestRegisterServiceFailed(t *testing.T) {
 	experr := fmt.Errorf("error")
 	store.On("RegisterService", mock.Anything, mock.Anything, mock.Anything).Return(make(<-chan struct{}), func() {}, experr).Once()
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
 	_, err := c.RegisterService(ctx)
@@ -95,11 +95,11 @@ func TestWatchServiceStatus(t *testing.T) {
 			return ch
 		}, nil,
 	)
-	c.watcher = helium.New(context.Background(), c.config.GRPCConfig, c.store)
+	c.watcher = helium.New(t.Context(), c.config.GRPCConfig, c.store)
 
-	ch, err := c.WatchServiceStatus(context.Background())
+	ch, err := c.WatchServiceStatus(t.Context())
 	assert.NoError(t, err)
-	ch2, err := c.WatchServiceStatus(context.Background())
+	ch2, err := c.WatchServiceStatus(t.Context())
 	assert.NoError(t, err)
 	wg := sync.WaitGroup{}
 	wg.Add(2)

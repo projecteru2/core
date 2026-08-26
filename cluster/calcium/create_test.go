@@ -27,7 +27,7 @@ import (
 
 func TestCreateWorkloadValidating(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	opts := &types.DeployOptions{
 		Name:    "deployname",
 		Podname: "somepod",
@@ -66,7 +66,7 @@ func TestCreateWorkloadValidating(t *testing.T) {
 
 func TestCreateWorkloadTxn(t *testing.T) {
 	c, nodes := newCreateWorkloadCluster(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	opts := &types.DeployOptions{
 		Name:           "zc:name",
 		Count:          2,
@@ -260,7 +260,7 @@ func TestCreateWorkloadRollsBackAllocatedResourcesAfterProcessingFailure(t *test
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			c, nodes := newCreateWorkloadCluster(t, types.ErrMockError, tc.deleteProcessingErr)
-			ctx := context.Background()
+			ctx := t.Context()
 			opts := &types.DeployOptions{
 				Name:           "zc:name",
 				Count:          1,
@@ -320,7 +320,7 @@ func TestCreateWorkloadRollsBackAllocatedResourcesAfterProcessingFailure(t *test
 
 func TestCreateWorkloadIngorePullTxn(t *testing.T) {
 	c, nodes := newCreateWorkloadCluster(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	opts := &types.DeployOptions{
 		Name:           "zc:name",
 		Count:          2,
@@ -490,7 +490,7 @@ func TestCreateWorkloadIngorePullTxn(t *testing.T) {
 
 func TestDoDeployWorkloadsOnNodeErrorPerWorkload(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	engine := &enginemocks.API{}
 	node := &types.Node{NodeMeta: types.NodeMeta{Name: "n1"}, Engine: engine}
 
@@ -526,7 +526,7 @@ func TestDoDeployWorkloadsOnNodeErrorPerWorkload(t *testing.T) {
 
 func TestDoDeployOneWorkloadJournalsTheNameBeforeTheEngineCreate(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	var logged *types.Workload
 	engineCalled, loggedAfterEngine := false, false
@@ -558,7 +558,7 @@ func TestDoDeployOneWorkloadJournalsTheNameBeforeTheEngineCreate(t *testing.T) {
 
 func TestDoDeployOneWorkloadRollbackRemovesTheContainerTheEngineKept(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	name := "app_entry_abcdef"
 	engine := &enginemocks.API{}
@@ -576,7 +576,7 @@ func TestDoDeployOneWorkloadRollbackRemovesTheContainerTheEngineKept(t *testing.
 
 func TestDoDeployOneWorkloadKeepsJournalWhenRollbackFails(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	var committed atomic.Bool
 	mwal := &walmocks.WAL{}
 	mwal.On("Log", eventWorkloadCreated, mock.Anything).Return(wal.Commit(func() error {
@@ -605,7 +605,7 @@ func TestDoDeployOneWorkloadKeepsJournalWhenRollbackFails(t *testing.T) {
 
 func TestDoMakeWorkloadOptionsEnvIsolation(t *testing.T) {
 	c := NewTestCluster()
-	ctx := context.Background()
+	ctx := t.Context()
 	node := &types.Node{NodeMeta: types.NodeMeta{Name: "n1"}}
 	opts := &types.DeployOptions{
 		Name:       "app",
@@ -633,7 +633,7 @@ func TestDoMakeWorkloadOptionsEnvIsolation(t *testing.T) {
 	assert.Equal(t, []string{"A=1", "B=2"}, opts.Env)
 }
 
-func newCreateWorkloadCluster(_ *testing.T, processingErrors ...error) (*Calcium, []*types.Node) {
+func newCreateWorkloadCluster(t *testing.T, processingErrors ...error) (*Calcium, []*types.Node) {
 	c := NewTestCluster()
 
 	engine := &enginemocks.API{}
@@ -664,7 +664,7 @@ func newCreateWorkloadCluster(_ *testing.T, processingErrors ...error) (*Calcium
 	store.On("DeleteProcessing", mock.Anything, mock.Anything, mock.Anything).Return(deleteProcessingErr)
 
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
+	lock.On("Lock", mock.Anything).Return(t.Context(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 
