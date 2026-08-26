@@ -143,8 +143,9 @@ func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw any) error {
 
 func (h *CreateWorkloadHandler) storedWorkloadID(ctx context.Context, wrk *types.Workload) (string, error) {
 	if wrk.ID != "" {
-		if _, err := h.calcium.GetWorkload(ctx, wrk.ID); err != nil {
-			return "", nil
+		workload, err := getWorkloadIfExists(ctx, h.calcium, wrk.ID)
+		if err != nil || workload == nil {
+			return "", err
 		}
 		return wrk.ID, nil
 	}
