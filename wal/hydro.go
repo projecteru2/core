@@ -183,13 +183,13 @@ func (h *Hydro) handler(eventyp string) (EventHandler, bool) {
 }
 
 func (h *Hydro) lastSeq(ctx context.Context) (uint64, error) {
-	events, err := h.store.GetPrefix(ctx, fmt.Sprintf(addressPrefix, h.address), 0)
+	keys, err := h.store.ListPrefix(ctx, fmt.Sprintf(addressPrefix, h.address))
 	if err != nil {
 		return 0, err
 	}
 
 	var last uint64
-	for key := range events {
+	for _, key := range keys {
 		seq, err := strconv.ParseUint(utils.Tail(key), 16, 64)
 		if err != nil {
 			continue

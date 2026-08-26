@@ -27,18 +27,17 @@ type NodeStatusWatcher struct {
 }
 
 func (n *NodeStatusWatcher) run(ctx context.Context) {
-	for {
+	for ctx.Err() == nil {
+		n.withActiveLock(ctx, func(ctx context.Context) {
+			go n.replayDeadJournals(ctx)
+			if err := n.monitor(ctx); err != nil {
+				log.WithFunc("selfmon.run").WithField("ID", n.ID).Error(ctx, err, "stops watching node status")
+			}
+		})
 		select {
 		case <-ctx.Done():
 			return
-		default:
-			n.withActiveLock(ctx, func(ctx context.Context) {
-				go n.replayDeadJournals(ctx)
-				if err := n.monitor(ctx); err != nil {
-					log.WithFunc("selfmon.run").WithField("ID", n.ID).Error(ctx, err, "stops watching node status")
-				}
-			})
-			time.Sleep(n.config.ConnectionTimeout)
+		case <-time.After(n.config.ConnectionTimeout):
 		}
 	}
 }
@@ -67,26 +66,27 @@ func (n *NodeStatusWatcher) withActiveLock(parentCtx context.Context, f func(ctx
 		default:
 		}
 
-		if ne, un, err := n.store.StartEphemeral(ctx, ActiveKey, n.config.HAKeepaliveInterval); err != nil {
-			if errors.Is(err, context.Canceled) {
-				logger.Info(ctx, "context canceled")
-				return
-			} else if !errors.Is(err, types.ErrKeyExists) {
-				logger.Error(ctx, err, "failed to register")
-				time.Sleep(time.Second)
-				continue
-			}
-			if retryCounter == 0 {
-				logger.Warn(ctx, "failed to register, there has been another active node status watcher")
-			}
-			retryCounter = (retryCounter + 1) % 60
-			time.Sleep(time.Second)
-		} else {
+		ne, un, err := n.store.StartEphemeral(ctx, ActiveKey, n.config.HAKeepaliveInterval)
+		if err == nil {
 			logger.Info(ctx, "node status watcher has been active")
 			expiry = ne
 			unregister = un
 			break
 		}
+		if errors.Is(err, context.Canceled) {
+			logger.Info(ctx, "context canceled")
+			return
+		}
+		if !errors.Is(err, types.ErrKeyExists) {
+			logger.Error(ctx, err, "failed to register")
+			time.Sleep(time.Second)
+			continue
+		}
+		if retryCounter == 0 {
+			logger.Warn(ctx, "failed to register, there has been another active node status watcher")
+		}
+		retryCounter = (retryCounter + 1) % 60
+		time.Sleep(time.Second)
 	}
 
 	go func() {
@@ -130,12 +130,7 @@ func (n *NodeStatusWatcher) initNodeStatus(ctx context.Context) {
 	go func() {
 		defer close(nodes)
 		utils.WithTimeout(ctx, n.config.GlobalTimeout, func(ctx context.Context) {
-			ch, err := n.cluster.ListPodNodes(ctx, &types.ListNodesOptions{
-				Podname:  "",
-				Labels:   nil,
-				All:      true,
-				CallInfo: false,
-			})
+			ch, err := n.cluster.ListPodNodes(ctx, &types.ListNodesOptions{All: true})
 			if err != nil {
 				logger.Error(ctx, err, "get pod nodes failed")
 				return

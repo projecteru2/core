@@ -31,11 +31,14 @@ type GitScm struct {
 // NewGitScm builds a GitScm from config.
 func NewGitScm(config types.GitConfig, authHeaders map[string]string) (*GitScm, error) {
 	b, err := os.ReadFile(config.PrivateKey)
+	if err != nil {
+		return nil, err
+	}
 	return &GitScm{
 		Config:      config,
 		AuthHeaders: authHeaders,
 		keyBytes:    b,
-	}, err
+	}, nil
 }
 
 func (g *GitScm) SourceCode(ctx context.Context, repository, path, revision string, submodule bool) error {

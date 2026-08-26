@@ -18,12 +18,11 @@ func DrainedPlan(_ context.Context, infos []Info, need, total, _ int) (map[strin
 
 	deploy := map[string]int{}
 
-	infosCopy := slices.Clone(infos)
-	slices.SortFunc(infosCopy, func(a, b Info) int {
+	slices.SortFunc(infos, func(a, b Info) int {
 		return cmp.Or(cmp.Compare(a.Capacity, b.Capacity), cmp.Compare(b.Usage, a.Usage))
 	})
 
-	for _, info := range infosCopy {
+	for _, info := range infos {
 		deploy[info.Nodename] = min(need, info.Capacity)
 		need -= deploy[info.Nodename]
 		if need == 0 {

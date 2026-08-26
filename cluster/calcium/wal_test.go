@@ -435,4 +435,15 @@ func mockWALStore(store *storemocks.Store) {
 		}
 		return logged, nil
 	}).Maybe()
+	store.On("ListPrefix", mock.Anything, mock.Anything).Return(func(_ context.Context, prefix string) ([]string, error) {
+		mutex.Lock()
+		defer mutex.Unlock()
+		keys := []string{}
+		for key := range data {
+			if strings.HasPrefix(key, prefix) {
+				keys = append(keys, key)
+			}
+		}
+		return keys, nil
+	}).Maybe()
 }

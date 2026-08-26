@@ -3,6 +3,7 @@ package metrics
 import (
 	"context"
 	"net/http"
+	"sync"
 
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/log"
@@ -22,15 +23,14 @@ func (m *Metrics) ResourceMiddleware(cluster cluster.Cluster) func(http.Handler)
 				h.ServeHTTP(w, r)
 				return
 			}
+			wg := &sync.WaitGroup{}
 			for node := range nodes {
-				m.SendPodNodeStatus(ctx, node)
-				metrics, err := m.rmgr.GetNodeMetrics(ctx, node)
-				if err != nil {
-					logger.Error(ctx, err, "failed to get node metrics")
-					continue
-				}
-				m.SendMetrics(ctx, metrics...)
+				wg.Go(func() {
+					m.SendPodNodeStatus(ctx, node)
+					m.SendNodeMetrics(ctx, node)
+				})
 			}
+			wg.Wait()
 
 			h.ServeHTTP(w, r)
 		})
