@@ -38,15 +38,6 @@ func (r RawParams) StringSlice(key string) []string {
 	return sliceHelper[string](r, key)
 }
 
-func (r RawParams) OneOfStringSlice(keys ...string) []string {
-	for _, key := range keys {
-		if res := r.StringSlice(key); len(res) > 0 {
-			return res
-		}
-	}
-	return nil
-}
-
 func (r RawParams) Bool(key string) bool {
 	b, ok := r[key].(bool)
 	return r.IsSet(key) && (!ok || b)

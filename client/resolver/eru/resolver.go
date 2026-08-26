@@ -15,7 +15,7 @@ import (
 type Resolver struct {
 	cc        resolver.ClientConn
 	cancel    context.CancelFunc
-	discovery servicediscovery.ServiceDiscovery
+	discovery *servicediscovery.EruServiceDiscovery
 }
 
 func New(cc resolver.ClientConn, endpoint, authority string) *Resolver {
