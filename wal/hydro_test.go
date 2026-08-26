@@ -324,7 +324,7 @@ func newTestStore(t *testing.T) *etcdv3.Mercury {
 
 	config := types.Config{MaxConcurrency: 10, LockTimeout: 10 * time.Second, GlobalTimeout: 30 * time.Second}
 	config.Etcd = types.EtcdConfig{Machines: []string{"127.0.0.1:2379"}, Prefix: "/eru-test", LockPrefix: "/eru-test-lock"}
-	store, err := etcdv3.New(config, cluster)
+	store, err := etcdv3.New(t.Context(), config, cluster)
 	require.NoError(t, err)
 	return store
 }

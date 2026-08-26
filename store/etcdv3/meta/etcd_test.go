@@ -421,7 +421,7 @@ func NewEmbeddedETCD(t *testing.T) *ETCD {
 	cluster, err := embedded.New(t.TempDir())
 	require.NoError(t, err)
 	t.Cleanup(cluster.Close)
-	e, err := NewETCD(config, cluster)
+	e, err := NewETCD(t.Context(), config, cluster)
 	require.NoError(t, err)
 	return e
 }

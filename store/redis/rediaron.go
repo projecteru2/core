@@ -3,6 +3,7 @@ package redis
 import (
 	"context"
 	"fmt"
+	"iter"
 	"maps"
 	"slices"
 	"strings"
@@ -56,7 +57,7 @@ func New(config types.Config) (*Rediaron, error) {
 
 func newRediaron(cli *redis.Client, config types.Config, pool *ants.PoolWithFunc) *Rediaron {
 	r := &Rediaron{cli: cli}
-	r.Store = common.New(&redisKV{r: r}, config, pool)
+	r.Store = common.New(r, config, pool)
 	return r
 }
 
@@ -121,6 +122,42 @@ func (r *Rediaron) GetOne(ctx context.Context, key string) (string, error) {
 	return value, err
 }
 
+func (r *Rediaron) GetPrefix(ctx context.Context, prefix string, limit int64) (map[string]string, error) {
+	keys, err := r.scanKeys(ctx, prefix+"*", limit)
+	if err != nil {
+		return nil, err
+	}
+	return r.GetMulti(ctx, keys)
+}
+
+func (r *Rediaron) ListPrefix(ctx context.Context, prefix string) ([]string, error) {
+	return r.scanKeys(ctx, prefix+"*", 0)
+}
+
+func (r *Rediaron) NotFound(err error) bool {
+	return isRedisNoKeyError(err)
+}
+
+func (r *Rediaron) Watch(ctx context.Context, prefix string) iter.Seq[common.Event] {
+	messages := r.KNotify(ctx, prefix+"*")
+	return func(yield func(common.Event) bool) {
+		for message := range messages {
+			event := common.Event{Key: message.Key}
+			switch message.Action {
+			case actionSet, actionExpire:
+				event.Type = common.EventPut
+			case actionDel:
+				event.Type = common.EventDelete
+			case actionExpired:
+				event.Type = common.EventExpire
+			}
+			if !yield(event) {
+				return
+			}
+		}
+	}
+}
+
 func (r *Rediaron) GetMulti(ctx context.Context, keys []string) (map[string]string, error) {
 	data := make(map[string]string, len(keys))
 	if len(keys) == 0 {
@@ -140,7 +177,7 @@ func (r *Rediaron) GetMulti(ctx context.Context, keys []string) (map[string]stri
 	return data, nil
 }
 
-func (r *Rediaron) BatchUpdate(ctx context.Context, data map[string]string) error {
+func (r *Rediaron) Update(ctx context.Context, data map[string]string) error {
 	keys := slices.Collect(maps.Keys(data))
 
 	// the existence check is not part of the transaction below
@@ -152,10 +189,10 @@ func (r *Rediaron) BatchUpdate(ctx context.Context, data map[string]string) erro
 		return ErrKeyNotExists
 	}
 
-	return r.BatchPut(ctx, data)
+	return r.Put(ctx, data)
 }
 
-func (r *Rediaron) BatchCreate(ctx context.Context, data map[string]string) error {
+func (r *Rediaron) Create(ctx context.Context, data map[string]string) error {
 	create := func(pipe redis.Pipeliner) error {
 		for key, value := range data {
 			pipe.SetNX(ctx, key, value, 0)
@@ -176,7 +213,7 @@ func (r *Rediaron) BatchCreate(ctx context.Context, data map[string]string) erro
 	return nil
 }
 
-func (r *Rediaron) BatchPut(ctx context.Context, data map[string]string) error {
+func (r *Rediaron) Put(ctx context.Context, data map[string]string) error {
 	replace := func(pipe redis.Pipeliner) error {
 		for key, value := range data {
 			pipe.Set(ctx, key, value, 0)
@@ -188,7 +225,7 @@ func (r *Rediaron) BatchPut(ctx context.Context, data map[string]string) error {
 	return err
 }
 
-func (r *Rediaron) BatchCreateAndDecr(ctx context.Context, data map[string]string, decrKey string) (err error) {
+func (r *Rediaron) CreateAndDecr(ctx context.Context, data map[string]string, decrKey string) (err error) {
 	batchCreateAndDecr := func(pipe redis.Pipeliner) error {
 		pipe.Decr(ctx, decrKey)
 		for key, value := range data {
@@ -200,7 +237,7 @@ func (r *Rediaron) BatchCreateAndDecr(ctx context.Context, data map[string]strin
 	return err
 }
 
-func (r *Rediaron) BatchDelete(ctx context.Context, keys []string) error {
+func (r *Rediaron) Delete(ctx context.Context, keys []string) error {
 	if len(keys) == 0 {
 		return nil
 	}

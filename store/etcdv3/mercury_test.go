@@ -23,7 +23,7 @@ func NewMercury(t *testing.T) *Mercury {
 	cluster, err := embedded.New(t.TempDir())
 	assert.NoError(t, err)
 	t.Cleanup(cluster.Close)
-	m, err := New(config, cluster)
+	m, err := New(t.Context(), config, cluster)
 	assert.NoError(t, err)
 	return m
 }

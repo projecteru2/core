@@ -240,9 +240,9 @@ func (s *RediaronTestSuite) TestWorkloadStatusStream() {
 	s.NoError(err)
 	_, err = m.AddPod(ctx, podname, "CPU")
 	s.NoError(err)
-	err = m.BatchCreate(ctx, map[string]string{fmt.Sprintf(common.NodeInfoKey, nodename): string(nodeBytes)})
+	err = m.Create(ctx, map[string]string{fmt.Sprintf(common.NodeInfoKey, nodename): string(nodeBytes)})
 	s.NoError(err)
-	err = m.BatchCreate(ctx, map[string]string{fmt.Sprintf(common.NodePodKey, podname, nodename): string(nodeBytes)})
+	err = m.Create(ctx, map[string]string{fmt.Sprintf(common.NodePodKey, podname, nodename): string(nodeBytes)})
 	s.NoError(err)
 	s.NoError(m.AddWorkload(ctx, workload, nil))
 	workload.StatusMeta = &types.StatusMeta{

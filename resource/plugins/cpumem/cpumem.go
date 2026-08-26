@@ -29,7 +29,7 @@ func NewPlugin(ctx context.Context, config coretypes.Config, embeddedETCD *embed
 	}
 	var err error
 	plugin := &Plugin{name: name, config: config}
-	if plugin.store, err = meta.NewETCD(config.Etcd, embeddedETCD); err != nil {
+	if plugin.store, err = meta.NewETCD(ctx, config.Etcd, embeddedETCD); err != nil {
 		log.WithFunc("resource.cpumem.NewPlugin").Error(ctx, err)
 		return nil, err
 	}

@@ -54,7 +54,7 @@ type ETCD struct {
 	config types.EtcdConfig
 }
 
-func NewETCD(config types.EtcdConfig, embeddedETCD *embedded.Cluster) (*ETCD, error) {
+func NewETCD(ctx context.Context, config types.EtcdConfig, embeddedETCD *embedded.Cluster) (*ETCD, error) {
 	var cliv3 *clientv3.Client
 	var err error
 	var tlsConfig *tls.Config
@@ -62,7 +62,7 @@ func NewETCD(config types.EtcdConfig, embeddedETCD *embedded.Cluster) (*ETCD, er
 	switch {
 	case embeddedETCD != nil:
 		cliv3 = embeddedETCD.Client(config.Prefix)
-		log.WithFunc("store.etcdv3.meta.NewETCD").Info(context.Background(), "use embedded cluster")
+		log.WithFunc("store.etcdv3.meta.NewETCD").Info(ctx, "use embedded cluster")
 	default:
 		if config.Ca != "" && config.Key != "" && config.Cert != "" {
 			tlsInfo := transport.TLSInfo{
