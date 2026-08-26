@@ -223,6 +223,14 @@ func TestSendLargeFileReportsItsOwnStatusCode(t *testing.T) {
 	assert.Equal(t, SendLargeFile, grpcstatus.Code(err))
 }
 
+func TestSendRejectsInvalidOptions(t *testing.T) {
+	v := newVibranium()
+
+	err := v.Send(&pb.SendOptions{}, &sendWorkloadStream{})
+	assert.Error(t, err)
+	assert.Equal(t, Send, grpcstatus.Code(err))
+}
+
 func TestReallocResourceStatusHidesStackTrace(t *testing.T) {
 	v := newVibranium()
 
@@ -245,3 +253,11 @@ type removeWorkloadStream struct {
 func (s *removeWorkloadStream) Send(*pb.RemoveWorkloadMessage) error { return nil }
 
 func (s *removeWorkloadStream) Context() context.Context { return context.Background() }
+
+type sendWorkloadStream struct {
+	grpc.ServerStream
+}
+
+func (s *sendWorkloadStream) Send(*pb.SendMessage) error { return nil }
+
+func (s *sendWorkloadStream) Context() context.Context { return context.Background() }

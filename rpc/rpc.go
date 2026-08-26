@@ -525,6 +525,9 @@ func (v *Vibranium) Send(opts *pb.SendOptions, stream pb.CoreRPC_SendServer) err
 	defer task.done()
 
 	sendOpts := toCoreSendOptions(opts)
+	if err := sendOpts.Validate(); err != nil {
+		return grpcstatus.Error(Send, err.Error())
+	}
 	for _, file := range sendOpts.Files {
 		dc := make(chan *types.SendLargeFileOptions)
 		ch := v.cluster.SendLargeFile(task.context, dc)

@@ -607,19 +607,26 @@ func toSendLargeFileOptions(opts *pb.FileOptions) (*types.SendLargeFileOptions, 
 
 func toSendLargeFileChunks(file types.LinuxFile, ids []string) []*types.SendLargeFileOptions {
 	maxChunkSize := types.SendLargeFileChunkSize
+	if len(file.Content) == 0 {
+		return []*types.SendLargeFileOptions{toSendLargeFileChunk(file, ids, nil)}
+	}
 	ret := make([]*types.SendLargeFileOptions, 0, (len(file.Content)+maxChunkSize-1)/maxChunkSize)
 	for chunk := range slices.Chunk(file.Content, maxChunkSize) {
-		ret = append(ret, &types.SendLargeFileOptions{
-			IDs:   ids,
-			Dst:   file.Filename,
-			Size:  int64(len(file.Content)),
-			Mode:  file.Mode,
-			UID:   file.UID,
-			GID:   file.GID,
-			Chunk: chunk,
-		})
+		ret = append(ret, toSendLargeFileChunk(file, ids, chunk))
 	}
 	return ret
+}
+
+func toSendLargeFileChunk(file types.LinuxFile, ids []string, chunk []byte) *types.SendLargeFileOptions {
+	return &types.SendLargeFileOptions{
+		IDs:   ids,
+		Dst:   file.Filename,
+		Size:  int64(len(file.Content)),
+		Mode:  file.Mode,
+		UID:   file.UID,
+		GID:   file.GID,
+		Chunk: chunk,
+	}
 }
 
 func toCoreRawEngineOptions(d *pb.RawEngineOptions) (*types.RawEngineOptions, error) {
