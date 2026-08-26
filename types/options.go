@@ -207,6 +207,7 @@ type SetNodeOptions struct {
 	Delta         bool
 	Labels        map[string]string
 	Bypass        TriOptions
+	UpdateTLS     bool
 	Ca            string
 	Cert          string
 	Key           string

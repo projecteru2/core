@@ -1561,6 +1561,7 @@ type SetNodeOptions struct {
 	Delta         bool                   `protobuf:"varint,1008,opt,name=delta,proto3" json:"delta,omitempty"`
 	WorkloadsDown bool                   `protobuf:"varint,1009,opt,name=workloads_down,json=workloadsDown,proto3" json:"workloads_down,omitempty"`
 	Bypass        TriOpt                 `protobuf:"varint,1010,opt,name=bypass,proto3,enum=pb.TriOpt" json:"bypass,omitempty"`
+	UpdateTls     bool                   `protobuf:"varint,1011,opt,name=update_tls,json=updateTls,proto3" json:"update_tls,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1663,6 +1664,13 @@ func (x *SetNodeOptions) GetBypass() TriOpt {
 		return x.Bypass
 	}
 	return TriOpt_KEEP
+}
+
+func (x *SetNodeOptions) GetUpdateTls() bool {
+	if x != nil {
+		return x.UpdateTls
+	}
+	return false
 }
 
 type SetNodeStatusOptions struct {
@@ -5768,7 +5776,7 @@ const file_rpc_gen_core_proto_rawDesc = "" +
 	"\tskip_info\x18\xed\a \x01(\bR\bskipInfo\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xdb\x03\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xfb\x03\n" +
 	"\x0eSetNodeOptions\x12\x1b\n" +
 	"\bnodename\x18\xe9\a \x01(\tR\bnodename\x12\x1b\n" +
 	"\bendpoint\x18\xea\a \x01(\tR\bendpoint\x12\x0f\n" +
@@ -5780,7 +5788,9 @@ const file_rpc_gen_core_proto_rawDesc = "" +
 	"\x05delta\x18\xf0\a \x01(\bR\x05delta\x12&\n" +
 	"\x0eworkloads_down\x18\xf1\a \x01(\bR\rworkloadsDown\x12#\n" +
 	"\x06bypass\x18\xf2\a \x01(\x0e2\n" +
-	".pb.TriOptR\x06bypass\x1a9\n" +
+	".pb.TriOptR\x06bypass\x12\x1e\n" +
+	"\n" +
+	"update_tls\x18\xf3\a \x01(\bR\tupdateTls\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a<\n" +

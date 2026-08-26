@@ -205,6 +205,7 @@ message SetNodeOptions {
   bool delta = 1008;
   bool workloads_down = 1009;
   TriOpt bypass = 1010;
+  bool update_tls = 1011;
 }
 
 message SetNodeStatusOptions {

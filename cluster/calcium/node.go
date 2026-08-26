@@ -201,9 +201,11 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 		if opts.Endpoint != "" {
 			n.Endpoint = opts.Endpoint
 		}
-		n.Ca = opts.Ca
-		n.Cert = opts.Cert
-		n.Key = opts.Key
+		if opts.UpdateTLS {
+			n.Ca = opts.Ca
+			n.Cert = opts.Cert
+			n.Key = opts.Key
+		}
 		if len(opts.Labels) != 0 {
 			n.Labels = opts.Labels
 		}
