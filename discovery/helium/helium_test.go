@@ -2,6 +2,7 @@ package helium
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -62,21 +63,18 @@ func TestPanic(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	wg := &sync.WaitGroup{}
 	for range 1000 {
-		go func() {
+		wg.Go(func() {
 			ID, _ := service.Subscribe(ctx)
-			time.Sleep(time.Second)
 			service.Unsubscribe(ID)
-		}()
+		})
 	}
 
-	go func() {
-		for range 1000 {
-			chAddr <- []string{"hhh", "hhh2"}
-		}
-	}()
-
-	time.Sleep(5 * time.Second)
+	for range 1000 {
+		chAddr <- []string{"hhh", "hhh2"}
+	}
+	wg.Wait()
 }
 
 func TestUnsubscribeAfterWatchClosed(t *testing.T) {

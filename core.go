@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	_ "net/http/pprof" //nolint
+	_ "net/http/pprof" //nolint:gosec
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -67,7 +67,7 @@ func serve(ctx context.Context, _ *cli.Command) error {
 
 	cluster.DisasterRecover(ctx)
 
-	stop := make(chan struct{}, 1)
+	stop := make(chan struct{})
 	vibranium := rpc.New(cluster, config, stop)
 	s, err := net.Listen("tcp", config.Bind)
 	if err != nil {

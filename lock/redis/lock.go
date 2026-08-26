@@ -35,12 +35,11 @@ func New(cli redislock.RedisClient, key string, waitTimeout, lockTTL time.Durati
 		return nil, err
 	}
 
-	locker := redislock.New(cli)
 	return &RedisLock{
 		key:     key,
 		timeout: waitTimeout,
 		ttl:     lockTTL,
-		lc:      locker,
+		lc:      redislock.New(cli),
 	}, nil
 }
 

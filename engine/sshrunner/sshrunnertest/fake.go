@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"net"
+	"slices"
 	"strings"
 	"sync"
 
@@ -32,21 +33,21 @@ type Fake struct {
 func (f *Fake) Lines() []string {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return append([]string(nil), f.lines...)
+	return slices.Clone(f.lines)
 }
 
 // Options returns the stream shape the engine asked each started command for.
 func (f *Fake) Options() []*sshrunner.StartOptions {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return append([]*sshrunner.StartOptions(nil), f.opts...)
+	return slices.Clone(f.opts)
 }
 
 // Contexts returns the context each started command was bound to, which is its lifetime.
 func (f *Fake) Contexts() []context.Context {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return append([]context.Context(nil), f.ctxs...)
+	return slices.Clone(f.ctxs)
 }
 
 func (f *Fake) Run(ctx context.Context, line string, _ io.Reader) (*sshrunner.Result, error) {

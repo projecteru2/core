@@ -49,7 +49,7 @@ func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, re
 }
 
 func (p Plugin) GetNodeResourceInfo(ctx context.Context, nodename string, workloadsResource []plugintypes.WorkloadResource) (*plugintypes.GetNodeResourceInfoResponse, error) {
-	return p.doGetNodeResourceInfo(ctx, nodename, workloadsResource, false)
+	return p.doGetNodeResourceInfo(ctx, nodename, workloadsResource, GetNodeResourceInfoCommand)
 }
 
 func (p Plugin) SetNodeResourceInfo(ctx context.Context, nodename string, capacity, usage plugintypes.NodeResource) (*plugintypes.SetNodeResourceInfoResponse, error) {
@@ -85,17 +85,14 @@ func (p Plugin) GetMostIdleNode(ctx context.Context, nodenames []string) (*plugi
 }
 
 func (p Plugin) FixNodeResource(ctx context.Context, nodename string, workloadsResource []plugintypes.WorkloadResource) (*plugintypes.GetNodeResourceInfoResponse, error) {
-	return p.doGetNodeResourceInfo(ctx, nodename, workloadsResource, true)
+	return p.doGetNodeResourceInfo(ctx, nodename, workloadsResource, FixNodeResourceCommand)
 }
 
-func (p Plugin) doGetNodeResourceInfo(ctx context.Context, nodename string, workloadsResource []plugintypes.WorkloadResource, fix bool) (*plugintypes.GetNodeResourceInfoResponse, error) {
+func (p Plugin) doGetNodeResourceInfo(ctx context.Context, nodename string, workloadsResource []plugintypes.WorkloadResource, command string) (*plugintypes.GetNodeResourceInfoResponse, error) {
 	req := &binarytypes.GetNodeResourceInfoRequest{
 		Nodename:          nodename,
 		WorkloadsResource: workloadsResource,
 	}
 	resp := &plugintypes.GetNodeResourceInfoResponse{}
-	if !fix {
-		return resp, p.call(ctx, GetNodeResourceInfoCommand, req, resp)
-	}
-	return resp, p.call(ctx, FixNodeResourceCommand, req, resp)
+	return resp, p.call(ctx, command, req, resp)
 }
