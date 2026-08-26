@@ -35,6 +35,14 @@ test -f "$durable" || exit 64
 "$bin" vm inspect "$vm"
 `
 
+	refreshScript = `set -e
+durable=$1; record=$2; console=$3; pid=$4
+sed -i -e "s|\"console_socket\":\"[^\"]*\"|\"console_socket\":\"$console\"|" -e "s|\"netns_pid\":[0-9]*|\"netns_pid\":$pid|" "$durable"
+mkdir -p "$(dirname "$record")"
+cp -f "$durable" "$record.tmp"
+mv "$record.tmp" "$record"
+`
+
 	// addressScript retries until cocoon-agent answers, which takes a Windows guest a minute.
 	addressScript = `bin=$1; vm=$2; shift 2
 tries=0
@@ -193,6 +201,13 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, en
 		return nil
 	}
 	return errors.Wrap(coretypes.ErrEngineNotImplemented, "cpu and memory hot-plug wait on cocoon (projecteru2/core#661)")
+}
+
+// refreshRecord rewrites both copies of the meta record for this boot: the console and the VMM pid are new every boot.
+func (e *Engine) refreshRecord(ctx context.Context, ID string, vm *vmRecord) error {
+	argv := sshrunner.Shell(refreshScript, durablePath(e.cocoon.Root, ID), metaPath(ID), vm.console(e.cocoon.RunDir), strconv.Itoa(vm.PID))
+	_, err := e.run(ctx, argv...)
+	return err
 }
 
 func (e *Engine) programAddress(ctx context.Context, ID string, addr *guestAddress) {

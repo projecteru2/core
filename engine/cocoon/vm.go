@@ -13,7 +13,6 @@ const (
 	defaultNetwork  = "default"
 	cloudHypervisor = "cloud-hypervisor"
 	consoleSock     = "console.sock"
-	apiSock         = "api.sock"
 	ipv4Bits        = 32
 )
 
@@ -46,6 +45,7 @@ type vmRecord struct {
 	State       string   `json:"state"`
 	FirstBooted bool     `json:"first_booted"`
 	PID         int      `json:"pid"`
+	ConsolePath string   `json:"console_path"`
 	Config      vmConfig `json:"config"`
 	NICs        []nic    `json:"network_configs"`
 }
@@ -77,6 +77,11 @@ func (v *vmRecord) running() bool {
 // runDir is the VM's dir under cocoon's run dir, named after the backend without its hyphen.
 func (v *vmRecord) runDir(base string) string {
 	return filepath.Join(base, strings.ReplaceAll(cmp.Or(v.Hypervisor, cloudHypervisor), "-", ""), v.ID)
+}
+
+// console is the guest console cocoon resolved at this boot, the serial socket when it reports none.
+func (v *vmRecord) console(base string) string {
+	return cmp.Or(v.ConsolePath, filepath.Join(v.runDir(base), consoleSock))
 }
 
 // address is the guest's CNI address, nil on a DHCP network.

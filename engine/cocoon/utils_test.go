@@ -32,6 +32,27 @@ func TestRunDirIsNamedAfterTheBackend(t *testing.T) {
 	}
 }
 
+func TestConsoleIsTheOneCocoonResolvedAtBoot(t *testing.T) {
+	tests := []struct {
+		name       string
+		hypervisor string
+		reported   string
+		want       string
+	}{
+		{"the pty of a direct-boot guest", "cloud-hypervisor", testPty, testPty},
+		{"a cocoon that reports none", "cloud-hypervisor", "", testRunDir + "/cloudhypervisor/" + testVMID + "/console.sock"},
+		{"firecracker", "firecracker", "", testRunDir + "/firecracker/" + testVMID + "/console.sock"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vm := &vmRecord{ID: testVMID, Hypervisor: tt.hypervisor, ConsolePath: tt.reported}
+			if got := vm.console(testRunDir); got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestNetworksAreKeyedByTheConflistCocoonReports(t *testing.T) {
 	tests := []struct {
 		name    string

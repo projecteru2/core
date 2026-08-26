@@ -1,11 +1,6 @@
 package cocoon
 
 import (
-	"bufio"
-	"io"
-	"net"
-	"net/http"
-	"strings"
 	"testing"
 
 	"github.com/projecteru2/core/engine/sshrunner"
@@ -22,6 +17,7 @@ const (
 	testImage  = "ghcr.io/cocoonstack/cocoon/ubuntu:24.04"
 	testUser   = "eru"
 	testIDLen  = 32
+	testPty    = "/dev/pts/3"
 
 	storedRecord = `{"id":"w1","kind":"vm","name":"app_web_xyz","user":"` + testUser + `","nodename":"node1"}`
 
@@ -33,6 +29,8 @@ const (
 		`"network_configs":[{"tap":"tap01ARZ3ND-0","network":{"ip":"10.22.0.5","gateway":"10.22.0.1","prefix":16}}]}`
 	runningVM = `{"id":"` + testVMID + `","hypervisor":"cloud-hypervisor","state":"running","first_booted":true,"pid":4242,"config":{"image":"` + testImage + `"},` +
 		`"network_configs":[{"tap":"tap01ARZ3ND-0","network":{"ip":"10.22.0.5","gateway":"10.22.0.1","prefix":16}}]}`
+	ptyVM = `{"id":"` + testVMID + `","hypervisor":"cloud-hypervisor","state":"running","first_booted":true,"pid":4242,` +
+		`"console_path":"` + testPty + `","config":{"image":"` + testImage + `"}}`
 	stoppedVM       = `{"id":"` + testVMID + `","state":"stopped","first_booted":true,"config":{"image":"` + testImage + `"}}`
 	bootedWindowsVM = `{"id":"` + testVMID + `","hypervisor":"cloud-hypervisor","state":"running","first_booted":true,"pid":4242,` +
 		`"config":{"image":"win11","windows":true},` +
@@ -51,25 +49,4 @@ func testEngine(t *testing.T, runner *sshrunnertest.Fake) *Engine {
 
 func runningRecord(string) *sshrunner.Result {
 	return &sshrunner.Result{Stdout: storedRecord + "\n" + runningVM}
-}
-
-func chAPI(t *testing.T, console string, dialed *string) func(network, addr string) (net.Conn, error) {
-	t.Helper()
-	return func(_, addr string) (net.Conn, error) {
-		*dialed = addr
-		client, server := net.Pipe()
-		go func() {
-			defer server.Close()
-			if _, err := http.ReadRequest(bufio.NewReader(server)); err != nil {
-				return
-			}
-			body := `{"config":{"console":{"mode":"Pty","file":"` + console + `"}}}`
-			if console == "" {
-				body = `{"config":{"console":{"mode":"Off"}}}`
-			}
-			resp := &http.Response{StatusCode: http.StatusOK, ProtoMajor: 1, ProtoMinor: 1, Body: io.NopCloser(strings.NewReader(body)), ContentLength: int64(len(body))}
-			_ = resp.Write(server)
-		}()
-		return client, nil
-	}
 }

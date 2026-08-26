@@ -3,7 +3,6 @@ package cocoon
 import (
 	"context"
 	"encoding/json"
-	"path/filepath"
 	"strings"
 
 	"github.com/projecteru2/core/cluster"
@@ -55,7 +54,7 @@ func newMeta(ctx context.Context, ID string, opts *enginetypes.VirtualizationCre
 		Networks:   vm.networks(),
 		Cgroup:     scopePath(cocoon.CgroupParent, vm.ID),
 		Iface:      vm.tap(),
-		Log:        logMeta{ConsoleSocket: filepath.Join(vm.runDir(cocoon.RunDir), consoleSock)},
+		Log:        logMeta{ConsoleSocket: vm.console(cocoon.RunDir)},
 	}
 	if label.HealthCheck != nil {
 		record.HealthCheck = &healthCheck{

@@ -243,8 +243,8 @@ and drives the node's [cocoon](https://github.com/cocoonstack/cocoon) CLI, `jour
 root), `cocoon.root` holds the durable copy of each workload record, and `cocoon.run_dir` and
 `cocoon.cgroup_parent` mirror cocoon's own `run_dir` and `cgroup_parent`, which is where the engine
 finds a guest's console and cgroup scope. Every verb is one SSH session and one round trip; create is
-two, and is dominated by cocoon's own work; start and resume add a socket forward for `vm.info` and
-a second round trip for the meta rewrite.
+two, and is dominated by cocoon's own work; start and resume add a second round trip for the meta
+rewrite.
 
 The VM's cocoon name is the workload id — a 32-hex id core generates, exactly as for a process
 workload — so every later verb runs `cocoon vm <verb> <id>` without a lookup, and eru-agent keys
@@ -253,7 +253,7 @@ the cocoon daemon's events on it. The eru name stays in the meta file and in cor
 | `engine.API` | cocoon |
 | --- | --- |
 | `VirtualizationCreate` | `vm create --output json --name <id> [--cpu N] [--memory B] [--storage B] [--data-disk …] [--network <name>] [--windows \| --user U] <image>` — no boot; then the meta record is written. A failure after the create removes the VM again |
-| `VirtualizationStart` | `vm inspect`, `vm start` and `vm inspect` again in one script; then this boot's console is read from Cloud Hypervisor's `vm.info` over a forward of the VM's `api.sock`, and both copies of the meta record are rewritten with it and with the VMM pid. A `vm.info` core cannot reach keeps the recorded socket path, warns once per boot and starts the guest anyway. A Windows guest on its first boot gets its address programmed through `vm exec` in the background, after the start has already returned |
+| `VirtualizationStart` | `vm inspect`, `vm start` and `vm inspect` again in one script; the second inspect reports this boot's `console_path`, and both copies of the meta record are rewritten with it and with the VMM pid. An inspect that reports no console keeps the serial socket path. A Windows guest on its first boot gets its address programmed through `vm exec` in the background, after the start has already returned |
 | `VirtualizationStop` | `vm stop`, `--force` for a forced stop, `--timeout` when a grace period is given; a workload with no record on the node is `ErrWorkloadNotExists`, as for the other verbs. cocoon's stop is idempotent, so stopping a created or already-stopped guest succeeds |
 | `VirtualizationRemove` | `vm rm [--force]`, then the hibernate snapshot and both copies of the meta record; a running guest is refused unless forced |
 | `VirtualizationSuspend` / `Resume` | `vm hibernate --name eru-<id>` / `vm restore --restore-mode copy` followed by `snapshot rm` and `vm inspect`, then the record rewrite as at start. The restore copies, so the delete is best-effort: a snapshot that will not go leaves garbage on the node rather than aborting a resume whose guest is already running |
@@ -344,17 +344,15 @@ reads back, `cgroup: /sys/fs/cgroup/<cocoon.cgroup_parent>/vm-<cocoon vm id>.sco
 `netns_pid`: the VMM's pid (cocoon's `pid`; the tap lives in the VM's netns, so eru-agent reads it
 from `/proc/<pid>/net/dev`), `iface`: the first tap cocoon created, and `log: {"console_socket": …}` — the guest console of the
 current boot, which eru-agent reads and forwards into journald (`cocoon vm logs` shows only the
-VMM's own log). A direct-boot OCI image gets a Cloud Hypervisor pty, `/dev/pts/N`, new on every
-boot; a UEFI cloud image gets the serial socket
-`<cocoon.run_dir>/<cloudhypervisor|firecracker>/<cocoon vm id>/console.sock`, which is also what
-create records before the first boot. The field keeps its name for a pty; start and resume rewrite
-it and the pid, and eru-agent re-reads the file when it reconnects.
+VMM's own log). `vm inspect` resolves it per boot and reports it as `console_path`: a Cloud
+Hypervisor pty, `/dev/pts/N`, for a direct-boot OCI image, new on every boot; the serial socket
+`<cocoon.run_dir>/<cloudhypervisor|firecracker>/<cocoon vm id>/console.sock` for a UEFI cloud image
+and for Firecracker, which is also what create records before the first boot. The field keeps its
+name for a pty; start and resume rewrite it and the pid from the post-boot inspect, and eru-agent
+re-reads the file when it reconnects.
 
-Cloud Hypervisor creates `api.sock` with mode 0700 and root ownership, so reading the pty of a
-direct-boot image needs a login that owns it — root, or the login `cocoon.binary` runs as — until
-[cocoonstack/cocoon#201](https://github.com/cocoonstack/cocoon/issues/201) relaxes the mode. Every
-other login gets `open failed` from sshd, and the record keeps the serial socket path; the guest
-still boots, and only its console logs are missing.
+A VM booted by an older cocoon reports no `console_path`, so the record keeps the serial socket
+until its next start; in between, only a direct-boot guest's console logs are missing.
 
 ### Node prerequisites
 

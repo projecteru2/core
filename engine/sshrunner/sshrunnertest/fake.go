@@ -14,14 +14,13 @@ import (
 
 var _ sshrunner.Runner = (*Fake)(nil)
 
-// Fake records the command lines it is given and answers them from Respond; Dialer scripts socket forwards.
+// Fake records the command lines it is given and answers them from Respond.
 type Fake struct {
 	Respond func(line string) *sshrunner.Result
 	// Started hands one session to each started command in order.
 	Started []*Session
 	// StartErr refuses every command started past the ones Started scripts.
 	StartErr error
-	Dialer   func(network, addr string) (net.Conn, error)
 
 	mu    sync.Mutex
 	lines []string
@@ -83,10 +82,7 @@ func (f *Fake) Files(context.Context) (sshrunner.Files, error) {
 	return nil, coretypes.ErrEngineNotImplemented
 }
 
-func (f *Fake) Dial(_ context.Context, network, addr string) (net.Conn, error) {
-	if f.Dialer != nil {
-		return f.Dialer(network, addr)
-	}
+func (f *Fake) Dial(context.Context, string, string) (net.Conn, error) {
 	return nil, coretypes.ErrEngineNotImplemented
 }
 
