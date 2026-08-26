@@ -143,6 +143,7 @@ func toCoreSetNodeOptions(b *pb.SetNodeOptions) (*types.SetNodeOptions, error) {
 	return &types.SetNodeOptions{
 		Nodename:      b.Nodename,
 		Endpoint:      b.Endpoint,
+		UpdateTLS:     b.UpdateTls,
 		Ca:            b.Ca,
 		Cert:          b.Cert,
 		Key:           b.Key,
