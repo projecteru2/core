@@ -16,10 +16,8 @@ import (
 )
 
 func TestVirtualizationStartBootsALinuxGuestAndRecordsItsConsole(t *testing.T) {
-	dialed := ""
 	runner := &sshrunnertest.Fake{
-		Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: linuxVM + "\n" + runningVM} },
-		Dialer:  chAPI(t, "/dev/pts/3", &dialed),
+		Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: linuxVM + "\n" + ptyVM} },
 	}
 	e := testEngine(t, runner)
 
@@ -28,7 +26,7 @@ func TestVirtualizationStartBootsALinuxGuestAndRecordsItsConsole(t *testing.T) {
 	}
 	want := []string{
 		sshrunner.Quote(sshrunner.Shell(startScript, testBinary, "w1", testRoot+"/w1.json")),
-		sshrunner.Quote(sshrunner.Shell(refreshScript, testRoot+"/w1.json", "/run/eru/workloads/w1.json", "/dev/pts/3", "4242")),
+		sshrunner.Quote(sshrunner.Shell(refreshScript, testRoot+"/w1.json", "/run/eru/workloads/w1.json", testPty, "4242")),
 	}
 	if !slices.Equal(runner.Lines(), want) {
 		t.Errorf("got %q, want %q", runner.Lines(), want)
@@ -67,12 +65,10 @@ func TestVirtualizationStartProgramsAWindowsGuestAfterItReturns(t *testing.T) {
 }
 
 func TestVirtualizationStartLeavesABootedWindowsGuestAlone(t *testing.T) {
-	dialed := ""
 	runner := &sshrunnertest.Fake{
 		Respond: func(string) *sshrunner.Result {
 			return &sshrunner.Result{Stdout: bootedWindowsVM + "\n" + bootedWindowsVM}
 		},
-		Dialer: chAPI(t, "", &dialed),
 	}
 	e := testEngine(t, runner)
 
@@ -84,19 +80,19 @@ func TestVirtualizationStartLeavesABootedWindowsGuestAlone(t *testing.T) {
 	}
 }
 
-func TestVirtualizationStartSurvivesAConsoleQueryItCannotRun(t *testing.T) {
+func TestVirtualizationStartRecordsTheSerialSocketWhenCocoonReportsNoConsole(t *testing.T) {
 	runner := &sshrunnertest.Fake{
 		Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: linuxVM + "\n" + runningVM} },
 	}
 	e := testEngine(t, runner)
 
 	if err := e.VirtualizationStart(t.Context(), "w1"); err != nil {
-		t.Fatalf("a console query core cannot run must not fail the boot: %v", err)
+		t.Fatalf("a cocoon too old to report the console must not fail the boot: %v", err)
 	}
 	want := sshrunner.Quote(sshrunner.Shell(refreshScript, testRoot+"/w1.json", "/run/eru/workloads/w1.json",
 		testRunDir+"/cloudhypervisor/"+testVMID+"/console.sock", "4242"))
 	if lines := runner.Lines(); len(lines) != 2 || lines[1] != want {
-		t.Errorf("got %q, want the recorded socket path %q", lines, want)
+		t.Errorf("got %q, want the serial socket path %q", lines, want)
 	}
 }
 
@@ -146,10 +142,8 @@ func TestVirtualizationStopReportsAMissingWorkload(t *testing.T) {
 }
 
 func TestVirtualizationLifecycleCommandSequence(t *testing.T) {
-	dialed := ""
 	runner := &sshrunnertest.Fake{
-		Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: runningVM} },
-		Dialer:  chAPI(t, "/dev/pts/5", &dialed),
+		Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: ptyVM} },
 	}
 	e := testEngine(t, runner)
 	ctx := t.Context()
@@ -167,7 +161,7 @@ func TestVirtualizationLifecycleCommandSequence(t *testing.T) {
 	want := []string{
 		sshrunner.Quote(sshrunner.Shell(suspendScript, testBinary, "w1", "eru-w1")),
 		sshrunner.Quote(sshrunner.Shell(resumeScript, testBinary, "w1", "eru-w1")),
-		sshrunner.Quote(sshrunner.Shell(refreshScript, testRoot+"/w1.json", "/run/eru/workloads/w1.json", "/dev/pts/5", "4242")),
+		sshrunner.Quote(sshrunner.Shell(refreshScript, testRoot+"/w1.json", "/run/eru/workloads/w1.json", testPty, "4242")),
 		sshrunner.Quote(sshrunner.Shell(removeScript, testBinary, "w1", testRoot+"/w1.json", "/run/eru/workloads/w1.json", "eru-w1", "1")),
 	}
 	if !slices.Equal(runner.Lines(), want) {
