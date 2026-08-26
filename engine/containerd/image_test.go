@@ -1,8 +1,12 @@
 package containerd
 
 import (
+	"context"
 	"testing"
 
+	"github.com/containerd/containerd/v2/core/images"
+	cerrdefs "github.com/containerd/errdefs"
+	"github.com/opencontainers/go-digest"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 
 	coretypes "github.com/projecteru2/core/types"
@@ -60,4 +64,48 @@ func TestGCRefsRootEveryBlobTheManifestOwns(t *testing.T) {
 			t.Errorf("got %q for %s, want %q", refs[key], key, want)
 		}
 	}
+}
+
+func TestCreateImageReferenceUpdatesAnExistingTarget(t *testing.T) {
+	ref := "docker.io/projecteru2/core:latest"
+	oldTarget := ocispec.Descriptor{Digest: digest.FromString("old")}
+	newTarget := ocispec.Descriptor{Digest: digest.FromString("new")}
+	store := &existingImageStore{image: images.Image{Name: ref, Target: oldTarget}}
+
+	if err := createImageReference(t.Context(), store, images.Image{Name: ref, Target: newTarget}); err != nil {
+		t.Fatalf("create image reference: %v", err)
+	}
+	if store.image.Target.Digest != newTarget.Digest {
+		t.Fatalf("got target %s, want %s", store.image.Target.Digest, newTarget.Digest)
+	}
+	if len(store.updatedFields) != 1 || store.updatedFields[0] != "target" {
+		t.Fatalf("got updated fields %v, want target", store.updatedFields)
+	}
+}
+
+type existingImageStore struct {
+	image         images.Image
+	updatedFields []string
+}
+
+func (s *existingImageStore) Get(context.Context, string) (images.Image, error) {
+	return s.image, nil
+}
+
+func (s *existingImageStore) List(context.Context, ...string) ([]images.Image, error) {
+	return []images.Image{s.image}, nil
+}
+
+func (s *existingImageStore) Create(context.Context, images.Image) (images.Image, error) {
+	return images.Image{}, cerrdefs.ErrAlreadyExists
+}
+
+func (s *existingImageStore) Update(_ context.Context, image images.Image, fields ...string) (images.Image, error) {
+	s.image = image
+	s.updatedFields = fields
+	return image, nil
+}
+
+func (s *existingImageStore) Delete(context.Context, string, ...images.DeleteOpt) error {
+	return nil
 }

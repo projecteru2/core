@@ -173,7 +173,7 @@ func (e *Engine) ImageBuildFromExist(ctx context.Context, ID string, refs []stri
 		return "", err
 	}
 	for _, ref := range refs {
-		if _, err = e.client.ImageService().Create(ctx, images.Image{Name: ref, Target: target}); err != nil && !cerrdefs.IsAlreadyExists(err) {
+		if err = createImageReference(ctx, e.client.ImageService(), images.Image{Name: ref, Target: target}); err != nil {
 			return "", err
 		}
 	}
@@ -250,6 +250,17 @@ func (e *Engine) resolver() remotes.Resolver {
 			}),
 		),
 	})
+}
+
+func createImageReference(ctx context.Context, store images.Store, image images.Image) error {
+	if _, err := store.Create(ctx, image); err != nil {
+		if !cerrdefs.IsAlreadyExists(err) {
+			return err
+		}
+		_, err = store.Update(ctx, image, "target")
+		return err
+	}
+	return nil
 }
 
 func uncompressedDigest(ctx context.Context, store content.Store, layer ocispec.Descriptor) (digest.Digest, error) {
