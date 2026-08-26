@@ -14,9 +14,6 @@ const (
 
 	NodeInfoKey      = "/node/%s"              // /node/{nodename}
 	NodePodKey       = "/node/%s:pod/%s"       // /node/{podname}:pod/{nodename}
-	NodeCaKey        = "/node/%s:ca"           // /node/{nodename}:ca
-	NodeCertKey      = "/node/%s:cert"         // /node/{nodename}:cert
-	NodeKeyKey       = "/node/%s:key"          // /node/{nodename}:key
 	NodeStatusPrefix = "/status:node/"         // /status:node/{nodename} -> node status key
 	NodeWorkloadsKey = "/node/%s:workloads/%s" // /node/{nodename}:workloads/{workloadID}
 

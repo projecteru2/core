@@ -54,13 +54,9 @@ func (s *Store) RemoveNode(ctx context.Context, node *types.Node) error {
 		return nil
 	}
 
-	// cert keys linger from the docker era; deleting them keeps removals clean
 	err := s.Delete(ctx, []string{
 		fmt.Sprintf(NodeInfoKey, node.Name),
 		fmt.Sprintf(NodePodKey, node.Podname, node.Name),
-		fmt.Sprintf(NodeCaKey, node.Name),
-		fmt.Sprintf(NodeCertKey, node.Name),
-		fmt.Sprintf(NodeKeyKey, node.Name),
 	})
 	log.WithFunc("store.common.RemoveNode").Infof(ctx, "node (%s, %s, %s) deleted", node.Podname, node.Name, node.Endpoint)
 	return err
