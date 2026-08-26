@@ -156,9 +156,9 @@ func withResources(resource *engine.VirtualizationResource, rArgs *RawArgs, devi
 }
 
 // withMounts binds the workload's volumes and the node's resolver files into the container.
-func withMounts(opts *enginetypes.VirtualizationCreateOptions, resource *engine.VirtualizationResource, dir string) oci.SpecOpts {
+func withMounts(opts *enginetypes.VirtualizationCreateOptions, mounts []specs.Mount, dir string) oci.SpecOpts {
 	return func(_ context.Context, _ oci.Client, _ *containers.Container, spec *specs.Spec) error {
-		spec.Mounts = slices.Concat(spec.Mounts, volumeMounts(resource.Volumes, opts.Env), resolverMounts(opts, dir))
+		spec.Mounts = slices.Concat(spec.Mounts, mounts, resolverMounts(opts, dir))
 		return nil
 	}
 }
@@ -209,7 +209,8 @@ func withPrivileged(privileged bool) oci.SpecOpts {
 		}
 		spec.Linux.ReadonlyPaths = nil
 		spec.Linux.MaskedPaths = nil
-		spec.Linux.Resources = allowAllDevices(spec.Linux.Resources)
+		spec.Linux.Resources.Devices = append(spec.Linux.Resources.Devices,
+			specs.LinuxDeviceCgroup{Allow: true, Type: anyDeviceType, Access: defaultDeviceAccess})
 		return nil
 	}
 }
@@ -240,7 +241,7 @@ func withDevices(devices []nodeDevice) oci.SpecOpts {
 				Minor:    device.Minor,
 				FileMode: &mode,
 			})
-			spec.Linux.Resources = allowDevice(spec.Linux.Resources, specs.LinuxDeviceCgroup{
+			spec.Linux.Resources.Devices = append(spec.Linux.Resources.Devices, specs.LinuxDeviceCgroup{
 				Allow:  true,
 				Type:   device.Type,
 				Major:  &device.Major,
@@ -316,9 +317,16 @@ func throttles(devices []blockDevice) *specs.LinuxBlockIO {
 }
 
 func volumeMounts(volumes, env []string) []specs.Mount {
+	lookup := make(map[string]string, len(env))
+	for _, entry := range env {
+		if key, held, ok := strings.Cut(entry, "="); ok {
+			lookup[key] = held
+		}
+	}
+	expand := func(key string) string { return lookup[key] }
 	mounts := []specs.Mount{}
 	for _, volume := range volumes {
-		parts := strings.Split(expandEnv(volume, env), ":")
+		parts := strings.Split(os.Expand(volume, expand), ":")
 		if len(parts) < 2 || parts[0] == "" || parts[1] == "" {
 			continue
 		}
@@ -516,15 +524,6 @@ func ensureSysctl(spec *specs.Spec) map[string]string {
 	return spec.Linux.Sysctl
 }
 
-func allowAllDevices(limits *specs.LinuxResources) *specs.LinuxResources {
-	return allowDevice(limits, specs.LinuxDeviceCgroup{Allow: true, Type: anyDeviceType, Access: defaultDeviceAccess})
-}
-
-func allowDevice(limits *specs.LinuxResources, rule specs.LinuxDeviceCgroup) *specs.LinuxResources {
-	limits.Devices = append(limits.Devices, rule)
-	return limits
-}
-
 func deviceType(mode int64) string {
 	switch mode & modeTypeMask {
 	case modeBlock:
@@ -534,16 +533,6 @@ func deviceType(mode int64) string {
 	default:
 		return ""
 	}
-}
-
-func expandEnv(value string, env []string) string {
-	lookup := make(map[string]string, len(env))
-	for _, entry := range env {
-		if key, held, ok := strings.Cut(entry, "="); ok {
-			lookup[key] = held
-		}
-	}
-	return os.Expand(value, func(key string) string { return lookup[key] })
 }
 
 func parseRate(rate string) uint64 {

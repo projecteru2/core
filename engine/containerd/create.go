@@ -17,6 +17,7 @@ import (
 	"github.com/containerd/platforms"
 	"github.com/docker/go-units"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
+	specs "github.com/opencontainers/runtime-spec/specs-go"
 
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/engine/sshrunner"
@@ -34,17 +35,7 @@ const (
 
 	stdinLabel = "eru.stdin"
 
-	userLookupScript = `set -e
-ctr=$1; address=$2; namespace=$3; key=$4; dir=$5
-mkdir -p "$dir"
-cleanup() {
-umount "$dir" >/dev/null 2>&1 || true
-rmdir "$dir" >/dev/null 2>&1 || true
-}
-trap cleanup EXIT
-mounts=$("$ctr" --address "$address" --namespace "$namespace" snapshots mounts "$dir" "$key")
-eval "$mounts"
-cat "$dir/etc/passwd"
+	userLookupScript = snapshotMountScript + `cat "$dir/etc/passwd"
 printf '%s\n' ---
 cat "$dir/etc/group"
 `
@@ -107,7 +98,8 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		return nil, errors.Wrapf(coretypes.ErrInvalidWorkloadName, "%q is longer than a hostname may be (%d)", ID, hostNameMax)
 	}
 	dir := workloadDir(ID)
-	throttled, devices, err := e.prepareNode(ctx, opts, resource, rArgs, dir)
+	mounts := volumeMounts(resource.Volumes, opts.Env)
+	throttled, devices, err := e.prepareNode(ctx, opts, mounts, resource, rArgs, dir)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +132,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 			withResources(resource, rArgs, throttled),
 			withPrivileged(opts.Privileged),
 			withDevices(devices),
-			withMounts(opts, resource, dir),
+			withMounts(opts, mounts, dir),
 			withNetwork(opts),
 			withHooks(opts.Networks, e.namespace, nonDefaultSocket(e.socket)),
 		),
@@ -157,9 +149,9 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 }
 
 // prepareNode asks the node for what containerd's API cannot answer about a create.
-func (e *Engine) prepareNode(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions, resource *engine.VirtualizationResource, rArgs *RawArgs, dir string) ([]blockDevice, []nodeDevice, error) {
-	paths := []string{}
-	for _, mount := range volumeMounts(resource.Volumes, opts.Env) {
+func (e *Engine) prepareNode(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions, mounts []specs.Mount, resource *engine.VirtualizationResource, rArgs *RawArgs, dir string) ([]blockDevice, []nodeDevice, error) {
+	paths := make([]string, 0, len(mounts))
+	for _, mount := range mounts {
 		paths = append(paths, mountMark+mount.Source)
 	}
 	throttled, throttleMarks := throttleDevices(resource.IOPSOptions)
