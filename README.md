@@ -23,8 +23,9 @@ bare processes or cocoon virtual machines through a single `CoreRPC` API.
   (see [resource-extend](https://github.com/projecteru2/resource-extend) for gpu and storage)
 - **Deployment strategies** — `AUTO`, `FILL`, `EACH`, `GLOBAL` and `DRAINED` decide how a deploy
   count is spread over the candidate nodes
-- **WAL-based recovery** — allocations, workload creation and processing counters are journaled to a
-  local bbolt WAL and replayed on start, so a crash mid-deploy does not leak resources
+- **WAL-based recovery** — allocations, workload creation and processing counters are journaled
+  into the store and replayed on start, and a live instance takes over the journal of a dead one,
+  so a crash mid-deploy does not leak resources
 - **Service discovery + client library** — instances register themselves in the store and push the
   live address list over `WatchServiceStatus`; the Go client in [`client/`](client/) consumes it
 - **Embedded etcd** — `--embedded-storage` runs a single-member in-process etcd for a dev instance

@@ -47,12 +47,13 @@ ephemeral keys.
 
 ## redis
 
-`store/redis` (Rediaron) implements the same interface with `go-redis`. Batch operations become
-transactional pipelines; `Watch`-style streams become **keyspace notifications** on
+`store/redis` (Rediaron) implements the same interface with `go-redis`. Batch writes become
+transactional pipelines, while multi-key reads and deletes are single `MGET` / `DEL` commands;
+`Watch`-style streams become **keyspace notifications** on
 `__keyspace@{db}__:{pattern}`, so the redis server must be configured to emit them — core cannot
 see status changes otherwise. Ephemeral keys are ordinary keys with a TTL, refreshed on a timer.
 
-One behaviour differs from etcd and is marked as such in the code: `BatchUpdate` checks key
+One behaviour differs from etcd and is marked as such in the code: `Update` checks key
 existence before writing rather than doing it in one transaction. Tests run against an embedded
 miniredis.
 
