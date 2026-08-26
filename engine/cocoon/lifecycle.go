@@ -211,7 +211,7 @@ func (e *Engine) refreshRecord(ctx context.Context, ID string, vm *vmRecord) err
 }
 
 func (e *Engine) programAddress(ctx context.Context, ID string, addr *guestAddress) {
-	ctx, cancel := context.WithTimeout(utils.NewInheritCtx(ctx), addressTimeout)
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), addressTimeout)
 	defer cancel()
 	if _, err := e.run(ctx, sshrunner.Shell(addressScript, e.cocoon.Binary, ID, addr.IP, addr.mask(), addr.Gateway)...); err != nil {
 		log.WithFunc("engine.cocoon.programAddress").Warnf(ctx, "vm %s did not take the address %s: %v", ID, addr.IP, err)

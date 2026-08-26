@@ -54,7 +54,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 		var resourceCommit func()
 		var processingCommits map[string]func()
 		defer func() {
-			cctx, cancel := context.WithTimeout(utils.NewInheritCtx(ctx), c.config.GlobalTimeout)
+			cctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), c.config.GlobalTimeout)
 			for nodename := range deployMap {
 				processing := opts.GetProcessing(nodename)
 				if err := c.store.DeleteProcessing(cctx, processing); err != nil {

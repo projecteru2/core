@@ -14,6 +14,9 @@ func (r RawParams) IsSet(key string) bool {
 }
 
 func (r RawParams) Float64(key string) float64 {
+	if f, ok := r[key].(float64); ok {
+		return f
+	}
 	res, _ := strconv.ParseFloat(fmt.Sprintf("%+v", r[key]), 64)
 	return res
 }
@@ -91,12 +94,15 @@ func sliceHelper[T any](r RawParams, key string) []T {
 type integer interface{ int | int64 }
 
 func intHelper[T integer](r RawParams, key string) T {
-	var str string
-	if f, ok := r[key].(float64); ok {
-		str = fmt.Sprintf("%.0f", f)
-	} else {
-		str = fmt.Sprintf("%+v", r[key])
+	switch v := r[key].(type) {
+	case int:
+		return T(v)
+	case int64:
+		return T(v)
+	case float64:
+		res, _ := strconv.ParseInt(fmt.Sprintf("%.0f", v), 10, 64)
+		return T(res)
 	}
-	res, _ := strconv.ParseInt(str, 10, 64)
+	res, _ := strconv.ParseInt(fmt.Sprintf("%+v", r[key]), 10, 64)
 	return T(res)
 }

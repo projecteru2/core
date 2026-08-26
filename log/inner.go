@@ -8,6 +8,8 @@ import (
 	"github.com/rs/zerolog"
 )
 
+var argFormats = [...]string{"", "%+v", "%+v %+v", "%+v %+v %+v", "%+v %+v %+v %+v"}
+
 func fatalf(ctx context.Context, err error, format string, fields []field, args ...any) {
 	reportToSentry(ctx, sentry.LevelFatal, err, format, args...)
 	f := globalLogger.Fatal()
@@ -39,8 +41,8 @@ func errorf(ctx context.Context, err error, format string, fields []field, args 
 }
 
 func formatArgs(args []any) string {
-	if len(args) == 0 {
-		return ""
+	if len(args) < len(argFormats) {
+		return argFormats[len(args)]
 	}
 	return strings.TrimSuffix(strings.Repeat("%+v ", len(args)), " ")
 }

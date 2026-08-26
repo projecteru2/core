@@ -15,7 +15,6 @@ import (
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 )
 
 func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error) {
@@ -199,7 +198,7 @@ func (c *Calcium) withImageBuiltChannel(f func(chan *types.BuildImageMessage)) c
 
 func cleanupNodeImages(ctx context.Context, node *types.Node, IDs []string, ttl time.Duration) {
 	logger := log.WithFunc("calcium.cleanupNodeImages").WithField("node", node).WithField("IDs", IDs).WithField("ttl", ttl)
-	ctx, cancel := context.WithTimeout(utils.NewInheritCtx(ctx), ttl)
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), ttl)
 	defer cancel()
 	for _, ID := range IDs {
 		if _, err := node.Engine.ImageRemove(ctx, ID, false, true); err != nil {

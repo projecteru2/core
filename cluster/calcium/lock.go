@@ -10,7 +10,6 @@ import (
 	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 )
 
 type (
@@ -27,7 +26,7 @@ func (c *Calcium) doLock(ctx context.Context, name string, timeout time.Duration
 	}
 	defer func() {
 		if err != nil {
-			rollbackCtx, cancel := context.WithTimeout(utils.NewInheritCtx(ctx), timeout)
+			rollbackCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), timeout)
 			defer cancel()
 			if e := lock.Unlock(rollbackCtx); e != nil {
 				log.WithFunc("calcium.doLock").Errorf(rollbackCtx, e, "failed to unlock %s", name)
@@ -72,7 +71,7 @@ func (c *Calcium) withWorkloadsLocked(ctx context.Context, ignoreLock bool, IDs 
 
 	defer func() {
 		slices.Reverse(lockKeys)
-		c.doUnlockAll(utils.NewInheritCtx(ctx), locks, lockKeys)
+		c.doUnlockAll(context.WithoutCancel(ctx), locks, lockKeys)
 		logger.Debugf(ctx, "workloads %+v unlocked", lockKeys)
 	}()
 	cs, err := c.store.GetWorkloads(ctx, IDs)
@@ -143,7 +142,7 @@ func (c *Calcium) withNodesLocked(ctx context.Context, nodeFilter *types.NodeFil
 
 	defer func() {
 		slices.Reverse(lockKeys)
-		c.doUnlockAll(utils.NewInheritCtx(ctx), locks, lockKeys)
+		c.doUnlockAll(context.WithoutCancel(ctx), locks, lockKeys)
 		logger.Debugf(ctx, "keys %+v unlocked", lockKeys)
 	}()
 

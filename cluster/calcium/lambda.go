@@ -56,7 +56,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 			return eruErrMsg(message.WorkloadID, "Create wal failed: %s, %v", message.WorkloadID, err)
 		}
 		defer func() {
-			removeCtx := utils.NewInheritCtx(ctx)
+			removeCtx := context.WithoutCancel(ctx)
 			if removeErr := c.doRemoveWorkloadSync(removeCtx, []string{message.WorkloadID}); removeErr != nil {
 				logger.Error(removeCtx, removeErr, "remove lambda workload failed")
 				return

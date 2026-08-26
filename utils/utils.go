@@ -4,14 +4,11 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"math"
-	"math/big"
-	"os"
 	"strings"
 	"time"
 
@@ -31,15 +28,12 @@ const (
 
 // RandomString returns n random letters from [a-zA-Z].
 func RandomString(n int) string {
-	r := make([]byte, n)
-	for i := range n {
-		n, err := rand.Int(rand.Reader, big.NewInt(int64(len(letters))))
-		if err != nil {
-			continue
-		}
-		r[i] = letters[n.Int64()]
+	buf := make([]byte, n)
+	_, _ = rand.Read(buf)
+	for i, b := range buf {
+		buf[i] = letters[int(b)%len(letters)]
 	}
-	return string(r)
+	return string(buf)
 }
 
 func RandomID() string {
@@ -63,14 +57,31 @@ func GetGitRepoName(url string) (string, error) {
 
 // MakeCommandLineArgs splits s into argv, honoring single and double quotes.
 func MakeCommandLineArgs(s string) []string {
-	r := []string{}
-	for _, part := range safeSplit(s) {
-		if len(part) == 0 {
+	result := []string{}
+	var inquote, block string
+	for _, part := range strings.Split(s, " ") {
+		if inquote == "" {
+			switch {
+			case strings.HasPrefix(part, "'") || strings.HasPrefix(part, "\""):
+				inquote = string(part[0])
+				block = strings.TrimPrefix(part, inquote) + " "
+			case part != "":
+				result = append(result, part)
+			}
 			continue
 		}
-		r = append(r, part)
+		if !strings.HasSuffix(part, inquote) {
+			block += part + " "
+			continue
+		}
+		block += strings.TrimSuffix(part, inquote)
+		inquote = ""
+		if block != "" {
+			result = append(result, block)
+		}
+		block = ""
 	}
-	return r
+	return result
 }
 
 // MakeWorkloadName joins appname, entrypoint, ident using '_'
@@ -93,7 +104,7 @@ func ParseWorkloadName(workloadName string) (string, string, string, error) {
 func MakePublishInfo(networks map[string]string, ports []string) map[string][]string {
 	result := map[string][]string{}
 	for networkName, ip := range networks {
-		data := []string{}
+		data := make([]string, 0, len(ports))
 		for _, port := range ports {
 			data = append(data, fmt.Sprintf("%s:%s", ip, port))
 		}
@@ -170,23 +181,6 @@ func CleanStatsdMetrics(k string) string {
 	return strings.ReplaceAll(k, ".", "-")
 }
 
-// TempFile copies stream into a new temp file, closes stream, and returns the file name.
-func TempFile(stream io.ReadCloser) (name string, err error) {
-	f, err := os.CreateTemp(os.TempDir(), "")
-	if err != nil {
-		return "", err
-	}
-	defer func() {
-		_ = stream.Close()
-		if closeErr := f.Close(); err == nil {
-			err = closeErr
-		}
-	}()
-
-	_, err = io.Copy(f, stream)
-	return f.Name(), err
-}
-
 // Round rounds f to 9 decimal places.
 func Round(f float64) float64 {
 	return math.Round(f*1000000000) / 1000000000
@@ -227,11 +221,6 @@ func WithTimeout(ctx context.Context, timeout time.Duration, f func(context.Cont
 	f(ctx)
 }
 
-func SHA256(input string) string {
-	sum := sha256.Sum256([]byte(input))
-	return hex.EncodeToString(sum[:])
-}
-
 func Bool2Int(a bool) int {
 	if a {
 		return 1
@@ -248,33 +237,4 @@ func LastEnvValue(env []string, key string) string {
 		}
 	}
 	return last
-}
-
-func safeSplit(s string) []string {
-	split := strings.Split(s, " ")
-
-	var result []string
-	var inquote string
-	var block string
-	for _, i := range split {
-		if inquote == "" {
-			if strings.HasPrefix(i, "'") || strings.HasPrefix(i, "\"") {
-				inquote = string(i[0])
-				block = strings.TrimPrefix(i, inquote) + " "
-			} else {
-				result = append(result, i)
-			}
-			continue
-		}
-		if !strings.HasSuffix(i, inquote) {
-			block += i + " "
-		} else {
-			block += strings.TrimSuffix(i, inquote)
-			inquote = ""
-			result = append(result, block)
-			block = ""
-		}
-	}
-
-	return result
 }

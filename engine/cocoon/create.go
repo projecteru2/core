@@ -93,7 +93,7 @@ func (e *Engine) record(ctx context.Context, ID string, opts *enginetypes.Virtua
 
 // discard removes a VM whose eru record never landed; core only knows the ones that did.
 func (e *Engine) discard(ctx context.Context, ID string) {
-	ctx, cancel := context.WithTimeout(utils.NewInheritCtx(ctx), discardTimeout)
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), discardTimeout)
 	defer cancel()
 	if _, err := e.run(ctx, e.vm("rm", "--force", ID)...); err != nil {
 		log.WithFunc("engine.cocoon.discard").Errorf(ctx, err, "failed to remove the half-created vm %s", ID)

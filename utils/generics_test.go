@@ -17,9 +17,9 @@ func TestMap(t *testing.T) {
 
 func TestAdvancedDivide(t *testing.T) {
 	s1 := AdvancedDivide(0, 0)
-	assert.Equal(t, 0, s1)
+	assert.Equal(t, 0.0, s1)
 	s2 := AdvancedDivide(1, 0)
-	assert.Equal(t, 0, s2)
+	assert.Equal(t, 0.0, s2)
 	s3 := AdvancedDivide(1, 1)
-	assert.Equal(t, 1, s3)
+	assert.Equal(t, 1.0, s3)
 }
