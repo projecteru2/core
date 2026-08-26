@@ -63,7 +63,7 @@ func (c *Calcium) computeRemap(ctx context.Context, node *types.Node) (map[strin
 }
 
 func (c *Calcium) applyRemap(ctx context.Context, logger *log.Fields, workloads []*types.Workload, engineParamsMap map[string]resourcetypes.Resources) error {
-	errList := make([]error, 0, len(engineParamsMap))
+	var errList []error
 	for _, workload := range workloads {
 		engineParams, ok := engineParamsMap[workload.ID]
 		if !ok {

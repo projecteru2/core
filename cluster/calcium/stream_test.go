@@ -3,7 +3,6 @@ package calcium
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"fmt"
 	"io"
 	"testing"
@@ -20,7 +19,7 @@ func TestProcessVirtualizationOutStreamCopiesTokens(t *testing.T) {
 	}
 
 	got := [][]byte{}
-	for bs := range c.processVirtualizationOutStream(context.Background(), io.NopCloser(&buf), bufio.ScanLines, byte('\n')) {
+	for bs := range c.processVirtualizationOutStream(t.Context(), io.NopCloser(&buf), bufio.ScanLines, byte('\n')) {
 		got = append(got, bs)
 	}
 
@@ -36,7 +35,7 @@ func TestProcessVirtualizationOutStreamReadsLongLines(t *testing.T) {
 	reader := bytes.NewReader(append(line, '\n'))
 
 	got := [][]byte{}
-	for bs := range c.processVirtualizationOutStream(context.Background(), io.NopCloser(reader), bufio.ScanLines, byte('\n')) {
+	for bs := range c.processVirtualizationOutStream(t.Context(), io.NopCloser(reader), bufio.ScanLines, byte('\n')) {
 		got = append(got, bs)
 	}
 
@@ -49,7 +48,7 @@ func TestProcessVirtualizationOutStreamBoundsTokens(t *testing.T) {
 	blob := bytes.Repeat([]byte("x"), 4096)
 
 	got := [][]byte{}
-	for bs := range c.processVirtualizationOutStream(context.Background(), io.NopCloser(bytes.NewReader(blob)), bufio.ScanLines, byte('\n')) {
+	for bs := range c.processVirtualizationOutStream(t.Context(), io.NopCloser(bytes.NewReader(blob)), bufio.ScanLines, byte('\n')) {
 		got = append(got, bs)
 	}
 

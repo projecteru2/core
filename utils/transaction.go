@@ -13,7 +13,7 @@ type (
 	rollbackFunc func(context.Context, bool) error
 )
 
-// Txn runs cond then then; on any error it runs rollback under a fresh ttl-bounded context, and settled reports full compensation.
+// Txn runs cond then then, rolling back under a fresh ttl-bounded context on error; settled reports full compensation.
 func Txn(ctx context.Context, cond, then contextFunc, rollback rollbackFunc, ttl time.Duration) (settled bool, txnErr error) {
 	var condErr, thenErr error
 	txnCtx, txnCancel := context.WithTimeout(ctx, ttl)

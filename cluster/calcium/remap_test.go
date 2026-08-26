@@ -62,7 +62,7 @@ func TestRemapJournalRetainsUntilEngineSuccess(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			c := NewTestCluster()
-			ctx := context.Background()
+			ctx := t.Context()
 			params := resourcetypes.Resources{"cpumem": {"cpu": 2}}
 
 			engine := &enginemocks.API{}
@@ -102,7 +102,7 @@ func TestRemapJournalRetainsUntilEngineSuccess(t *testing.T) {
 func TestRemapReplayRecomputesFromLiveState(t *testing.T) {
 	c := NewTestCluster()
 	enableTestWAL(t, c)
-	ctx := context.Background()
+	ctx := t.Context()
 	staleParams := resourcetypes.Resources{"cpumem": {"cpu": 1}}
 	freshParams := resourcetypes.Resources{"cpumem": {"cpu": 2}}
 	engine := &enginemocks.API{}
