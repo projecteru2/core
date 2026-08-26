@@ -59,7 +59,7 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 				return err
 			}
 			node.ResourceInfo.Capacity = res
-			_ = c.pool.Invoke(func() { c.doSendNodeMetrics(context.WithoutCancel(ctx), node) })
+			c.invokePoolAsync(func() { c.doSendNodeMetrics(context.WithoutCancel(ctx), node) })
 			return nil
 		},
 		func(ctx context.Context, failureByCond bool) error {
@@ -220,8 +220,8 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 				}
 				// capacity refresh is best effort; the store write already succeeded
 				_ = c.refreshResourceInfo(ctx, node)
-				_ = c.pool.Invoke(func() { c.doSendNodeMetrics(context.WithoutCancel(ctx), node) })
-				_ = c.pool.Invoke(func() { c.RemapResourceAndLog(ctx, logger, node) })
+				c.invokePoolAsync(func() { c.doSendNodeMetrics(context.WithoutCancel(ctx), node) })
+				c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node) })
 				return nil
 			},
 			func(ctx context.Context, failureByCond bool) error {

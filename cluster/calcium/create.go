@@ -166,7 +166,7 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context,
 	for _, deploy := range deployMap {
 		total += deploy
 	}
-	_ = c.pool.Invoke(func() { metrics.Client.SendDeployCount(ctx, total) })
+	c.invokePoolAsync(func() { metrics.Client.SendDeployCount(ctx, total) })
 
 	seq := 0
 	rollbackLock := sync.Mutex{}

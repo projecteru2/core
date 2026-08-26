@@ -84,6 +84,6 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 	if err != nil {
 		return err
 	}
-	_ = c.pool.Invoke(func() { c.RemapResourceAndLog(ctx, logger, node) })
+	c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node) })
 	return nil
 }

@@ -35,7 +35,7 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, IDs []string) (chan *t
 					}
 					ch <- msg
 				}
-				_ = c.pool.Invoke(func() { c.RemapResourceAndLog(ctx, logger, node) })
+				c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node) })
 				return nil
 			}); nodeErr != nil {
 				logger.WithField("node", nodename).Error(ctx, nodeErr, "failed to lock node")
