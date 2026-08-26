@@ -61,7 +61,7 @@ func TestGrant(t *testing.T) {
 	e := NewMockedETCD(t)
 	expErr := fmt.Errorf("exp")
 	e.cliv3.(*mocks.ETCDClientV3).On("Grant", mock.Anything, mock.Anything).Return(nil, expErr)
-	resp, err := e.grant(t.Context(), 1)
+	resp, err := e.cliv3.Grant(t.Context(), 1)
 	require.Equal(t, expErr, err)
 	require.Nil(t, resp)
 }
@@ -399,13 +399,9 @@ func TestETCD(t *testing.T) {
 		"aa": "bb",
 		"cc": "dd",
 	}
-	limit := map[string]map[string]string{
-		"aa": {cmpValue: "!="},
-		"cc": {cmpValue: "!="},
-	}
 	m.Put(t.Context(), "aa", "aa")
 	m.Put(t.Context(), "cc", "cc")
-	txnResp, err = m.batchPut(t.Context(), data, limit)
+	txnResp, err = m.batchPut(t.Context(), data, &txnCond{method: cmpValue, condition: "!="})
 	require.NoError(t, err)
 	require.True(t, txnResp.Succeeded)
 }

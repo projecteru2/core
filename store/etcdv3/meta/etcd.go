@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -14,6 +13,7 @@ import (
 	"go.etcd.io/etcd/client/pkg/v3/transport"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/namespace"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/lock/etcdlock"
@@ -43,10 +43,9 @@ type ETCDTxn struct {
 	Else []clientv3.Op
 }
 
-// ETCDTxnResp wraps etcd response with error
-type ETCDTxnResp struct {
-	resp *clientv3.TxnResponse
-	err  error
+type txnCond struct {
+	method    string
+	condition string
 }
 
 // ETCD is the etcd backed meta store.
@@ -112,14 +111,15 @@ func (e *ETCD) GetOne(ctx context.Context, key string, opts ...clientv3.OpOption
 	return resp.Kvs[0], nil
 }
 
-func (e *ETCD) GetMulti(ctx context.Context, keys []string, _ ...clientv3.OpOption) (kvs []*mvccpb.KeyValue, err error) {
-	var txnResponse *clientv3.TxnResponse
+func (e *ETCD) GetMulti(ctx context.Context, keys []string) ([]*mvccpb.KeyValue, error) {
 	if len(keys) == 0 {
-		return kvs, err
+		return nil, nil
 	}
-	if txnResponse, err = e.batchGet(ctx, keys); err != nil {
-		return kvs, err
+	txnResponse, err := e.batchGet(ctx, keys)
+	if err != nil {
+		return nil, err
 	}
+	kvs := make([]*mvccpb.KeyValue, 0, len(keys))
 	for idx, responseOp := range txnResponse.Responses {
 		resp := responseOp.GetResponseRange()
 		if resp.Count != 1 {
@@ -127,42 +127,35 @@ func (e *ETCD) GetMulti(ctx context.Context, keys []string, _ ...clientv3.OpOpti
 		}
 		kvs = append(kvs, resp.Kvs[0])
 	}
-	if len(kvs) != len(keys) {
-		err = errors.Wrapf(types.ErrInvaildCount, "keys: %+v", keys)
-	}
-	return kvs, err
+	return kvs, nil
 }
 
-func (e *ETCD) Delete(ctx context.Context, key string, opts ...clientv3.OpOption) (*clientv3.DeleteResponse, error) {
-	return e.cliv3.Delete(ctx, key, opts...)
+func (e *ETCD) Delete(ctx context.Context, key string) (*clientv3.DeleteResponse, error) {
+	return e.cliv3.Delete(ctx, key)
 }
 
-func (e *ETCD) Put(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.PutResponse, error) {
-	return e.cliv3.Put(ctx, key, val, opts...)
+func (e *ETCD) Put(ctx context.Context, key, val string) (*clientv3.PutResponse, error) {
+	return e.cliv3.Put(ctx, key, val)
 }
 
-func (e *ETCD) Create(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	return e.BatchCreate(ctx, map[string]string{key: val}, opts...)
+func (e *ETCD) Create(ctx context.Context, key, val string) (*clientv3.TxnResponse, error) {
+	return e.BatchCreate(ctx, map[string]string{key: val})
 }
 
 func (e *ETCD) Watch(ctx context.Context, key string, opts ...clientv3.OpOption) clientv3.WatchChan {
 	return e.cliv3.Watch(ctx, key, opts...)
 }
 
-func (e *ETCD) BatchDelete(ctx context.Context, keys []string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
+func (e *ETCD) BatchDelete(ctx context.Context, keys []string) (*clientv3.TxnResponse, error) {
 	txn := ETCDTxn{}
 	for _, key := range keys {
-		txn.Then = append(txn.Then, clientv3.OpDelete(key, opts...))
+		txn.Then = append(txn.Then, clientv3.OpDelete(key))
 	}
 	return e.doBatchOp(ctx, []ETCDTxn{txn})
 }
 
-func (e *ETCD) BatchCreate(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	limit := map[string]map[string]string{}
-	for key := range data {
-		limit[key] = map[string]string{cmpVersion: "="}
-	}
-	resp, err := e.batchPut(ctx, data, limit, opts...)
+func (e *ETCD) BatchCreate(ctx context.Context, data map[string]string) (*clientv3.TxnResponse, error) {
+	resp, err := e.batchPut(ctx, data, &txnCond{method: cmpVersion, condition: "="})
 	if err != nil {
 		return resp, err
 	}
@@ -172,12 +165,8 @@ func (e *ETCD) BatchCreate(ctx context.Context, data map[string]string, opts ...
 	return resp, nil
 }
 
-func (e *ETCD) BatchUpdate(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	limit := map[string]map[string]string{}
-	for key := range data {
-		limit[key] = map[string]string{cmpVersion: "!="} // check existence
-	}
-	resp, err := e.batchPut(ctx, data, limit, opts...)
+func (e *ETCD) BatchUpdate(ctx context.Context, data map[string]string) (*clientv3.TxnResponse, error) {
+	resp, err := e.batchPut(ctx, data, &txnCond{method: cmpVersion, condition: "!="})
 	if err != nil {
 		return resp, err
 	}
@@ -187,8 +176,8 @@ func (e *ETCD) BatchUpdate(ctx context.Context, data map[string]string, opts ...
 	return resp, nil
 }
 
-func (e *ETCD) BatchPut(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	return e.batchPut(ctx, data, nil, opts...)
+func (e *ETCD) BatchPut(ctx context.Context, data map[string]string) (*clientv3.TxnResponse, error) {
+	return e.batchPut(ctx, data, nil)
 }
 
 func (e *ETCD) BindStatus(ctx context.Context, entityKey, statusKey, statusValue string, ttl int64) error {
@@ -243,40 +232,30 @@ func (e *ETCD) BatchCreateAndDecr(ctx context.Context, data map[string]string, d
 	return nil
 }
 
-func (e *ETCD) batchGet(ctx context.Context, keys []string, opt ...clientv3.OpOption) (txnResponse *clientv3.TxnResponse, err error) {
+func (e *ETCD) batchGet(ctx context.Context, keys []string) (*clientv3.TxnResponse, error) {
 	txn := ETCDTxn{}
 	for _, key := range keys {
-		txn.Then = append(txn.Then, clientv3.OpGet(key, opt...))
+		txn.Then = append(txn.Then, clientv3.OpGet(key))
 	}
 	return e.doBatchOp(ctx, []ETCDTxn{txn})
 }
 
-func (e *ETCD) batchPut(ctx context.Context, data map[string]string, limit map[string]map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
+func (e *ETCD) batchPut(ctx context.Context, data map[string]string, cond *txnCond) (*clientv3.TxnResponse, error) {
 	txnes := []ETCDTxn{}
 	for key, val := range data {
-		txn := ETCDTxn{}
-		op := clientv3.OpPut(key, val, opts...)
-		txn.Then = append(txn.Then, op)
-		if v, ok := limit[key]; ok {
-			for method, condition := range v {
-				switch method {
-				case cmpVersion:
-					cond := clientv3.Compare(clientv3.Version(key), condition, 0)
-					txn.If = append(txn.If, cond)
-				case cmpValue:
-					cond := clientv3.Compare(clientv3.Value(key), condition, val)
-					txn.Else = append(txn.Else, clientv3.OpGet(key))
-					txn.If = append(txn.If, cond)
-				}
+		txn := ETCDTxn{Then: []clientv3.Op{clientv3.OpPut(key, val)}}
+		if cond != nil {
+			switch cond.method {
+			case cmpVersion:
+				txn.If = append(txn.If, clientv3.Compare(clientv3.Version(key), cond.condition, 0))
+			case cmpValue:
+				txn.If = append(txn.If, clientv3.Compare(clientv3.Value(key), cond.condition, val))
+				txn.Else = append(txn.Else, clientv3.OpGet(key))
 			}
 		}
 		txnes = append(txnes, txn)
 	}
 	return e.doBatchOp(ctx, txnes)
-}
-
-func (e *ETCD) grant(ctx context.Context, ttl int64) (*clientv3.LeaseGrantResponse, error) {
-	return e.cliv3.Grant(ctx, ttl)
 }
 
 func (e *ETCD) isTTLChanged(ctx context.Context, key string, ttl int64) (bool, error) {
@@ -307,13 +286,13 @@ func (e *ETCD) isTTLChanged(ctx context.Context, key string, ttl int64) (bool, e
 }
 
 func (e *ETCD) bindStatusWithTTL(ctx context.Context, entityKey, statusKey, statusValue string, ttl int64) error {
-	lease, err := e.grant(ctx, ttl)
+	lease, err := e.cliv3.Grant(ctx, ttl)
 	if err != nil {
 		return err
 	}
 
 	leaseID := lease.ID
-	updateStatus := []clientv3.Op{clientv3.OpPut(statusKey, statusValue, clientv3.WithLease(lease.ID))}
+	updateStatus := []clientv3.Op{clientv3.OpPut(statusKey, statusValue, clientv3.WithLease(leaseID))}
 	logger := log.WithFunc("store.etcdv3.meta.bindStatusWithTTL")
 
 	ttlChanged, err := e.isTTLChanged(ctx, statusKey, ttl)
@@ -363,19 +342,14 @@ func (e *ETCD) bindStatusWithTTL(ctx context.Context, entityKey, statusKey, stat
 		return nil
 	}
 
-	statusTxn := entityTxn.Responses[0].GetResponseTxn()
-	if !statusTxn.Succeeded {
-		logger.Infof(ctx, "put: key %s value %s", statusKey, statusValue)
-		return nil
+	valueTxn := entityTxn.Responses[0].GetResponseTxn()
+	for range 2 {
+		if !valueTxn.Succeeded {
+			logger.Infof(ctx, "put: key %s value %s", statusKey, statusValue)
+			return nil
+		}
+		valueTxn = valueTxn.Responses[0].GetResponseTxn()
 	}
-
-	leaseTxn := statusTxn.Responses[0].GetResponseTxn()
-	if !leaseTxn.Succeeded {
-		logger.Infof(ctx, "put: key %s value %s", statusKey, statusValue)
-		return nil
-	}
-
-	valueTxn := leaseTxn.Responses[0].GetResponseTxn()
 	if !valueTxn.Succeeded {
 		logger.Infof(ctx, "put: key %s value %s", statusKey, statusValue)
 		return nil
@@ -436,7 +410,7 @@ func (e *ETCD) revokeLease(ctx context.Context, leaseID clientv3.LeaseID) {
 	}
 }
 
-func (e *ETCD) doBatchOp(ctx context.Context, transactions []ETCDTxn) (resp *clientv3.TxnResponse, err error) {
+func (e *ETCD) doBatchOp(ctx context.Context, transactions []ETCDTxn) (*clientv3.TxnResponse, error) {
 	if len(transactions) == 0 {
 		return nil, types.ErrNoOps
 	}
@@ -453,28 +427,15 @@ func (e *ETCD) doBatchOp(ctx context.Context, transactions []ETCDTxn) (resp *cli
 		}
 	}
 
-	wg := sync.WaitGroup{}
-	respChan := make(chan ETCDTxnResp)
-	commit := func(from, to int) {
-		wg.Go(func() {
-			conds, thens, elses := []clientv3.Cmp{}, []clientv3.Op{}, []clientv3.Op{}
-			for _, txn := range txnes[from:to] {
-				conds = append(conds, txn.If...)
-				thens = append(thens, txn.Then...)
-				elses = append(elses, txn.Else...)
-			}
-			txnResp, txnErr := e.cliv3.Txn(ctx).If(conds...).Then(thens...).Else(elses...).Commit()
-			respChan <- ETCDTxnResp{resp: txnResp, err: txnErr}
-		})
-	}
-
+	type span struct{ from, to int }
+	spans := []span{}
 	lastIdx := 0
 	lenIf, lenThen, lenElse := 0, 0, 0
 	for i := range txnes {
 		if lenIf+len(txnes[i].If) > txnLimit ||
 			lenThen+len(txnes[i].Then) > txnLimit ||
 			lenElse+len(txnes[i].Else) > txnLimit {
-			commit(lastIdx, i)
+			spans = append(spans, span{lastIdx, i})
 
 			lastIdx = i
 			lenIf, lenThen, lenElse = 0, 0, 0
@@ -484,32 +445,32 @@ func (e *ETCD) doBatchOp(ctx context.Context, transactions []ETCDTxn) (resp *cli
 		lenThen += len(txnes[i].Then)
 		lenElse += len(txnes[i].Else)
 	}
-	commit(lastIdx, len(txnes))
+	spans = append(spans, span{lastIdx, len(txnes)})
 
-	go func() {
-		wg.Wait()
-		close(respChan)
-	}()
-
-	resps := []ETCDTxnResp{}
-	for resp := range respChan {
-		resps = append(resps, resp)
-		if resp.err != nil {
-			err = resp.err
-		}
+	// indexed slots keep the merged responses in request order, which GetMulti pairs with its keys
+	resps := make([]*clientv3.TxnResponse, len(spans))
+	g, ctx := errgroup.WithContext(ctx)
+	for i, sp := range spans {
+		g.Go(func() error {
+			conds, thens, elses := []clientv3.Cmp{}, []clientv3.Op{}, []clientv3.Op{}
+			for _, txn := range txnes[sp.from:sp.to] {
+				conds = append(conds, txn.If...)
+				thens = append(thens, txn.Then...)
+				elses = append(elses, txn.Else...)
+			}
+			resp, err := e.cliv3.Txn(ctx).If(conds...).Then(thens...).Else(elses...).Commit()
+			resps[i] = resp
+			return err
+		})
 	}
-	if err != nil {
-		return resp, err
+	if err := g.Wait(); err != nil {
+		return nil, err
 	}
 
-	if len(resps) == 0 {
-		return &clientv3.TxnResponse{}, nil
-	}
-
-	resp = resps[0].resp
+	resp := resps[0]
 	for _, r := range resps[1:] {
-		resp.Succeeded = resp.Succeeded && r.resp.Succeeded
-		resp.Responses = append(resp.Responses, r.resp.Responses...)
+		resp.Succeeded = resp.Succeeded && r.Succeeded
+		resp.Responses = append(resp.Responses, r.Responses...)
 	}
 	return resp, nil
 }

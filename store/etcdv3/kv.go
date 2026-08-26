@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/cockroachdb/errors"
+	"go.etcd.io/etcd/api/v3/mvccpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
 
 	"github.com/projecteru2/core/lock"
@@ -34,11 +35,7 @@ func (e *etcdKV) GetMulti(ctx context.Context, keys []string) (map[string]string
 	if err != nil {
 		return nil, err
 	}
-	data := make(map[string]string, len(kvs))
-	for _, kv := range kvs {
-		data[string(kv.Key)] = string(kv.Value)
-	}
-	return data, nil
+	return kvsToMap(kvs), nil
 }
 
 func (e *etcdKV) GetPrefix(ctx context.Context, prefix string, limit int64) (map[string]string, error) {
@@ -46,11 +43,7 @@ func (e *etcdKV) GetPrefix(ctx context.Context, prefix string, limit int64) (map
 	if err != nil {
 		return nil, err
 	}
-	data := make(map[string]string, len(resp.Kvs))
-	for _, kv := range resp.Kvs {
-		data[string(kv.Key)] = string(kv.Value)
-	}
-	return data, nil
+	return kvsToMap(resp.Kvs), nil
 }
 
 func (e *etcdKV) ListPrefix(ctx context.Context, prefix string) ([]string, error) {
@@ -80,14 +73,8 @@ func (e *etcdKV) Update(ctx context.Context, data map[string]string) error {
 }
 
 func (e *etcdKV) Put(ctx context.Context, data map[string]string) error {
-	resp, err := e.kv.BatchPut(ctx, data)
-	if err != nil {
-		return err
-	}
-	if !resp.Succeeded {
-		return types.ErrTxnConditionFailed
-	}
-	return nil
+	_, err := e.kv.BatchPut(ctx, data)
+	return err
 }
 
 func (e *etcdKV) Delete(ctx context.Context, keys []string) error {
@@ -133,4 +120,12 @@ func (e *etcdKV) StartEphemeral(ctx context.Context, path string, heartbeat time
 
 func (e *etcdKV) CreateLock(key string, ttl time.Duration) (lock.DistributedLock, error) {
 	return e.kv.CreateLock(key, ttl)
+}
+
+func kvsToMap(kvs []*mvccpb.KeyValue) map[string]string {
+	data := make(map[string]string, len(kvs))
+	for _, kv := range kvs {
+		data[string(kv.Key)] = string(kv.Value)
+	}
+	return data
 }
