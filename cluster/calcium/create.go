@@ -48,7 +48,6 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 		rollbackMap          map[string][]int
 		engineParamsMap      = map[string][]resourcetypes.Resources{}
 		workloadResourcesMap = map[string][]resourcetypes.Resources{}
-		rollbackComplete     bool
 	)
 
 	_ = c.pool.Invoke(func() {
@@ -70,7 +69,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 			cancel()
 		}()
 
-		txnErr := utils.Txn(
+		settled, _ := utils.Txn(
 			ctx,
 
 			func(ctx context.Context) (err error) {
@@ -140,13 +139,12 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 						err = errors.Join(err, e)
 					}
 				}
-				rollbackComplete = err == nil
 				return err
 			},
 
 			c.config.GlobalTimeout,
 		)
-		if resourceCommit != nil && (txnErr == nil || rollbackComplete) {
+		if resourceCommit != nil && settled {
 			resourceCommit()
 		}
 	})
@@ -292,9 +290,8 @@ func (c *Calcium) doDeployOneWorkload(
 	if err != nil {
 		return err
 	}
-	var rollbackComplete bool
 
-	txnErr := utils.Txn(
+	settled, txnErr := utils.Txn(
 		ctx,
 		func(ctx context.Context) error {
 			created, err := node.Engine.VirtualizationCreate(ctx, createOpts)
@@ -375,9 +372,7 @@ func (c *Calcium) doDeployOneWorkload(
 		func(ctx context.Context, _ bool) (rollbackErr error) {
 			logger.Warnf(ctx, "failed to deploy workload %s, rollback", cmp.Or(workload.ID, workload.Name))
 			if workload.ID == "" {
-				rollbackErr = removeWorkloadByName(ctx, node, workload.Name)
-				rollbackComplete = rollbackErr == nil
-				return rollbackErr
+				return removeWorkloadByName(ctx, node, workload.Name)
 			}
 
 			if removeErr := c.store.RemoveWorkload(ctx, workload); removeErr != nil {
@@ -385,13 +380,11 @@ func (c *Calcium) doDeployOneWorkload(
 				rollbackErr = errors.Join(rollbackErr, removeErr)
 			}
 
-			rollbackErr = errors.Join(rollbackErr, workload.Remove(ctx, true))
-			rollbackComplete = rollbackErr == nil
-			return rollbackErr
+			return errors.Join(rollbackErr, workload.Remove(ctx, true))
 		},
 		c.config.GlobalTimeout,
 	)
-	if txnErr == nil || rollbackComplete {
+	if settled {
 		commit()
 	}
 	return txnErr

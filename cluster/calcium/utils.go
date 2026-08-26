@@ -15,7 +15,7 @@ import (
 )
 
 func (c *Calcium) withResourceReleased(ctx context.Context, node *types.Node, workload *types.Workload, then func(context.Context) error) error {
-	return utils.Txn(
+	_, err := utils.Txn(
 		ctx,
 		func(ctx context.Context) (err error) {
 			_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []resourcetypes.Resources{workload.Resources}, true, plugins.Decr)
@@ -31,6 +31,7 @@ func (c *Calcium) withResourceReleased(ctx context.Context, node *types.Node, wo
 		},
 		c.config.GlobalTimeout,
 	)
+	return err
 }
 
 func perNode[T any](c *Calcium, nodes []*types.Node, work func(*types.Node, chan<- T)) chan T {

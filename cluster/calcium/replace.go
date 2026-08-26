@@ -124,14 +124,14 @@ func (c *Calcium) doReplaceWorkload(
 		EngineParams: workload.EngineParams,
 	}
 
-	if err = utils.Txn(
+	if _, err = utils.Txn(
 		ctx,
 		func(ctx context.Context) (err error) {
 			removeMessage.Hook, err = c.doStopWorkload(ctx, workload, opts.IgnoreHook)
 			return err
 		},
 		func(ctx context.Context) error {
-			return utils.Txn(
+			_, txnErr := utils.Txn(
 				ctx,
 				func(ctx context.Context) error {
 					vco := c.doMakeWorkloadOptions(ctx, index, createMessage, &opts.DeployOptions, node)
@@ -154,6 +154,7 @@ func (c *Calcium) doReplaceWorkload(
 				nil,
 				c.config.GlobalTimeout,
 			)
+			return txnErr
 		},
 		func(ctx context.Context, _ bool) (err error) {
 			messages, err := c.doStartWorkload(ctx, workload, opts.IgnoreHook)

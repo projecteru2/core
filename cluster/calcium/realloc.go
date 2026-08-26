@@ -34,7 +34,6 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 	var engineParams resourcetypes.Resources
 	var err error
 	var reallocated bool
-	var rollbackComplete bool
 
 	logger := log.WithFunc("calcium.doReallocOnNode").WithField("opts", opts)
 	nodeCommit, err := c.journal(ctx, logger, eventWorkloadResourceAllocated, []*types.Node{node})
@@ -47,7 +46,7 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 		return err
 	}
 
-	err = utils.Txn(
+	settled, err := utils.Txn(
 		ctx,
 		func(ctx context.Context) error {
 			// Realloc mutates node resource meta in the resource plugin
@@ -66,7 +65,6 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 		},
 		func(ctx context.Context, _ bool) error {
 			if !reallocated {
-				rollbackComplete = true
 				return nil
 			}
 			var rollbackErr error
@@ -74,13 +72,11 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 				rollbackErr = errors.Join(rollbackErr, resourceErr)
 				logger.Errorf(ctx, rollbackErr, "failed to rollback workload %+v, resource args %+v, engine args %+v", workload.ID, litter.Sdump(resources), litter.Sdump(engineParams))
 			}
-			rollbackErr = errors.Join(rollbackErr, c.store.UpdateWorkload(ctx, &originWorkload))
-			rollbackComplete = rollbackErr == nil
-			return rollbackErr
+			return errors.Join(rollbackErr, c.store.UpdateWorkload(ctx, &originWorkload))
 		},
 		c.config.GlobalTimeout,
 	)
-	if err == nil || rollbackComplete {
+	if settled {
 		nodeCommit()
 		workloadCommit()
 	}

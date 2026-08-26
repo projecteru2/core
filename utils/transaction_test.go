@@ -12,7 +12,7 @@ import (
 
 func TestTxn(t *testing.T) {
 	err1 := errors.New("err1")
-	err := Txn(
+	settled, err := Txn(
 		t.Context(),
 		func(context.Context) error {
 			return err1
@@ -24,7 +24,21 @@ func TestTxn(t *testing.T) {
 		10*time.Second,
 	)
 	assert.Contains(t, err.Error(), err1.Error())
-	err = Txn(
+	assert.False(t, settled)
+	settled, err = Txn(
+		t.Context(),
+		func(context.Context) error {
+			return err1
+		},
+		nil,
+		func(context.Context, bool) error {
+			return nil
+		},
+		10*time.Second,
+	)
+	assert.Contains(t, err.Error(), err1.Error())
+	assert.True(t, settled)
+	settled, err = Txn(
 		t.Context(),
 		func(context.Context) error {
 			return nil
@@ -36,7 +50,8 @@ func TestTxn(t *testing.T) {
 		10*time.Second,
 	)
 	assert.Contains(t, err.Error(), err1.Error())
-	err = Txn(
+	assert.False(t, settled)
+	settled, err = Txn(
 		t.Context(),
 		func(context.Context) error {
 			return nil
@@ -46,6 +61,7 @@ func TestTxn(t *testing.T) {
 		10*time.Second,
 	)
 	assert.NoError(t, err)
+	assert.True(t, settled)
 }
 
 func TestPCR(t *testing.T) {

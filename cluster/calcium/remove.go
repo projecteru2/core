@@ -79,7 +79,7 @@ func (c *Calcium) doRemoveOneWorkload(ctx context.Context, node *types.Node, wor
 }
 
 func (c *Calcium) doRemoveWorkload(ctx context.Context, workload *types.Workload, force bool) error {
-	return utils.Txn(
+	_, err := utils.Txn(
 		ctx,
 		func(ctx context.Context) error {
 			return c.store.RemoveWorkload(ctx, workload)
@@ -95,6 +95,7 @@ func (c *Calcium) doRemoveWorkload(ctx context.Context, workload *types.Workload
 		},
 		c.config.GlobalTimeout,
 	)
+	return err
 }
 
 func (c *Calcium) doRemoveWorkloadSync(ctx context.Context, IDs []string) error {

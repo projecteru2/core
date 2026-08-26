@@ -36,7 +36,7 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 		return nil, err
 	}
 
-	return node, utils.Txn(
+	_, txnErr := utils.Txn(
 		ctx,
 		func(ctx context.Context) error {
 			res, err = c.rmgr.AddNode(ctx, opts.Nodename, opts.Resources, nodeInfo)
@@ -71,6 +71,7 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 		},
 		c.config.GlobalTimeout,
 	)
+	return node, txnErr
 }
 
 func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
@@ -90,7 +91,7 @@ func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 			return types.ErrNodeNotEmpty
 		}
 
-		return utils.Txn(ctx,
+		_, txnErr := utils.Txn(ctx,
 			func(ctx context.Context) error {
 				// a down node has no status key, so peers miss the removal unless one is written first
 				if err = c.store.SetNodeStatus(ctx, node, 90); err != nil {
@@ -115,6 +116,7 @@ func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 				return nil
 			},
 			c.config.GlobalTimeout)
+		return txnErr
 	})
 }
 
@@ -209,7 +211,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 		}
 
 		var origin resourcetypes.Resources
-		return utils.Txn(ctx,
+		_, txnErr := utils.Txn(ctx,
 			func(ctx context.Context) error {
 				if len(opts.Resources) == 0 {
 					return nil
@@ -239,6 +241,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 				return err
 			},
 			c.config.GlobalTimeout)
+		return txnErr
 	})
 }
 
