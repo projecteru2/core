@@ -128,25 +128,35 @@ func (s *Store) WorkloadStatusStream(ctx context.Context, appname, entrypoint, n
 			logger.Info(ctx, "close WorkloadStatus channel")
 			close(ch)
 		}()
-
-		logger.Infof(ctx, "watch on %s", statusKey)
-		for event := range s.Watch(ctx, statusKey) {
-			_, _, _, ID := ParseStatusKey(event.Key)
-			msg := &types.WorkloadStatus{ID: ID, Delete: event.Type != EventPut}
-			workload, err := s.GetWorkload(ctx, ID)
-			switch {
-			case err != nil:
-				msg.Error = err
-			case utils.LabelsFilter(workload.Labels, labels):
-				logger.Debugf(ctx, "workload %s status changed", workload.ID)
-				msg.Workload = workload
-			default:
-				continue
-			}
-			ch <- msg
-		}
+		s.watchRetry(ctx, logger, func(ctx context.Context) error {
+			return s.workloadStatusStream(ctx, logger, statusKey, labels, ch)
+		})
 	})
 	return ch
+}
+
+func (s *Store) workloadStatusStream(ctx context.Context, logger *log.Fields, statusKey string, labels map[string]string, ch chan<- *types.WorkloadStatus) error {
+	logger.Infof(ctx, "watch on %s", statusKey)
+	for event := range s.Watch(ctx, statusKey) {
+		_, _, _, ID := ParseStatusKey(event.Key)
+		msg := &types.WorkloadStatus{ID: ID, Delete: event.Type != EventPut}
+		workload, err := s.GetWorkload(ctx, ID)
+		switch {
+		case err != nil:
+			msg.Error = err
+		case utils.LabelsFilter(workload.Labels, labels):
+			logger.Debugf(ctx, "workload %s status changed", workload.ID)
+			msg.Workload = workload
+		default:
+			continue
+		}
+		select {
+		case ch <- msg:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	return types.ErrMessageChanClosed
 }
 
 func (s *Store) filterWorkloads(ctx context.Context, data, labels map[string]string) ([]*types.Workload, error) {
