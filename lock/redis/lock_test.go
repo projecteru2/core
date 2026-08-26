@@ -75,7 +75,7 @@ func (s *RedisLockTestSuite) TestLostLeaseCancelsContext() {
 }
 
 func (s *RedisLockTestSuite) TestTransientRefreshErrorKeepsContext() {
-	l, err := New(s.cli, "test", time.Second, 90*time.Millisecond)
+	l, err := New(s.cli, "test", time.Second, 900*time.Millisecond)
 	s.Require().NoError(err)
 
 	ctx, err := l.Lock(context.Background())
@@ -85,7 +85,24 @@ func (s *RedisLockTestSuite) TestTransientRefreshErrorKeepsContext() {
 	select {
 	case <-ctx.Done():
 		s.FailNow("transient refresh error canceled the lock context")
-	case <-time.After(200 * time.Millisecond):
+	case <-time.After(400 * time.Millisecond):
+	}
+	s.server.SetError("")
+	s.NoError(l.Unlock(context.Background()))
+}
+
+func (s *RedisLockTestSuite) TestUnrefreshedLockCancelsAfterTTL() {
+	l, err := New(s.cli, "test", time.Second, 90*time.Millisecond)
+	s.Require().NoError(err)
+
+	ctx, err := l.Lock(context.Background())
+	s.Require().NoError(err)
+	s.server.SetError("mock outage")
+
+	select {
+	case <-ctx.Done():
+	case <-time.After(time.Second):
+		s.FailNow("lock context outlived an unrefreshed ttl")
 	}
 	s.server.SetError("")
 	s.NoError(l.Unlock(context.Background()))

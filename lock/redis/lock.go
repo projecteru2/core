@@ -55,16 +55,22 @@ func (r *RedisLock) Lock(ctx context.Context) (context.Context, error) {
 	r.l = l
 	r.cancel = cancel
 	interval := r.ttl / 3
+	logger := log.WithFunc("redislock.RedisLock.Lock")
 	r.wg.Go(func() {
+		lastOK := time.Now()
 		err := utils.KeepAlive(ctx, interval, func(ctx context.Context) error {
 			refreshCtx, refreshCancel := context.WithTimeout(ctx, interval)
 			defer refreshCancel()
 			err := l.Refresh(refreshCtx, r.ttl, opts)
-			if err != nil && !errors.Is(err, redislock.ErrNotObtained) && ctx.Err() == nil {
-				log.WithFunc("redislock.Lock").Warnf(ctx, "refresh lock %s failed: %+v", r.key, err)
-				return nil
+			switch {
+			case err == nil:
+				lastOK = time.Now()
+			case errors.Is(err, redislock.ErrNotObtained), time.Since(lastOK) >= r.ttl, ctx.Err() != nil:
+				return err
+			default:
+				logger.Warnf(ctx, "refresh lock %s failed: %+v", r.key, err)
 			}
-			return err
+			return nil
 		})
 		if err != nil {
 			cancel()
