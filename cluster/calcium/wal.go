@@ -10,6 +10,7 @@ import (
 	"github.com/cockroachdb/errors"
 
 	"github.com/projecteru2/core/log"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/wal"
@@ -20,6 +21,7 @@ const (
 	eventWorkloadCreated           = "create-workload" // created but yet to start
 	eventWorkloadReplaced          = "replace-workload"
 	eventWorkloadReallocated       = "realloc-workload"
+	eventWorkloadRemapped          = "remap-workload"
 	eventWorkloadResourceAllocated = "allocate-workload" // resource updated in node meta but yet to create all workloads
 	eventProcessingCreated         = "create-processing" // processing created but yet to delete
 
@@ -176,6 +178,11 @@ type workloadReplacement struct {
 	NewID string `json:"new_id"`
 }
 
+type workloadRemap struct {
+	ID           string                  `json:"id"`
+	EngineParams resourcetypes.Resources `json:"engine_params"`
+}
+
 // ReplaceWorkloadHandler removes the workload an interrupted replace left behind.
 type ReplaceWorkloadHandler struct {
 	walBase[*workloadReplacement]
@@ -253,6 +260,30 @@ func (h *ReallocWorkloadHandler) Handle(ctx context.Context, raw any) error {
 	}
 	logger.Info(ctx, "engine params reapplied")
 	return nil
+}
+
+type remapWorkloadHandler struct {
+	walBase[*workloadRemap]
+
+	calcium *Calcium
+}
+
+func newRemapWorkloadHandler(calcium *Calcium) *remapWorkloadHandler {
+	return &remapWorkloadHandler{calcium: calcium}
+}
+
+func (h *remapWorkloadHandler) Typ() string {
+	return eventWorkloadRemapped
+}
+
+func (h *remapWorkloadHandler) Handle(ctx context.Context, raw any) error {
+	remap, _ := raw.(*workloadRemap)
+	logger := log.WithFunc("calcium.RemapWorkloadHandler.Handle").WithField("ID", remap.ID)
+
+	ctx, cancel := getReplayContext(ctx)
+	defer cancel()
+
+	return h.calcium.applyWorkloadRemap(ctx, logger, remap)
 }
 
 // WorkloadResourceAllocatedHandler replays a dangling resource allocation by refreshing node resources.
@@ -350,6 +381,7 @@ func enableWAL(ctx context.Context, config types.Config, calcium *Calcium, store
 	hydro.Register(newCreateWorkloadHandler(calcium))
 	hydro.Register(newReplaceWorkloadHandler(calcium))
 	hydro.Register(newReallocWorkloadHandler(calcium))
+	hydro.Register(newRemapWorkloadHandler(calcium))
 	hydro.Register(newWorkloadResourceAllocatedHandler(calcium))
 	hydro.Register(newProcessingCreatedHandler(store))
 	return hydro, nil
