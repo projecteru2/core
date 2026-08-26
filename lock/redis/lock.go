@@ -6,8 +6,10 @@ import (
 	"time"
 
 	"github.com/bsm/redislock"
+	"github.com/cockroachdb/errors"
 
 	"github.com/projecteru2/core/lock"
+	"github.com/projecteru2/core/log"
 )
 
 var opts = &redislock.Options{
@@ -61,11 +63,14 @@ func (r *RedisLock) Lock(ctx context.Context) (context.Context, error) {
 				return
 			case <-ticker.C:
 				refreshCtx, refreshCancel := context.WithTimeout(ctx, interval)
-				err := l.Refresh(refreshCtx, r.ttl, nil)
+				err := l.Refresh(refreshCtx, r.ttl, opts)
 				refreshCancel()
-				if err != nil {
+				switch {
+				case errors.Is(err, redislock.ErrNotObtained):
 					cancel()
 					return
+				case err != nil && ctx.Err() == nil:
+					log.WithFunc("redislock.Lock").Warnf(ctx, "refresh lock %s failed: %+v", r.key, err)
 				}
 			}
 		}
