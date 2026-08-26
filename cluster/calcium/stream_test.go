@@ -42,3 +42,16 @@ func TestProcessVirtualizationOutStreamReadsLongLines(t *testing.T) {
 
 	require.Equal(t, [][]byte{append(line, '\n')}, got)
 }
+
+func TestProcessVirtualizationOutStreamBoundsTokens(t *testing.T) {
+	c := NewTestCluster()
+	c.config.GRPCConfig.MaxRecvMsgSize = 1024
+	blob := bytes.Repeat([]byte("x"), 4096)
+
+	got := [][]byte{}
+	for bs := range c.processVirtualizationOutStream(context.Background(), io.NopCloser(bytes.NewReader(blob)), bufio.ScanLines, byte('\n')) {
+		got = append(got, bs)
+	}
+
+	require.Empty(t, got)
+}

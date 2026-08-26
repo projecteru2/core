@@ -84,6 +84,7 @@ func NewTestCluster() *Calcium {
 			ShareBase: 100,
 		},
 		GRPCConfig: types.GRPCConfig{
+			MaxRecvMsgSize:               20971520,
 			ServiceDiscoveryPushInterval: 15 * time.Second,
 		},
 		MaxConcurrency:      100000,
