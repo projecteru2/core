@@ -8,13 +8,14 @@ import (
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 func (c *Calcium) ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorkloadOptions, inCh <-chan []byte) chan *types.AttachWorkloadMessage {
 	logger := log.WithFunc("calcium.ExecuteWorkload").WithField("opts", opts)
 	ch := make(chan *types.AttachWorkloadMessage)
 
-	_ = c.pool.Invoke(func() {
+	utils.SentryGo(func() {
 		var err error
 
 		defer func() {

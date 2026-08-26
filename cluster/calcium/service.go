@@ -13,10 +13,7 @@ import (
 
 func (c *Calcium) WatchServiceStatus(ctx context.Context) (<-chan types.ServiceStatus, error) {
 	id, ch := c.watcher.Subscribe(ctx)
-	_ = c.pool.Invoke(func() {
-		<-ctx.Done()
-		c.watcher.Unsubscribe(id)
-	})
+	context.AfterFunc(ctx, func() { c.watcher.Unsubscribe(id) })
 	return ch, nil
 }
 
@@ -41,13 +38,12 @@ func (c *Calcium) RegisterService(ctx context.Context) (unregister func(), err e
 		return nil, err
 	}
 
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
+	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(ctx)
-	_ = c.pool.Invoke(func() {
+	wg.Go(func() {
+		defer log.SentryDefer()
 		defer func() {
 			unregisterService()
-			wg.Done()
 		}()
 
 		for {

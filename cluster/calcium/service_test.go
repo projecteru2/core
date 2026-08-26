@@ -5,14 +5,50 @@ import (
 	"fmt"
 	"sync"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
 	"github.com/projecteru2/core/discovery/helium"
 	storemocks "github.com/projecteru2/core/store/mocks"
+	"github.com/projecteru2/core/utils"
 )
+
+func TestRegisterServiceDoesNotOccupyPool(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		c := NewTestCluster()
+		c.pool.Release()
+		pool, err := utils.NewPool(1)
+		require.NoError(t, err)
+		defer pool.Release()
+		c.pool = pool
+
+		store := c.store.(*storemocks.Store)
+		store.On("RegisterService", mock.Anything, mock.Anything, mock.Anything).
+			Return(make(<-chan struct{}), func() {}, nil).Once()
+		unregister, err := c.RegisterService(t.Context())
+		require.NoError(t, err)
+
+		ran := make(chan struct{})
+		invokeDone := make(chan error, 1)
+		go func() {
+			invokeDone <- pool.Invoke(func() { close(ran) })
+		}()
+		synctest.Wait()
+		select {
+		case <-ran:
+		default:
+			t.Error("service heartbeat occupied the pool")
+		}
+
+		unregister()
+		synctest.Wait()
+		require.NoError(t, <-invokeDone)
+	})
+}
 
 func TestServiceStatusStream(t *testing.T) {
 	c := NewTestCluster()

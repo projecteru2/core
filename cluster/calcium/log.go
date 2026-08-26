@@ -7,12 +7,13 @@ import (
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 func (c *Calcium) LogStream(ctx context.Context, opts *types.LogStreamOptions) (chan *types.LogStreamMessage, error) {
 	logger := log.WithFunc("calcium.LogStream").WithField("opts", opts)
 	ch := make(chan *types.LogStreamMessage)
-	_ = c.pool.Invoke(func() {
+	utils.SentryGo(func() {
 		defer close(ch)
 		workload, err := c.GetWorkload(ctx, opts.ID)
 		if err != nil {

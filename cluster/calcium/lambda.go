@@ -39,8 +39,6 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 	)
 
 	lambda := func(message *types.CreateWorkloadMessage) (attachMessage *types.AttachWorkloadMessage) {
-		defer wg.Done()
-
 		defer func() {
 			runMsgCh <- attachMessage
 		}()
@@ -125,11 +123,13 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 
 	for message := range createChan {
 		workloadIDs = append(workloadIDs, message.WorkloadID)
-		wg.Add(1)
-		_ = c.pool.Invoke(func() { lambda(message) })
+		wg.Go(func() {
+			defer log.SentryDefer()
+			lambda(message)
+		})
 	}
 
-	_ = c.pool.Invoke(func() {
+	utils.SentryGo(func() {
 		defer close(runMsgCh)
 		wg.Wait()
 

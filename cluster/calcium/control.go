@@ -15,7 +15,7 @@ func (c *Calcium) ControlWorkload(ctx context.Context, IDs []string, typ string,
 	logger := log.WithFunc("calcium.ControlWorkload").WithField("IDs", IDs).WithField("typ", typ).WithField("force", force)
 	ch := make(chan *types.ControlWorkloadMessage)
 
-	_ = c.pool.Invoke(func() {
+	utils.SentryGo(func() {
 		defer close(ch)
 		wg := &sync.WaitGroup{}
 		wg.Add(len(IDs))

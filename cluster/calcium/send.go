@@ -8,6 +8,7 @@ import (
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *types.SendMessage, error) {
@@ -17,7 +18,7 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 		return nil, err
 	}
 	ch := make(chan *types.SendMessage)
-	_ = c.pool.Invoke(func() {
+	utils.SentryGo(func() {
 		defer close(ch)
 		wg := &sync.WaitGroup{}
 		wg.Add(len(opts.IDs))

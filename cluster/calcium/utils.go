@@ -34,9 +34,13 @@ func (c *Calcium) withResourceReleased(ctx context.Context, node *types.Node, wo
 	return err
 }
 
+func (c *Calcium) invokePoolAsync(f func()) {
+	utils.SentryGo(func() { _ = c.pool.Invoke(f) })
+}
+
 func perNode[T any](c *Calcium, nodes []*types.Node, work func(*types.Node, chan<- T)) chan T {
 	ch := make(chan T)
-	_ = c.pool.Invoke(func() {
+	utils.SentryGo(func() {
 		defer close(ch)
 		wg := &sync.WaitGroup{}
 		wg.Add(len(nodes))

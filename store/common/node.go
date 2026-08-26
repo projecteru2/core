@@ -165,7 +165,7 @@ func (s *Store) GetNodeStatus(ctx context.Context, nodename string) (*types.Node
 func (s *Store) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
 	ch := make(chan *types.NodeStatus)
 	logger := log.WithFunc("store.common.NodeStatusStream")
-	_ = s.Pool.Invoke(func() {
+	utils.SentryGo(func() {
 		defer func() {
 			logger.Info(ctx, "close NodeStatusStream channel")
 			close(ch)

@@ -75,7 +75,7 @@ func (r *Rediaron) KNotify(ctx context.Context, pattern string) chan *KNotifyMes
 	channel := fmt.Sprintf(keyNotifyPrefix, r.Config.Redis.DB, pattern)
 	pubsub := r.cli.PSubscribe(ctx, channel)
 	subC := pubsub.ChannelWithSubscriptions()
-	_ = r.Pool.Invoke(func() {
+	utils.SentryGo(func() {
 		defer close(ch)
 		defer func() {
 			_ = pubsub.Close()

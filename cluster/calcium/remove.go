@@ -22,7 +22,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 	}
 
 	ch := make(chan *types.RemoveWorkloadMessage)
-	_ = c.pool.Invoke(func() {
+	utils.SentryGo(func() {
 		defer close(ch)
 		wg := sync.WaitGroup{}
 		defer wg.Wait()
@@ -46,7 +46,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 						}
 						ch <- ret
 					}
-					_ = c.pool.Invoke(func() { c.RemapResourceAndLog(ctx, logger, node) })
+					c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node) })
 					return nil
 				}); nodeErr != nil {
 					logger.WithField("node", nodename).Error(ctx, nodeErr, "failed to lock node")

@@ -50,7 +50,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 		workloadResourcesMap = map[string][]resourcetypes.Resources{}
 	)
 
-	_ = c.pool.Invoke(func() {
+	utils.SentryGo(func() {
 		var resourceCommit func()
 		var processingCommits map[string]func()
 		defer func() {
@@ -160,7 +160,6 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context,
 	deployMap map[string]int,
 ) (_ map[string][]int, err error) {
 	wg := sync.WaitGroup{}
-	wg.Add(len(deployMap))
 	logger := log.WithFunc("calcium.doDeployWorkloads").WithField("ident", opts.ProcessIdent)
 
 	total := 0
@@ -175,8 +174,8 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context,
 	for nodename, deploy := range deployMap {
 		start := seq
 		seq += deploy
-		_ = c.pool.Invoke(func() {
-			defer wg.Done()
+		wg.Go(func() {
+			defer log.SentryDefer()
 			if indices, deployErr := c.doDeployWorkloadsOnNode(ctx, ch, nodename, opts, deploy, engineParamsMap[nodename], workloadResourcesMap[nodename], start); deployErr != nil {
 				rollbackLock.Lock()
 				rollbackMap[nodename] = indices
@@ -246,7 +245,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
 	}
 	wg.Wait()
 
-	_ = c.pool.Invoke(func() { c.RemapResourceAndLog(ctx, logger, node) })
+	c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node) })
 
 	return indices, err
 }

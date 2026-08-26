@@ -15,6 +15,7 @@ import (
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error) {
@@ -189,7 +190,7 @@ func (c *Calcium) getWorkloadNode(ctx context.Context, ID string) (*types.Node, 
 
 func (c *Calcium) withImageBuiltChannel(f func(chan *types.BuildImageMessage)) chan *types.BuildImageMessage {
 	ch := make(chan *types.BuildImageMessage)
-	_ = c.pool.Invoke(func() {
+	utils.SentryGo(func() {
 		defer close(ch)
 		f(ch)
 	})
