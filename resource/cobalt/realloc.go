@@ -2,6 +2,7 @@ package cobalt
 
 import (
 	"context"
+	"maps"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resource/plugins"
@@ -10,7 +11,7 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-func (m Manager) Realloc(ctx context.Context, nodename string, nodeResource, opts resourcetypes.Resources) (resourcetypes.Resources, resourcetypes.Resources, resourcetypes.Resources, error) {
+func (m *Manager) Realloc(ctx context.Context, nodename string, nodeResource, opts resourcetypes.Resources) (resourcetypes.Resources, resourcetypes.Resources, resourcetypes.Resources, error) {
 	logger := log.WithFunc("resource.cobalt.Realloc").WithField("node", nodename)
 	engineParams := resourcetypes.Resources{}
 	deltaResources := resourcetypes.Resources{}
@@ -31,14 +32,10 @@ func (m Manager) Realloc(ctx context.Context, nodename string, nodeResource, opt
 			}
 
 			for plugin, resp := range resps {
-				v, err := m.mergeEngineParams(ctx, engineParams[plugin.Name()], resp.EngineParams)
-				if err != nil {
-					logger.Error(ctx, err, "invalid engine args")
-					return err
-				}
-				engineParams[plugin.Name()] = v
-				deltaResources[plugin.Name()] = resp.DeltaResource
-				workloadResource[plugin.Name()] = resp.WorkloadResource
+				name := plugin.Name()
+				engineParams[name] = maps.Clone(resp.EngineParams)
+				deltaResources[name] = resp.DeltaResource
+				workloadResource[name] = resp.WorkloadResource
 			}
 			return nil
 		},
@@ -54,7 +51,7 @@ func (m Manager) Realloc(ctx context.Context, nodename string, nodeResource, opt
 	)
 }
 
-func (m Manager) RollbackRealloc(ctx context.Context, nodename string, workloadParams resourcetypes.Resources) error {
+func (m *Manager) RollbackRealloc(ctx context.Context, nodename string, workloadParams resourcetypes.Resources) error {
 	_, _, err := m.SetNodeResourceUsage(ctx, nodename, nil, nil, []resourcetypes.Resources{workloadParams}, true, plugins.Decr)
 	return err
 }

@@ -16,8 +16,7 @@ import (
 )
 
 func TestGetNodesDeployCapacityTotalSaturates(t *testing.T) {
-	m, err := New(coretypes.Config{})
-	assert.NoError(t, err)
+	m := New(coretypes.Config{})
 	m.AddPlugins(newCapacityPlugin(t, "cpumem", map[string]*plugintypes.NodeDeployCapacity{
 		"unbounded": {Capacity: math.MaxInt, Weight: 1},
 		"bounded":   {Capacity: 5, Weight: 1},
@@ -31,8 +30,7 @@ func TestGetNodesDeployCapacityTotalSaturates(t *testing.T) {
 }
 
 func TestGetNodesDeployCapacityWeightsEveryPlugin(t *testing.T) {
-	m, err := New(coretypes.Config{})
-	assert.NoError(t, err)
+	m := New(coretypes.Config{})
 	m.AddPlugins(
 		newCapacityPlugin(t, "cpumem", map[string]*plugintypes.NodeDeployCapacity{
 			"n1": {Capacity: 10, Rate: 0.5, Usage: 0.5, Weight: 100},
@@ -73,11 +71,10 @@ func TestRemoveNodeRollbackRestoresNonWhitelistedPlugins(t *testing.T) {
 		}).
 		Return(&plugintypes.SetNodeResourceInfoResponse{}, nil)
 
-	m, err := New(coretypes.Config{
+	m := New(coretypes.Config{
 		GlobalTimeout:  time.Minute,
 		ResourcePlugin: coretypes.ResourcePluginConfig{Whitelist: []string{"cpumem"}},
 	})
-	assert.NoError(t, err)
 	m.AddPlugins(whitelisted, other)
 
 	assert.Error(t, m.RemoveNode(t.Context(), "n1"))
@@ -94,8 +91,7 @@ func TestSetNodeResourceCapacityReturnsSuccessfulChange(t *testing.T) {
 		Return(&plugintypes.SetNodeResourceCapacityResponse{Before: beforeResource, After: afterResource}, nil).
 		Once()
 
-	m, err := New(coretypes.Config{GlobalTimeout: time.Minute})
-	assert.NoError(t, err)
+	m := New(coretypes.Config{GlobalTimeout: time.Minute})
 	m.AddPlugins(plugin)
 
 	before, after, err := m.SetNodeResourceCapacity(

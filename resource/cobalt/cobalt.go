@@ -18,13 +18,8 @@ type Manager struct {
 	plugins []plugins.Plugin
 }
 
-func New(config types.Config) (*Manager, error) {
-	m := &Manager{
-		config:  config,
-		plugins: []plugins.Plugin{},
-	}
-
-	return m, nil
+func New(config types.Config) *Manager {
+	return &Manager{config: config}
 }
 
 func (m *Manager) LoadPlugins(ctx context.Context, embeddedETCD *embedded.Cluster) error {

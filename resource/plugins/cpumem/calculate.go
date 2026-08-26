@@ -102,7 +102,7 @@ func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource 
 		if len(numaNodeID) > 0 {
 			numaMemory = cpumemtypes.NUMAMemory{numaNodeID: newReq.MemRequest}
 		}
-	} else if _, _, err = p.doAllocByMemory(nodeResourceInfo, 1, newReq); err != nil {
+	} else if err = checkResourceCapacity(nodeResourceInfo, 1, newReq); err != nil {
 		return nil, err
 	}
 
@@ -143,15 +143,6 @@ func (p Plugin) CalculateRemap(ctx context.Context, nodename string, workloadsRe
 		}, resp)
 	}
 
-	workloadResourceMap := map[string]*cpumemtypes.WorkloadResource{}
-	for ID, workload := range workloadsResource {
-		workloadResource := &cpumemtypes.WorkloadResource{}
-		if err := workloadResource.Parse(workload); err != nil {
-			return nil, err
-		}
-		workloadResourceMap[ID] = workloadResource
-	}
-
 	nodeResourceInfo, err := p.doGetNodeResourceInfo(ctx, nodename)
 	if err != nil {
 		log.WithFunc("resource.cpumem.CalculateRemap").WithField("node", nodename).Error(ctx, err)
@@ -173,7 +164,11 @@ func (p Plugin) CalculateRemap(ctx context.Context, nodename string, workloadsRe
 		}
 	}
 
-	for ID, workloadResource := range workloadResourceMap {
+	for ID, workload := range workloadsResource {
+		workloadResource := &cpumemtypes.WorkloadResource{}
+		if err := workloadResource.Parse(workload); err != nil {
+			return nil, err
+		}
 		if len(workloadResource.CPUMap) == 0 {
 			engineParamsMap[ID] = &cpumemtypes.EngineParams{
 				CPU:      workloadResource.CPULimit,
@@ -191,13 +186,8 @@ func (p Plugin) CalculateRemap(ctx context.Context, nodename string, workloadsRe
 }
 
 func (p Plugin) doAllocByMemory(resourceInfo *cpumemtypes.NodeResourceInfo, deployCount int, req *cpumemtypes.WorkloadResourceRequest) ([]*cpumemtypes.EngineParams, []*cpumemtypes.WorkloadResource, error) {
-	if req.CPURequest > float64(len(resourceInfo.Capacity.CPUMap)) {
-		return nil, nil, errors.Wrap(coretypes.ErrInsufficientCapacity, "cpu")
-	}
-
-	availableResource := resourceInfo.GetAvailableResource()
-	if req.MemRequest > 0 && availableResource.Memory/req.MemRequest < int64(deployCount) {
-		return nil, nil, errors.Wrap(coretypes.ErrInsufficientCapacity, "memory")
+	if err := checkResourceCapacity(resourceInfo, deployCount, req); err != nil {
+		return nil, nil, err
 	}
 
 	engineParams := &cpumemtypes.EngineParams{
@@ -249,4 +239,15 @@ func (p Plugin) doAllocByCPU(resourceInfo *cpumemtypes.NodeResourceInfo, deployC
 	}
 
 	return enginesParams, workloadsResource, nil
+}
+
+func checkResourceCapacity(resourceInfo *cpumemtypes.NodeResourceInfo, deployCount int, req *cpumemtypes.WorkloadResourceRequest) error {
+	if req.CPURequest > float64(len(resourceInfo.Capacity.CPUMap)) {
+		return errors.Wrap(coretypes.ErrInsufficientCapacity, "cpu")
+	}
+	available := resourceInfo.Capacity.Memory - resourceInfo.Usage.Memory
+	if req.MemRequest > 0 && available/req.MemRequest < int64(deployCount) {
+		return errors.Wrap(coretypes.ErrInsufficientCapacity, "memory")
+	}
+	return nil
 }

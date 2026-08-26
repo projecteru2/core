@@ -46,11 +46,10 @@ func (w *WorkloadResource) Add(w1 *WorkloadResource) {
 	w.MemoryRequest += w1.MemoryRequest
 	w.CPUMap.Add(w1.CPUMap)
 
-	if len(w.NUMAMemory) == 0 {
-		w.NUMAMemory = w1.NUMAMemory
-	} else {
-		w.NUMAMemory.Add(w1.NUMAMemory)
+	if w.NUMAMemory == nil {
+		w.NUMAMemory = NUMAMemory{}
 	}
+	w.NUMAMemory.Add(w1.NUMAMemory)
 }
 
 func (w *WorkloadResource) Sub(w1 *WorkloadResource) {
