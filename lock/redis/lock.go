@@ -2,6 +2,7 @@ package redislock
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/bsm/redislock"
@@ -20,6 +21,8 @@ type RedisLock struct {
 	ttl     time.Duration
 	lc      *redislock.Client
 	l       *redislock.Lock
+	cancel  context.CancelFunc
+	wg      sync.WaitGroup
 }
 
 // New creates a lock on key, waiting at most waitTimeout to acquire it and holding it for lockTTL.
@@ -45,7 +48,28 @@ func (r *RedisLock) Lock(ctx context.Context) (context.Context, error) {
 	if err != nil {
 		return nil, err
 	}
+	ctx, cancel = context.WithCancel(ctx)
 	r.l = l
+	r.cancel = cancel
+	interval := r.ttl / 3
+	r.wg.Go(func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				refreshCtx, refreshCancel := context.WithTimeout(ctx, interval)
+				err := l.Refresh(refreshCtx, r.ttl, nil)
+				refreshCancel()
+				if err != nil {
+					cancel()
+					return
+				}
+			}
+		}
+	})
 	return ctx, nil
 }
 
@@ -53,8 +77,12 @@ func (r *RedisLock) Unlock(ctx context.Context) error {
 	if r.l == nil {
 		return redislock.ErrLockNotHeld
 	}
+	if r.cancel != nil {
+		r.cancel()
+		r.wg.Wait()
+	}
 
-	lockCtx, cancel := context.WithTimeout(ctx, r.ttl)
+	lockCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), r.ttl)
 	defer cancel()
 	return r.l.Release(lockCtx)
 }
