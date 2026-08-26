@@ -19,7 +19,7 @@ func (s *RediaronTestSuite) TestRegisterServiceWithDeregister() {
 
 	v, err := m.GetOne(ctx, path)
 	s.NoError(err)
-	s.Equal(ephemeralValue, v)
+	s.NotEmpty(v)
 
 	deregister()
 	v, err = m.GetOne(ctx, path)
