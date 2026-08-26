@@ -18,12 +18,7 @@ import (
 )
 
 func TestVirtualizationCreateRendersTheVMAndRecordsIt(t *testing.T) {
-	runner := &sshrunnertest.Fake{Respond: func(line string) *sshrunner.Result {
-		if strings.Contains(line, "'create'") {
-			return &sshrunner.Result{Stdout: linuxVM}
-		}
-		return &sshrunner.Result{}
-	}}
+	runner := &sshrunnertest.Fake{Respond: createdVM}
 	e := testEngine(t, runner)
 
 	created, err := e.VirtualizationCreate(t.Context(), &enginetypes.VirtualizationCreateOptions{
@@ -98,13 +93,7 @@ func TestVirtualizationCreateDiscardsAVMWhoseRecordFailed(t *testing.T) {
 func TestVirtualizationCreateDiscardsAVMWhoseDeadlineExpired(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
-	runner := &sshrunnertest.Fake{Respond: func(line string) *sshrunner.Result {
-		if strings.Contains(line, "'create'") {
-			cancel()
-			return &sshrunner.Result{Stdout: linuxVM}
-		}
-		return &sshrunner.Result{}
-	}}
+	runner := &sshrunnertest.Fake{Respond: createdVMThenCanceled(cancel)}
 	e := testEngine(t, runner)
 
 	if _, err := e.VirtualizationCreate(ctx, &enginetypes.VirtualizationCreateOptions{Name: "app_web_xyz", Image: testImage}); err == nil {
@@ -117,12 +106,7 @@ func TestVirtualizationCreateDiscardsAVMWhoseDeadlineExpired(t *testing.T) {
 }
 
 func TestVirtualizationCreateKeepsTheConflistOfAnInheritedNetwork(t *testing.T) {
-	runner := &sshrunnertest.Fake{Respond: func(line string) *sshrunner.Result {
-		if strings.Contains(line, "'create'") {
-			return &sshrunner.Result{Stdout: linuxVM}
-		}
-		return &sshrunner.Result{}
-	}}
+	runner := &sshrunnertest.Fake{Respond: createdVM}
 	e := testEngine(t, runner)
 
 	if _, err := e.VirtualizationCreate(t.Context(), &enginetypes.VirtualizationCreateOptions{

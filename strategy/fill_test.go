@@ -2,7 +2,6 @@ package strategy
 
 import (
 	"errors"
-	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,23 +14,13 @@ func TestFillPlan(t *testing.T) {
 	nodes := deployedNodes()
 	r, err := FillPlan(t.Context(), nodes, n, 0, 0)
 	assert.NoError(t, err)
-	finalCounts := []int{}
-	for _, node := range nodes {
-		finalCounts = append(finalCounts, node.Count+r[node.Nodename])
-	}
-	slices.Sort(finalCounts)
-	assert.ElementsMatch(t, []int{10, 10, 10, 10}, finalCounts)
+	assert.ElementsMatch(t, []int{10, 10, 10, 10}, getFinalStatus(r, nodes))
 
 	n = 5
 	nodes = deployedNodes()
 	r, err = FillPlan(t.Context(), nodes, n, 0, 0)
 	assert.NoError(t, err)
-	finalCounts = []int{}
-	for _, node := range nodes {
-		finalCounts = append(finalCounts, node.Count+r[node.Nodename])
-	}
-	slices.Sort(finalCounts)
-	assert.ElementsMatch(t, []int{5, 5, 5, 7}, finalCounts)
+	assert.ElementsMatch(t, []int{5, 5, 5, 7}, getFinalStatus(r, nodes))
 
 	n = 15
 	nodes = deployedNodes()

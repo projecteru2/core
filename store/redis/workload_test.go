@@ -10,21 +10,20 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
+const (
+	workloadID       = "1234567812345678123456781234567812345678123456781234567812345678"
+	workloadName     = "test_app_1"
+	workloadNodename = "n1"
+	workloadPodname  = "test"
+)
+
 func (s *RediaronTestSuite) TestAddORUpdateWorkload() {
 	ctx := s.T().Context()
-	id := "1234567812345678123456781234567812345678123456781234567812345678"
-	name := "test_app_1"
-	nodename := "n1"
-	podname := "test"
-	workload := &types.Workload{
-		ID:       id,
-		Nodename: nodename,
-		Podname:  podname,
-		Name:     "a",
-	}
+	workload := s.newWorkloadFixture()
+	workload.Name = "a"
 	err := s.rediaron.AddWorkload(ctx, workload, nil)
 	s.Error(err)
-	workload.Name = name
+	workload.Name = workloadName
 	err = s.rediaron.UpdateWorkload(ctx, workload)
 	s.Error(err)
 	err = s.rediaron.AddWorkload(ctx, workload, nil)
@@ -35,81 +34,54 @@ func (s *RediaronTestSuite) TestAddORUpdateWorkload() {
 
 func (s *RediaronTestSuite) TestRemoveWorkload() {
 	ctx := s.T().Context()
-	id := "1234567812345678123456781234567812345678123456781234567812345678"
-	name := "test_app_1"
-	nodename := "n1"
-	podname := "test"
-	workload := &types.Workload{
-		ID:       id,
-		Nodename: nodename,
-		Podname:  podname,
-		Name:     name,
-	}
+	workload := s.newWorkloadFixture()
 	err := s.rediaron.AddWorkload(ctx, workload, nil)
 	s.NoError(err)
 	workload.Name = "a"
 	err = s.rediaron.RemoveWorkload(ctx, workload)
 	s.Error(err)
-	workload.Name = name
+	workload.Name = workloadName
 	err = s.rediaron.RemoveWorkload(ctx, workload)
 	s.NoError(err)
 }
 
 func (s *RediaronTestSuite) TestGetWorkload() {
 	ctx := s.T().Context()
-	id := "1234567812345678123456781234567812345678123456781234567812345678"
-	name := "test_app_1"
-	nodename := "n1"
-	podname := "test"
-	workload := &types.Workload{
-		ID:       id,
-		Nodename: nodename,
-		Podname:  podname,
-		Name:     name,
-	}
+	workload := s.newWorkloadFixture()
 	err := s.rediaron.AddWorkload(ctx, workload, nil)
 	s.NoError(err)
-	_, err = s.rediaron.GetWorkloads(ctx, []string{id, "xxx"})
+	_, err = s.rediaron.GetWorkloads(ctx, []string{workloadID, "xxx"})
 	s.Error(err)
-	_, err = s.rediaron.GetWorkload(ctx, id)
+	_, err = s.rediaron.GetWorkload(ctx, workloadID)
 	s.Error(err)
-	_, err = s.rediaron.AddPod(ctx, podname, "")
+	_, err = s.rediaron.AddPod(ctx, workloadPodname, "")
 	s.NoError(err)
 	_, err = s.rediaron.AddNode(ctx, &types.AddNodeOptions{
-		Nodename: nodename,
+		Nodename: workloadNodename,
 		Endpoint: "mock://",
-		Podname:  podname,
+		Podname:  workloadPodname,
 	})
 	s.NoError(err)
-	_, err = s.rediaron.GetWorkload(ctx, id)
+	_, err = s.rediaron.GetWorkload(ctx, workloadID)
 	s.NoError(err)
 }
 
 func (s *RediaronTestSuite) TestGetWorkloadStatus() {
 	ctx := s.T().Context()
-	id := "1234567812345678123456781234567812345678123456781234567812345678"
-	name := "test_app_1"
-	nodename := "n1"
-	podname := "test"
-	workload := &types.Workload{
-		ID:       id,
-		Nodename: nodename,
-		Podname:  podname,
-		Name:     name,
-	}
+	workload := s.newWorkloadFixture()
 	err := s.rediaron.AddWorkload(ctx, workload, nil)
 	s.NoError(err)
-	_, err = s.rediaron.GetWorkloadStatus(ctx, id)
+	_, err = s.rediaron.GetWorkloadStatus(ctx, workloadID)
 	s.Error(err)
-	_, err = s.rediaron.AddPod(ctx, podname, "")
+	_, err = s.rediaron.AddPod(ctx, workloadPodname, "")
 	s.NoError(err)
 	_, err = s.rediaron.AddNode(ctx, &types.AddNodeOptions{
-		Nodename: nodename,
+		Nodename: workloadNodename,
 		Endpoint: "mock://",
-		Podname:  podname,
+		Podname:  workloadPodname,
 	})
 	s.NoError(err)
-	c, err := s.rediaron.GetWorkloadStatus(ctx, id)
+	c, err := s.rediaron.GetWorkloadStatus(ctx, workloadID)
 	s.NoError(err)
 	s.Nil(c)
 }
@@ -117,22 +89,13 @@ func (s *RediaronTestSuite) TestGetWorkloadStatus() {
 func (s *RediaronTestSuite) TestSetWorkloadStatus() {
 	m := s.rediaron
 	ctx := s.T().Context()
-	id := "1234567812345678123456781234567812345678123456781234567812345678"
-	name := "test_app_1"
-	nodename := "n1"
-	podname := "test"
-	workload := &types.Workload{
-		ID:         id,
-		Nodename:   nodename,
-		Podname:    podname,
-		StatusMeta: &types.StatusMeta{ID: id},
-	}
+	workload := s.newWorkloadFixture()
+	workload.StatusMeta = &types.StatusMeta{ID: workloadID}
 	err := m.SetWorkloadStatus(ctx, workload.StatusMeta, 0)
 	s.Error(err)
-	workload.Name = name
 	workload.StatusMeta.Appname = "test"
 	workload.StatusMeta.Entrypoint = "app"
-	workload.StatusMeta.Nodename = "n1"
+	workload.StatusMeta.Nodename = workloadNodename
 	err = m.SetWorkloadStatus(ctx, workload.StatusMeta, 10)
 	s.ErrorIs(err, types.ErrInvaildCount)
 	s.NoError(m.AddWorkload(ctx, workload, nil))
@@ -153,25 +116,16 @@ func (s *RediaronTestSuite) TestListWorkloads() {
 	cs, err := m.ListWorkloads(ctx, "", "a", "b", 1, nil)
 	s.NoError(err)
 	s.Empty(cs)
-	name := "test_app_1"
-	nodename := "n1"
-	podname := "test"
-	id := "1234567812345678123456781234567812345678123456781234567812345678"
-	workload := &types.Workload{
-		ID:       id,
-		Nodename: nodename,
-		Podname:  podname,
-		Name:     name,
-		Labels:   map[string]string{"x": "y"},
-	}
+	workload := s.newWorkloadFixture()
+	workload.Labels = map[string]string{"x": "y"}
 	err = m.AddWorkload(ctx, workload, nil)
 	s.NoError(err)
-	_, err = m.AddPod(ctx, podname, "")
+	_, err = m.AddPod(ctx, workloadPodname, "")
 	s.NoError(err)
 	_, err = m.AddNode(ctx, &types.AddNodeOptions{
-		Nodename: nodename,
+		Nodename: workloadNodename,
 		Endpoint: "mock://",
-		Podname:  podname,
+		Podname:  workloadPodname,
 	})
 	s.NoError(err)
 	cs, err = m.ListWorkloads(ctx, "", "a", "b", 1, nil)
@@ -188,27 +142,18 @@ func (s *RediaronTestSuite) TestListNodeWorkloads() {
 	cs, err := m.ListNodeWorkloads(ctx, "", nil)
 	s.NoError(err)
 	s.Empty(cs)
-	name := "test_app_1"
-	nodename := "n1"
-	podname := "test"
-	id := "1234567812345678123456781234567812345678123456781234567812345678"
-	workload := &types.Workload{
-		ID:       id,
-		Nodename: nodename,
-		Podname:  podname,
-		Name:     name,
-		Labels:   map[string]string{"x": "y"},
-	}
+	workload := s.newWorkloadFixture()
+	workload.Labels = map[string]string{"x": "y"}
 	err = m.AddWorkload(ctx, workload, nil)
 	s.NoError(err)
-	_, err = m.AddPod(ctx, podname, "")
+	_, err = m.AddPod(ctx, workloadPodname, "")
 	s.NoError(err)
-	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: "mock://", Podname: podname})
+	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: workloadNodename, Endpoint: "mock://", Podname: workloadPodname})
 	s.NoError(err)
-	cs, err = m.ListNodeWorkloads(ctx, nodename, nil)
+	cs, err = m.ListNodeWorkloads(ctx, workloadNodename, nil)
 	s.NoError(err)
 	s.NotEmpty(cs)
-	cs, err = m.ListNodeWorkloads(ctx, nodename, map[string]string{"x": "z"})
+	cs, err = m.ListNodeWorkloads(ctx, workloadNodename, map[string]string{"x": "z"})
 	s.NoError(err)
 	s.Empty(cs)
 }
@@ -216,41 +161,37 @@ func (s *RediaronTestSuite) TestListNodeWorkloads() {
 func (s *RediaronTestSuite) TestWorkloadStatusStream() {
 	m := s.rediaron
 	ctx := s.T().Context()
-	id := "1234567812345678123456781234567812345678123456781234567812345678"
-	name := "test_app_1"
 	appname := "test"
 	entrypoint := "app"
-	nodename := "n1"
-	podname := "test"
 	workload := &types.Workload{
-		ID:         id,
-		Name:       name,
-		Nodename:   nodename,
-		Podname:    podname,
-		StatusMeta: &types.StatusMeta{ID: id},
+		ID:         workloadID,
+		Name:       workloadName,
+		Nodename:   workloadNodename,
+		Podname:    workloadPodname,
+		StatusMeta: &types.StatusMeta{ID: workloadID},
 	}
 	node := &types.Node{
 		NodeMeta: types.NodeMeta{
-			Name:     nodename,
-			Podname:  podname,
+			Name:     workloadNodename,
+			Podname:  workloadPodname,
 			Endpoint: "tcp://127.0.0.1:2376",
 		},
 	}
 	nodeBytes, err := json.Marshal(node)
 	s.NoError(err)
-	_, err = m.AddPod(ctx, podname, "CPU")
+	_, err = m.AddPod(ctx, workloadPodname, "CPU")
 	s.NoError(err)
-	err = m.Create(ctx, map[string]string{fmt.Sprintf(common.NodeInfoKey, nodename): string(nodeBytes)})
+	err = m.Create(ctx, map[string]string{fmt.Sprintf(common.NodeInfoKey, workloadNodename): string(nodeBytes)})
 	s.NoError(err)
-	err = m.Create(ctx, map[string]string{fmt.Sprintf(common.NodePodKey, podname, nodename): string(nodeBytes)})
+	err = m.Create(ctx, map[string]string{fmt.Sprintf(common.NodePodKey, workloadPodname, workloadNodename): string(nodeBytes)})
 	s.NoError(err)
 	s.NoError(m.AddWorkload(ctx, workload, nil))
 	workload.StatusMeta = &types.StatusMeta{
-		ID:         id,
+		ID:         workloadID,
 		Running:    true,
 		Appname:    appname,
 		Entrypoint: entrypoint,
-		Nodename:   nodename,
+		Nodename:   workloadNodename,
 	}
 	cctx, cancel := context.WithCancel(ctx)
 	ch := m.WorkloadStatusStream(cctx, appname, entrypoint, "", nil)
@@ -262,5 +203,14 @@ func (s *RediaronTestSuite) TestWorkloadStatusStream() {
 	for st := range ch {
 		s.False(st.Delete)
 		s.NotNil(st.Workload)
+	}
+}
+
+func (s *RediaronTestSuite) newWorkloadFixture() *types.Workload {
+	return &types.Workload{
+		ID:       workloadID,
+		Nodename: workloadNodename,
+		Podname:  workloadPodname,
+		Name:     workloadName,
 	}
 }

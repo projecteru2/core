@@ -41,159 +41,183 @@ func TestGetFullCPUPlans(t *testing.T) {
 }
 
 func TestGetCPUPlansWithAffinity(t *testing.T) {
-	cpuMap := types.CPUMap{
-		"0": 0,
-		"1": 30,
-		"2": 0,
-	}
-	originCPUMap := types.CPUMap{
-		"0": 100,
-		"1": 30,
-		"2": 40,
-	}
-	resourceInfo := &types.NodeResourceInfo{
-		Capacity: &types.NodeResource{CPUMap: cpuMap, CPU: float64(len(cpuMap))},
-		Usage:    &types.NodeResource{},
-	}
-	resourceInfo.Capacity.CPUMap.Add(originCPUMap)
-	cpuPlans := GetCPUPlans(resourceInfo, originCPUMap, 100, -1, &types.WorkloadResourceRequest{CPUBind: true, CPURequest: 1})
-	assert.Equal(t, 1, len(cpuPlans))
-	assert.Equal(t, cpuPlans[0].CPUMap, types.CPUMap{"0": 100})
-
-	cpuMap = types.CPUMap{
-		"0": 0,
-		"1": 30,
-		"2": 0,
-	}
-	originCPUMap = types.CPUMap{
-		"0": 100,
-		"1": 30,
-		"2": 40,
-	}
-
-	resourceInfo = &types.NodeResourceInfo{
-		Capacity: &types.NodeResource{CPUMap: cpuMap, CPU: float64(len(cpuMap))},
-		Usage:    &types.NodeResource{},
-	}
-	resourceInfo.Capacity.CPUMap.Add(originCPUMap)
-	cpuPlans = GetCPUPlans(resourceInfo, originCPUMap, 100, -1, &types.WorkloadResourceRequest{CPUBind: true, CPURequest: 1.2})
-	assert.Equal(t, 1, len(cpuPlans))
-	assert.Equal(t, cpuPlans[0].CPUMap, types.CPUMap{"0": 100, "1": 20})
-
-	cpuMap = types.CPUMap{
-		"0": 0,
-		"1": 80,
-		"2": 0,
-		"3": 0,
-	}
-	originCPUMap = types.CPUMap{
-		"0": 100,
-		"1": 20,
-		"2": 40,
-		"3": 10,
-	}
-
-	resourceInfo = &types.NodeResourceInfo{
-		Capacity: &types.NodeResource{CPUMap: cpuMap, CPU: float64(len(cpuMap))},
-		Usage:    &types.NodeResource{},
-	}
-	resourceInfo.Capacity.CPUMap.Add(originCPUMap)
-	cpuPlans = GetCPUPlans(resourceInfo, originCPUMap, 100, -1, &types.WorkloadResourceRequest{CPUBind: true, CPURequest: 2})
-	assert.Equal(t, 1, len(cpuPlans))
-	assert.Equal(t, cpuPlans[0].CPUMap, types.CPUMap{"0": 100, "1": 100})
-
-	cpuMap = types.CPUMap{
-		"0": 0,
-		"1": 69,
-		"2": 10,
-	}
-	originCPUMap = types.CPUMap{
-		"0": 100,
-		"1": 30,
-		"2": 40,
+	cases := []struct {
+		name         string
+		cpuMap       types.CPUMap
+		originCPUMap types.CPUMap
+		cpuRequest   float64
+		want         []*types.CPUPlan
+	}{
+		{
+			name:         "single core exact fit",
+			cpuMap:       types.CPUMap{"0": 0, "1": 30, "2": 0},
+			originCPUMap: types.CPUMap{"0": 100, "1": 30, "2": 40},
+			cpuRequest:   1,
+			want:         []*types.CPUPlan{{CPUMap: types.CPUMap{"0": 100}}},
+		},
+		{
+			name:         "fractional request spills into second core",
+			cpuMap:       types.CPUMap{"0": 0, "1": 30, "2": 0},
+			originCPUMap: types.CPUMap{"0": 100, "1": 30, "2": 40},
+			cpuRequest:   1.2,
+			want:         []*types.CPUPlan{{CPUMap: types.CPUMap{"0": 100, "1": 20}}},
+		},
+		{
+			name:         "two full cores",
+			cpuMap:       types.CPUMap{"0": 0, "1": 80, "2": 0, "3": 0},
+			originCPUMap: types.CPUMap{"0": 100, "1": 20, "2": 40, "3": 10},
+			cpuRequest:   2,
+			want:         []*types.CPUPlan{{CPUMap: types.CPUMap{"0": 100, "1": 100}}},
+		},
+		{
+			name:         "insufficient affinity capacity",
+			cpuMap:       types.CPUMap{"0": 0, "1": 69, "2": 10},
+			originCPUMap: types.CPUMap{"0": 100, "1": 30, "2": 40},
+			cpuRequest:   2,
+			want:         nil,
+		},
+		{
+			name:         "just enough affinity capacity",
+			cpuMap:       types.CPUMap{"0": 0, "1": 70, "2": 10},
+			originCPUMap: types.CPUMap{"0": 100, "1": 30, "2": 40},
+			cpuRequest:   2,
+			want:         []*types.CPUPlan{{CPUMap: types.CPUMap{"0": 100, "1": 100}}},
+		},
+		{
+			name:         "multiple candidate second cores",
+			cpuMap:       types.CPUMap{"0": 100, "1": 60, "2": 0, "3": 100, "4": 100},
+			originCPUMap: types.CPUMap{"0": 100, "1": 30, "2": 40},
+			cpuRequest:   2,
+			want: []*types.CPUPlan{
+				{CPUMap: types.CPUMap{"0": 100, "3": 100}},
+				{CPUMap: types.CPUMap{"0": 100, "4": 100}},
+			},
+		},
+		{
+			name:         "no full core available",
+			cpuMap:       types.CPUMap{"0": 0, "1": 60, "2": 0},
+			originCPUMap: types.CPUMap{"0": 100, "1": 30, "2": 40},
+			cpuRequest:   2,
+			want:         nil,
+		},
 	}
 
-	resourceInfo = &types.NodeResourceInfo{
-		Capacity: &types.NodeResource{CPUMap: cpuMap, CPU: float64(len(cpuMap))},
-		Usage:    &types.NodeResource{},
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			resourceInfo := &types.NodeResourceInfo{
+				Capacity: &types.NodeResource{CPUMap: tt.cpuMap, CPU: float64(len(tt.cpuMap))},
+				Usage:    &types.NodeResource{},
+			}
+			resourceInfo.Capacity.CPUMap.Add(tt.originCPUMap)
+			cpuPlans := GetCPUPlans(resourceInfo, tt.originCPUMap, 100, -1, &types.WorkloadResourceRequest{CPUBind: true, CPURequest: tt.cpuRequest})
+			assert.Equal(t, len(tt.want), len(cpuPlans))
+			assert.ElementsMatch(t, cpuPlans, tt.want)
+		})
 	}
-	resourceInfo.Capacity.CPUMap.Add(originCPUMap)
-	cpuPlans = GetCPUPlans(resourceInfo, originCPUMap, 100, -1, &types.WorkloadResourceRequest{CPUBind: true, CPURequest: 2})
-	assert.Equal(t, 0, len(cpuPlans))
-
-	cpuMap = types.CPUMap{
-		"0": 0,
-		"1": 70,
-		"2": 10,
-	}
-	originCPUMap = types.CPUMap{
-		"0": 100,
-		"1": 30,
-		"2": 40,
-	}
-
-	resourceInfo = &types.NodeResourceInfo{
-		Capacity: &types.NodeResource{CPUMap: cpuMap, CPU: float64(len(cpuMap))},
-		Usage:    &types.NodeResource{},
-	}
-	resourceInfo.Capacity.CPUMap.Add(originCPUMap)
-	cpuPlans = GetCPUPlans(resourceInfo, originCPUMap, 100, -1, &types.WorkloadResourceRequest{CPUBind: true, CPURequest: 2})
-	assert.Equal(t, 1, len(cpuPlans))
-	assert.Equal(t, cpuPlans[0].CPUMap, types.CPUMap{"0": 100, "1": 100})
-
-	cpuMap = types.CPUMap{
-		"0": 100,
-		"1": 60,
-		"2": 0,
-		"3": 100,
-		"4": 100,
-	}
-	originCPUMap = types.CPUMap{
-		"0": 100,
-		"1": 30,
-		"2": 40,
-	}
-
-	resourceInfo = &types.NodeResourceInfo{
-		Capacity: &types.NodeResource{CPUMap: cpuMap, CPU: float64(len(cpuMap))},
-		Usage:    &types.NodeResource{},
-	}
-	resourceInfo.Capacity.CPUMap.Add(originCPUMap)
-	cpuPlans = GetCPUPlans(resourceInfo, originCPUMap, 100, -1, &types.WorkloadResourceRequest{CPUBind: true, CPURequest: 2})
-	assert.Equal(t, 2, len(cpuPlans))
-	assert.ElementsMatch(t, cpuPlans, []*types.CPUPlan{
-		{CPUMap: types.CPUMap{"0": 100, "3": 100}},
-		{CPUMap: types.CPUMap{"0": 100, "4": 100}},
-	})
-
-	cpuMap = types.CPUMap{
-		"0": 0,
-		"1": 60,
-		"2": 0,
-	}
-	originCPUMap = types.CPUMap{
-		"0": 100,
-		"1": 30,
-		"2": 40,
-	}
-
-	resourceInfo = &types.NodeResourceInfo{
-		Capacity: &types.NodeResource{CPUMap: cpuMap, CPU: float64(len(cpuMap))},
-		Usage:    &types.NodeResource{},
-	}
-	resourceInfo.Capacity.CPUMap.Add(originCPUMap)
-	cpuPlans = GetCPUPlans(resourceInfo, originCPUMap, 100, -1, &types.WorkloadResourceRequest{CPUBind: true, CPURequest: 2})
-	assert.Equal(t, 0, len(cpuPlans))
 }
 
 func TestCPUOverSell(t *testing.T) {
-	var cpuMap types.CPUMap
-	var resourceInfo *types.NodeResourceInfo
 	maxShare := -1
 	shareBase := 100
 
-	cpuMap = types.CPUMap{"0": 300, "1": 300}
-	resourceInfo = &types.NodeResourceInfo{Capacity: &types.NodeResource{
+	cases := []struct {
+		name        string
+		cpuMap      types.CPUMap
+		cpuRequest  float64
+		wantLen     int
+		wantAtLeast int
+		want        []*types.CPUPlan
+		wantPrefix  []*types.CPUPlan
+	}{
+		{
+			name:       "two full cores split three ways",
+			cpuMap:     types.CPUMap{"0": 300, "1": 300},
+			cpuRequest: 2,
+			wantLen:    3,
+			want: []*types.CPUPlan{
+				{CPUMap: types.CPUMap{"0": 100, "1": 100}},
+				{CPUMap: types.CPUMap{"0": 100, "1": 100}},
+				{CPUMap: types.CPUMap{"0": 100, "1": 100}},
+			},
+		},
+		{
+			name:       "single core fractional oversell",
+			cpuMap:     types.CPUMap{"0": 300},
+			cpuRequest: 0.5,
+			wantLen:    6,
+			want: []*types.CPUPlan{
+				{CPUMap: types.CPUMap{"0": 50}},
+				{CPUMap: types.CPUMap{"0": 50}},
+				{CPUMap: types.CPUMap{"0": 50}},
+				{CPUMap: types.CPUMap{"0": 50}},
+				{CPUMap: types.CPUMap{"0": 50}},
+				{CPUMap: types.CPUMap{"0": 50}},
+			},
+		},
+		{
+			name:       "three cores whole request",
+			cpuMap:     types.CPUMap{"0": 100, "1": 200, "2": 300},
+			cpuRequest: 1,
+			wantLen:    6,
+			wantPrefix: []*types.CPUPlan{
+				{CPUMap: types.CPUMap{"0": 100}},
+				{CPUMap: types.CPUMap{"1": 100}},
+			},
+		},
+		{
+			name:        "seven fragmented cores lower bound only",
+			cpuMap:      types.CPUMap{"0": 50, "1": 100, "2": 300, "3": 70, "4": 200, "5": 30, "6": 230},
+			cpuRequest:  1.7,
+			wantAtLeast: 2,
+		},
+		{
+			name:       "three cores fragment plus full core",
+			cpuMap:     types.CPUMap{"0": 70, "1": 100, "2": 400},
+			cpuRequest: 1.3,
+			wantLen:    4,
+			want: []*types.CPUPlan{
+				{CPUMap: types.CPUMap{"0": 30, "2": 100}},
+				{CPUMap: types.CPUMap{"0": 30, "2": 100}},
+				{CPUMap: types.CPUMap{"1": 30, "2": 100}},
+				{CPUMap: types.CPUMap{"1": 30, "2": 100}},
+			},
+		},
+	}
+
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			resourceInfo := &types.NodeResourceInfo{Capacity: &types.NodeResource{
+				CPU:    float64(len(tt.cpuMap)),
+				CPUMap: tt.cpuMap,
+				Memory: 12 * units.GiB,
+			}}
+			assert.Nil(t, resourceInfo.Validate())
+
+			cpuPlans := GetCPUPlans(resourceInfo, nil, shareBase, maxShare, &types.WorkloadResourceRequest{
+				CPUBind:    true,
+				CPURequest: tt.cpuRequest,
+				MemRequest: 1,
+			})
+			if tt.wantAtLeast > 0 {
+				assert.True(t, len(cpuPlans) >= tt.wantAtLeast)
+				return
+			}
+			assert.Equal(t, len(cpuPlans), tt.wantLen)
+			if tt.wantPrefix != nil {
+				assert.ElementsMatch(t, cpuPlans[:len(tt.wantPrefix)], tt.wantPrefix)
+				return
+			}
+			assert.ElementsMatch(t, cpuPlans, tt.want)
+		})
+	}
+}
+
+func TestCPUOverSellAndStableFragmentCore(t *testing.T) {
+	maxShare := -1
+	shareBase := 100
+
+	cpuMap := types.CPUMap{"0": 300, "1": 300}
+	resourceInfo := &types.NodeResourceInfo{Capacity: &types.NodeResource{
 		CPU:    float64(len(cpuMap)),
 		CPUMap: cpuMap,
 		Memory: 12 * units.GiB,
@@ -201,112 +225,6 @@ func TestCPUOverSell(t *testing.T) {
 	assert.Nil(t, resourceInfo.Validate())
 
 	cpuPlans := GetCPUPlans(resourceInfo, nil, shareBase, maxShare, &types.WorkloadResourceRequest{
-		CPUBind:    true,
-		CPURequest: 2,
-		MemRequest: 1,
-	})
-	assert.Equal(t, len(cpuPlans), 3)
-	assert.ElementsMatch(t, cpuPlans, []*types.CPUPlan{
-		{CPUMap: types.CPUMap{"0": 100, "1": 100}},
-		{CPUMap: types.CPUMap{"0": 100, "1": 100}},
-		{CPUMap: types.CPUMap{"0": 100, "1": 100}},
-	})
-
-	cpuMap = types.CPUMap{"0": 300}
-	resourceInfo = &types.NodeResourceInfo{Capacity: &types.NodeResource{
-		CPU:    float64(len(cpuMap)),
-		CPUMap: cpuMap,
-		Memory: 12 * units.GiB,
-	}}
-	assert.Nil(t, resourceInfo.Validate())
-
-	cpuPlans = GetCPUPlans(resourceInfo, nil, shareBase, maxShare, &types.WorkloadResourceRequest{
-		CPUBind:    true,
-		CPURequest: 0.5,
-		MemRequest: 1,
-	})
-	assert.Equal(t, len(cpuPlans), 6)
-	assert.ElementsMatch(t, cpuPlans, []*types.CPUPlan{
-		{CPUMap: types.CPUMap{"0": 50}},
-		{CPUMap: types.CPUMap{"0": 50}},
-		{CPUMap: types.CPUMap{"0": 50}},
-		{CPUMap: types.CPUMap{"0": 50}},
-		{CPUMap: types.CPUMap{"0": 50}},
-		{CPUMap: types.CPUMap{"0": 50}},
-	})
-
-	cpuMap = types.CPUMap{"0": 100, "1": 200, "2": 300}
-	resourceInfo = &types.NodeResourceInfo{Capacity: &types.NodeResource{
-		CPU:    float64(len(cpuMap)),
-		CPUMap: cpuMap,
-		Memory: 12 * units.GiB,
-	}}
-	assert.Nil(t, resourceInfo.Validate())
-
-	cpuPlans = GetCPUPlans(resourceInfo, nil, shareBase, maxShare, &types.WorkloadResourceRequest{
-		CPUBind:    true,
-		CPURequest: 1,
-		MemRequest: 1,
-	})
-	assert.Equal(t, len(cpuPlans), 6)
-	assert.ElementsMatch(t, cpuPlans[:2], []*types.CPUPlan{
-		{CPUMap: types.CPUMap{"0": 100}},
-		{CPUMap: types.CPUMap{"1": 100}},
-	})
-
-	cpuMap = types.CPUMap{"0": 50, "1": 100, "2": 300, "3": 70, "4": 200, "5": 30, "6": 230}
-	resourceInfo = &types.NodeResourceInfo{Capacity: &types.NodeResource{
-		CPU:    float64(len(cpuMap)),
-		CPUMap: cpuMap,
-		Memory: 12 * units.GiB,
-	}}
-	assert.Nil(t, resourceInfo.Validate())
-
-	cpuPlans = GetCPUPlans(resourceInfo, nil, shareBase, maxShare, &types.WorkloadResourceRequest{
-		CPUBind:    true,
-		CPURequest: 1.7,
-		MemRequest: 1,
-	})
-	assert.True(t, len(cpuPlans) >= 2)
-
-	cpuMap = types.CPUMap{"0": 70, "1": 100, "2": 400}
-	resourceInfo = &types.NodeResourceInfo{Capacity: &types.NodeResource{
-		CPU:    float64(len(cpuMap)),
-		CPUMap: cpuMap,
-		Memory: 12 * units.GiB,
-	}}
-	assert.Nil(t, resourceInfo.Validate())
-
-	cpuPlans = GetCPUPlans(resourceInfo, nil, shareBase, maxShare, &types.WorkloadResourceRequest{
-		CPUBind:    true,
-		CPURequest: 1.3,
-		MemRequest: 1,
-	})
-	assert.Equal(t, len(cpuPlans), 4)
-	assert.ElementsMatch(t, cpuPlans, []*types.CPUPlan{
-		{CPUMap: types.CPUMap{"0": 30, "2": 100}},
-		{CPUMap: types.CPUMap{"0": 30, "2": 100}},
-		{CPUMap: types.CPUMap{"1": 30, "2": 100}},
-		{CPUMap: types.CPUMap{"1": 30, "2": 100}},
-	})
-}
-
-func TestCPUOverSellAndStableFragmentCore(t *testing.T) {
-	var cpuMap types.CPUMap
-	var resourceInfo *types.NodeResourceInfo
-	var cpuPlans []*types.CPUPlan
-	maxShare := -1
-	shareBase := 100
-
-	cpuMap = types.CPUMap{"0": 300, "1": 300}
-	resourceInfo = &types.NodeResourceInfo{Capacity: &types.NodeResource{
-		CPU:    float64(len(cpuMap)),
-		CPUMap: cpuMap,
-		Memory: 12 * units.GiB,
-	}}
-	assert.Nil(t, resourceInfo.Validate())
-
-	cpuPlans = GetCPUPlans(resourceInfo, nil, shareBase, maxShare, &types.WorkloadResourceRequest{
 		CPUBind:    true,
 		CPURequest: 1.7,
 		MemRequest: 1,
@@ -338,56 +256,51 @@ func TestCPUOverSellAndStableFragmentCore(t *testing.T) {
 	assert.True(t, len(cpuPlans) > 0)
 	assert.Equal(t, cpuPlans[0].CPUMap, types.CPUMap{"0": 70, "1": 100})
 
-	cpuMap = types.CPUMap{"0": 230, "1": 80, "2": 300, "3": 200}
-	resourceInfo = &types.NodeResourceInfo{Capacity: &types.NodeResource{
-		CPU:    float64(len(cpuMap)),
-		CPUMap: cpuMap,
-		Memory: 12 * units.GiB,
-	}}
-	assert.Nil(t, resourceInfo.Validate())
+	cases := []struct {
+		name       string
+		cpuMap     types.CPUMap
+		cpuRequest float64
+		wantUsage  types.CPUMap
+	}{
+		{
+			name:       "four cores two fragments",
+			cpuMap:     types.CPUMap{"0": 230, "1": 80, "2": 300, "3": 200},
+			cpuRequest: 1.7,
+			wantUsage:  types.CPUMap{"0": 70, "1": 70, "2": 0, "3": 200},
+		},
+		{
+			name:       "five cores mixed sizes",
+			cpuMap:     types.CPUMap{"0": 70, "1": 50, "2": 100, "3": 100, "4": 100},
+			cpuRequest: 1.7,
+			wantUsage:  types.CPUMap{"0": 70, "1": 0, "2": 70, "3": 100, "4": 100},
+		},
+		{
+			name:       "three cores fractional request",
+			cpuMap:     types.CPUMap{"0": 70, "1": 50, "2": 90},
+			cpuRequest: 0.5,
+			wantUsage:  types.CPUMap{"0": 50, "1": 50, "2": 0},
+		},
+	}
 
-	cpuPlans = GetCPUPlans(resourceInfo, nil, shareBase, maxShare, &types.WorkloadResourceRequest{
-		CPUBind:    true,
-		CPURequest: 1.7,
-		MemRequest: 1,
-	})
-	assert.True(t, len(cpuPlans) >= 2)
-	applyCPUPlans(t, resourceInfo, cpuPlans[:2])
-	assert.Equal(t, resourceInfo.Usage.CPUMap, types.CPUMap{"0": 70, "1": 70, "2": 0, "3": 200})
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			resourceInfo := &types.NodeResourceInfo{Capacity: &types.NodeResource{
+				CPU:    float64(len(tt.cpuMap)),
+				CPUMap: tt.cpuMap,
+				Memory: 12 * units.GiB,
+			}}
+			assert.Nil(t, resourceInfo.Validate())
 
-	cpuMap = types.CPUMap{"0": 70, "1": 50, "2": 100, "3": 100, "4": 100}
-	resourceInfo = &types.NodeResourceInfo{Capacity: &types.NodeResource{
-		CPU:    float64(len(cpuMap)),
-		CPUMap: cpuMap,
-		Memory: 12 * units.GiB,
-	}}
-	assert.Nil(t, resourceInfo.Validate())
-
-	cpuPlans = GetCPUPlans(resourceInfo, nil, shareBase, maxShare, &types.WorkloadResourceRequest{
-		CPUBind:    true,
-		CPURequest: 1.7,
-		MemRequest: 1,
-	})
-	assert.True(t, len(cpuPlans) >= 2)
-	applyCPUPlans(t, resourceInfo, cpuPlans[:2])
-	assert.Equal(t, resourceInfo.Usage.CPUMap, types.CPUMap{"0": 70, "1": 0, "2": 70, "3": 100, "4": 100})
-
-	cpuMap = types.CPUMap{"0": 70, "1": 50, "2": 90}
-	resourceInfo = &types.NodeResourceInfo{Capacity: &types.NodeResource{
-		CPU:    float64(len(cpuMap)),
-		CPUMap: cpuMap,
-		Memory: 12 * units.GiB,
-	}}
-	assert.Nil(t, resourceInfo.Validate())
-
-	cpuPlans = GetCPUPlans(resourceInfo, nil, shareBase, maxShare, &types.WorkloadResourceRequest{
-		CPUBind:    true,
-		CPURequest: 0.5,
-		MemRequest: 1,
-	})
-	assert.True(t, len(cpuPlans) >= 2)
-	applyCPUPlans(t, resourceInfo, cpuPlans[:2])
-	assert.Equal(t, resourceInfo.Usage.CPUMap, types.CPUMap{"0": 50, "1": 50, "2": 0})
+			cpuPlans := GetCPUPlans(resourceInfo, nil, shareBase, maxShare, &types.WorkloadResourceRequest{
+				CPUBind:    true,
+				CPURequest: tt.cpuRequest,
+				MemRequest: 1,
+			})
+			assert.True(t, len(cpuPlans) >= 2)
+			applyCPUPlans(t, resourceInfo, cpuPlans[:2])
+			assert.Equal(t, resourceInfo.Usage.CPUMap, tt.wantUsage)
+		})
+	}
 }
 
 func TestNUMANodes(t *testing.T) {

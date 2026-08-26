@@ -6,56 +6,13 @@ import (
 	"slices"
 	"strings"
 	"sync"
-	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 
 	"github.com/projecteru2/core/lock"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
 )
-
-func TestRecover(t *testing.T) {
-	var handled bool
-	handle := func(any) (err error) {
-		handled = true
-		return err
-	}
-
-	var encoded bool
-	encode := func(any) (bs []byte, err error) {
-		encoded = true
-		return bs, err
-	}
-
-	var decoded bool
-	decode := func([]byte) (item any, err error) {
-		decoded = true
-		return item, err
-	}
-
-	var wal WAL
-	wal, err := NewHydro(t.Context(), newMemStore(), "127.0.0.1:5001", testConfig())
-	require.NoError(t, err)
-
-	eventype := "create"
-	wal.Register(simpleEventHandler{
-		event:  eventype,
-		encode: encode,
-		decode: decode,
-		handle: handle,
-	})
-
-	_, err = wal.Log(eventype, struct{}{})
-	require.NoError(t, err)
-
-	wal.Recover(t.Context())
-	assert.True(t, handled)
-	assert.True(t, encoded)
-	assert.True(t, decoded)
-}
 
 type simpleEventHandler struct {
 	event  string

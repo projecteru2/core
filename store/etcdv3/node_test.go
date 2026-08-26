@@ -121,26 +121,11 @@ func TestUpdateNode(t *testing.T) {
 func TestSetNodeStatus(t *testing.T) {
 	assert := assert.New(t)
 	m := NewMercury(t)
-
-	node := &types.Node{
-		NodeMeta: types.NodeMeta{
-			Name:     "testname",
-			Endpoint: "mock://",
-			Podname:  "testpod",
-		},
-	}
-	_, err := m.AddPod(t.Context(), node.Podname, "")
-	assert.NoError(err)
-	_, err = m.AddNode(t.Context(), &types.AddNodeOptions{
-		Nodename: node.Name,
-		Endpoint: node.Endpoint,
-		Podname:  node.Podname,
-	})
-	assert.NoError(err)
+	node := newStatusNode(t, m)
 	assert.NoError(m.SetNodeStatus(t.Context(), node, 1))
 	key := filepath.Join(common.NodeStatusPrefix, node.Name)
 
-	_, err = m.kv.GetOne(t.Context(), key)
+	_, err := m.kv.GetOne(t.Context(), key)
 	assert.NoError(err)
 	time.Sleep(2000 * time.Millisecond)
 	_, err = m.kv.GetOne(t.Context(), key)
@@ -150,22 +135,7 @@ func TestSetNodeStatus(t *testing.T) {
 func TestGetNodeStatus(t *testing.T) {
 	assert := assert.New(t)
 	m := NewMercury(t)
-
-	node := &types.Node{
-		NodeMeta: types.NodeMeta{
-			Name:     "testname",
-			Endpoint: "mock://",
-			Podname:  "testpod",
-		},
-	}
-	_, err := m.AddPod(t.Context(), node.Podname, "")
-	assert.NoError(err)
-	_, err = m.AddNode(t.Context(), &types.AddNodeOptions{
-		Nodename: node.Name,
-		Endpoint: node.Endpoint,
-		Podname:  node.Podname,
-	})
-	assert.NoError(err)
+	node := newStatusNode(t, m)
 	assert.NoError(m.SetNodeStatus(t.Context(), node, 1))
 
 	ns, err := m.GetNodeStatus(t.Context(), node.Name)
@@ -181,23 +151,7 @@ func TestGetNodeStatus(t *testing.T) {
 func TestNodeStatusStream(t *testing.T) {
 	assert := assert.New(t)
 	m := NewMercury(t)
-
-	node := &types.Node{
-		NodeMeta: types.NodeMeta{
-			Name:     "testname",
-			Endpoint: "mock://",
-			Podname:  "testpod",
-		},
-	}
-
-	_, err := m.AddPod(t.Context(), node.Podname, "")
-	assert.NoError(err)
-	_, err = m.AddNode(t.Context(), &types.AddNodeOptions{
-		Nodename: node.Name,
-		Endpoint: node.Endpoint,
-		Podname:  node.Podname,
-	})
-	assert.NoError(err)
+	node := newStatusNode(t, m)
 
 	go func() {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
@@ -228,4 +182,24 @@ func TestNodeStatusStream(t *testing.T) {
 		assert.True(s.Alive)
 	}
 	assert.False(statuses[len(statuses)-1].Alive)
+}
+
+func newStatusNode(t *testing.T, m *Mercury) *types.Node {
+	assert := assert.New(t)
+	node := &types.Node{
+		NodeMeta: types.NodeMeta{
+			Name:     "testname",
+			Endpoint: "mock://",
+			Podname:  "testpod",
+		},
+	}
+	_, err := m.AddPod(t.Context(), node.Podname, "")
+	assert.NoError(err)
+	_, err = m.AddNode(t.Context(), &types.AddNodeOptions{
+		Nodename: node.Name,
+		Endpoint: node.Endpoint,
+		Podname:  node.Podname,
+	})
+	assert.NoError(err)
+	return node
 }

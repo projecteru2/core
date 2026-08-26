@@ -7,28 +7,7 @@ import (
 )
 
 func TestDrainedPlan(t *testing.T) {
-	nodes := []Info{
-		{
-			Nodename: "n1",
-			Capacity: 10,
-			Count:    2,
-		},
-		{
-			Nodename: "n2",
-			Capacity: 9,
-			Count:    3,
-		},
-		{
-			Nodename: "n3",
-			Capacity: 10,
-			Count:    5,
-		},
-		{
-			Nodename: "n4",
-			Capacity: 8,
-			Count:    7,
-		},
-	}
+	nodes := genNodesByCapCount([]int{10, 9, 10, 8}, []int{2, 3, 5, 7})
 
 	r, err := DrainedPlan(t.Context(), nodes, 1, 100, 0)
 	assert.NoError(t, err)
