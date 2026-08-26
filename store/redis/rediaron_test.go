@@ -111,6 +111,30 @@ func (s *RediaronTestSuite) TestKeyNotify() {
 	s.Equal(messages[2].Action, "del")
 }
 
+func (s *RediaronTestSuite) TestKeyNotifyCancellationUnblocksPendingMessage() {
+	ctx, cancel := context.WithCancel(context.Background())
+	ch := s.rediaron.KNotify(ctx, "a*")
+	s.Require().Eventually(func() bool {
+		count, err := s.rediaron.cli.PubSubNumPat(context.Background()).Result()
+		return err == nil && count > 0
+	}, time.Second, 10*time.Millisecond)
+
+	triggerMockedKeyspaceNotification(s.rediaron.cli, "aaa", actionSet)
+	time.Sleep(50 * time.Millisecond)
+	cancel()
+	s.Require().Eventually(func() bool {
+		count, err := s.rediaron.cli.PubSubNumPat(context.Background()).Result()
+		return err == nil && count == 0
+	}, time.Second, 10*time.Millisecond)
+
+	select {
+	case _, ok := <-ch:
+		s.False(ok)
+	case <-time.After(time.Second):
+		s.FailNow("key notification did not stop")
+	}
+}
+
 func triggerMockedKeyspaceNotification(cli *redis.Client, key, action string) {
 	channel := fmt.Sprintf(keyNotifyPrefix, 0, key)
 	cli.Publish(context.Background(), channel, action).Result()

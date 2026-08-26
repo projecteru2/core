@@ -1,6 +1,7 @@
 package common
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"maps"
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
 
@@ -17,30 +19,20 @@ func (s *Store) ServiceStatusStream(ctx context.Context) (chan []string, error) 
 	prefix := fmt.Sprintf(ServiceStatusKey, "")
 	if err := s.Pool.Invoke(func() {
 		defer close(ch)
-
-		watch := s.Watch(ctx, prefix)
-
-		data, err := s.GetPrefix(ctx, prefix, 0)
-		if err != nil {
-			logger.Error(ctx, err, "failed to get current services")
-			return
-		}
-		eps := Endpoints{}
-		for key := range data {
-			eps.Add(utils.Tail(key))
-		}
-		ch <- eps.ToSlice()
-
-		for event := range watch {
-			endpoint := utils.Tail(event.Key)
-			var changed bool
-			if event.Type == EventPut {
-				changed = eps.Add(endpoint)
-			} else {
-				changed = eps.Remove(endpoint)
+		retryInterval := cmp.Or(s.Config.ConnectionTimeout, time.Second)
+		for ctx.Err() == nil {
+			if err := s.serviceStatusStream(ctx, prefix, ch); err != nil && ctx.Err() == nil {
+				logger.Error(ctx, err, "service status stream interrupted")
 			}
-			if changed {
-				ch <- eps.ToSlice()
+			if ctx.Err() != nil {
+				return
+			}
+			timer := time.NewTimer(retryInterval)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return
+			case <-timer.C:
 			}
 		}
 	}); err != nil {
@@ -51,6 +43,44 @@ func (s *Store) ServiceStatusStream(ctx context.Context) (chan []string, error) 
 
 func (s *Store) RegisterService(ctx context.Context, serviceAddress string, expire time.Duration) (<-chan struct{}, func(), error) {
 	return s.StartEphemeral(ctx, fmt.Sprintf(ServiceStatusKey, serviceAddress), expire)
+}
+
+func (s *Store) serviceStatusStream(ctx context.Context, prefix string, ch chan<- []string) error {
+	watchCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	watch := s.Watch(watchCtx, prefix)
+
+	data, err := s.GetPrefix(ctx, prefix, 0)
+	if err != nil {
+		return err
+	}
+	eps := Endpoints{}
+	for key := range data {
+		eps.Add(utils.Tail(key))
+	}
+	select {
+	case ch <- eps.ToSlice():
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+
+	for event := range watch {
+		endpoint := utils.Tail(event.Key)
+		var changed bool
+		if event.Type == EventPut {
+			changed = eps.Add(endpoint)
+		} else {
+			changed = eps.Remove(endpoint)
+		}
+		if changed {
+			select {
+			case ch <- eps.ToSlice():
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}
+	}
+	return types.ErrMessageChanClosed
 }
 
 type Endpoints map[string]struct{}

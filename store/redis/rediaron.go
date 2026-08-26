@@ -89,9 +89,14 @@ func (r *Rediaron) KNotify(ctx context.Context, pattern string) chan *KNotifyMes
 					logger.Warn(ctx, "channel closed, knotify returns")
 					return
 				}
-				ch <- &KNotifyMessage{
+				message := &KNotifyMessage{
 					Key:    strings.TrimPrefix(v.Channel, prefix),
 					Action: strings.ToLower(v.Payload),
+				}
+				select {
+				case ch <- message:
+				case <-ctx.Done():
+					return
 				}
 			}
 		}
