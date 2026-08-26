@@ -48,36 +48,29 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 		rollbackMap          map[string][]int
 		engineParamsMap      = map[string][]resourcetypes.Resources{}
 		workloadResourcesMap = map[string][]resourcetypes.Resources{}
+		rollbackComplete     bool
 	)
 
 	_ = c.pool.Invoke(func() {
+		var resourceCommit func()
+		var processingCommits map[string]func()
 		defer func() {
 			cctx, cancel := context.WithTimeout(utils.NewInheritCtx(ctx), c.config.GlobalTimeout)
 			for nodename := range deployMap {
 				processing := opts.GetProcessing(nodename)
 				if err := c.store.DeleteProcessing(cctx, processing); err != nil {
 					logger.Errorf(ctx, err, "delete processing failed for %s", nodename)
+					continue
+				}
+				if commit := processingCommits[nodename]; commit != nil {
+					commit()
 				}
 			}
 			close(ch)
 			cancel()
 		}()
 
-		var resourceCommit func()
-		defer func() {
-			if resourceCommit != nil {
-				resourceCommit()
-			}
-		}()
-
-		var processingCommits map[string]func()
-		defer func() {
-			for _, commit := range processingCommits {
-				commit()
-			}
-		}()
-
-		_ = utils.Txn(
+		txnErr := utils.Txn(
 			ctx,
 
 			func(ctx context.Context) (err error) {
@@ -105,9 +98,12 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 
 					processingCommits = make(map[string]func())
 					for nodename, deploy := range deployMap {
-						if workloadResourcesMap[nodename], engineParamsMap[nodename], err = c.rmgr.Alloc(ctx, nodename, deploy, opts.Resources); err != nil {
-							return err
+						workloadResources, engineParams, allocErr := c.rmgr.Alloc(ctx, nodename, deploy, opts.Resources)
+						if allocErr != nil {
+							return allocErr
 						}
+						workloadResourcesMap[nodename] = workloadResources
+						engineParamsMap[nodename] = engineParams
 						processing := opts.GetProcessing(nodename)
 						if processingCommits[nodename], err = c.journal(ctx, logger, eventProcessingCreated, processing); err != nil {
 							return err
@@ -126,25 +122,33 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 			},
 
 			func(ctx context.Context, failedOnCond bool) (err error) {
+				resourcesToRollback := map[string][]resourcetypes.Resources{}
 				if failedOnCond {
-					return err
-				}
-				for nodename, rollbackIndices := range rollbackMap {
-					if e := c.withNodePodLocked(ctx, nodename, func(ctx context.Context, _ *types.Node) error {
-						rollbackResources := utils.Map(rollbackIndices, func(idx int) resourcetypes.Resources {
+					resourcesToRollback = workloadResourcesMap
+				} else {
+					for nodename, rollbackIndices := range rollbackMap {
+						resourcesToRollback[nodename] = utils.Map(rollbackIndices, func(idx int) resourcetypes.Resources {
 							return workloadResourcesMap[nodename][idx]
 						})
+					}
+				}
+				for nodename, rollbackResources := range resourcesToRollback {
+					if e := c.withNodePodLocked(ctx, nodename, func(ctx context.Context, _ *types.Node) error {
 						return c.rmgr.RollbackAlloc(ctx, nodename, rollbackResources)
 					}); e != nil {
 						logger.Error(ctx, e)
-						err = e
+						err = errors.Join(err, e)
 					}
 				}
+				rollbackComplete = err == nil
 				return err
 			},
 
 			c.config.GlobalTimeout,
 		)
+		if resourceCommit != nil && (txnErr == nil || rollbackComplete) {
+			resourceCommit()
+		}
 	})
 
 	return ch
@@ -288,9 +292,9 @@ func (c *Calcium) doDeployOneWorkload(
 	if err != nil {
 		return err
 	}
-	defer commit()
+	var rollbackComplete bool
 
-	return utils.Txn(
+	txnErr := utils.Txn(
 		ctx,
 		func(ctx context.Context) error {
 			created, err := node.Engine.VirtualizationCreate(ctx, createOpts)
@@ -368,20 +372,29 @@ func (c *Calcium) doDeployOneWorkload(
 			return nil
 		},
 
-		func(ctx context.Context, _ bool) error {
+		func(ctx context.Context, _ bool) (rollbackErr error) {
 			logger.Warnf(ctx, "failed to deploy workload %s, rollback", cmp.Or(workload.ID, workload.Name))
 			if workload.ID == "" {
-				return removeWorkloadByName(ctx, node, workload.Name)
+				rollbackErr = removeWorkloadByName(ctx, node, workload.Name)
+				rollbackComplete = rollbackErr == nil
+				return rollbackErr
 			}
 
-			if err := c.store.RemoveWorkload(ctx, workload); err != nil {
-				logger.Errorf(ctx, err, "failed to remove workload %s", workload.ID)
+			if removeErr := c.store.RemoveWorkload(ctx, workload); removeErr != nil {
+				logger.Errorf(ctx, removeErr, "failed to remove workload %s", workload.ID)
+				rollbackErr = errors.Join(rollbackErr, removeErr)
 			}
 
-			return workload.Remove(ctx, true)
+			rollbackErr = errors.Join(rollbackErr, workload.Remove(ctx, true))
+			rollbackComplete = rollbackErr == nil
+			return rollbackErr
 		},
 		c.config.GlobalTimeout,
 	)
+	if txnErr == nil || rollbackComplete {
+		commit()
+	}
+	return txnErr
 }
 
 func (c *Calcium) doMakeWorkloadOptions(ctx context.Context, no int, msg *types.CreateWorkloadMessage, opts *types.DeployOptions, node *types.Node) *enginetypes.VirtualizationCreateOptions {
