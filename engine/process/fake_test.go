@@ -17,7 +17,7 @@ const (
 func testEngine(t *testing.T, runner *sshrunnertest.Fake) *Engine {
 	t.Helper()
 	return &Engine{
-		ep:          enginetypes.NewParams("node1", Prefix+"10.0.0.1", "", "", ""),
+		ep:          enginetypes.NewParams("node1", Prefix+"10.0.0.1"),
 		runner:      runner,
 		root:        testRoot,
 		host:        "10.0.0.1",

@@ -17,10 +17,6 @@ type NodeMeta struct {
 	Endpoint string            `json:"endpoint"`
 	Podname  string            `json:"podname"`
 	Labels   map[string]string `json:"labels"`
-
-	Ca   string `json:"-"`
-	Cert string `json:"-"`
-	Key  string `json:"-"`
 }
 
 type NodeResourceInfo struct {

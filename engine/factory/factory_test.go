@@ -22,8 +22,8 @@ const testPrefix = "factorytest://"
 
 func TestNewEnginePassesParamsInDeclaredOrder(t *testing.T) {
 	var got []string
-	engines[testPrefix] = func(_ context.Context, _ types.Config, nodename, endpoint, ca, cert, key string) (engine.API, error) {
-		got = []string{nodename, endpoint, ca, cert, key}
+	engines[testPrefix] = func(_ context.Context, _ types.Config, nodename, endpoint string) (engine.API, error) {
+		got = []string{nodename, endpoint}
 		return &fake.EngineWithErr{}, nil
 	}
 	defer delete(engines, testPrefix)
@@ -31,20 +31,17 @@ func TestNewEnginePassesParamsInDeclaredOrder(t *testing.T) {
 	params := &enginetypes.Params{
 		Nodename: "node",
 		Endpoint: testPrefix + "host",
-		CA:       "ca-pem",
-		Cert:     "cert-pem",
-		Key:      "key-pem",
 	}
 	_, err := newEngine(t.Context(), types.Config{ConnectionTimeout: time.Second}, params)
 	require.NoError(t, err)
-	assert.Equal(t, []string{"node", testPrefix + "host", "ca-pem", "cert-pem", "key-pem"}, got)
+	assert.Equal(t, []string{"node", testPrefix + "host"}, got)
 }
 
 func TestNewEngineClosesAnEngineThatCannotAnswer(t *testing.T) {
 	unreachable := &enginemocks.API{}
 	unreachable.On("Ping", mock.Anything).Return(errors.New("containerd is down"))
 	unreachable.On("CloseConn").Return(nil)
-	engines[testPrefix] = func(context.Context, types.Config, string, string, string, string, string) (engine.API, error) {
+	engines[testPrefix] = func(context.Context, types.Config, string, string) (engine.API, error) {
 		return unreachable, nil
 	}
 	defer delete(engines, testPrefix)

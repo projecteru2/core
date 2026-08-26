@@ -161,12 +161,11 @@ message GetPodOptions {
 }
 
 message AddNodeOptions {
+  reserved 1004, 1005, 1006;
+  reserved "ca", "cert", "key";
   string nodename = 1001;
   string endpoint = 1002;
   string podname = 1003;
-  string ca = 1004;
-  string cert = 1005;
-  string key = 1006;
   map<string, string> labels = 1007;
   map<string, bytes> resources = 1008;
   bool test = 1009;
@@ -195,17 +194,15 @@ message ListNodesOptions {
 }
 
 message SetNodeOptions {
+  reserved 1003, 1004, 1005, 1011;
+  reserved "ca", "cert", "key", "update_tls";
   string nodename = 1001;
   string endpoint = 1002;
-  string ca = 1003;
-  string cert = 1004;
-  string key = 1005;
   map<string, string> labels = 1006;
   map<string, bytes> resources = 1007;
   bool delta = 1008;
   bool workloads_down = 1009;
   TriOpt bypass = 1010;
-  bool update_tls = 1011;
 }
 
 message SetNodeStatusOptions {

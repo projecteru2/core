@@ -46,7 +46,7 @@ type Engine struct {
 	execs       *sshrunner.Execs
 }
 
-func MakeClient(_ context.Context, config coretypes.Config, nodename, endpoint, ca, cert, key string) (engine.API, error) {
+func MakeClient(_ context.Context, config coretypes.Config, nodename, endpoint string) (engine.API, error) {
 	user, host, addr, err := sshrunner.ParseEndpoint(endpoint, Prefix)
 	if err != nil {
 		return nil, err
@@ -57,7 +57,7 @@ func MakeClient(_ context.Context, config coretypes.Config, nodename, endpoint, 
 	}
 	return &Engine{
 		config:      config,
-		ep:          enginetypes.NewParams(nodename, endpoint, ca, cert, key),
+		ep:          enginetypes.NewParams(nodename, endpoint),
 		runner:      sshrunner.New(addr, clientConfig),
 		root:        cmp.Or(config.Process.Root, defaultRoot),
 		host:        host,

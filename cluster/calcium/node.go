@@ -27,7 +27,7 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 	var node *types.Node
 	var err error
 
-	client, err := enginefactory.GetEngine(ctx, c.config, opts.Nodename, opts.Endpoint, opts.Ca, opts.Cert, opts.Key)
+	client, err := enginefactory.GetEngine(ctx, c.config, opts.Nodename, opts.Endpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 				if err := c.rmgr.RemoveNode(ctx, nodename); err != nil {
 					return err
 				}
-				enginefactory.RemoveEngineFromCache(ctx, node.Endpoint, node.Ca, node.Cert, node.Key)
+				enginefactory.RemoveEngineFromCache(ctx, node.Endpoint)
 				metrics.Client.RemoveInvalidNodes(nodename)
 				return nil
 			},
@@ -201,11 +201,6 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 		if opts.Endpoint != "" {
 			n.Endpoint = opts.Endpoint
 		}
-		if opts.UpdateTLS {
-			n.Ca = opts.Ca
-			n.Cert = opts.Cert
-			n.Key = opts.Key
-		}
 		if len(opts.Labels) != 0 {
 			n.Labels = opts.Labels
 		}
@@ -220,7 +215,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 				return err
 			},
 			func(ctx context.Context) error {
-				defer enginefactory.RemoveEngineFromCache(ctx, node.Endpoint, node.Ca, node.Cert, node.Key)
+				defer enginefactory.RemoveEngineFromCache(ctx, node.Endpoint)
 				if updateErr := c.store.UpdateNodes(ctx, n); updateErr != nil {
 					return updateErr
 				}
