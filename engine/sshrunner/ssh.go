@@ -125,9 +125,7 @@ func (r *sshRunner) Files(ctx context.Context) (Files, error) {
 	}
 	release := sync.OnceFunc(func() { r.sessions.Release(1) })
 
-	remote, err := retryRefused(ctx, func() (*sftp.Client, error) {
-		return retry(ctx, r, func(client *ssh.Client) (*sftp.Client, error) { return sftp.NewClient(client) })
-	})
+	remote, err := retry(ctx, r, func(client *ssh.Client) (*sftp.Client, error) { return sftp.NewClient(client) })
 	if err != nil {
 		release()
 		return nil, err
@@ -137,9 +135,7 @@ func (r *sshRunner) Files(ctx context.Context) (Files, error) {
 
 // Dial forwards a node socket; a forward is not a session, so MaxSessions does not bound it.
 func (r *sshRunner) Dial(ctx context.Context, network, addr string) (net.Conn, error) {
-	return retryRefused(ctx, func() (net.Conn, error) {
-		return retry(ctx, r, func(client *ssh.Client) (net.Conn, error) { return client.Dial(network, addr) })
-	})
+	return retry(ctx, r, func(client *ssh.Client) (net.Conn, error) { return client.Dial(network, addr) })
 }
 
 func (r *sshRunner) Close() error {
@@ -154,9 +150,7 @@ func (r *sshRunner) Close() error {
 }
 
 func (r *sshRunner) newSession(ctx context.Context) (*ssh.Session, error) {
-	return retryRefused(ctx, func() (*ssh.Session, error) {
-		return retry(ctx, r, (*ssh.Client).NewSession)
-	})
+	return retry(ctx, r, (*ssh.Client).NewSession)
 }
 
 func (r *sshRunner) connect(ctx context.Context, renew bool) (*ssh.Client, error) {
@@ -287,8 +281,12 @@ func closeOnDone(ctx context.Context, sess *ssh.Session) func() {
 	return func() { stop() }
 }
 
-// retry runs f once, and once more on a fresh connection when the transport died underneath it.
+// retry backs off on a refused channel open, and redials a transport that died underneath the call.
 func retry[T any](ctx context.Context, r *sshRunner, f func(*ssh.Client) (T, error)) (T, error) {
+	return retryRefused(ctx, func() (T, error) { return openOnce(ctx, r, f) })
+}
+
+func openOnce[T any](ctx context.Context, r *sshRunner, f func(*ssh.Client) (T, error)) (T, error) {
 	var zero T
 	client, err := r.connect(ctx, false)
 	if err != nil {
@@ -305,22 +303,19 @@ func retry[T any](ctx context.Context, r *sshRunner, f func(*ssh.Client) (T, err
 }
 
 func retryRefused[T any](ctx context.Context, open func() (T, error)) (T, error) {
-	res, err := open()
 	interval := openRetryInterval
-	for range openRetries {
-		if err == nil || !isChannelRefused(err) {
-			break
+	for attempt := 0; ; attempt++ {
+		res, err := open()
+		if err == nil || !isChannelRefused(err) || attempt == openRetries {
+			return res, err
 		}
 		select {
 		case <-ctx.Done():
-			var zero T
-			return zero, ctx.Err()
+			return res, ctx.Err()
 		case <-time.After(interval):
 		}
 		interval *= 2
-		res, err = open()
 	}
-	return res, err
 }
 
 // isTransportError separates a dead connection from sshd refusing one more channel.

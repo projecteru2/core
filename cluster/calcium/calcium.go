@@ -3,6 +3,7 @@ package calcium
 import (
 	"context"
 	"strings"
+	"sync"
 
 	"github.com/panjf2000/ants/v2"
 
@@ -34,7 +35,7 @@ type Calcium struct {
 	identifier string
 	// serviceAddress is both the key RegisterService publishes and the journal's own prefix
 	serviceAddress string
-	remapped       remapMemo
+	remapped       sync.Map
 }
 
 // New returns a Calcium cluster.

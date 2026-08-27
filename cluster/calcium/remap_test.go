@@ -215,20 +215,22 @@ func TestRemapForgetsAWorkloadThatLeftTheNode(t *testing.T) {
 	for range 3 {
 		assert.NoError(t, c.doRemapResource(ctx, logger, node))
 	}
-	assert.Equal(t, map[string]uint64{first.ID: hashEngineParams(params)}, c.remapped.hashes[node.Name])
+	memo, _ := c.remapped.Load(node.Name)
+	assert.Equal(t, map[string]uint64{first.ID: hashEngineParams(params)}, memo)
 	store.AssertExpectations(t)
 	rmgr.AssertExpectations(t)
 	engine.AssertExpectations(t)
 }
 
-func TestHashEngineParamsIsStableAcrossMapOrder(t *testing.T) {
-	params := resourcetypes.Resources{"cpumem": {}}
+func TestHashEngineParamsIsStableAcrossInsertionOrder(t *testing.T) {
+	ascending := resourcetypes.Resources{"cpumem": {}}
 	for i := range 16 {
-		params["cpumem"][strconv.Itoa(i)] = i
+		ascending["cpumem"][strconv.Itoa(i)] = i
 	}
-	want := hashEngineParams(params)
-	for range 16 {
-		assert.Equal(t, want, hashEngineParams(params))
+	descending := resourcetypes.Resources{"cpumem": {}}
+	for i := 15; i >= 0; i-- {
+		descending["cpumem"][strconv.Itoa(i)] = i
 	}
-	assert.NotEqual(t, want, hashEngineParams(resourcetypes.Resources{"cpumem": {"0": 0}}))
+	assert.Equal(t, hashEngineParams(ascending), hashEngineParams(descending))
+	assert.NotEqual(t, hashEngineParams(ascending), hashEngineParams(resourcetypes.Resources{"cpumem": {"0": 0}}))
 }
