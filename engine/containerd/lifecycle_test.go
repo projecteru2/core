@@ -48,6 +48,16 @@ func TestUpdateKeepsTheLimitsItDoesNotOwn(t *testing.T) {
 	}
 }
 
+func TestStopTreatsAVanishedTaskAsStopped(t *testing.T) {
+	gone := errgrpc.ToNative(status.Errorf(codes.NotFound, "task w1 not found"))
+	if err := nilIfGone(gone); err != nil {
+		t.Errorf("got %v, want a task the restart plugin reaped first counted as stopped", err)
+	}
+	if err := nilIfGone(coretypes.ErrMockError); !errors.Is(err, coretypes.ErrMockError) {
+		t.Errorf("got %v, want a real failure preserved", err)
+	}
+}
+
 func TestUpdateSpeaksOneWordForAVanishedTask(t *testing.T) {
 	gone := errgrpc.ToNative(status.Errorf(codes.NotFound, "task w1 not found"))
 	if err := notExistsIfGone(gone); !errors.Is(err, coretypes.ErrWorkloadNotExists) {
