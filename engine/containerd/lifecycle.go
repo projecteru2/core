@@ -81,16 +81,13 @@ func (e *Engine) VirtualizationStop(ctx context.Context, ID string, gracefulTime
 	}
 	task, err := found.Task(ctx, nil)
 	if err != nil {
-		if cerrdefs.IsNotFound(err) {
-			return nil
-		}
-		return err
+		return nilIfGone(err)
 	}
 	if err = killTask(ctx, task, stopSignal(labels), e.gracePeriod(gracefulTimeout)); err != nil {
-		return err
+		return nilIfGone(err)
 	}
 	_, err = task.Delete(ctx)
-	return err
+	return nilIfGone(err)
 }
 
 func (e *Engine) VirtualizationRemove(ctx context.Context, ID string, _, force bool) error {
@@ -103,7 +100,7 @@ func (e *Engine) VirtualizationRemove(ctx context.Context, ID string, _, force b
 		if statusErr == nil && status.Status == client.Running && !force {
 			return errors.Wrapf(coretypes.ErrInvaildWorkloadOps, "workload %s is running, stop it first or force the removal", ID)
 		}
-		if err = killTask(ctx, task, syscall.SIGKILL, 0); err != nil {
+		if err = killTask(ctx, task, syscall.SIGKILL, 0); err != nil && !cerrdefs.IsNotFound(err) {
 			return err
 		}
 		if _, err = task.Delete(ctx); err != nil && !cerrdefs.IsNotFound(err) {
@@ -385,6 +382,14 @@ func userString(user specs.User) string {
 func notExistsIfGone(err error) error {
 	if cerrdefs.IsNotFound(err) {
 		return coretypes.ErrWorkloadNotExists
+	}
+	return err
+}
+
+// nilIfGone is for the verbs whose goal is absence: a task already gone means the stop succeeded.
+func nilIfGone(err error) error {
+	if cerrdefs.IsNotFound(err) {
+		return nil
 	}
 	return err
 }

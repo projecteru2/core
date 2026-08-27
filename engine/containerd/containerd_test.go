@@ -27,6 +27,29 @@ func TestInfoNamesTheEngine(t *testing.T) {
 	}
 }
 
+func TestVerifyNodeProbesTheHookBinary(t *testing.T) {
+	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{} }}
+
+	if err := testEngine(t, runner).VerifyNode(t.Context()); err != nil {
+		t.Fatalf("verify: %v", err)
+	}
+	want := sshrunner.Quote([]string{hookBinary, hookCommand, "--help"})
+	if lines := runner.Lines(); len(lines) != 1 || lines[0] != want {
+		t.Errorf("got %q, want %q", lines, want)
+	}
+}
+
+func TestVerifyNodeRefusesANodeWithoutTheHook(t *testing.T) {
+	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result {
+		return &sshrunner.Result{Code: 127, Stderr: "eru-agent: not found"}
+	}}
+
+	err := testEngine(t, runner).VerifyNode(t.Context())
+	if err == nil || !strings.Contains(err.Error(), hookBinary) {
+		t.Errorf("got %v, want an error naming %s", err, hookBinary)
+	}
+}
+
 func TestNodePlatformMapsUnameOntoAnArchitecture(t *testing.T) {
 	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: "aarch64\n"} }}
 

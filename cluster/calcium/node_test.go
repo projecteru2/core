@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
+	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/engine/factory"
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -356,3 +357,17 @@ func TestFilterNodesDedupesIncludes(t *testing.T) {
 	}
 	assert.Equal(t, []string{"A", "B", "C"}, names)
 }
+
+func TestVerifyNodeEngineGatesOnTheEnginesVerdict(t *testing.T) {
+	ctx := t.Context()
+	assert.NoError(t, verifyNodeEngine(ctx, &enginemocks.API{}))
+	assert.NoError(t, verifyNodeEngine(ctx, verifierEngine{}))
+	assert.ErrorIs(t, verifyNodeEngine(ctx, verifierEngine{err: types.ErrMockError}), types.ErrMockError)
+}
+
+type verifierEngine struct {
+	engine.API
+	err error
+}
+
+func (v verifierEngine) VerifyNode(context.Context) error { return v.err }

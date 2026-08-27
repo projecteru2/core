@@ -44,7 +44,10 @@ var machines = map[string]string{
 	"armv7l":  "arm",
 }
 
-var _ engine.API = (*Engine)(nil)
+var (
+	_ engine.API          = (*Engine)(nil)
+	_ engine.NodeVerifier = (*Engine)(nil)
+)
 
 // Engine runs containers through a node's own containerd socket, forwarded over SSH.
 type Engine struct {
@@ -132,6 +135,14 @@ func (e *Engine) Ping(ctx context.Context) error {
 	}
 	if !serving {
 		return errors.Newf("containerd on %s is not serving", e.ep.Nodename)
+	}
+	return nil
+}
+
+// VerifyNode proves the node holds an agent binary that answers the hooks every spec references.
+func (e *Engine) VerifyNode(ctx context.Context) error {
+	if _, err := e.run(ctx, hookBinary, hookCommand, "--help"); err != nil {
+		return errors.Wrapf(err, "node %s cannot serve %s", e.ep.Nodename, hookBinary)
 	}
 	return nil
 }

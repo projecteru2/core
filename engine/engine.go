@@ -57,3 +57,8 @@ type API interface {
 
 	RawEngine(ctx context.Context, opts *enginetypes.RawEngineOptions) (*enginetypes.RawEngineResult, error)
 }
+
+// NodeVerifier vets the node-side dependencies an engine's workloads need, once, as the node is added.
+type NodeVerifier interface {
+	VerifyNode(ctx context.Context) error
+}
