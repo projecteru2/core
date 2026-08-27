@@ -26,8 +26,8 @@ const (
 	// sshd's default MaxSessions is 10; queue past that instead of being refused.
 	maxSessions = 8
 
-	dialRetries       = 4
-	dialRetryInterval = 100 * time.Millisecond
+	openRetries       = 4
+	openRetryInterval = 100 * time.Millisecond
 )
 
 var _ Runner = (*sshRunner)(nil)
@@ -125,7 +125,9 @@ func (r *sshRunner) Files(ctx context.Context) (Files, error) {
 	}
 	release := sync.OnceFunc(func() { r.sessions.Release(1) })
 
-	remote, err := retry(ctx, r, func(client *ssh.Client) (*sftp.Client, error) { return sftp.NewClient(client) })
+	remote, err := retryRefused(ctx, func() (*sftp.Client, error) {
+		return retry(ctx, r, func(client *ssh.Client) (*sftp.Client, error) { return sftp.NewClient(client) })
+	})
 	if err != nil {
 		release()
 		return nil, err
@@ -152,7 +154,9 @@ func (r *sshRunner) Close() error {
 }
 
 func (r *sshRunner) newSession(ctx context.Context) (*ssh.Session, error) {
-	return retry(ctx, r, (*ssh.Client).NewSession)
+	return retryRefused(ctx, func() (*ssh.Session, error) {
+		return retry(ctx, r, (*ssh.Client).NewSession)
+	})
 }
 
 func (r *sshRunner) connect(ctx context.Context, renew bool) (*ssh.Client, error) {
@@ -300,22 +304,23 @@ func retry[T any](ctx context.Context, r *sshRunner, f func(*ssh.Client) (T, err
 	return f(client)
 }
 
-func retryRefused(ctx context.Context, dial func() (net.Conn, error)) (net.Conn, error) {
-	conn, err := dial()
-	interval := dialRetryInterval
-	for range dialRetries {
+func retryRefused[T any](ctx context.Context, open func() (T, error)) (T, error) {
+	res, err := open()
+	interval := openRetryInterval
+	for range openRetries {
 		if err == nil || !isChannelRefused(err) {
 			break
 		}
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			var zero T
+			return zero, ctx.Err()
 		case <-time.After(interval):
 		}
 		interval *= 2
-		conn, err = dial()
+		res, err = open()
 	}
-	return conn, err
+	return res, err
 }
 
 // isTransportError separates a dead connection from sshd refusing one more channel.
