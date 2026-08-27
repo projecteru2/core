@@ -98,6 +98,26 @@ func TestRemapJournalRetainsUntilEngineSuccess(t *testing.T) {
 	}
 }
 
+func TestRemapDoesNotFailOnAVanishedWorkload(t *testing.T) {
+	c := NewTestCluster()
+	params := resourcetypes.Resources{"cpumem": {"cpu": 2}}
+
+	engine := &enginemocks.API{}
+	node := &types.Node{NodeMeta: types.NodeMeta{Name: "node1"}, Engine: engine}
+	workload := &types.Workload{ID: "workload1", Nodename: node.Name, Engine: engine}
+	store := c.store.(*storemocks.Store)
+	store.On("ListNodeWorkloads", mock.Anything, node.Name, mock.Anything).Return([]*types.Workload{workload}, nil).Once()
+
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("Remap", mock.Anything, node.Name, mock.Anything).Return(
+		map[string]resourcetypes.Resources{workload.ID: params}, nil,
+	).Once()
+	engine.On("VirtualizationUpdateResource", mock.Anything, workload.ID, params).Return(types.ErrWorkloadNotExists).Once()
+
+	assert.NoError(t, c.doRemapResource(t.Context(), log.WithField("test", "gone"), node))
+	engine.AssertExpectations(t)
+}
+
 func TestRemapReplayRecomputesFromLiveState(t *testing.T) {
 	c := NewTestCluster()
 	enableTestWAL(t, c)

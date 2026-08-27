@@ -62,7 +62,9 @@ func (c *Calcium) applyRemap(ctx context.Context, logger *log.Fields, workloads 
 		}
 		logger.Infof(ctx, "remap workload ID %+v", workload.ID)
 		switch err := workload.Engine.VirtualizationUpdateResource(ctx, workload.ID, engineParams); {
-		case errors.Is(err, types.ErrWorkloadNotExists), errors.Is(err, types.ErrEngineNotImplemented):
+		case errors.Is(err, types.ErrWorkloadNotExists):
+			logger.Debugf(ctx, "workload %s is gone, skip remap: %+v", workload.ID, err)
+		case errors.Is(err, types.ErrEngineNotImplemented):
 			logger.Warnf(ctx, "skip remap of workload %s: %+v", workload.ID, err)
 		case err != nil:
 			logger.Error(ctx, err)
