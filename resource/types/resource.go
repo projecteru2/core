@@ -25,6 +25,18 @@ func (r RawParams) Int64(key string) int64 {
 	return intHelper[int64](r, key)
 }
 
+// SizeInBytes reads a size given as a plain byte count or a human-readable string; a negative delta stays negative.
+func (r RawParams) SizeInBytes(key string) (int64, error) {
+	switch value := r[key].(type) {
+	case nil:
+		return 0, nil
+	case string:
+		return ParseRAMInHuman(value)
+	default:
+		return r.Int64(key), nil
+	}
+}
+
 func (r RawParams) Int(key string) int {
 	return intHelper[int](r, key)
 }

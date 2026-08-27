@@ -18,6 +18,7 @@ import (
 	"github.com/projecteru2/core/cluster"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	"github.com/projecteru2/core/types"
 )
 
@@ -254,6 +255,11 @@ func ParseVolumeBinds(volumes, env []string) []VolumeBind {
 		binds = append(binds, VolumeBind{Source: parts[0], Dest: parts[1], ReadOnly: len(parts) > 2 && parts[2] == "ro"})
 	}
 	return binds
+}
+
+// ParseRAMInHuman parses a human-readable size ("100KB", "-1T") into bytes; the implementation lives beside RawParams.
+func ParseRAMInHuman(ram string) (int64, error) {
+	return resourcetypes.ParseRAMInHuman(ram)
 }
 
 // ParseRate reads a human byte rate, treating junk and negatives as zero.
