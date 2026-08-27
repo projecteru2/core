@@ -262,7 +262,7 @@ func (h *remapNodeHandler) Handle(ctx context.Context, raw any) error {
 		if err != nil {
 			return err
 		}
-		return h.calcium.applyRemap(ctx, logger, workloads, engineParamsMap)
+		return h.calcium.applyRemap(ctx, logger, node, workloads, engineParamsMap)
 	})
 	if err != nil && (errors.Is(err, types.ErrNodeNotExists) || h.calcium.store.NotFound(err)) {
 		logger.Info(ctx, "node is gone, nothing to remap")

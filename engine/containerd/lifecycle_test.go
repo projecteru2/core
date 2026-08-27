@@ -3,10 +3,16 @@ package containerd
 import (
 	"testing"
 
+	"github.com/cockroachdb/errors"
 	"github.com/containerd/containerd/v2/core/containers"
 	"github.com/containerd/containerd/v2/pkg/oci"
+	"github.com/containerd/errdefs/pkg/errgrpc"
 	"github.com/containerd/typeurl/v2"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	coretypes "github.com/projecteru2/core/types"
 )
 
 func TestUpdateKeepsTheLimitsItDoesNotOwn(t *testing.T) {
@@ -39,6 +45,16 @@ func TestUpdateKeepsTheLimitsItDoesNotOwn(t *testing.T) {
 	}
 	if updated.Linux.Resources.CPU.Cpus != "" {
 		t.Errorf("got %q, want the cpuset replaced, not merged", updated.Linux.Resources.CPU.Cpus)
+	}
+}
+
+func TestUpdateTreatsAVanishedTaskAsDone(t *testing.T) {
+	gone := errgrpc.ToNative(status.Errorf(codes.NotFound, "task w1 not found"))
+	if err := nilIfGone(gone); err != nil {
+		t.Errorf("got %v, want a task that vanished mid-update reported as done", err)
+	}
+	if err := nilIfGone(coretypes.ErrMockError); !errors.Is(err, coretypes.ErrMockError) {
+		t.Errorf("got %v, want a real failure preserved", err)
 	}
 }
 
