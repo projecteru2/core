@@ -216,10 +216,35 @@ func TestRemapForgetsAWorkloadThatLeftTheNode(t *testing.T) {
 		assert.NoError(t, c.doRemapResource(ctx, logger, node))
 	}
 	memo, _ := c.remapped.Load(node.Name)
-	assert.Equal(t, map[string]uint64{first.ID: hashEngineParams(params)}, memo)
+	assert.Equal(t, &map[string]uint64{first.ID: hashEngineParams(params)}, memo)
 	store.AssertExpectations(t)
 	rmgr.AssertExpectations(t)
 	engine.AssertExpectations(t)
+}
+
+func TestRemapCommitYieldsToAConcurrentInvalidation(t *testing.T) {
+	c := NewTestCluster()
+	ctx := t.Context()
+	logger := log.WithField("test", "cas")
+	params := resourcetypes.Resources{"cpumem": {"cpu": 2}}
+
+	engine := &enginemocks.API{}
+	node := &types.Node{NodeMeta: types.NodeMeta{Name: "node1"}, Engine: engine}
+	workload := &types.Workload{ID: "workload1", Nodename: node.Name, Engine: engine}
+	store := c.store.(*storemocks.Store)
+	store.On("ListNodeWorkloads", mock.Anything, node.Name, mock.Anything).Return([]*types.Workload{workload}, nil)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("Remap", mock.Anything, node.Name, mock.Anything).Return(
+		map[string]resourcetypes.Resources{workload.ID: params}, nil,
+	)
+	engine.On("VirtualizationUpdateResource", mock.Anything, workload.ID, params).Run(func(mock.Arguments) {
+		c.remapped.Delete(node.Name)
+	}).Return(nil)
+
+	c.remapped.Store(node.Name, &map[string]uint64{workload.ID: 42})
+	assert.NoError(t, c.doRemapResource(ctx, logger, node))
+	_, remembered := c.remapped.Load(node.Name)
+	assert.False(t, remembered, "a sweep must not resurrect a memo a failed realloc just dropped")
 }
 
 func TestHashEngineParamsIsStableAcrossInsertionOrder(t *testing.T) {

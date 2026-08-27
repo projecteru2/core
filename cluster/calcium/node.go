@@ -31,13 +31,17 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 	if err != nil {
 		return nil, err
 	}
+	evict := func(err error) error {
+		enginefactory.RemoveEngineFromCache(ctx, opts.Endpoint)
+		return err
+	}
 	nodeInfo, err := client.Info(ctx)
 	if err != nil {
-		return nil, err
+		return nil, evict(err)
 	}
 	if err = verifyNodeEngine(ctx, client); err != nil {
 		logger.Error(ctx, err)
-		return nil, err
+		return nil, evict(err)
 	}
 
 	_, txnErr := utils.Txn(
@@ -75,7 +79,10 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 		},
 		c.config.GlobalTimeout,
 	)
-	return node, txnErr
+	if txnErr != nil {
+		return node, evict(txnErr)
+	}
+	return node, nil
 }
 
 func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {

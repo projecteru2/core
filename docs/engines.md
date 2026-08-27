@@ -42,7 +42,7 @@ image's manifests against, since core's own platform is not the node's.
 | --- | --- |
 | `VirtualizationCreate` | `NewContainer` with a new snapshot and the rendered OCI spec; the container id **is** the workload name, so eru-agent reads appname, entrypoint and ident straight off it, and it is also the workload's hostname — which caps it at 64 bytes, `HOST_NAME_MAX` |
 | `VirtualizationStart` | `NewTask` with the log-shim `LogURI`, `task.Start`, then `containerd.io/restart.status=running`; a workload created with `open_stdin` takes node-side FIFOs instead of the log URI, with three SSH sessions already relaying them |
-| `VirtualizationStop` | `containerd.io/restart.status=stopped` first so the restart plugin does not race, then the image's stop signal and `SIGKILL` after the grace period, then `task.Delete`. A plain stop takes `containerd.stop_timeout`, a forced one kills at once |
+| `VirtualizationStop` | `containerd.io/restart.status=stopped` first, then the image's stop signal and `SIGKILL` after the grace period, then `task.Delete`; a task the restart plugin reaped first counts as stopped. A plain stop takes `containerd.stop_timeout`, a forced one kills at once |
 | `VirtualizationRemove` | refuses a running workload unless forced, kills the task and deletes the container with its snapshot |
 | `VirtualizationSuspend` / `Resume` | `task.Pause` / `task.Resume` |
 | `VirtualizationInspect` | the container record for labels and spec, one task-service `Get` for the running state |
@@ -229,9 +229,10 @@ Which nodes may build is decided by `build.node_filter`, not by the engine.
 ### Node prerequisites
 
 containerd ≥ 2.0 with the restart plugin, `runc`, `ctr`, the CNI plugin binaries in
-`/opt/cni/bin` with conf in `/etc/cni/net.d`, the eru-agent binary at `/usr/local/bin/eru-agent`,
-`sshd` with core's key in `authorized_keys`, journald rate limits raised for the `eru` identifier,
-and `buildkitd` on the nodes `build.node_filter` selects.
+`/opt/cni/bin` with conf in `/etc/cni/net.d`, the eru-agent binary at `/usr/local/bin/eru-agent`
+— `AddNode` probes its hook subcommand once and refuses a node whose binary is missing or too
+old — `sshd` with core's key in `authorized_keys`, journald rate limits raised for the `eru`
+identifier, and `buildkitd` on the nodes `build.node_filter` selects.
 
 ## cocoon
 
@@ -442,9 +443,10 @@ against the workload's environment and created before the unit starts; a bind ne
 `RootDirectory=`, so raw workloads get them too. The resource knobs live in `<id>/props`, one
 property per line, which `run.sh` expands into `-p` flags on every start — the process analogue
 of containerd's stored spec, since `--runtime` properties die with the transient unit.
-`VirtualizationUpdateResource` rewrites that file and sends every cgroup knob it can set,
-including the empty values that reset one, because `set-property` only touches what it is given
-and a realloc has to clear the shape it replaces; mounts are not live-settable and stay out of it.
+`VirtualizationUpdateResource` sends every cgroup knob it can set — including the empty values
+that reset one, because `set-property` only touches what it is given and a realloc has to clear
+the shape it replaces — and commits the file only after the live apply held; mounts are not
+live-settable and stay out of it.
 
 `ExecStart` must be absolute, so a relative command resolves against the unit's root, or against
 the unpacked bundle for a raw workload.

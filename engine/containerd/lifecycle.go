@@ -95,7 +95,11 @@ func (e *Engine) VirtualizationRemove(ctx context.Context, ID string, _, force b
 	if err != nil {
 		return err
 	}
-	if task, taskErr := found.Task(ctx, nil); taskErr == nil {
+	task, err := optionalTask(ctx, found)
+	if err != nil {
+		return err
+	}
+	if task != nil {
 		status, statusErr := task.Status(ctx)
 		if statusErr == nil && status.Status == client.Running && !force {
 			return errors.Wrapf(coretypes.ErrInvaildWorkloadOps, "workload %s is running, stop it first or force the removal", ID)
@@ -106,8 +110,6 @@ func (e *Engine) VirtualizationRemove(ctx context.Context, ID string, _, force b
 		if _, err = task.Delete(ctx); err != nil && !cerrdefs.IsNotFound(err) {
 			return err
 		}
-	} else if !cerrdefs.IsNotFound(taskErr) {
-		return taskErr
 	}
 
 	e.releaseAttach(ID)
@@ -214,12 +216,14 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, en
 	}
 	limits := resourceSpec(resource, &RawArgs{}, devices)
 	// live first, stored spec second: a failure then persists nothing, and a restart replays the new limits only after both held
-	if task, taskErr := found.Task(ctx, nil); taskErr == nil {
+	task, err := optionalTask(ctx, found)
+	if err != nil {
+		return err
+	}
+	if task != nil {
 		if err = task.Update(ctx, client.WithResources(limits)); err != nil {
 			return notExistsIfGone(err)
 		}
-	} else if !cerrdefs.IsNotFound(taskErr) {
-		return taskErr
 	}
 	return notExistsIfGone(found.Update(ctx, withSpecResources(limits)))
 }
@@ -384,6 +388,14 @@ func notExistsIfGone(err error) error {
 		return coretypes.ErrWorkloadNotExists
 	}
 	return err
+}
+
+func optionalTask(ctx context.Context, found client.Container) (client.Task, error) {
+	task, err := found.Task(ctx, nil)
+	if cerrdefs.IsNotFound(err) {
+		return nil, nil
+	}
+	return task, err
 }
 
 // nilIfGone is for the verbs whose goal is absence: a task already gone means the stop succeeded.

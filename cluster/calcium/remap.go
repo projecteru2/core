@@ -58,7 +58,10 @@ func (c *Calcium) computeRemap(ctx context.Context, node *types.Node) (map[strin
 func (c *Calcium) applyRemap(ctx context.Context, logger *log.Fields, nodename string, workloads []*types.Workload, engineParamsMap map[string]resourcetypes.Resources) error {
 	var errList []error
 	memo, _ := c.remapped.Load(nodename)
-	recorded, _ := memo.(map[string]uint64)
+	var recorded map[string]uint64
+	if snapshot, ok := memo.(*map[string]uint64); ok {
+		recorded = *snapshot
+	}
 	applied := make(map[string]uint64, len(engineParamsMap))
 	for _, workload := range workloads {
 		engineParams, ok := engineParamsMap[workload.ID]
@@ -83,7 +86,11 @@ func (c *Calcium) applyRemap(ctx context.Context, logger *log.Fields, nodename s
 			applied[workload.ID] = digest
 		}
 	}
-	c.remapped.Store(nodename, applied)
+	if memo == nil {
+		c.remapped.LoadOrStore(nodename, &applied)
+	} else {
+		c.remapped.CompareAndSwap(nodename, memo, &applied)
+	}
 	return errors.Join(errList...)
 }
 

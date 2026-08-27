@@ -145,7 +145,11 @@ func (e *Engine) ImageBuildFromExist(ctx context.Context, ID string, refs []stri
 	if err != nil {
 		return "", err
 	}
-	if task, taskErr := found.Task(ctx, nil); taskErr == nil {
+	task, err := optionalTask(ctx, found)
+	if err != nil {
+		return "", err
+	}
+	if task != nil {
 		if err = task.Pause(ctx); err != nil {
 			return "", err
 		}
@@ -154,8 +158,6 @@ func (e *Engine) ImageBuildFromExist(ctx context.Context, ID string, refs []stri
 				log.WithFunc("engine.containerd.ImageBuildFromExist").Error(ctx, resumeErr, "resume the paused workload")
 			}
 		}()
-	} else if !cerrdefs.IsNotFound(taskErr) {
-		return "", taskErr
 	}
 
 	ctx, release, err := e.client.WithLease(ctx)
