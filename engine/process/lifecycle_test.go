@@ -11,6 +11,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 
+	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/engine/sshrunner"
 	"github.com/projecteru2/core/engine/sshrunner/sshrunnertest"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -322,17 +323,36 @@ func TestRemoveScriptReportsAMissingWorkloadDirectory(t *testing.T) {
 	}
 }
 
-func TestUpdateScriptIsANoOpOnAnUnloadedUnit(t *testing.T) {
+func TestUpdateScriptPersistsPropsOnAnUnloadedUnit(t *testing.T) {
 	node := newStubNode(t)
 	node.loadState, node.fail = "not-found", "set-property"
 
-	code := node.run(t, updateScript, "eru-w1.service", "CPUQuota=200%")
+	code := node.run(t, updateScript, "eru-w1.service", node.dir, "CPUQuota=200%", "AllowedCPUs=0 1")
 
 	if code != 0 {
-		t.Fatalf("got exit %d, want a remap on a stopped workload to be a no-op", code)
+		t.Fatalf("got exit %d, want a remap on a stopped workload to persist quietly", code)
 	}
 	if log := node.log(t); log != "" {
 		t.Errorf("got %q, want nothing sent to a unit that is not loaded", log)
+	}
+	body, err := os.ReadFile(filepath.Join(node.dir, propsFile))
+	if err != nil {
+		t.Fatalf("props: %v", err)
+	}
+	if want := "CPUQuota=200%\nAllowedCPUs=0 1\n"; string(body) != want {
+		t.Errorf("got %q, want %q replayed by the next start", body, want)
+	}
+}
+
+func TestUpdateScriptIsANoOpOnARemovedWorkload(t *testing.T) {
+	node := newStubNode(t)
+	node.loadState = "not-found"
+	if err := os.RemoveAll(node.dir); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+
+	if code := node.run(t, updateScript, "eru-w1.service", node.dir, "CPUQuota=200%"); code != 0 {
+		t.Fatalf("got exit %d, want a vanished workload skipped", code)
 	}
 }
 
@@ -340,7 +360,7 @@ func TestUpdateScriptSetsThePropertiesOfALoadedUnit(t *testing.T) {
 	node := newStubNode(t)
 	node.loadState = "loaded"
 
-	code := node.run(t, updateScript, "eru-w1.service", "CPUQuota=200%", "MemoryMax=1073741824")
+	code := node.run(t, updateScript, "eru-w1.service", node.dir, "CPUQuota=200%", "MemoryMax=1073741824")
 
 	if code != 0 {
 		t.Fatalf("got exit %d, want the properties set", code)
@@ -348,6 +368,43 @@ func TestUpdateScriptSetsThePropertiesOfALoadedUnit(t *testing.T) {
 	want := "set-property --runtime eru-w1.service CPUQuota=200% MemoryMax=1073741824\n"
 	if log := node.log(t); log != want {
 		t.Errorf("got %q, want %q", log, want)
+	}
+	body, err := os.ReadFile(filepath.Join(node.dir, propsFile))
+	if err != nil {
+		t.Fatalf("props: %v", err)
+	}
+	if want := "CPUQuota=200%\nMemoryMax=1073741824\n"; string(body) != want {
+		t.Errorf("got %q, want the live update persisted too", body)
+	}
+}
+
+func TestLauncherReplaysTheUpdatedProps(t *testing.T) {
+	node := newStubNode(t)
+	u := &unit{
+		ID:       "w1",
+		Podname:  "prod",
+		Bundle:   node.dir,
+		Working:  node.dir,
+		Opts:     &enginetypes.VirtualizationCreateOptions{Name: "app_web_x", Cmd: []string{"/bin/server"}},
+		Resource: &engine.VirtualizationResource{},
+	}
+	launcher := u.launcher(node.dir)
+	if err := os.WriteFile(filepath.Join(node.dir, propsFile), []byte("CPUQuota=300%\nAllowedCPUs=2 3\n"), 0o644); err != nil {
+		t.Fatalf("props: %v", err)
+	}
+	stub := "#!/bin/sh\necho \"$@\" >> \"$STUB_LOG\"\n"
+	if err := os.WriteFile(filepath.Join(node.bin, "systemd-run"), []byte(stub), 0o755); err != nil {
+		t.Fatalf("stub: %v", err)
+	}
+
+	if code := node.run(t, launcher); code != 0 {
+		t.Fatalf("got exit %d, want the launcher to start the unit", code)
+	}
+	log := node.log(t)
+	for _, part := range []string{"-p CPUQuota=300%", "-p AllowedCPUs=2 3", "-- /bin/server"} {
+		if !strings.Contains(log, part) {
+			t.Errorf("got %q, want %q applied on start", log, part)
+		}
 	}
 }
 
@@ -360,7 +417,7 @@ func TestVirtualizationUpdateResourceSetsLiveProperties(t *testing.T) {
 		t.Fatalf("update: %v", err)
 	}
 	want := sshrunner.Quote(sshrunner.Shell(updateScript,
-		"eru-w1.service",
+		"eru-w1.service", testRoot+"/w1",
 		"CPUQuota=200%", "AllowedCPUs=", "AllowedMemoryNodes=", "CPUWeight=100",
 		"MemoryMax=1073741824", "MemoryLow=536870912", "MemorySwapMax=0",
 		"IOReadIOPSMax=", "IOWriteIOPSMax=", "IOReadBandwidthMax=", "IOWriteBandwidthMax=",
@@ -378,7 +435,7 @@ func TestVirtualizationUpdateResourceClearsTheOldShape(t *testing.T) {
 		t.Fatalf("update: %v", err)
 	}
 	want := sshrunner.Quote(sshrunner.Shell(updateScript,
-		"eru-w1.service",
+		"eru-w1.service", testRoot+"/w1",
 		"CPUQuota=", "AllowedCPUs=", "AllowedMemoryNodes=", "CPUWeight=100",
 		"MemoryMax=infinity", "MemoryLow=0", "MemorySwapMax=0",
 		"IOReadIOPSMax=", "IOWriteIOPSMax=", "IOReadBandwidthMax=", "IOWriteBandwidthMax=",

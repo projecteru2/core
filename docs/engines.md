@@ -409,7 +409,7 @@ as stopped rather than missing.
 
 | `engine.API` | Node command |
 | --- | --- |
-| `VirtualizationCreate` | copy the artifact from the cache into `<process.root>/<id>/lower`, or `oras pull` it there when the cache has no entry; prepare `upper`, `work` and `merged`, create the bind sources, write the meta record, and render the `systemd-run` command into `<process.root>/<id>/run.sh`. Nothing runs yet, and a failure rolls the directory back |
+| `VirtualizationCreate` | copy the artifact from the cache into `<process.root>/<id>/lower`, or `oras pull` it there when the cache has no entry; prepare `upper`, `work` and `merged`, create the bind sources, write the meta record, and render the `systemd-run` launcher into `<process.root>/<id>/run.sh` with the resource knobs in `<id>/props`. Nothing runs yet, and a failure rolls the directory back |
 | `VirtualizationStart` | no-op when the unit is already running; otherwise release the finished unit name, mount the overlay at `merged`, copy the meta record onto tmpfs and run `run.sh` |
 | `VirtualizationStop` | `systemctl stop`, then a lazy unmount; a forced stop sends `SIGKILL` to the whole unit first |
 | `VirtualizationRemove` | refuses a running workload unless forced, then `systemctl reset-failed`, lazy unmount, and delete the workload directory and the meta record |
@@ -419,7 +419,7 @@ as stopped rather than missing.
 | `VirtualizationLogs` | `journalctl -u eru-<id> -o cat`, with `-n`, `--since` and `--until`; a followed stream ends when the unit leaves `running` |
 | `VirtualizationAttach` | logs-follow; stdin returns `ErrEngineNotImplemented` |
 | `Execute` | `systemd-run --scope` in the workload's slice, entering the root with `chroot --userspec` or dropping privileges with `setpriv`, stdio streamed over the SSH session, exit code from the scope |
-| `VirtualizationUpdateResource` | `systemctl set-property --runtime` with the complete knob set — live, no restart |
+| `VirtualizationUpdateResource` | rewrite `<id>/props` (what the next start replays), then `systemctl set-property --runtime` with the complete knob set on a loaded unit — live when running, persisted either way |
 | `VirtualizationCopyTo` / `CopyFrom` | sftp through the mounted overlay at `merged`; when it is not mounted, writes land in `upper` and reads fall back from `upper` to `lower` |
 | `ImagePull` / `ImageList` / `ImageRemove` | `oras pull` into a cleared artifact cache entry / list the cache / `rm -rf` the entry |
 | `ImageBuildFromExist` | `systemctl freeze`, tar the mounted overlay at `merged` so the layer is a complete bundle, `oras push` it under the new ref, `systemctl thaw` |
@@ -439,10 +439,12 @@ for bound CPUs, `CPUQuota` whenever a quota is set, then `MemoryMax`, `MemoryLow
 reservation), `MemorySwapMax=0`, `TasksMax` and the four `IO*Max` knobs per device. Volume
 bindings become `BindPaths=` — `BindReadOnlyPaths=` for an `ro` mode — with the source expanded
 against the workload's environment and created before the unit starts; a bind needs no
-`RootDirectory=`, so raw workloads get them too. `VirtualizationUpdateResource` sends every cgroup
-knob it can set, including the empty values that reset one, because `set-property` only touches
-what it is given and a realloc has to clear the shape it replaces; mounts are not live-settable
-and stay out of it.
+`RootDirectory=`, so raw workloads get them too. The resource knobs live in `<id>/props`, one
+property per line, which `run.sh` expands into `-p` flags on every start — the process analogue
+of containerd's stored spec, since `--runtime` properties die with the transient unit.
+`VirtualizationUpdateResource` rewrites that file and sends every cgroup knob it can set,
+including the empty values that reset one, because `set-property` only touches what it is given
+and a realloc has to clear the shape it replaces; mounts are not live-settable and stay out of it.
 
 `ExecStart` must be absolute, so a relative command resolves against the unit's root, or against
 the unpacked bundle for a raw workload.
