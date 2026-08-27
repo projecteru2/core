@@ -126,7 +126,7 @@ func TestRemoveNode(t *testing.T) {
 	store.On("SetNodeStatus", mock.Anything, mock.Anything, int64(-1)).Return(nil).Once()
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("RemoveNode", mock.Anything, mock.Anything).Return(nil)
-	c.remapped.Store(name, map[string]uint64{"w1": 1})
+	c.remapped.Store(name, &map[string]uint64{"w1": 1})
 	assert.NoError(t, c.RemoveNode(ctx, name))
 	_, remembered := c.remapped.Load(name)
 	assert.False(t, remembered, "a removed node must leave the remap memo")

@@ -10,7 +10,6 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/containerd/containerd/v2/client"
-	cerrdefs "github.com/containerd/errdefs"
 
 	"github.com/projecteru2/core/engine/sshrunner"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -100,11 +99,13 @@ func (e *Engine) writeArgv(ctx context.Context, ID, target string) ([]string, er
 	if err != nil {
 		return nil, err
 	}
-	if _, taskErr := found.Task(ctx, nil); taskErr == nil {
+	task, err := optionalTask(ctx, found)
+	if err != nil {
+		return nil, err
+	}
+	if task != nil {
 		config := &enginetypes.ExecConfig{Cmd: []string{"tar", "-x", "-C", filepath.Dir(target)}}
 		return e.execArgv(found.ID(), utils.RandomID(), config), nil
-	} else if !cerrdefs.IsNotFound(taskErr) {
-		return nil, taskErr
 	}
 	info, err := found.Info(ctx, client.WithoutRefreshedMetadata)
 	if err != nil {
