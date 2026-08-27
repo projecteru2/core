@@ -281,9 +281,14 @@ func TestHandleReallocWorkload(t *testing.T) {
 	engine := &enginemocks.API{}
 	engineParams := resourcetypes.Resources{"cpumem": {"cpu": 2}}
 	store := c.store.(*storemocks.Store)
+	lock := &lockmocks.DistributedLock{}
+	lock.On("Lock", mock.Anything).Return(t.Context(), nil)
+	lock.On("Unlock", mock.Anything).Return(nil)
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	store.On("GetNode", mock.Anything, "n1").Return(&types.Node{NodeMeta: types.NodeMeta{Name: "n1"}}, nil)
 	store.On("GetWorkload", mock.Anything, "workloadid").Return(
-		&types.Workload{ID: "workloadid", EngineParams: engineParams, Engine: engine}, nil,
-	).Once()
+		&types.Workload{ID: "workloadid", Nodename: "n1", EngineParams: engineParams, Engine: engine}, nil,
+	).Twice()
 	engine.On("VirtualizationUpdateResource", mock.Anything, "workloadid", engineParams).Return(nil).Once()
 
 	c.wal.Recover(t.Context())
@@ -303,9 +308,14 @@ func TestHandleReallocWorkloadOnAnEngineThatCannotReplayIt(t *testing.T) {
 	engine := &enginemocks.API{}
 	engineParams := resourcetypes.Resources{"cpumem": {"cpu": 2}}
 	store := c.store.(*storemocks.Store)
+	lock := &lockmocks.DistributedLock{}
+	lock.On("Lock", mock.Anything).Return(t.Context(), nil)
+	lock.On("Unlock", mock.Anything).Return(nil)
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	store.On("GetNode", mock.Anything, "n1").Return(&types.Node{NodeMeta: types.NodeMeta{Name: "n1"}}, nil)
 	store.On("GetWorkload", mock.Anything, "workloadid").Return(
-		&types.Workload{ID: "workloadid", EngineParams: engineParams, Engine: engine}, nil,
-	).Once()
+		&types.Workload{ID: "workloadid", Nodename: "n1", EngineParams: engineParams, Engine: engine}, nil,
+	).Twice()
 	engine.On("VirtualizationUpdateResource", mock.Anything, "workloadid", engineParams).
 		Return(types.ErrEngineNotImplemented).Once()
 

@@ -12,6 +12,8 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
+type reallocRepair func()
+
 func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOptions) (err error) {
 	logger := log.WithFunc("calcium.ReallocResource").WithField("opts", opts)
 	logger.Infof(ctx, "realloc workload %+v with options %+v", opts.ID, opts.Resources)
@@ -19,32 +21,40 @@ func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOption
 	if err != nil {
 		return err
 	}
-	return c.withNodePodLocked(ctx, workload.Nodename, func(ctx context.Context, node *types.Node) error {
-		return c.withWorkloadLocked(ctx, opts.ID, false, func(ctx context.Context, workload *types.Workload) error {
-			err := c.doReallocOnNode(ctx, node, workload, opts)
-			logger.Error(ctx, err)
-			return err
+	var repair reallocRepair
+	err = c.withNodePodLocked(ctx, workload.Nodename, func(ctx context.Context, node *types.Node) error {
+		return c.withNodeOperationLocked(ctx, node.Name, func(ctx context.Context, node *types.Node) error {
+			return c.withWorkloadLocked(ctx, opts.ID, false, func(ctx context.Context, workload *types.Workload) error {
+				repair, err = c.doReallocOnNode(ctx, node, workload, opts)
+				logger.Error(ctx, err)
+				return err
+			})
 		})
 	})
+	if repair != nil {
+		repair()
+	}
+	return err
 }
 
-func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workload *types.Workload, opts *types.ReallocOptions) error {
+func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workload *types.Workload, opts *types.ReallocOptions) (reallocRepair, error) {
 	originWorkload := *workload
 
 	var resources resourcetypes.Resources
 	var deltaResources resourcetypes.Resources
 	var engineParams resourcetypes.Resources
 	var reallocated bool
+	var runtimeUpdateAttempted bool
 
 	logger := log.WithFunc("calcium.doReallocOnNode").WithField("opts", opts)
 	nodeCommit, err := c.journal(ctx, logger, eventWorkloadResourceAllocated, []*types.Node{node})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	workloadCommit, err := c.journal(ctx, logger, eventWorkloadReallocated, workload.ID)
 	if err != nil {
 		nodeCommit()
-		return err
+		return nil, err
 	}
 
 	settled, err := utils.Txn(
@@ -62,6 +72,7 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 			return c.store.UpdateWorkload(ctx, workload)
 		},
 		func(ctx context.Context) error {
+			runtimeUpdateAttempted = true
 			return node.Engine.VirtualizationUpdateResource(ctx, opts.ID, engineParams)
 		},
 		func(ctx context.Context, _ bool) error {
@@ -78,13 +89,30 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 		},
 		c.config.GlobalTimeout,
 	)
+	needsRepair := settled && runtimeUpdateAttempted && err != nil
 	if settled {
 		nodeCommit()
-		workloadCommit()
+		if !needsRepair {
+			workloadCommit()
+		}
 	}
-	if err != nil {
-		return err
+	switch {
+	case needsRepair:
+		return func() { c.repairRealloc(ctx, logger, workload.ID, workloadCommit) }, err
+	case err != nil:
+		return nil, err
 	}
 	c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node) })
-	return nil
+	return nil, nil
+}
+
+func (c *Calcium) repairRealloc(ctx context.Context, logger *log.Fields, workloadID string, commit func()) {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), c.config.GlobalTimeout)
+	defer cancel()
+
+	if err := (&ReallocWorkloadHandler{calcium: c}).Handle(ctx, workloadID); err != nil {
+		logger.Error(ctx, err, "repair realloc failed")
+		return
+	}
+	commit()
 }

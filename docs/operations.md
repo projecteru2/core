@@ -17,7 +17,7 @@ zero-padded, so replaying the keys in order replays the entries in order.
 | `allocate-workload` | resources are allocated on a set of nodes, a workload is removed, or a realloc starts | re-derives each node's usage from its actual workloads (`NodeResource` with `fix`) |
 | `create-workload` | the engine is asked to create a workload, and before one is removed | removes the workload — from the store if it is there, otherwise off the engine, found by name when the entry has no ID yet |
 | `replace-workload` | the old workload of a replace is removed | removes the old workload if the new one reached the store, releasing nothing, because the new one inherited its resources |
-| `realloc-workload` | a realloc mutates plugin usage, metadata and engine limits | re-applies the stored engine params to the workload |
+| `realloc-workload` | a realloc mutates plugin usage, metadata and engine limits | re-applies the stored engine params under the node-operation lock — the same step a failed realloc runs inline as its repair, committing the entry only when the reapply holds |
 | `create-processing` | an in-flight deploy counter is written | deletes the stale counter, so it stops inflating deploy counts forever |
 | `create-lambda` | a `RunAndWait` workload starts | waits for it to exit, then removes it |
 
