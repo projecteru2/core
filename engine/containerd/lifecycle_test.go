@@ -48,12 +48,12 @@ func TestUpdateKeepsTheLimitsItDoesNotOwn(t *testing.T) {
 	}
 }
 
-func TestUpdateTreatsAVanishedTaskAsDone(t *testing.T) {
+func TestUpdateSpeaksOneWordForAVanishedTask(t *testing.T) {
 	gone := errgrpc.ToNative(status.Errorf(codes.NotFound, "task w1 not found"))
-	if err := nilIfGone(gone); err != nil {
-		t.Errorf("got %v, want a task that vanished mid-update reported as done", err)
+	if err := notExistsIfGone(gone); !errors.Is(err, coretypes.ErrWorkloadNotExists) {
+		t.Errorf("got %v, want a task that vanished mid-update reported as not exists", err)
 	}
-	if err := nilIfGone(coretypes.ErrMockError); !errors.Is(err, coretypes.ErrMockError) {
+	if err := notExistsIfGone(coretypes.ErrMockError); !errors.Is(err, coretypes.ErrMockError) {
 		t.Errorf("got %v, want a real failure preserved", err)
 	}
 }
