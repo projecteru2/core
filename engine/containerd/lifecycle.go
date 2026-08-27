@@ -240,7 +240,6 @@ func (e *Engine) task(ctx context.Context, ID string) (client.Task, error) {
 	return task, err
 }
 
-// setDesiredStatus tells the restart plugin what core wants; without a policy it does not watch.
 func (e *Engine) markStopped(ctx context.Context, ID string) (client.Container, map[string]string, error) {
 	found, err := e.container(ctx, ID)
 	if err != nil {
@@ -256,6 +255,7 @@ func (e *Engine) markStopped(ctx context.Context, ID string) (client.Container, 
 	return found, info.Labels, nil
 }
 
+// setDesiredStatus tells the restart plugin what core wants; without a policy it does not watch.
 func (e *Engine) setDesiredStatus(ctx context.Context, found client.Container, labels map[string]string, status client.ProcessStatus) error {
 	if labels[restart.PolicyLabel] == "" || labels[restart.StatusLabel] == string(status) {
 		return nil

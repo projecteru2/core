@@ -109,6 +109,7 @@ func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 				}
 				enginefactory.RemoveEngineFromCache(ctx, node.Endpoint)
 				metrics.Client.RemoveInvalidNodes(nodename)
+				c.remapped.Delete(nodename)
 				return nil
 			},
 			func(_ context.Context, _ bool) error {

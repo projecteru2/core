@@ -4,7 +4,6 @@ import (
 	"cmp"
 	"context"
 	"io"
-	"slices"
 	"strings"
 
 	"github.com/projecteru2/core/engine/sshrunner"
@@ -63,5 +62,6 @@ func scopeArgv(record *meta, config *enginetypes.ExecConfig) []string {
 	if config.WorkingDir == "" || config.WorkingDir == "/" {
 		return append(argv, config.Cmd...)
 	}
-	return append(argv, sshrunner.Shell(chdirScript, slices.Concat([]string{config.WorkingDir}, config.Cmd)...)...)
+	wrapped := sshrunner.Shell(chdirScript, config.WorkingDir)
+	return append(argv, append(wrapped, config.Cmd...)...)
 }
