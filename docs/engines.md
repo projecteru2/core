@@ -428,10 +428,11 @@ as stopped rather than missing.
 A scope unit has no exec context, so `Execute` cannot pass `RootDirectory=` or `--uid` as unit
 properties: it execs `chroot --userspec=<user> <merged>` for an overlay workload,
 `setpriv --reuid --regid --init-groups` for a raw one, and enters a working directory other than
-`/` with `env --chdir`, which survives the chroot. `env` resolves *inside* the new root, so only
-an exec that names such a directory requires the image to carry it — the default lands where
-`chroot` already put it and needs nothing. `ImagePush` has nothing left to do — `ImageBuildFromExist` pushes the
-artifact as it builds it.
+`/` by wrapping the command in `sh -c 'cd "$1" && shift && exec "$@"'`, which survives the chroot.
+That shell resolves *inside* the new root, so only an exec that names such a directory requires
+the image to carry one; the default lands where `chroot` already put it and needs nothing. A
+minimal bundle carries `sh` and often not `env`, which is why the shell enters the directory.
+`ImagePush` has nothing left to do — `ImageBuildFromExist` pushes the artifact as it builds it.
 
 Resources land on cgroup v2 unit properties: `AllowedCPUs`, `AllowedMemoryNodes` and `CPUWeight`
 for bound CPUs, `CPUQuota` whenever a quota is set, then `MemoryMax`, `MemoryLow` (half the
