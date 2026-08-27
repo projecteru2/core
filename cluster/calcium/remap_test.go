@@ -1,6 +1,7 @@
 package calcium
 
 import (
+	"strconv"
 	"sync/atomic"
 	"testing"
 
@@ -155,4 +156,79 @@ func TestRemapReplayRecomputesFromLiveState(t *testing.T) {
 	store.AssertExpectations(t)
 	rmgr.AssertExpectations(t)
 	engine.AssertExpectations(t)
+}
+
+func TestRemapSkipsWorkloadsWhoseParamsDidNotMove(t *testing.T) {
+	c := NewTestCluster()
+	ctx := t.Context()
+	logger := log.WithField("test", "memo")
+	params := resourcetypes.Resources{"cpumem": {"cpu": 2, "cpumap": map[string]int{"0": 100}}}
+	moved := resourcetypes.Resources{"cpumem": {"cpu": 3, "cpumap": map[string]int{"0": 100}}}
+
+	engine := &enginemocks.API{}
+	node := &types.Node{NodeMeta: types.NodeMeta{Name: "node1"}, Engine: engine}
+	workload := &types.Workload{ID: "workload1", Nodename: node.Name, Engine: engine}
+	store := c.store.(*storemocks.Store)
+	store.On("ListNodeWorkloads", mock.Anything, node.Name, mock.Anything).Return([]*types.Workload{workload}, nil)
+
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("Remap", mock.Anything, node.Name, mock.Anything).Return(
+		map[string]resourcetypes.Resources{workload.ID: params}, nil,
+	).Twice()
+	engine.On("VirtualizationUpdateResource", mock.Anything, workload.ID, params).Return(nil).Once()
+
+	assert.NoError(t, c.doRemapResource(ctx, logger, node))
+	assert.NoError(t, c.doRemapResource(ctx, logger, node))
+	engine.AssertNumberOfCalls(t, "VirtualizationUpdateResource", 1)
+
+	rmgr.On("Remap", mock.Anything, node.Name, mock.Anything).Return(
+		map[string]resourcetypes.Resources{workload.ID: moved}, nil,
+	).Once()
+	engine.On("VirtualizationUpdateResource", mock.Anything, workload.ID, moved).Return(nil).Once()
+	assert.NoError(t, c.doRemapResource(ctx, logger, node))
+	engine.AssertNumberOfCalls(t, "VirtualizationUpdateResource", 2)
+	rmgr.AssertExpectations(t)
+	engine.AssertExpectations(t)
+}
+
+func TestRemapForgetsAWorkloadThatLeftTheNode(t *testing.T) {
+	c := NewTestCluster()
+	ctx := t.Context()
+	logger := log.WithField("test", "forget")
+	params := resourcetypes.Resources{"cpumem": {"cpu": 2}}
+
+	engine := &enginemocks.API{}
+	node := &types.Node{NodeMeta: types.NodeMeta{Name: "node1"}, Engine: engine}
+	first := &types.Workload{ID: "workload1", Nodename: node.Name, Engine: engine}
+	second := &types.Workload{ID: "workload2", Nodename: node.Name, Engine: engine}
+	store := c.store.(*storemocks.Store)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	for _, workload := range []*types.Workload{first, second, first} {
+		store.On("ListNodeWorkloads", mock.Anything, node.Name, mock.Anything).Return([]*types.Workload{workload}, nil).Once()
+		rmgr.On("Remap", mock.Anything, node.Name, mock.Anything).Return(
+			map[string]resourcetypes.Resources{workload.ID: params}, nil,
+		).Once()
+	}
+	engine.On("VirtualizationUpdateResource", mock.Anything, first.ID, params).Return(nil).Twice()
+	engine.On("VirtualizationUpdateResource", mock.Anything, second.ID, params).Return(nil).Once()
+
+	for range 3 {
+		assert.NoError(t, c.doRemapResource(ctx, logger, node))
+	}
+	assert.Equal(t, map[string]uint64{first.ID: hashEngineParams(params)}, c.remapped.hashes[node.Name])
+	store.AssertExpectations(t)
+	rmgr.AssertExpectations(t)
+	engine.AssertExpectations(t)
+}
+
+func TestHashEngineParamsIsStableAcrossMapOrder(t *testing.T) {
+	params := resourcetypes.Resources{"cpumem": {}}
+	for i := range 16 {
+		params["cpumem"][strconv.Itoa(i)] = i
+	}
+	want := hashEngineParams(params)
+	for range 16 {
+		assert.Equal(t, want, hashEngineParams(params))
+	}
+	assert.NotEqual(t, want, hashEngineParams(resourcetypes.Resources{"cpumem": {"0": 0}}))
 }

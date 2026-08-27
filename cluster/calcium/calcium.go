@@ -34,6 +34,7 @@ type Calcium struct {
 	identifier string
 	// serviceAddress is both the key RegisterService publishes and the journal's own prefix
 	serviceAddress string
+	remapped       remapMemo
 }
 
 // New returns a Calcium cluster.
