@@ -96,8 +96,11 @@ func TestRealloc(t *testing.T) {
 	store.On("UpdateWorkload", mock.Anything, mock.Anything).Return(nil)
 
 	engine.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(types.ErrNilEngine).Once()
+	c.remapped.Store("node1", map[string]uint64{"c1": 1})
 	err = c.ReallocResource(ctx, opts)
 	assert.ErrorIs(t, err, types.ErrNilEngine)
+	_, remembered := c.remapped.Load("node1")
+	assert.False(t, remembered, "a failed realloc must forget the node so the next remap reapplies store truth")
 	engine.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError)

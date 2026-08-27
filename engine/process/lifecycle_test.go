@@ -356,6 +356,27 @@ func TestUpdateScriptIsANoOpOnARemovedWorkload(t *testing.T) {
 	}
 }
 
+func TestUpdateScriptKeepsThePropsWhenTheLiveApplyFails(t *testing.T) {
+	node := newStubNode(t)
+	node.loadState, node.fail = "loaded", "set-property"
+	if err := os.WriteFile(filepath.Join(node.dir, propsFile), []byte("CPUQuota=20%\n"), 0o644); err != nil {
+		t.Fatalf("props: %v", err)
+	}
+
+	code := node.run(t, updateScript, "eru-w1.service", node.dir, "CPUQuota=200%")
+
+	if code == 0 {
+		t.Fatal("got exit 0, want the failed live apply reported")
+	}
+	body, err := os.ReadFile(filepath.Join(node.dir, propsFile))
+	if err != nil {
+		t.Fatalf("props: %v", err)
+	}
+	if want := "CPUQuota=20%\n"; string(body) != want {
+		t.Errorf("got %q, want the props of a failed realloc left uncommitted", body)
+	}
+}
+
 func TestUpdateScriptSetsThePropertiesOfALoadedUnit(t *testing.T) {
 	node := newStubNode(t)
 	node.loadState = "loaded"
