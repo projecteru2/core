@@ -1,14 +1,18 @@
 package sshrunner
 
 import (
+	"context"
 	"io"
 	"net"
 	"syscall"
 	"testing"
+	"testing/synctest"
 
 	"github.com/cockroachdb/errors"
 	"golang.org/x/crypto/ssh"
 )
+
+var refusedChannel = &ssh.OpenChannelError{Reason: ssh.ConnectionFailed, Message: "open failed"}
 
 func TestIsTransportError(t *testing.T) {
 	tests := []struct {
@@ -30,6 +34,54 @@ func TestIsTransportError(t *testing.T) {
 				t.Errorf("got %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestRetryRefused(t *testing.T) {
+	tests := []struct {
+		name     string
+		dials    []error
+		want     error
+		attempts int
+	}{
+		{"an accepted forward is dialled once", []error{nil}, nil, 1},
+		{"a forward the node accepts on the second try succeeds", []error{refusedChannel, nil}, nil, 2},
+		{"a forward the node keeps refusing gives up", []error{refusedChannel, refusedChannel, refusedChannel}, refusedChannel, 3},
+		{"a dead transport is not a refusal", []error{io.EOF}, io.EOF, 1},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			synctest.Test(t, func(t *testing.T) {
+				attempts := 0
+				_, err := retryRefused(t.Context(), func() (net.Conn, error) {
+					attempts++
+					return nil, tt.dials[attempts-1]
+				})
+				if !errors.Is(err, tt.want) {
+					t.Errorf("got %v, want %v", err, tt.want)
+				}
+				if attempts != tt.attempts {
+					t.Errorf("got %d dials, want %d", attempts, tt.attempts)
+				}
+			})
+		})
+	}
+}
+
+func TestRetryRefusedStopsOnADoneContext(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	attempts := 0
+	_, err := retryRefused(ctx, func() (net.Conn, error) {
+		attempts++
+		return nil, refusedChannel
+	})
+	if !errors.Is(err, context.Canceled) {
+		t.Errorf("got %v, want a cancelled context", err)
+	}
+	if attempts != 1 {
+		t.Errorf("got %d dials, want 1", attempts)
 	}
 }
 
