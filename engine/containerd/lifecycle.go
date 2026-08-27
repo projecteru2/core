@@ -218,13 +218,13 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, en
 	limits := resourceSpec(resource, &RawArgs{}, devices)
 	// the stored spec is what a restart replays, so both it and the live task are updated
 	if err = found.Update(ctx, withSpecResources(limits)); err != nil {
-		return nilIfGone(err)
+		return notExistsIfGone(err)
 	}
 	task, err := found.Task(ctx, nil)
 	if err != nil {
-		return nilIfGone(err)
+		return notExistsIfGone(err)
 	}
-	return nilIfGone(task.Update(ctx, client.WithResources(limits)))
+	return notExistsIfGone(task.Update(ctx, client.WithResources(limits)))
 }
 
 // task loads the workload's running task; a workload without one cannot answer.
@@ -382,9 +382,9 @@ func userString(user specs.User) string {
 	return strconv.FormatUint(uint64(user.UID), 10) + ":" + strconv.FormatUint(uint64(user.GID), 10)
 }
 
-func nilIfGone(err error) error {
+func notExistsIfGone(err error) error {
 	if cerrdefs.IsNotFound(err) {
-		return nil
+		return coretypes.ErrWorkloadNotExists
 	}
 	return err
 }
