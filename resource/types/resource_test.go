@@ -6,6 +6,31 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestSizeInBytesTakesEitherForm(t *testing.T) {
+	r := RawParams{
+		"bytes":    int64(1073741824),
+		"json-num": float64(2147483648),
+		"human":    "1G",
+		"delta":    int64(-1073741824),
+		"neg-str":  "-1G",
+		"junk":     "1Q",
+	}
+	for key, want := range map[string]int64{
+		"bytes":    1073741824,
+		"json-num": 2147483648,
+		"human":    1073741824,
+		"delta":    -1073741824,
+		"neg-str":  -1073741824,
+		"absent":   0,
+	} {
+		got, err := r.SizeInBytes(key)
+		assert.NoError(t, err, key)
+		assert.Equal(t, want, got, key)
+	}
+	_, err := r.SizeInBytes("junk")
+	assert.Error(t, err)
+}
+
 func TestRawParams(t *testing.T) {
 	var r RawParams
 

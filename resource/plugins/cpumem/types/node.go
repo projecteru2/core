@@ -177,9 +177,7 @@ func (n *NodeResourceRequest) Parse(config coretypes.Config, rawParams resourcet
 			return err
 		}
 	}
-	if mem := rawParams.Int64("memory"); mem > 0 {
-		n.Memory = mem
-	} else if n.Memory, err = coreutils.ParseRAMInHuman(rawParams.String("memory")); err != nil {
+	if n.Memory, err = rawParams.SizeInBytes("memory"); err != nil {
 		return err
 	}
 
@@ -195,7 +193,7 @@ func (n *NodeResourceRequest) Parse(config coretypes.Config, rawParams resourcet
 
 	for index, nodeMemory := range rawParams.StringSlice("numa-memory") {
 		nodeID := strconv.Itoa(index)
-		mem, err := coreutils.ParseRAMInHuman(nodeMemory)
+		mem, err := resourcetypes.ParseRAMInHuman(nodeMemory)
 		if err != nil {
 			return err
 		}

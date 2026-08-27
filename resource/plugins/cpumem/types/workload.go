@@ -103,13 +103,18 @@ func (w *WorkloadResourceRequest) Validate() error {
 	return nil
 }
 
-func (w *WorkloadResourceRequest) Parse(rawParams resourcetypes.RawParams) {
+func (w *WorkloadResourceRequest) Parse(rawParams resourcetypes.RawParams) (err error) {
 	w.KeepCPUBind = rawParams.Bool("keep-cpu-bind")
 	w.CPUBind = rawParams.Bool("cpu-bind")
 
 	w.CPURequest = rawParams.Float64("cpu-request")
 	w.CPULimit = rawParams.Float64("cpu-limit")
 
-	w.MemRequest = rawParams.Int64("memory-request")
-	w.MemLimit = rawParams.Int64("memory-limit")
+	if w.MemRequest, err = rawParams.SizeInBytes("memory-request"); err != nil {
+		return err
+	}
+	if w.MemLimit, err = rawParams.SizeInBytes("memory-limit"); err != nil {
+		return err
+	}
+	return nil
 }
