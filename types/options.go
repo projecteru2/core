@@ -224,7 +224,7 @@ type ImageOptions struct {
 }
 
 func (o *ImageOptions) Validate() error {
-	if o.Podname == "" {
+	if o.Podname == "" && len(o.Nodenames) == 0 {
 		return ErrEmptyPodName
 	}
 	return nil
