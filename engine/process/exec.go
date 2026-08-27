@@ -4,12 +4,15 @@ import (
 	"cmp"
 	"context"
 	"io"
+	"slices"
 	"strings"
 
 	"github.com/projecteru2/core/engine/sshrunner"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/utils"
 )
+
+const chdirScript = `cd "$1" && shift && exec "$@"`
 
 func (e *Engine) Execute(ctx context.Context, ID string, config *enginetypes.ExecConfig) (execID string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
 	record, _, err := e.workloadMeta(ctx, ID)
@@ -57,8 +60,8 @@ func scopeArgv(record *meta, config *enginetypes.ExecConfig) []string {
 		user, group, _ := strings.Cut(config.User, ":")
 		argv = append(argv, "setpriv", "--reuid="+user, "--regid="+cmp.Or(group, user), "--init-groups", "--")
 	}
-	if config.WorkingDir != "" && config.WorkingDir != "/" {
-		argv = append(argv, "env", "--chdir="+config.WorkingDir)
+	if config.WorkingDir == "" || config.WorkingDir == "/" {
+		return append(argv, config.Cmd...)
 	}
-	return append(argv, config.Cmd...)
+	return append(argv, sshrunner.Shell(chdirScript, slices.Concat([]string{config.WorkingDir}, config.Cmd)...)...)
 }

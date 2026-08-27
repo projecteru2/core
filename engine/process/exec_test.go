@@ -66,13 +66,19 @@ func TestScopeArgv(t *testing.T) {
 			[]string{"chroot", testRoot + "/w1/merged", "sh"},
 		},
 		{
-			"a working directory is entered inside the chroot",
+			"a working directory is entered inside the chroot by the shell, not by env",
 			overlay,
-			&enginetypes.ExecConfig{WorkingDir: "/srv", Cmd: []string{"sh"}},
-			[]string{"chroot", testRoot + "/w1/merged", "env", "--chdir=/srv", "sh"},
+			&enginetypes.ExecConfig{WorkingDir: "/srv", Cmd: []string{"ls", "-l"}},
+			[]string{"chroot", testRoot + "/w1/merged", "sh", "-c", chdirScript, "sh", "/srv", "ls", "-l"},
 		},
 		{
-			"the root working directory needs no env, which a minimal bundle may not carry",
+			"a working directory is entered without a chroot too",
+			raw,
+			&enginetypes.ExecConfig{WorkingDir: "/srv", Cmd: []string{"ls", "-l"}},
+			[]string{"sh", "-c", chdirScript, "sh", "/srv", "ls", "-l"},
+		},
+		{
+			"the root working directory needs no wrapper at all",
 			overlay,
 			&enginetypes.ExecConfig{WorkingDir: "/", Cmd: []string{"sh"}},
 			[]string{"chroot", testRoot + "/w1/merged", "sh"},
