@@ -2,6 +2,7 @@ package process
 
 import (
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -34,7 +35,7 @@ func TestUnitArgvRendersABoundWorkload(t *testing.T) {
 		},
 	}
 
-	want := []string{
+	wantStatic := []string{
 		"systemd-run",
 		"--unit=eru-abcdef.service",
 		"--slice=eru-prod.slice",
@@ -45,24 +46,28 @@ func TestUnitArgvRendersABoundWorkload(t *testing.T) {
 		"-p", "WorkingDirectory=/home/app",
 		"-p", "RootDirectory=" + testRoot + "/abcdef/merged",
 		"-p", `Environment=FOO="bar baz"`,
-		"-p", "AllowedCPUs=0 1",
-		"-p", "AllowedMemoryNodes=0",
-		"-p", "CPUWeight=50",
-		"-p", "CPUQuota=150%",
-		"-p", "MemoryMax=1073741824",
-		"-p", "MemoryLow=536870912",
-		"-p", "MemorySwapMax=0",
 		"-p", "TasksMax=512",
-		"-p", "IOReadIOPSMax=/dev/sda 100",
-		"-p", "IOWriteIOPSMax=/dev/sda 200",
-		"-p", "IOReadBandwidthMax=/dev/sda 1048576",
-		"-p", "IOWriteBandwidthMax=/dev/sda 2097152",
 		"-p", "Restart=on-failure",
 		"-p", "TimeoutStopSec=10",
-		"--", "/bin/server", "--port", "8080",
 	}
-	if got := u.argv(); !slices.Equal(got, want) {
-		t.Errorf("got %q, want %q", got, want)
+	if got := u.staticArgv(); !slices.Equal(got, wantStatic) {
+		t.Errorf("got %q, want %q", got, wantStatic)
+	}
+	wantProps := []string{
+		"AllowedCPUs=0 1",
+		"AllowedMemoryNodes=0",
+		"CPUWeight=50",
+		"CPUQuota=150%",
+		"MemoryMax=1073741824",
+		"MemoryLow=536870912",
+		"MemorySwapMax=0",
+		"IOReadIOPSMax=/dev/sda 100",
+		"IOWriteIOPSMax=/dev/sda 200",
+		"IOReadBandwidthMax=/dev/sda 1048576",
+		"IOWriteBandwidthMax=/dev/sda 2097152",
+	}
+	if got := resourceProperties(u.Resource); !slices.Equal(got, wantProps) {
+		t.Errorf("got %q, want %q", got, wantProps)
 	}
 }
 
@@ -79,7 +84,7 @@ func TestUnitArgvRendersARawWorkload(t *testing.T) {
 		Resource: &engine.VirtualizationResource{Quota: 2, Volumes: []string{"/data/app:/data:rw"}},
 	}
 
-	want := []string{
+	wantStatic := []string{
 		"systemd-run",
 		"--unit=eru-abcdef.service",
 		"--slice=eru-prod.slice",
@@ -87,12 +92,22 @@ func TestUnitArgvRendersARawWorkload(t *testing.T) {
 		"-p", "RemainAfterExit=yes",
 		"-p", "SyslogIdentifier=eru",
 		"-p", "WorkingDirectory=" + testRoot + "/abcdef/lower",
-		"-p", "CPUQuota=200%",
 		"-p", "BindPaths=/data/app:/data",
-		"--", testRoot + "/abcdef/lower/server",
 	}
-	if got := u.argv(); !slices.Equal(got, want) {
-		t.Errorf("got %q, want %q", got, want)
+	if got := u.staticArgv(); !slices.Equal(got, wantStatic) {
+		t.Errorf("got %q, want %q", got, wantStatic)
+	}
+	if got := resourceProperties(u.Resource); !slices.Equal(got, []string{"CPUQuota=200%"}) {
+		t.Errorf("got %q, want only the quota", got)
+	}
+	launcher := u.launcher(testRoot + "/abcdef")
+	for _, part := range []string{
+		"done < '" + testRoot + "/abcdef/props'",
+		`exec "$@" -- '` + testRoot + "/abcdef/lower/server'",
+	} {
+		if !strings.Contains(launcher, part) {
+			t.Errorf("launcher %q missing %q", launcher, part)
+		}
 	}
 }
 

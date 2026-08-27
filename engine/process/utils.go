@@ -14,6 +14,7 @@ const (
 	unitSuffix  = ".service"
 	sliceSuffix = ".slice"
 	imageCache  = "_images"
+	propsFile   = "props"
 )
 
 var (
@@ -33,6 +34,10 @@ func sliceName(podname string) string {
 
 func workloadDir(root, ID string) string {
 	return filepath.Join(root, ID)
+}
+
+func propsPath(dir string) string {
+	return filepath.Join(dir, propsFile)
 }
 
 func imageDir(root, ref string) string {

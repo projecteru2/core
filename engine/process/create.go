@@ -24,7 +24,7 @@ const (
 	podEnvKey = "ERU_POD"
 	rootUser  = "root"
 
-	createScript = "set -e\n" + unpackFunc + `dir=$1; ref=$2; cache=$3; launcher=$4; record=$5; overlay=$6; metadata=$7; binds=$8; shift 8
+	createScript = "set -e\n" + unpackFunc + `dir=$1; ref=$2; cache=$3; launcher=$4; record=$5; overlay=$6; metadata=$7; binds=$8; props=$9; shift 9
 trap 'rm -rf "$dir"' EXIT
 mkdir -p "$dir/lower"
 if [ -d "$cache" ]; then
@@ -39,6 +39,7 @@ printf '%s\n' "$binds" | while IFS= read -r source; do
 if [ -n "$source" ]; then mkdir -p "$source"; fi
 done
 printf '%s\n' "$launcher" > "$dir/run.sh"
+printf '%s\n' "$props" > "$dir/` + propsFile + `"
 printf '%s\n' "$metadata" > "$dir/meta.json"
 mkdir -p "$(dirname "$record")"
 cp -f "$dir/meta.json" "$record.tmp"
@@ -100,8 +101,8 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	}
 	overlay := strconv.Itoa(utils.Bool2Int(!rArgs.Raw))
 	argv := sshrunner.Shell(createScript, slices.Concat([]string{
-		dir, opts.Image, imageDir(e.root, opts.Image), sshrunner.Quote(u.argv()), workloadmeta.Path(ID), overlay, string(record),
-		strings.Join(bindSources(u.binds()), "\n"),
+		dir, opts.Image, imageDir(e.root, opts.Image), u.launcher(dir), workloadmeta.Path(ID), overlay, string(record),
+		strings.Join(bindSources(u.binds()), "\n"), strings.Join(resourceProperties(resource), "\n"),
 	}, e.registryFlags(opts.Image))...)
 	if _, err = e.run(ctx, argv...); err != nil {
 		return nil, err

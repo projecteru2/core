@@ -79,7 +79,10 @@ test -d "$dir" || exit %d
 systemctl show "$unit" -p %s
 `, workloadmeta.NotExistsCode, showProperties)
 
-	updateScript = "set -e\n" + loadedFunc + `unit=$1; shift
+	updateScript = "set -e\n" + loadedFunc + `unit=$1; dir=$2; shift 2
+test -d "$dir" || exit 0
+printf '%s\n' "$@" > "$dir/` + propsFile + `.tmp"
+mv "$dir/` + propsFile + `.tmp" "$dir/` + propsFile + `"
 loaded "$unit" || exit 0
 exec systemctl set-property --runtime "$unit" "$@"
 `
@@ -167,6 +170,6 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, en
 			Errorf(ctx, err, "failed to parse engine args %+v", engineParams)
 		return err
 	}
-	_, err := e.run(ctx, sshrunner.Shell(updateScript, slices.Concat([]string{unitName(ID)}, updateProperties(resource))...)...)
+	_, err := e.run(ctx, sshrunner.Shell(updateScript, slices.Concat([]string{unitName(ID), workloadDir(e.root, ID)}, updateProperties(resource))...)...)
 	return err
 }

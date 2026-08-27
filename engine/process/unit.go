@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/projecteru2/core/engine"
+	"github.com/projecteru2/core/engine/sshrunner"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -42,7 +43,15 @@ func (u *unit) binds() []utils.VolumeBind {
 	return utils.ParseVolumeBinds(u.Resource.Volumes, u.Opts.Env)
 }
 
-func (u *unit) argv() []string {
+func (u *unit) launcher(dir string) string {
+	return "set -- " + sshrunner.Quote(u.staticArgv()) + `
+while IFS= read -r p; do
+[ -n "$p" ] && set -- "$@" -p "$p"
+done < ` + sshrunner.Quote([]string{propsPath(dir)}) + `
+exec "$@" -- ` + sshrunner.Quote(u.command())
+}
+
+func (u *unit) staticArgv() []string {
 	argv := []string{
 		"systemd-run",
 		"--unit=" + unitName(u.ID),
@@ -63,8 +72,8 @@ func (u *unit) argv() []string {
 	for _, env := range u.Opts.Env {
 		argv = append(argv, "-p", "Environment="+systemdEnv(env))
 	}
-	for _, property := range properties(u.Resource, u.TasksMax) {
-		argv = append(argv, "-p", property)
+	if u.TasksMax > 0 {
+		argv = append(argv, "-p", "TasksMax="+strconv.Itoa(u.TasksMax))
 	}
 	for _, property := range bindPaths(u.binds()) {
 		argv = append(argv, "-p", property)
@@ -75,7 +84,7 @@ func (u *unit) argv() []string {
 	if u.StopTimeout > 0 {
 		argv = append(argv, "-p", "TimeoutStopSec="+strconv.FormatInt(int64(u.StopTimeout.Seconds()), 10))
 	}
-	return append(append(argv, "--"), u.command()...)
+	return argv
 }
 
 // command makes ExecStart absolute, which systemd requires; a relative one resolves
@@ -96,7 +105,7 @@ func (u *unit) description() string {
 	return appname + "/" + entrypoint
 }
 
-func properties(resource *engine.VirtualizationResource, tasksMax int) []string {
+func resourceProperties(resource *engine.VirtualizationResource) []string {
 	props := []string{}
 	if cpus := allowedCPUs(resource); cpus != "" {
 		props = append(props, "AllowedCPUs="+cpus)
@@ -114,9 +123,6 @@ func properties(resource *engine.VirtualizationResource, tasksMax int) []string 
 			"MemoryLow="+memoryLow(resource),
 			"MemorySwapMax=0",
 		)
-	}
-	if tasksMax > 0 {
-		props = append(props, "TasksMax="+strconv.Itoa(tasksMax))
 	}
 	return append(props, throttles(resource.IOPSOptions)...)
 }
