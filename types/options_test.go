@@ -153,7 +153,10 @@ func TestImageOptions(t *testing.T) {
 	o := &ImageOptions{}
 	assert.Equal(ErrEmptyPodName, o.Validate())
 
-	o.Podname = "podname"
+	o.Nodenames = []string{"node"}
+	assert.NoError(o.Validate())
+
+	o = &ImageOptions{Podname: "podname"}
 	assert.NoError(o.Validate())
 }
 
