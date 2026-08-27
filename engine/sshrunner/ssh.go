@@ -25,6 +25,9 @@ const (
 	ptyWidth  = 80
 	// sshd's default MaxSessions is 10; queue past that instead of being refused.
 	maxSessions = 8
+
+	dialRetries       = 2
+	dialRetryInterval = 100 * time.Millisecond
 )
 
 var _ Runner = (*sshRunner)(nil)
@@ -132,7 +135,9 @@ func (r *sshRunner) Files(ctx context.Context) (Files, error) {
 
 // Dial forwards a node socket; a forward is not a session, so MaxSessions does not bound it.
 func (r *sshRunner) Dial(ctx context.Context, network, addr string) (net.Conn, error) {
-	return retry(ctx, r, func(client *ssh.Client) (net.Conn, error) { return client.Dial(network, addr) })
+	return retryRefused(ctx, func() (net.Conn, error) {
+		return retry(ctx, r, func(client *ssh.Client) (net.Conn, error) { return client.Dial(network, addr) })
+	})
 }
 
 func (r *sshRunner) Close() error {
@@ -295,15 +300,35 @@ func retry[T any](ctx context.Context, r *sshRunner, f func(*ssh.Client) (T, err
 	return f(client)
 }
 
+func retryRefused(ctx context.Context, dial func() (net.Conn, error)) (net.Conn, error) {
+	conn, err := dial()
+	for range dialRetries {
+		if err == nil || !isChannelRefused(err) {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(dialRetryInterval):
+		}
+		conn, err = dial()
+	}
+	return conn, err
+}
+
 // isTransportError separates a dead connection from sshd refusing one more channel.
 func isTransportError(err error) bool {
-	var openErr *ssh.OpenChannelError
-	if errors.As(err, &openErr) {
+	if isChannelRefused(err) {
 		return false
 	}
 	var netErr net.Error
 	return errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed) ||
 		errors.Is(err, syscall.EPIPE) || errors.Is(err, syscall.ECONNRESET) || errors.As(err, &netErr)
+}
+
+func isChannelRefused(err error) bool {
+	var openErr *ssh.OpenChannelError
+	return errors.As(err, &openErr)
 }
 
 func exitStatus(err error) (int, error) {
