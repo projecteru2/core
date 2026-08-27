@@ -51,7 +51,7 @@ image's manifests against, since core's own platform is not the node's.
 | `VirtualizationAttach` | without stdin, the journald follow; with stdin, the three sessions relaying the workload's FIFOs |
 | `VirtualizationResize` | nothing: the stdio is a pipe, and a pipe has no geometry |
 | `Execute` / `ExecResize` / `ExecExitCode` | `ctr tasks exec` over the SSH session: stdio is the session's, the TTY is the session's pty, and the exit status is the session's |
-| `VirtualizationUpdateResource` | `container.Update` of the stored spec **and** `task.Update` of the live cgroup, so a restart replays the new limits |
+| `VirtualizationUpdateResource` | `task.Update` of the live cgroup first, then `container.Update` of the stored spec — a failure persists nothing, and a restart replays the new limits only once both held |
 | `VirtualizationCopyTo` / `CopyFrom` | a tar stream through `ctr tasks exec`; a workload whose task has not started yet is written into through its own snapshot, mounted on the node with `ctr snapshots mounts` |
 | `ImagePull` / `ImageList` / `ImageRemove` / `ImagesPrune` | `client.Pull` with unpack, the image store, and a prune of every image no container is built on |
 | `ImageBuildFromExist` | pause the task, diff the workload's snapshot against its image, then under one lease write the new config and manifest into the content store and tag them |
@@ -419,7 +419,7 @@ as stopped rather than missing.
 | `VirtualizationLogs` | `journalctl -u eru-<id> -o cat`, with `-n`, `--since` and `--until`; a followed stream ends when the unit leaves `running` |
 | `VirtualizationAttach` | logs-follow; stdin returns `ErrEngineNotImplemented` |
 | `Execute` | `systemd-run --scope` in the workload's slice, entering the root with `chroot --userspec` or dropping privileges with `setpriv`, stdio streamed over the SSH session, exit code from the scope |
-| `VirtualizationUpdateResource` | rewrite `<id>/props` (what the next start replays), then `systemctl set-property --runtime` with the complete knob set on a loaded unit — live when running, persisted either way |
+| `VirtualizationUpdateResource` | `systemctl set-property --runtime` on a loaded unit, then commit `<id>/props` (what the next start replays) — a failed live apply leaves the old props uncommitted |
 | `VirtualizationCopyTo` / `CopyFrom` | sftp through the mounted overlay at `merged`; when it is not mounted, writes land in `upper` and reads fall back from `upper` to `lower` |
 | `ImagePull` / `ImageList` / `ImageRemove` | `oras pull` into a cleared artifact cache entry / list the cache / `rm -rf` the entry |
 | `ImageBuildFromExist` | `systemctl freeze`, tar the mounted overlay at `merged` so the layer is a complete bundle, `oras push` it under the new ref, `systemctl thaw` |

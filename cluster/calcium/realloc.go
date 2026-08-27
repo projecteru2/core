@@ -68,6 +68,7 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 			if !reallocated {
 				return nil
 			}
+			c.remapped.Delete(workload.Nodename)
 			var rollbackErr error
 			if resourceErr := c.rmgr.RollbackRealloc(ctx, workload.Nodename, deltaResources); resourceErr != nil {
 				rollbackErr = errors.Join(rollbackErr, resourceErr)

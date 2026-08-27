@@ -82,9 +82,8 @@ systemctl show "$unit" -p %s
 	updateScript = "set -e\n" + loadedFunc + `unit=$1; dir=$2; shift 2
 test -d "$dir" || exit 0
 printf '%s\n' "$@" > "$dir/` + propsFile + `.tmp"
+if loaded "$unit"; then systemctl set-property --runtime "$unit" "$@"; fi
 mv "$dir/` + propsFile + `.tmp" "$dir/` + propsFile + `"
-loaded "$unit" || exit 0
-exec systemctl set-property --runtime "$unit" "$@"
 `
 )
 
