@@ -227,17 +227,22 @@ func (h *ReallocWorkloadHandler) Handle(ctx context.Context, raw any) error {
 	if err != nil || workload == nil {
 		return err
 	}
-
-	switch err = workload.Engine.VirtualizationUpdateResource(ctx, workloadID, workload.EngineParams); {
-	case errors.Is(err, types.ErrEngineNotImplemented):
-		logger.Warn(ctx, "the engine cannot reapply engine params, dropping the entry")
+	return h.calcium.withNodeOperationLocked(ctx, workload.Nodename, func(ctx context.Context, _ *types.Node) error {
+		workload, err := getWorkloadIfExists(ctx, h.calcium, workloadID)
+		if err != nil || workload == nil {
+			return err
+		}
+		switch err = workload.Engine.VirtualizationUpdateResource(ctx, workloadID, workload.EngineParams); {
+		case errors.Is(err, types.ErrEngineNotImplemented):
+			logger.Warn(ctx, "the engine cannot reapply engine params, dropping the entry")
+			return nil
+		case err != nil:
+			logger.Error(ctx, err)
+			return err
+		}
+		logger.Info(ctx, "engine params reapplied")
 		return nil
-	case err != nil:
-		logger.Error(ctx, err)
-		return err
-	}
-	logger.Info(ctx, "engine params reapplied")
-	return nil
+	})
 }
 
 type remapNodeHandler struct {

@@ -89,30 +89,28 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 		},
 		c.config.GlobalTimeout,
 	)
+	needsRepair := settled && runtimeUpdateAttempted && err != nil
 	if settled {
 		nodeCommit()
-		if err == nil || !runtimeUpdateAttempted {
+		if !needsRepair {
 			workloadCommit()
 		}
 	}
-	if err != nil {
-		if settled && runtimeUpdateAttempted {
-			return func() { c.repairRealloc(ctx, logger, node.Name, workload.ID, workloadCommit) }, err
-		}
+	switch {
+	case needsRepair:
+		return func() { c.repairRealloc(ctx, logger, workload.ID, workloadCommit) }, err
+	case err != nil:
 		return nil, err
 	}
 	c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node) })
 	return nil, nil
 }
 
-func (c *Calcium) repairRealloc(ctx context.Context, logger *log.Fields, nodename, workloadID string, commit reallocRepair) {
+func (c *Calcium) repairRealloc(ctx context.Context, logger *log.Fields, workloadID string, commit func()) {
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), c.config.GlobalTimeout)
 	defer cancel()
 
-	err := c.withNodeOperationLocked(ctx, nodename, func(ctx context.Context, _ *types.Node) error {
-		return (&ReallocWorkloadHandler{calcium: c}).Handle(ctx, workloadID)
-	})
-	if err != nil {
+	if err := (&ReallocWorkloadHandler{calcium: c}).Handle(ctx, workloadID); err != nil {
 		logger.Error(ctx, err, "repair realloc failed")
 		return
 	}

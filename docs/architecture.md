@@ -104,8 +104,10 @@ bookkeeping; core owns node and workload metadata. See [Resource plugins](resour
    copy in any files, run the after-create hooks, start it, inspect it back, and send the message.
    Each workload has its own inner `utils.Txn` whose rollback removes both metadata and instance.
 5. **Remap**: after a node finishes, core recomputes engine params for that node's existing
-   workloads and applies them — this is how shared CPU pools converge. Remap is idempotent and
-   deliberately outside the transaction.
+   workloads and applies them — this is how shared CPU pools converge. Remap is idempotent,
+   skips workloads whose params digest has not moved since the last sweep, and stays
+   deliberately outside the transaction; a failed realloc drops the node's digests so the
+   next sweep reapplies store truth.
 6. **Rollback**: if any workload failed, its resources are given back with `rmgr.RollbackAlloc`
    under the node lock.
 7. **Cleanup**: the processing counters are deleted and every WAL entry that reached a stable
