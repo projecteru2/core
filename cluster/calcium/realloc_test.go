@@ -96,12 +96,13 @@ func TestRealloc(t *testing.T) {
 	store.On("UpdateWorkload", mock.Anything, mock.Anything).Return(nil)
 
 	engine.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(types.ErrNilEngine).Once()
+	engine.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	c.remapped.Store("node1", &map[string]uint64{"c1": 1})
 	err = c.ReallocResource(ctx, opts)
 	assert.ErrorIs(t, err, types.ErrNilEngine)
+	engine.AssertNumberOfCalls(t, "VirtualizationUpdateResource", 2)
 	_, remembered := c.remapped.Load("node1")
 	assert.False(t, remembered, "a failed realloc must forget the node so the next remap reapplies store truth")
-	engine.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
 	err = c.ReallocResource(ctx, opts)
@@ -139,9 +140,61 @@ func TestReallocJournalsRepairEntries(t *testing.T) {
 	)
 
 	opts := &types.ReallocOptions{ID: "c1", Resources: resourcetypes.Resources{}}
-	assert.NoError(t, c.doReallocOnNode(ctx, node, workload, opts))
+	repair, err := c.doReallocOnNode(ctx, node, workload, opts)
+	assert.NoError(t, err)
+	assert.Nil(t, repair)
 	assert.Equal(t, []string{eventWorkloadResourceAllocated, eventWorkloadReallocated}, logged)
 	assert.Equal(t, 2, committed)
+}
+
+func TestReallocRepairsRuntimeBeforeCommittingItsJournal(t *testing.T) {
+	c := NewTestCluster()
+	ctx := t.Context()
+	committed := map[string]int{}
+	mwal := &walmocks.WAL{}
+	mwal.On("Log", mock.Anything, mock.Anything).Return(func(eventyp string, _ any) (wal.Commit, error) {
+		return func() error { committed[eventyp]++; return nil }, nil
+	})
+	c.wal = mwal
+
+	oldParams := resourcetypes.Resources{"cpumem": {"cpu": 1}}
+	newParams := resourcetypes.Resources{"cpumem": {"cpu": 2}}
+	engine := &enginemocks.API{}
+	engine.On("VirtualizationUpdateResource", mock.Anything, "c1", newParams).Return(types.ErrMockError).Once()
+	engine.On("VirtualizationUpdateResource", mock.Anything, "c1", oldParams).Return(nil).Once()
+	node := &types.Node{NodeMeta: types.NodeMeta{Name: "node1"}, Engine: engine}
+	workload := &types.Workload{ID: "c1", Nodename: node.Name, Engine: engine, EngineParams: oldParams}
+
+	lock := &lockmocks.DistributedLock{}
+	lock.On("Lock", mock.Anything).Return(ctx, nil)
+	lock.On("Unlock", mock.Anything).Return(nil)
+	store := c.store.(*storemocks.Store)
+	store.On("UpdateWorkload", mock.Anything, mock.Anything).Return(nil)
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	store.On("GetNode", mock.Anything, node.Name).Return(node, nil)
+	store.On("GetWorkload", mock.Anything, workload.ID).Return(&types.Workload{
+		ID:           workload.ID,
+		Nodename:     node.Name,
+		Engine:       engine,
+		EngineParams: oldParams,
+	}, nil)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("Realloc", mock.Anything, node.Name, mock.Anything, mock.Anything).Return(
+		newParams, resourcetypes.Resources{}, resourcetypes.Resources{}, nil,
+	)
+	rmgr.On("RollbackRealloc", mock.Anything, node.Name, mock.Anything).Return(nil)
+
+	repair, err := c.doReallocOnNode(ctx, node, workload, &types.ReallocOptions{ID: workload.ID})
+	assert.ErrorIs(t, err, types.ErrMockError)
+	assert.NotNil(t, repair)
+	assert.Equal(t, 1, committed[eventWorkloadResourceAllocated])
+	assert.Zero(t, committed[eventWorkloadReallocated])
+
+	repair()
+	assert.Equal(t, 1, committed[eventWorkloadReallocated])
+	engine.AssertExpectations(t)
+	store.AssertExpectations(t)
+	rmgr.AssertExpectations(t)
 }
 
 func TestReallocKeepsRepairEntriesUntilRollbackCompletes(t *testing.T) {
@@ -178,7 +231,9 @@ func TestReallocKeepsRepairEntriesUntilRollbackCompletes(t *testing.T) {
 			rmgr.On("RollbackRealloc", mock.Anything, node.Name, mock.Anything).Return(tc.rollback).Once()
 
 			opts := &types.ReallocOptions{ID: workload.ID, Resources: resourcetypes.Resources{}}
-			assert.ErrorIs(t, c.doReallocOnNode(ctx, node, workload, opts), types.ErrMockError)
+			repair, err := c.doReallocOnNode(ctx, node, workload, opts)
+			assert.ErrorIs(t, err, types.ErrMockError)
+			assert.Nil(t, repair)
 			assert.Equal(t, tc.committed, committed)
 			mwal.AssertExpectations(t)
 		})
