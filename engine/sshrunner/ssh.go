@@ -26,7 +26,7 @@ const (
 	// sshd's default MaxSessions is 10; queue past that instead of being refused.
 	maxSessions = 8
 
-	dialRetries       = 2
+	dialRetries       = 4
 	dialRetryInterval = 100 * time.Millisecond
 )
 
@@ -302,6 +302,7 @@ func retry[T any](ctx context.Context, r *sshRunner, f func(*ssh.Client) (T, err
 
 func retryRefused(ctx context.Context, dial func() (net.Conn, error)) (net.Conn, error) {
 	conn, err := dial()
+	interval := dialRetryInterval
 	for range dialRetries {
 		if err == nil || !isChannelRefused(err) {
 			break
@@ -309,8 +310,9 @@ func retryRefused(ctx context.Context, dial func() (net.Conn, error)) (net.Conn,
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
-		case <-time.After(dialRetryInterval):
+		case <-time.After(interval):
 		}
+		interval *= 2
 		conn, err = dial()
 	}
 	return conn, err

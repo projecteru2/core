@@ -46,7 +46,8 @@ func TestRetryRefused(t *testing.T) {
 	}{
 		{"an accepted forward is dialled once", []error{nil}, nil, 1},
 		{"a forward the node accepts on the second try succeeds", []error{refusedChannel, nil}, nil, 2},
-		{"a forward the node keeps refusing gives up", []error{refusedChannel, refusedChannel, refusedChannel}, refusedChannel, 3},
+		{"a forward the node keeps refusing gives up", []error{refusedChannel, refusedChannel, refusedChannel, refusedChannel, refusedChannel}, refusedChannel, 5},
+		{"a refusal burst longer than one interval is absorbed", []error{refusedChannel, refusedChannel, refusedChannel, nil}, nil, 4},
 		{"a dead transport is not a refusal", []error{io.EOF}, io.EOF, 1},
 	}
 	for _, tt := range tests {
