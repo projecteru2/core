@@ -91,7 +91,11 @@ func (e *Engine) VirtualizationStop(ctx context.Context, ID string, gracefulTime
 }
 
 func (e *Engine) VirtualizationRemove(ctx context.Context, ID string, _, force bool) error {
-	found, _, err := e.markStopped(ctx, ID)
+	found, err := e.container(ctx, ID)
+	if err != nil {
+		return err
+	}
+	info, err := found.Info(ctx, client.WithoutRefreshedMetadata)
 	if err != nil {
 		return err
 	}
@@ -104,6 +108,11 @@ func (e *Engine) VirtualizationRemove(ctx context.Context, ID string, _, force b
 		if statusErr == nil && status.Status == client.Running && !force {
 			return errors.Wrapf(coretypes.ErrInvaildWorkloadOps, "workload %s is running, stop it first or force the removal", ID)
 		}
+	}
+	if err = e.setDesiredStatus(ctx, found, info.Labels, client.Stopped); err != nil {
+		return err
+	}
+	if task != nil {
 		if err = killTask(ctx, task, syscall.SIGKILL, 0); err != nil && !cerrdefs.IsNotFound(err) {
 			return err
 		}
