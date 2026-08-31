@@ -1,14 +1,21 @@
 package containerd
 
 import (
+	"context"
+	"maps"
 	"testing"
 
 	"github.com/cockroachdb/errors"
+	"github.com/containerd/containerd/api/services/tasks/v1"
+	tasktypes "github.com/containerd/containerd/api/types/task"
+	"github.com/containerd/containerd/v2/client"
 	"github.com/containerd/containerd/v2/core/containers"
+	"github.com/containerd/containerd/v2/core/runtime/restart"
 	"github.com/containerd/containerd/v2/pkg/oci"
 	"github.com/containerd/errdefs/pkg/errgrpc"
 	"github.com/containerd/typeurl/v2"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -58,6 +65,32 @@ func TestStopTreatsAVanishedTaskAsStopped(t *testing.T) {
 	}
 }
 
+func TestRemoveKeepsRestartStateWhenRunningWorkloadIsRejected(t *testing.T) {
+	store := &trackingContainerStore{record: containers.Container{
+		ID: "w1",
+		Labels: map[string]string{
+			restart.PolicyLabel: "always",
+			restart.StatusLabel: string(client.Running),
+		},
+	}}
+	runtimeClient, err := client.New("", client.WithServices(
+		client.WithContainerStore(store),
+		client.WithTaskClient(&runningTaskClient{}),
+	))
+	if err != nil {
+		t.Fatalf("client: %v", err)
+	}
+	e := newEngine(&Engine{client: runtimeClient})
+
+	err = e.VirtualizationRemove(t.Context(), "w1", true, false)
+	if !errors.Is(err, coretypes.ErrInvaildWorkloadOps) {
+		t.Fatalf("got %v, want a running workload rejected", err)
+	}
+	if got := store.record.Labels[restart.StatusLabel]; got != string(client.Running) {
+		t.Errorf("got restart status %q, want running", got)
+	}
+}
+
 func TestUpdateSpeaksOneWordForAVanishedTask(t *testing.T) {
 	gone := errgrpc.ToNative(status.Errorf(codes.NotFound, "task w1 not found"))
 	if err := notExistsIfGone(gone); !errors.Is(err, coretypes.ErrWorkloadNotExists) {
@@ -75,4 +108,26 @@ func mustMarshal(t *testing.T, spec *oci.Spec) typeurl.Any {
 		t.Fatalf("marshal: %v", err)
 	}
 	return any
+}
+
+type trackingContainerStore struct {
+	containers.Store
+	record containers.Container
+}
+
+func (s *trackingContainerStore) Get(context.Context, string) (containers.Container, error) {
+	return s.record, nil
+}
+
+func (s *trackingContainerStore) Update(_ context.Context, record containers.Container, _ ...string) (containers.Container, error) {
+	maps.Copy(s.record.Labels, record.Labels)
+	return s.record, nil
+}
+
+type runningTaskClient struct {
+	tasks.TasksClient
+}
+
+func (c *runningTaskClient) Get(context.Context, *tasks.GetRequest, ...grpc.CallOption) (*tasks.GetResponse, error) {
+	return &tasks.GetResponse{Process: &tasktypes.Process{ID: "w1", Status: tasktypes.Status_RUNNING}}, nil
 }
