@@ -13,8 +13,8 @@ import (
 	coretypes "github.com/projecteru2/core/types"
 )
 
-func TestVirtualizationLogsBuffersWhenNotFollowing(t *testing.T) {
-	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: "hello\n"} }}
+func TestVirtualizationLogsStreamsWhenNotFollowing(t *testing.T) {
+	runner := &sshrunnertest.Fake{Started: []*sshrunnertest.Session{{Out: "hello\n"}}}
 	e := testEngine(t, runner)
 
 	stdout, stderr, err := e.VirtualizationLogs(t.Context(), &enginetypes.VirtualizationLogStreamOptions{ID: "w1"})
