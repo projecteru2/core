@@ -5,9 +5,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/cockroachdb/errors"
+
 	"github.com/projecteru2/core/engine/sshrunner"
 	"github.com/projecteru2/core/engine/sshrunner/sshrunnertest"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/engine/workloadmeta"
+	coretypes "github.com/projecteru2/core/types"
 )
 
 func TestExecuteRunsAScopeInTheWorkloadSlice(t *testing.T) {
@@ -45,6 +49,32 @@ func TestExecuteRunsAScopeInTheWorkloadSlice(t *testing.T) {
 	}
 	if code != 7 {
 		t.Errorf("got exit code %d, want 7", code)
+	}
+}
+
+func TestAWorkloadTheNodeLostDropsItsCachedRecord(t *testing.T) {
+	gone := false
+	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result {
+		if gone {
+			return &sshrunner.Result{Code: workloadmeta.NotExistsCode}
+		}
+		return &sshrunner.Result{Stdout: "1\n" + overlayMeta}
+	}}
+	e := testEngine(t, runner)
+
+	if _, err := e.record(t.Context(), "w1"); err != nil {
+		t.Fatalf("record: %v", err)
+	}
+	if _, ok := e.records.Load("w1"); !ok {
+		t.Fatal("the first read must cache the record")
+	}
+
+	gone = true
+	if _, err := e.VirtualizationInspect(t.Context(), "w1"); !errors.Is(err, coretypes.ErrWorkloadNotExists) {
+		t.Fatalf("got %v, want ErrWorkloadNotExists", err)
+	}
+	if _, ok := e.records.Load("w1"); ok {
+		t.Error("a workload the node no longer has must not stay cached")
 	}
 }
 

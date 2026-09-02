@@ -128,6 +128,7 @@ func (e *Engine) workloadMeta(ctx context.Context, ID string) (*meta, bool, erro
 		return nil, false, err
 	}
 	if res.Code != 0 {
+		e.records.Delete(ID)
 		return nil, false, errors.Wrapf(coretypes.ErrWorkloadNotExists, "no meta file for %s", ID)
 	}
 	mounted, body, _ := strings.Cut(res.Stdout, "\n")
