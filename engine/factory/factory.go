@@ -8,6 +8,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/panjf2000/ants/v2"
+	"golang.org/x/sync/singleflight"
 
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/engine/cocoon"
@@ -32,6 +33,7 @@ var (
 	}
 
 	engineCache *EngineCache
+	dials       singleflight.Group
 )
 
 type factory func(ctx context.Context, config types.Config, nodename, endpoint string) (engine.API, error)
@@ -182,25 +184,32 @@ func RemoveEngineFromCache(ctx context.Context, endpoint string) {
 }
 
 // GetEngine returns the cached engine for an endpoint, building one if absent.
-func GetEngine(ctx context.Context, config types.Config, nodename, endpoint string) (client engine.API, err error) {
-	logger := log.WithFunc("engine.factory.GetEngine")
-	if client = GetEngineFromCache(ctx, endpoint); client != nil {
+func GetEngine(ctx context.Context, config types.Config, nodename, endpoint string) (engine.API, error) {
+	if client := GetEngineFromCache(ctx, endpoint); client != nil {
 		return client, nil
 	}
 
-	params := enginetypes.NewParams(nodename, endpoint)
-	defer func() {
+	dialed, err, _ := dials.Do(endpoint, func() (any, error) {
+		if client := GetEngineFromCache(ctx, endpoint); client != nil {
+			return client, nil
+		}
+		logger := log.WithFunc("engine.factory.GetEngine")
+		params := enginetypes.NewParams(nodename, endpoint)
 		cacheKey := params.CacheKey()
-		if err == nil {
-			engineCache.Set(cacheKey, client)
-			logger.Infof(ctx, "store engine %+v in cache", cacheKey)
-		} else {
+		client, err := newEngine(ctx, config, params)
+		if err != nil {
 			engineCache.Set(cacheKey, &fake.EngineWithErr{DefaultErr: err, EP: params})
 			logger.Infof(ctx, "store fake engine %+v in cache", cacheKey)
+			return nil, err
 		}
-	}()
-
-	return newEngine(ctx, config, params)
+		engineCache.Set(cacheKey, client)
+		logger.Infof(ctx, "store engine %+v in cache", cacheKey)
+		return client, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return dialed.(engine.API), nil
 }
 
 // closeEngine releases the connection an engine owns; a fake engine holds none.
