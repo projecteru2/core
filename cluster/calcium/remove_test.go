@@ -58,6 +58,7 @@ func TestRemoveWorkload(t *testing.T) {
 		store.AssertExpectations(t)
 
 		store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+		store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
 		node := &types.Node{
 			NodeMeta: types.NodeMeta{
 				Name: "test",
@@ -106,6 +107,14 @@ func TestRemoveWorkloadReportsEveryWorkloadAfterTheLockIsLost(t *testing.T) {
 	store := c.store.(*storemocks.Store)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(workloads, nil)
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(func(_ context.Context, ID string) (*types.Workload, error) {
+		for _, w := range workloads {
+			if w.ID == ID {
+				return w, nil
+			}
+		}
+		return nil, types.ErrWorkloadNotExists
+	})
 	store.On("GetNode", mock.Anything, mock.Anything).Return(&types.Node{NodeMeta: types.NodeMeta{Name: "test"}}, nil)
 	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
@@ -144,6 +153,7 @@ func TestRemoveWorkloadJournalsRepairEntries(t *testing.T) {
 	store := c.store.(*storemocks.Store)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(&types.Node{NodeMeta: types.NodeMeta{Name: "test"}}, nil)
 	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
@@ -182,6 +192,7 @@ func TestRemoveWorkloadKeepsTheNodeEntryWhenTheReleaseFails(t *testing.T) {
 	store := c.store.(*storemocks.Store)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(&types.Node{NodeMeta: types.NodeMeta{Name: "test"}}, nil)
 	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
@@ -220,6 +231,7 @@ func TestRemoveWorkloadKeepsTheNodeEntryWhenTheRemovalFails(t *testing.T) {
 	store := c.store.(*storemocks.Store)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(&types.Node{NodeMeta: types.NodeMeta{Name: "test"}}, nil)
 	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
 	store.On("AddWorkload", mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -249,6 +261,7 @@ func TestRemoveWorkloadLocksTheWorkloadThenItsNode(t *testing.T) {
 	workload := &types.Workload{ID: "w1", Name: "app_entry_x", Nodename: "n1", Engine: engine}
 	node := &types.Node{NodeMeta: types.NodeMeta{Name: "n1", Podname: "p1"}}
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
 	store.On("GetNode", mock.Anything, "n1").Return(node, nil)
 	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)

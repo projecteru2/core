@@ -66,7 +66,6 @@ func TestRealloc(t *testing.T) {
 	store.AssertExpectations(t)
 	store.On("GetNode", mock.Anything, "node1").Return(node1, nil)
 
-	store.On("GetWorkloads", mock.Anything, []string{"c1"}).Return(newC1, nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	err = c.ReallocResource(ctx, opts)
 	assert.True(t, errors.Is(err, types.ErrMockError))

@@ -59,7 +59,7 @@ func TestReplaceWorkload(t *testing.T) {
 	store.AssertExpectations(t)
 
 	store.On("ListWorkloads", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
-	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch, err := c.ReplaceWorkload(ctx, opts)
 	assert.NoError(t, err)
 	for r := range ch {
@@ -67,7 +67,7 @@ func TestReplaceWorkload(t *testing.T) {
 	}
 	store.AssertExpectations(t)
 
-	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil).Once()
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil).Once()
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	opts.Podname = "wtf"
 	ch, err = c.ReplaceWorkload(ctx, opts)
@@ -78,7 +78,7 @@ func TestReplaceWorkload(t *testing.T) {
 
 	workload.Podname = "wtf"
 	opts.NetworkInherit = true
-	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil).Once()
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil).Once()
 	ch, err = c.ReplaceWorkload(ctx, opts)
 	assert.NoError(t, err)
 	for r := range ch {
@@ -88,7 +88,7 @@ func TestReplaceWorkload(t *testing.T) {
 
 	engine := &enginemocks.API{}
 	workload.Engine = engine
-	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
 	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{Running: false}, nil).Once()
 	ch, err = c.ReplaceWorkload(ctx, opts)
 	assert.NoError(t, err)

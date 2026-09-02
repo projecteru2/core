@@ -32,6 +32,7 @@ func TestSendLarge(t *testing.T) {
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch := c.SendLargeFile(ctx, optsChan)
 	go func() {
 		optsChan <- opts
@@ -44,6 +45,7 @@ func TestSendLarge(t *testing.T) {
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(
 		[]*types.Workload{{ID: "cid", Engine: engine}}, nil,
 	)
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(&types.Workload{ID: "cid", Engine: engine}, nil)
 	engine.err = types.ErrMockError
 	optsChan = make(chan *types.SendLargeFileOptions)
 	ch = c.SendLargeFile(ctx, optsChan)
