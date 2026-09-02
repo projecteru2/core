@@ -4,9 +4,9 @@ import (
 	"cmp"
 	"context"
 	"slices"
-	"sync"
 
 	"github.com/cockroachdb/errors"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/projecteru2/core/engine"
 	enginefactory "github.com/projecteru2/core/engine/factory"
@@ -18,6 +18,8 @@ import (
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
+
+const statusWriters = 32
 
 func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*types.Node, error) {
 	logger := log.WithFunc("calcium.AddNode").WithField("opts", opts)
@@ -300,15 +302,14 @@ func (c *Calcium) setAllWorkloadsOnNodeDown(ctx context.Context, nodename string
 		return
 	}
 
-	wg := &sync.WaitGroup{}
-	wg.Add(len(workloads))
+	var g errgroup.Group
+	g.SetLimit(statusWriters)
 	for _, workload := range workloads {
-		_ = c.pool.Invoke(func() {
-			defer wg.Done()
+		g.Go(func() error {
 			appname, entrypoint, _, err := utils.ParseWorkloadName(workload.Name)
 			if err != nil {
 				logger.Errorf(ctx, err, "set workload %s on node %s as inactive failed", workload.ID, nodename)
-				return
+				return nil
 			}
 
 			if workload.StatusMeta == nil {
@@ -323,12 +324,13 @@ func (c *Calcium) setAllWorkloadsOnNodeDown(ctx context.Context, nodename string
 
 			if err = c.store.SetWorkloadStatus(ctx, workload.StatusMeta, 0); err != nil {
 				logger.Errorf(ctx, err, "set workload %s on node %s as inactive failed", workload.ID, nodename)
-				return
+				return nil
 			}
 			logger.Infof(ctx, "set workload %s on node %s as inactive", workload.ID, nodename)
+			return nil
 		})
 	}
-	wg.Wait()
+	_ = g.Wait()
 }
 
 func verifyNodeEngine(ctx context.Context, client engine.API) error {
