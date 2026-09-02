@@ -14,7 +14,7 @@ import (
 
 const maxIdleSessions = 64
 
-// Pool keeps etcd sessions alive between locks, so a lock cycle costs two transactions instead of a lease grant and revoke as well.
+// Pool keeps etcd sessions alive between locks.
 type Pool struct {
 	cli  *clientv3.Client
 	ttl  int
