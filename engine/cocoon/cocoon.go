@@ -7,7 +7,6 @@ import (
 	"sync/atomic"
 
 	"github.com/cockroachdb/errors"
-
 	"golang.org/x/sync/singleflight"
 
 	"github.com/projecteru2/core/engine"

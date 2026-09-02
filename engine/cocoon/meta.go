@@ -17,6 +17,10 @@ type meta struct {
 	Log  logMeta `json:"log"`
 }
 
+type logMeta struct {
+	ConsoleSocket string `json:"console_socket"`
+}
+
 func newMeta(ctx context.Context, ID string, opts *enginetypes.VirtualizationCreateOptions, vm *vmRecord, nodename string, cocoon coretypes.CocoonConfig) *meta {
 	m := &meta{
 		Record: workloadmeta.NewRecord(ctx, ID, kindVM, opts.Name, utils.LastEnvValue(opts.Env, podEnvKey), nodename, opts.Labels),
@@ -31,8 +35,4 @@ func newMeta(ctx context.Context, ID string, opts *enginetypes.VirtualizationCre
 
 func parseInspect(out string) (*meta, *vmRecord, error) {
 	return decodePair[meta, vmRecord](out)
-}
-
-type logMeta struct {
-	ConsoleSocket string `json:"console_socket"`
 }
