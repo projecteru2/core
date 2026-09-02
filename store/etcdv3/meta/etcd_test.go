@@ -70,6 +70,13 @@ func TestBindStatusFailedAsGrantError(t *testing.T) {
 	e, etcd, assert := testKeepAliveETCD(t)
 	defer assert()
 	expErr := fmt.Errorf("exp")
+	txn := &mocks.Txn{}
+	defer txn.AssertExpectations(t)
+	txn.On("If", mock.Anything, mock.Anything).Return(txn)
+	txn.On("Then", mock.Anything).Return(txn)
+	txn.On("Commit").Return(&clientv3.TxnResponse{Succeeded: false}, nil)
+
+	etcd.On("Txn", mock.Anything).Return(txn)
 	etcd.On("Grant", mock.Anything, mock.Anything).Return(nil, expErr)
 	require.Equal(t, expErr, e.BindStatus(t.Context(), "/entity", "/status", "status", 1))
 }
@@ -81,10 +88,11 @@ func TestBindStatusFailedAsCommitError(t *testing.T) {
 	expErr := fmt.Errorf("exp")
 	txn := &mocks.Txn{}
 	defer txn.AssertExpectations(t)
-	etcd.On("Get", mock.Anything, mock.Anything).Return(&clientv3.GetResponse{}, nil)
-	txn.On("If", mock.Anything).Return(txn)
+	txn.On("If", mock.Anything, mock.Anything).Return(txn).Once()
+	txn.On("If", mock.Anything).Return(txn).Once()
 	txn.On("Then", mock.Anything).Return(txn)
-	txn.On("Commit").Return(nil, expErr)
+	txn.On("Commit").Return(&clientv3.TxnResponse{Succeeded: false}, nil).Once()
+	txn.On("Commit").Return(nil, expErr).Once()
 
 	etcd.On("Grant", mock.Anything, mock.Anything).Return(&clientv3.LeaseGrantResponse{}, nil)
 	etcd.On("Txn", mock.Anything).Return(txn)
@@ -95,43 +103,108 @@ func TestBindStatusButEntityTxnUnsuccessful(t *testing.T) {
 	e, etcd, assert := testKeepAliveETCD(t)
 	defer assert()
 
-	entityTxn := &clientv3.TxnResponse{Succeeded: false}
 	txn := &mocks.Txn{}
 	defer txn.AssertExpectations(t)
-	etcd.On("Get", mock.Anything, mock.Anything).Return(&clientv3.GetResponse{}, nil)
-	txn.On("If", mock.Anything).Return(txn)
+	txn.On("If", mock.Anything, mock.Anything).Return(txn).Once()
+	txn.On("If", mock.Anything).Return(txn).Once()
 	txn.On("Then", mock.Anything).Return(txn)
-	txn.On("Commit").Return(entityTxn, nil)
+	txn.On("Commit").Return(&clientv3.TxnResponse{Succeeded: false}, nil)
 
 	etcd.On("Grant", mock.Anything, mock.Anything).Return(&clientv3.LeaseGrantResponse{}, nil)
 	etcd.On("Txn", mock.Anything).Return(txn)
 	require.Equal(t, types.ErrInvaildCount, e.BindStatus(t.Context(), "/entity", "/status", "status", 1))
 }
 
-func TestBindStatusButStatusTxnUnsuccessful(t *testing.T) {
+func TestBindStatusRenewsAnUnchangedStatus(t *testing.T) {
 	e, etcd, assert := testKeepAliveETCD(t)
 	defer assert()
 
-	entityTxn := &clientv3.TxnResponse{
-		Succeeded: true,
-		Responses: []*etcdserverpb.ResponseOp{
-			{
-				Response: &etcdserverpb.ResponseOp_ResponseTxn{
-					ResponseTxn: &etcdserverpb.TxnResponse{Succeeded: false},
-				},
-			},
-		},
-	}
+	leaseID := int64(1235)
+	txn := &mocks.Txn{}
+	defer txn.AssertExpectations(t)
+	txn.On("If", mock.Anything, mock.Anything).Return(txn)
+	txn.On("Then", mock.Anything).Return(txn)
+	txn.On("Commit").Return(renewTxn("status", leaseID), nil)
+
+	etcd.On("Txn", mock.Anything).Return(txn)
+	etcd.On("KeepAliveOnce", mock.Anything, clientv3.LeaseID(leaseID)).Return(&clientv3.LeaseKeepAliveResponse{TTL: 1}, nil)
+	require.Equal(t, nil, e.BindStatus(t.Context(), "/entity", "/status", "status", 1))
+	etcd.AssertNotCalled(t, "Grant", mock.Anything, mock.Anything)
+}
+
+func TestBindStatusRebindsWhenTheRenewLostItsEntity(t *testing.T) {
+	e, etcd, assert := testKeepAliveETCD(t)
+	defer assert()
+
+	txn := &mocks.Txn{}
+	defer txn.AssertExpectations(t)
+	txn.On("If", mock.Anything, mock.Anything).Return(txn).Once()
+	txn.On("If", mock.Anything).Return(txn).Once()
+	txn.On("Then", mock.Anything).Return(txn)
+	txn.On("Commit").Return(&clientv3.TxnResponse{Succeeded: false}, nil)
+
+	etcd.On("Txn", mock.Anything).Return(txn)
+	etcd.On("Grant", mock.Anything, mock.Anything).Return(&clientv3.LeaseGrantResponse{}, nil)
+	require.Equal(t, types.ErrInvaildCount, e.BindStatus(t.Context(), "/entity", "/status", "status", 1))
+	etcd.AssertNotCalled(t, "KeepAliveOnce", mock.Anything, mock.Anything)
+}
+
+func TestBindStatusRebindsWhenTheTTLChanged(t *testing.T) {
+	e, etcd, assert := testKeepAliveETCD(t)
+	defer assert()
+
+	leaseID := int64(1235)
+	txn := &mocks.Txn{}
+	defer txn.AssertExpectations(t)
+	txn.On("If", mock.Anything, mock.Anything).Return(txn).Once()
+	txn.On("If", mock.Anything).Return(txn).Once()
+	txn.On("Then", mock.Anything).Return(txn)
+	txn.On("Commit").Return(renewTxn("status", leaseID), nil).Once()
+	txn.On("Commit").Return(&clientv3.TxnResponse{Succeeded: true}, nil).Once()
+
+	etcd.On("Txn", mock.Anything).Return(txn)
+	etcd.On("KeepAliveOnce", mock.Anything, clientv3.LeaseID(leaseID)).Return(&clientv3.LeaseKeepAliveResponse{TTL: 5}, nil)
+	etcd.On("Grant", mock.Anything, mock.Anything).Return(&clientv3.LeaseGrantResponse{}, nil)
+	require.Equal(t, nil, e.BindStatus(t.Context(), "/entity", "/status", "status", 1))
+}
+
+func TestBindStatusWithoutEntityCarriesALease(t *testing.T) {
+	e := NewEmbeddedETCD(t)
+	ctx := t.Context()
+
+	require.NoError(t, e.BindStatus(ctx, "/entity", "/status", "gone", 0))
+	kv, err := e.GetOne(ctx, "/status")
+	require.NoError(t, err)
+	require.NotZero(t, kv.Lease)
+
+	_, err = e.Put(ctx, "/entity", "here")
+	require.NoError(t, err)
+	require.NoError(t, e.BindStatus(ctx, "/entity", "/status", "gone", 0))
+	kv, err = e.GetOne(ctx, "/status")
+	require.NoError(t, err)
+	require.Zero(t, kv.Lease)
+	require.Equal(t, "gone", string(kv.Value))
+
+	leases, err := e.cliv3.Leases(ctx)
+	require.NoError(t, err)
+	require.Len(t, leases.Leases, 1)
+}
+
+func TestBindStatusOrphanPutYieldsToAnEntityThatAppeared(t *testing.T) {
+	e, etcd, assert := testKeepAliveETCD(t)
+	defer assert()
+
 	txn := &mocks.Txn{}
 	defer txn.AssertExpectations(t)
 	txn.On("If", mock.Anything).Return(txn)
 	txn.On("Then", mock.Anything).Return(txn)
-	txn.On("Commit").Return(entityTxn, nil)
+	txn.On("Else", mock.Anything).Return(txn)
+	txn.On("Commit").Return(&clientv3.TxnResponse{Succeeded: false}, nil)
 
-	etcd.On("Grant", mock.Anything, mock.Anything).Return(&clientv3.LeaseGrantResponse{}, nil)
 	etcd.On("Txn", mock.Anything).Return(txn)
-	etcd.On("Get", mock.Anything, mock.Anything).Return(&clientv3.GetResponse{}, nil)
-	require.Equal(t, nil, e.BindStatus(t.Context(), "/entity", "/status", "status", 1))
+	etcd.On("Grant", mock.Anything, mock.Anything).Return(&clientv3.LeaseGrantResponse{ID: 7}, nil)
+	etcd.On("Revoke", mock.Anything, clientv3.LeaseID(7)).Return(&clientv3.LeaseRevokeResponse{}, nil)
+	require.NoError(t, e.BindStatus(t.Context(), "/entity", "/status", "status", 0))
 }
 
 func TestBindStatusWithZeroTTL(t *testing.T) {
@@ -159,130 +232,43 @@ func TestBindStatusWithZeroTTL(t *testing.T) {
 	require.Equal(t, nil, e.BindStatus(t.Context(), "/entity", "/status", "status", 0))
 }
 
-func TestBindStatusOrphanPutYieldsToAnEntityThatAppeared(t *testing.T) {
+func TestBindStatusRebindsAChangedValue(t *testing.T) {
 	e, etcd, assert := testKeepAliveETCD(t)
 	defer assert()
 
 	txn := &mocks.Txn{}
 	defer txn.AssertExpectations(t)
-	txn.On("If", mock.Anything).Return(txn)
+	txn.On("If", mock.Anything, mock.Anything).Return(txn).Once()
+	txn.On("If", mock.Anything).Return(txn).Once()
 	txn.On("Then", mock.Anything).Return(txn)
-	txn.On("Else", mock.Anything).Return(txn)
-	txn.On("Commit").Return(&clientv3.TxnResponse{Succeeded: false}, nil)
+	txn.On("Commit").Return(&clientv3.TxnResponse{Succeeded: false}, nil).Once()
+	txn.On("Commit").Return(&clientv3.TxnResponse{Succeeded: true}, nil).Once()
 
+	etcd.On("Grant", mock.Anything, mock.Anything).Return(&clientv3.LeaseGrantResponse{}, nil)
 	etcd.On("Txn", mock.Anything).Return(txn)
-	etcd.On("Grant", mock.Anything, mock.Anything).Return(&clientv3.LeaseGrantResponse{ID: 7}, nil)
-	etcd.On("Revoke", mock.Anything, clientv3.LeaseID(7)).Return(&clientv3.LeaseRevokeResponse{}, nil)
-	require.NoError(t, e.BindStatus(t.Context(), "/entity", "/status", "status", 0))
+	require.Equal(t, nil, e.BindStatus(t.Context(), "/entity", "/status", "status", 1))
+	etcd.AssertNotCalled(t, "KeepAliveOnce", mock.Anything, mock.Anything)
 }
 
-func TestBindStatusWithoutEntityCarriesALease(t *testing.T) {
+func TestBindStatusKeepsOneLeaseAcrossRepeatedReports(t *testing.T) {
 	e := NewEmbeddedETCD(t)
 	ctx := t.Context()
+	_, err := e.Put(ctx, "/entity", "here")
+	require.NoError(t, err)
 
-	require.NoError(t, e.BindStatus(ctx, "/entity", "/status", "gone", 0))
-	kv, err := e.GetOne(ctx, "/status")
+	require.NoError(t, e.BindStatus(ctx, "/entity", "/status", "status", 5))
+	first, err := e.GetOne(ctx, "/status")
 	require.NoError(t, err)
-	require.NotZero(t, kv.Lease)
+	require.NotZero(t, first.Lease)
 
-	_, err = e.Put(ctx, "/entity", "here")
+	require.NoError(t, e.BindStatus(ctx, "/entity", "/status", "status", 5))
+	second, err := e.GetOne(ctx, "/status")
 	require.NoError(t, err)
-	require.NoError(t, e.BindStatus(ctx, "/entity", "/status", "gone", 0))
-	kv, err = e.GetOne(ctx, "/status")
-	require.NoError(t, err)
-	require.Zero(t, kv.Lease)
-	require.Equal(t, "gone", string(kv.Value))
+	require.Equal(t, first.Lease, second.Lease)
 
 	leases, err := e.cliv3.Leases(ctx)
 	require.NoError(t, err)
 	require.Len(t, leases.Leases, 1)
-}
-
-func TestBindStatusButValueTxnUnsuccessful(t *testing.T) {
-	e, etcd, assert := testKeepAliveETCD(t)
-	defer assert()
-
-	statusTxn := &etcdserverpb.TxnResponse{
-		Succeeded: true,
-		Responses: []*etcdserverpb.ResponseOp{
-			{
-				Response: &etcdserverpb.ResponseOp_ResponseTxn{
-					ResponseTxn: &etcdserverpb.TxnResponse{Succeeded: false},
-				},
-			},
-		},
-	}
-	entityTxn := &clientv3.TxnResponse{
-		Succeeded: true,
-		Responses: []*etcdserverpb.ResponseOp{
-			{
-				Response: &etcdserverpb.ResponseOp_ResponseTxn{
-					ResponseTxn: statusTxn,
-				},
-			},
-		},
-	}
-	txn := &mocks.Txn{}
-	defer txn.AssertExpectations(t)
-	txn.On("If", mock.Anything).Return(txn)
-	txn.On("Then", mock.Anything).Return(txn)
-	txn.On("Commit").Return(entityTxn, nil)
-
-	etcd.On("Txn", mock.Anything).Return(txn)
-	etcd.On("Grant", mock.Anything, mock.Anything).Return(&clientv3.LeaseGrantResponse{}, nil)
-	etcd.On("Get", mock.Anything, mock.Anything).Return(&clientv3.GetResponse{}, nil)
-	require.Equal(t, nil, e.BindStatus(t.Context(), "/entity", "/status", "status", 1))
-}
-
-func TestBindStatus(t *testing.T) {
-	e, etcd, assert := testKeepAliveETCD(t)
-	defer assert()
-
-	leaseID := int64(1235)
-	valueTxn := &etcdserverpb.TxnResponse{
-		Succeeded: true,
-		Responses: []*etcdserverpb.ResponseOp{
-			{
-				Response: &etcdserverpb.ResponseOp_ResponseRange{
-					ResponseRange: &etcdserverpb.RangeResponse{
-						Kvs: []*mvccpb.KeyValue{
-							{Lease: leaseID},
-						},
-					},
-				},
-			},
-		},
-	}
-	statusTxn := &etcdserverpb.TxnResponse{
-		Succeeded: true,
-		Responses: []*etcdserverpb.ResponseOp{
-			{
-				Response: &etcdserverpb.ResponseOp_ResponseTxn{
-					ResponseTxn: valueTxn,
-				},
-			},
-		},
-	}
-	entityTxn := &clientv3.TxnResponse{
-		Succeeded: true,
-		Responses: []*etcdserverpb.ResponseOp{
-			{
-				Response: &etcdserverpb.ResponseOp_ResponseTxn{
-					ResponseTxn: statusTxn,
-				},
-			},
-		},
-	}
-	txn := &mocks.Txn{}
-	defer txn.AssertExpectations(t)
-	txn.On("If", mock.Anything).Return(txn)
-	txn.On("Then", mock.Anything).Return(txn)
-	txn.On("Commit").Return(entityTxn, nil)
-
-	etcd.On("Grant", mock.Anything, mock.Anything).Return(&clientv3.LeaseGrantResponse{}, nil)
-	etcd.On("Txn", mock.Anything).Return(txn)
-	etcd.On("Get", mock.Anything, mock.Anything).Return(&clientv3.GetResponse{}, nil)
-	require.Equal(t, nil, e.BindStatus(t.Context(), "/entity", "/status", "status", 1))
 }
 
 func TestETCD(t *testing.T) {
@@ -468,4 +454,15 @@ func testKeepAliveETCD(t *testing.T) (*ETCD, *mocks.ETCDClientV3, func()) {
 	etcd, ok := e.cliv3.(*mocks.ETCDClientV3)
 	require.True(t, ok)
 	return e, etcd, func() { etcd.AssertExpectations(t) }
+}
+
+func renewTxn(value string, lease int64) *clientv3.TxnResponse {
+	return &clientv3.TxnResponse{
+		Succeeded: true,
+		Responses: []*etcdserverpb.ResponseOp{{
+			Response: &etcdserverpb.ResponseOp_ResponseRange{
+				ResponseRange: &etcdserverpb.RangeResponse{Kvs: []*mvccpb.KeyValue{{Value: []byte(value), Lease: lease}}},
+			},
+		}},
+	}
 }
