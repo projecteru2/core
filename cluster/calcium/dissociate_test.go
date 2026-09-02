@@ -1,6 +1,7 @@
 package calcium
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -21,7 +22,7 @@ func TestDissociateWorkload(t *testing.T) {
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(ctx, nil)
+	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 
 	c1 := &types.Workload{

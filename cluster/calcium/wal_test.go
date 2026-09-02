@@ -26,7 +26,7 @@ func TestHandleWorkloadResourceAllocatedMultipleNodes(t *testing.T) {
 	store := c.store.(*storemocks.Store)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(t.Context(), nil)
+	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
@@ -54,7 +54,7 @@ func TestHandleWorkloadResourceAllocatedKeepsEntryUntilEveryNodeIsFixed(t *testi
 	enableTestWAL(t, c)
 	store := c.store.(*storemocks.Store)
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(t.Context(), nil)
+	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	store.On("GetNode", mock.Anything, "n1").Return(&types.Node{NodeMeta: types.NodeMeta{Name: "n1"}}, nil)
@@ -281,7 +281,7 @@ func TestHandleReallocWorkload(t *testing.T) {
 	engineParams := resourcetypes.Resources{"cpumem": {"cpu": 2}}
 	store := c.store.(*storemocks.Store)
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(t.Context(), nil)
+	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	store.On("GetNode", mock.Anything, "n1").Return(&types.Node{NodeMeta: types.NodeMeta{Name: "n1"}}, nil)
@@ -308,7 +308,7 @@ func TestHandleReallocWorkloadOnAnEngineThatCannotReplayIt(t *testing.T) {
 	engineParams := resourcetypes.Resources{"cpumem": {"cpu": 2}}
 	store := c.store.(*storemocks.Store)
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(t.Context(), nil)
+	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	store.On("GetNode", mock.Anything, "n1").Return(&types.Node{NodeMeta: types.NodeMeta{Name: "n1"}}, nil)
@@ -377,7 +377,7 @@ func TestHandleCreateLambda(t *testing.T) {
 		Once()
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil).Once()
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(t.Context(), nil)
+	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 

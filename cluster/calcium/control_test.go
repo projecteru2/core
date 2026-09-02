@@ -209,7 +209,7 @@ func newControlTestCluster(t *testing.T) (*Calcium, context.Context, *storemocks
 	ctx := t.Context()
 	store := c.store.(*storemocks.Store)
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(ctx, nil)
+	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	return c, ctx, store

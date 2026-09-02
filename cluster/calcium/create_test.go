@@ -337,7 +337,7 @@ func TestDoDeployWorkloadsOnNodeErrorPerWorkload(t *testing.T) {
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(ctx, nil)
+	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
@@ -495,7 +495,7 @@ func newCreateWorkloadCluster(t *testing.T, createProcessingErr, deleteProcessin
 	store.On("DeleteProcessing", mock.Anything, mock.Anything, mock.Anything).Return(deleteProcessingErr)
 
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(t.Context(), nil)
+	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 

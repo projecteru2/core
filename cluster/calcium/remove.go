@@ -6,11 +6,15 @@ import (
 	"sync"
 
 	"github.com/cockroachdb/errors"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
+
+// removeWorkers bounds the engine removes in flight on one node.
+const removeWorkers = 16
 
 func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) (chan *types.RemoveWorkloadMessage, error) {
 	logger := log.WithFunc("calcium.RemoveWorkload").WithField("IDs", IDs).WithField("force", force)
@@ -37,11 +41,11 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 					_ = send(caller, ch, &types.RemoveWorkloadMessage{Success: false})
 					return
 				}
-				var removes sync.WaitGroup
+				var removes errgroup.Group
+				removes.SetLimit(removeWorkers)
 				for _, workloadID := range workloadIDs {
-					removes.Add(1)
-					_ = c.pool.Invoke(func() {
-						defer removes.Done()
+					removes.Go(func() error {
+						defer log.SentryDefer()
 						ret := &types.RemoveWorkloadMessage{WorkloadID: workloadID, Success: true, Hook: []*bytes.Buffer{}}
 						if workloadErr := c.withWorkloadLocked(ctx, workloadID, false, func(ctx context.Context, workload *types.Workload) error {
 							if err := c.doRemoveOneWorkload(ctx, node, workload, force); err != nil {
@@ -55,9 +59,10 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 							ret.Success = false
 						}
 						_ = send(caller, ch, ret)
+						return nil
 					})
 				}
-				removes.Wait()
+				_ = removes.Wait()
 				c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node) })
 			})
 		}
