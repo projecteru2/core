@@ -67,25 +67,14 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 
 func (c *Calcium) doRemoveOneWorkload(ctx context.Context, node *types.Node, workload *types.Workload, force bool) error {
 	logger := log.WithFunc("calcium.doRemoveOneWorkload").WithField("id", workload.ID)
-
-	nodeCommit, err := c.journal(ctx, logger, eventWorkloadResourceAllocated, []*types.Node{node})
-	if err != nil {
-		return err
-	}
-	workloadCommit, err := c.journal(ctx, logger, eventWorkloadCreated, &types.Workload{ID: workload.ID, Name: workload.Name, Nodename: workload.Nodename})
-	if err != nil {
-		nodeCommit()
-		return err
-	}
-	defer workloadCommit()
-
-	err = c.withResourceReleased(ctx, node, workload, func(ctx context.Context) error {
+	return c.withResourceReleased(ctx, logger, node, workload, func(ctx context.Context) error {
+		workloadCommit, err := c.journal(ctx, logger, eventWorkloadCreated, &types.Workload{ID: workload.ID, Name: workload.Name, Nodename: workload.Nodename})
+		if err != nil {
+			return err
+		}
+		defer workloadCommit()
 		return c.doRemoveWorkload(ctx, workload, force)
 	})
-	if err == nil {
-		nodeCommit()
-	}
-	return err
 }
 
 func (c *Calcium) doRemoveWorkload(ctx context.Context, workload *types.Workload, force bool) error {

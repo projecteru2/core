@@ -31,7 +31,7 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, IDs []string) (chan *t
 			for _, workloadID := range workloadIDs {
 				msg := &types.DissociateWorkloadMessage{WorkloadID: workloadID}
 				if workloadErr := c.withWorkloadLocked(ctx, workloadID, false, func(ctx context.Context, workload *types.Workload) error {
-					return c.withResourceReleased(ctx, node, workload, func(ctx context.Context) error {
+					return c.withResourceReleased(ctx, logger, node, workload, func(ctx context.Context) error {
 						return c.store.RemoveWorkload(ctx, workload)
 					})
 				}); workloadErr != nil {
