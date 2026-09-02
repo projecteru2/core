@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/stretchr/testify/assert"
@@ -226,64 +227,70 @@ func TestGetNodeEngine(t *testing.T) {
 }
 
 func TestSetNode(t *testing.T) {
-	c := NewTestCluster()
-	ctx := t.Context()
+	config := NewTestCluster().config
+	config.ConnectionTimeout = time.Second
+	factory.InitEngineCache(t.Context(), config, nil)
+	synctest.Test(t, func(t *testing.T) {
+		c := NewTestCluster()
+		defer c.pool.Release()
+		ctx := t.Context()
 
-	opts := &types.SetNodeOptions{}
+		opts := &types.SetNodeOptions{}
 
-	_, err := c.SetNode(ctx, opts)
-	assert.Error(t, err)
+		_, err := c.SetNode(ctx, opts)
+		assert.Error(t, err)
 
-	store := c.store.(*storemocks.Store)
-	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(ctx, nil)
-	lock.On("Unlock", mock.Anything).Return(nil)
-	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	name := "test"
-	opts.Nodename = name
-	node := &types.Node{NodeMeta: types.NodeMeta{Name: name}}
-	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
+		store := c.store.(*storemocks.Store)
+		lock := &lockmocks.DistributedLock{}
+		lock.On("Lock", mock.Anything).Return(ctx, nil)
+		lock.On("Unlock", mock.Anything).Return(nil)
+		store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+		name := "test"
+		opts.Nodename = name
+		node := &types.Node{NodeMeta: types.NodeMeta{Name: name}}
+		store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
 
-	rmgr := c.rmgr.(*resourcemocks.Manager)
-	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, types.ErrMockError).Once()
-	_, err = c.SetNode(ctx, opts)
-	assert.Error(t, err)
-	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
+		rmgr := c.rmgr.(*resourcemocks.Manager)
+		rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, types.ErrMockError).Once()
+		_, err = c.SetNode(ctx, opts)
+		assert.Error(t, err)
+		rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 
-	opts.Bypass = types.TriTrue
-	opts.WorkloadsDown = true
-	workloads := []*types.Workload{{ID: "1", Name: "wrong_name"}, {ID: "2", Name: "a_b_c"}}
-	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(workloads, nil)
-	store.On("SetWorkloadStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+		opts.Bypass = types.TriTrue
+		opts.WorkloadsDown = true
+		workloads := []*types.Workload{{ID: "1", Name: "wrong_name"}, {ID: "2", Name: "a_b_c"}}
+		store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(workloads, nil)
+		store.On("SetWorkloadStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
-	endpoint := "mock://test2"
-	opts.Endpoint = endpoint
+		endpoint := "mock://test2"
+		opts.Endpoint = endpoint
 
-	labels := map[string]string{"a": "1", "b": "2"}
-	opts.Labels = labels
+		labels := map[string]string{"a": "1", "b": "2"}
+		opts.Labels = labels
 
-	opts.Resources = resourcetypes.Resources{"a": {"a": 1}}
-	rmgr.On("SetNodeResourceCapacity", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		nil, nil, types.ErrMockError,
-	).Once()
-	_, err = c.SetNode(ctx, opts)
-	assert.Error(t, err)
-	rmgr.On("SetNodeResourceCapacity", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		nil, nil, nil,
-	)
+		opts.Resources = resourcetypes.Resources{"a": {"a": 1}}
+		rmgr.On("SetNodeResourceCapacity", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+			nil, nil, types.ErrMockError,
+		).Once()
+		_, err = c.SetNode(ctx, opts)
+		assert.Error(t, err)
+		rmgr.On("SetNodeResourceCapacity", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+			nil, nil, nil,
+		)
 
-	store.On("UpdateNodes", mock.Anything, mock.Anything).Return(types.ErrMockError).Once()
-	_, err = c.SetNode(ctx, opts)
-	assert.Error(t, err)
-	store.On("UpdateNodes", mock.Anything, mock.Anything).Return(nil)
+		store.On("UpdateNodes", mock.Anything, mock.Anything).Return(types.ErrMockError).Once()
+		_, err = c.SetNode(ctx, opts)
+		assert.Error(t, err)
+		store.On("UpdateNodes", mock.Anything, mock.Anything).Return(nil)
 
-	node, err = c.SetNode(ctx, opts)
-	assert.NoError(t, err)
-	assert.Equal(t, node.Endpoint, endpoint)
-	assert.Equal(t, labels["a"], node.Labels["a"])
-	store.AssertExpectations(t)
-	time.Sleep(100 * time.Millisecond)
-	rmgr.AssertExpectations(t)
+		node, err = c.SetNode(ctx, opts)
+		assert.NoError(t, err)
+		assert.Equal(t, node.Endpoint, endpoint)
+		assert.Equal(t, labels["a"], node.Labels["a"])
+		store.AssertExpectations(t)
+		synctest.Wait()
+		rmgr.AssertExpectations(t)
+	})
 }
 
 func TestSetWorkloadsDownDoesNotWaitForThePool(t *testing.T) {
