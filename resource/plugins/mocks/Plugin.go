@@ -428,8 +428,8 @@ func (_c *Plugin_FixNodeResource_Call) RunAndReturn(run func(ctx context.Context
 }
 
 // GetMetrics provides a mock function for the type Plugin
-func (_mock *Plugin) GetMetrics(ctx context.Context, podname string, nodename string) (*types.GetMetricsResponse, error) {
-	ret := _mock.Called(ctx, podname, nodename)
+func (_mock *Plugin) GetMetrics(ctx context.Context, nodes []types.NodeRef) (*types.GetMetricsResponse, error) {
+	ret := _mock.Called(ctx, nodes)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetMetrics")
@@ -437,18 +437,18 @@ func (_mock *Plugin) GetMetrics(ctx context.Context, podname string, nodename st
 
 	var r0 *types.GetMetricsResponse
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (*types.GetMetricsResponse, error)); ok {
-		return returnFunc(ctx, podname, nodename)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []types.NodeRef) (*types.GetMetricsResponse, error)); ok {
+		return returnFunc(ctx, nodes)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) *types.GetMetricsResponse); ok {
-		r0 = returnFunc(ctx, podname, nodename)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []types.NodeRef) *types.GetMetricsResponse); ok {
+		r0 = returnFunc(ctx, nodes)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*types.GetMetricsResponse)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = returnFunc(ctx, podname, nodename)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, []types.NodeRef) error); ok {
+		r1 = returnFunc(ctx, nodes)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -462,30 +462,24 @@ type Plugin_GetMetrics_Call struct {
 
 // GetMetrics is a helper method to define mock.On call
 //   - ctx context.Context
-//   - podname string
-//   - nodename string
-func (_e *Plugin_Expecter) GetMetrics(ctx any, podname any, nodename any) *Plugin_GetMetrics_Call {
-	return &Plugin_GetMetrics_Call{Call: _e.mock.On("GetMetrics", ctx, podname, nodename)}
+//   - nodes []types.NodeRef
+func (_e *Plugin_Expecter) GetMetrics(ctx any, nodes any) *Plugin_GetMetrics_Call {
+	return &Plugin_GetMetrics_Call{Call: _e.mock.On("GetMetrics", ctx, nodes)}
 }
 
-func (_c *Plugin_GetMetrics_Call) Run(run func(ctx context.Context, podname string, nodename string)) *Plugin_GetMetrics_Call {
+func (_c *Plugin_GetMetrics_Call) Run(run func(ctx context.Context, nodes []types.NodeRef)) *Plugin_GetMetrics_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 string
+		var arg1 []types.NodeRef
 		if args[1] != nil {
-			arg1 = args[1].(string)
-		}
-		var arg2 string
-		if args[2] != nil {
-			arg2 = args[2].(string)
+			arg1 = args[1].([]types.NodeRef)
 		}
 		run(
 			arg0,
 			arg1,
-			arg2,
 		)
 	})
 	return _c
@@ -496,7 +490,7 @@ func (_c *Plugin_GetMetrics_Call) Return(getMetricsResponse *types.GetMetricsRes
 	return _c
 }
 
-func (_c *Plugin_GetMetrics_Call) RunAndReturn(run func(ctx context.Context, podname string, nodename string) (*types.GetMetricsResponse, error)) *Plugin_GetMetrics_Call {
+func (_c *Plugin_GetMetrics_Call) RunAndReturn(run func(ctx context.Context, nodes []types.NodeRef) (*types.GetMetricsResponse, error)) *Plugin_GetMetrics_Call {
 	_c.Call.Return(run)
 	return _c
 }

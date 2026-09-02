@@ -13,11 +13,8 @@ func (p Plugin) GetMetricsDescription(ctx context.Context) (*plugintypes.GetMetr
 	return resp, p.call(ctx, GetMetricsDescriptionCommand, req, resp)
 }
 
-func (p Plugin) GetMetrics(ctx context.Context, podname, nodename string) (*plugintypes.GetMetricsResponse, error) {
-	req := &binarytypes.GetMetricsRequest{
-		Podname:  podname,
-		Nodename: nodename,
-	}
+func (p Plugin) GetMetrics(ctx context.Context, nodes []plugintypes.NodeRef) (*plugintypes.GetMetricsResponse, error) {
+	req := &binarytypes.GetMetricsRequest{Nodes: nodes}
 	resp := &plugintypes.GetMetricsResponse{}
 	return resp, p.call(ctx, GetMetricsCommand, req, resp)
 }

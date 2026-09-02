@@ -91,14 +91,19 @@ The contract is a subcommand plus JSON:
 ```
 
 - The request is one JSON object on stdin.
-- The response is one JSON object on stdout. Core reads combined output, so anything written to
-  stderr becomes part of what it tries to parse — keep it quiet on success.
-- Empty output is accepted and leaves the response zero-valued.
+- The response is one JSON object on stdout. stderr is the plugin's log: core logs it at debug on
+  success and with the error on failure.
+- Empty stdout is an error. A verb with nothing to report writes its empty response: `{}` for an
+  object, `[]` for `get-metrics-description` and `get-metrics`.
+- Core runs `verbs` once at load, and the plugin answers with the JSON array of the verbs it
+  implements. A verb outside that list never spawns the plugin, and the plugin takes no part in
+  that call.
 - The working directory is `resource_plugin.dir`.
 - Each invocation is killed after `resource_plugin.call_timeout`.
 
 | Subcommand | Method |
 | --- | --- |
+| `verbs` | — |
 | `calculate-deploy` | `CalculateDeploy` |
 | `calculate-realloc` | `CalculateRealloc` |
 | `calculate-remap` | `CalculateRemap` |
@@ -117,6 +122,8 @@ The contract is a subcommand plus JSON:
 Response shapes are the JSON encodings of the types in `resource/plugins/types/`, e.g.
 `calculate-deploy` returns `{"engines_params": [...], "workloads_resource": [...]}` and
 `get-nodes-deploy-capacity` returns `{"nodes_deploy_capacity_map": {...}, "total": n}`.
+`get-metrics` takes every node in one call, `{"nodes": [{"podname": ..., "nodename": ...}, ...]}`,
+and returns the metrics of all of them.
 
 [resource-extend](https://github.com/projecteru2/resource-extend) implements gpu and storage
 plugins this way.

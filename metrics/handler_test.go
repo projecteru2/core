@@ -18,11 +18,33 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
+<<<<<<< HEAD
 func TestResourceMiddlewareRefreshesNodesConcurrently(t *testing.T) {
+=======
+func TestResourceMiddlewareRefreshesEveryNodeInOneCall(t *testing.T) {
+	cluster := &clustermocks.Cluster{}
+	cluster.On("ListPodNodes", mock.Anything, mock.Anything).Return(twoNodes(), nil).Once()
+	rmgr := &resourcemocks.Manager{}
+	rmgr.On("GetNodesMetrics", mock.Anything, mock.MatchedBy(func(nodes []*types.Node) bool { return len(nodes) == 2 })).Return(nil, nil).Once()
+
+	m := &Metrics{Config: types.Config{GlobalTimeout: time.Second}, rmgr: rmgr}
+	served := false
+	handler := m.ResourceMiddleware(t.Context(), cluster)(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		served = true
+	}))
+	handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/metrics", nil))
+
+	assert.True(t, served)
+	rmgr.AssertExpectations(t)
+}
+
+func TestResourceMiddlewareSharesOneRefreshBetweenOverlappingScrapes(t *testing.T) {
+>>>>>>> 5350685c
 	synctest.Test(t, func(t *testing.T) {
 		cluster := &clustermocks.Cluster{}
 		cluster.On("ListPodNodes", mock.Anything, mock.Anything).Return(twoNodes(), nil).Once()
 		rmgr := &resourcemocks.Manager{}
+<<<<<<< HEAD
 		firstStarted := make(chan struct{})
 		secondStarted := make(chan struct{})
 		releaseFirst := make(chan struct{})
@@ -34,16 +56,54 @@ func TestResourceMiddlewareRefreshesNodesConcurrently(t *testing.T) {
 			}
 			close(secondStarted)
 		}).Return(nil, nil).Twice()
+=======
+		release := make(chan struct{})
+		rmgr.On("GetNodesMetrics", mock.Anything, mock.Anything).Run(func(mock.Arguments) { <-release }).Return(nil, nil).Once()
+>>>>>>> 5350685c
 
 		m := &Metrics{Config: types.Config{GlobalTimeout: time.Second}, rmgr: rmgr}
-		served := make(chan struct{})
-		handler := m.ResourceMiddleware(cluster)(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
-			close(served)
+		served := make(chan struct{}, 2)
+		handler := m.ResourceMiddleware(t.Context(), cluster)(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+			served <- struct{}{}
 		}))
-		go handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/metrics", nil))
-
-		<-firstStarted
+		for range 2 {
+			go handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/metrics", nil))
+		}
 		synctest.Wait()
+		close(release)
+		synctest.Wait()
+
+		assert.Len(t, served, 2)
+		cluster.AssertExpectations(t)
+		rmgr.AssertExpectations(t)
+	})
+}
+
+func TestResourceMiddlewareRefreshOutlivesTheScrapeThatStartedIt(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		cluster := &clustermocks.Cluster{}
+		cluster.On("ListPodNodes", mock.Anything, mock.Anything).Return(twoNodes(), nil).Once()
+		rmgr := &resourcemocks.Manager{}
+		release := make(chan struct{})
+		var cancelled atomic.Int32
+		rmgr.On("GetNodesMetrics", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+			<-release
+			if args.Get(0).(context.Context).Err() != nil {
+				cancelled.Add(1)
+			}
+		}).Return(nil, nil).Once()
+
+		m := &Metrics{Config: types.Config{GlobalTimeout: time.Second}, rmgr: rmgr}
+		served := make(chan struct{}, 2)
+		handler := m.ResourceMiddleware(t.Context(), cluster)(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+			served <- struct{}{}
+		}))
+		leaderCtx, leaveLeader := context.WithCancel(t.Context())
+		go handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/metrics", nil).WithContext(leaderCtx))
+		synctest.Wait()
+		go handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/metrics", nil))
+		synctest.Wait()
+<<<<<<< HEAD
 		select {
 		case <-secondStarted:
 		default:
@@ -54,14 +114,26 @@ func TestResourceMiddlewareRefreshesNodesConcurrently(t *testing.T) {
 			t.Error("scrape handler served before every node was refreshed")
 		default:
 		}
+=======
+>>>>>>> 5350685c
 
-		close(releaseFirst)
+		leaveLeader()
 		synctest.Wait()
+<<<<<<< HEAD
 		select {
 		case <-served:
 		default:
 			t.Error("scrape handler was not served")
 		}
+=======
+		assert.Empty(t, served)
+
+		close(release)
+		synctest.Wait()
+		assert.Len(t, served, 1)
+		assert.Zero(t, cancelled.Load())
+		rmgr.AssertExpectations(t)
+>>>>>>> 5350685c
 	})
 }
 
@@ -134,7 +206,7 @@ func TestResourceMiddlewareListNodesFailed(t *testing.T) {
 
 	m := &Metrics{Config: types.Config{GlobalTimeout: time.Second}}
 	served := make(chan struct{})
-	handler := m.ResourceMiddleware(cluster)(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+	handler := m.ResourceMiddleware(t.Context(), cluster)(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
 		close(served)
 	}))
 

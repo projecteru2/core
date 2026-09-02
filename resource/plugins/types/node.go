@@ -16,13 +16,13 @@ type AddNodeResponse struct {
 type RemoveNodeResponse struct{}
 
 type NodeDeployCapacity struct {
-	Capacity int
+	Capacity int `json:"capacity"`
 	// Usage is the used fraction of the node's total, 0..1
-	Usage float64
+	Usage float64 `json:"usage"`
 	// Rate proportion of requested resources to total
-	Rate float64
+	Rate float64 `json:"rate"`
 	// Weight used for weighted average
-	Weight float64
+	Weight float64 `json:"weight"`
 }
 
 type GetNodesDeployCapacityResponse struct {

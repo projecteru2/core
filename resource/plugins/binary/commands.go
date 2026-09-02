@@ -1,6 +1,8 @@
 package binary
 
 const (
+	VerbsCommand = "verbs"
+
 	CalculateDeployCommand  = "calculate-deploy"
 	CalculateReallocCommand = "calculate-realloc"
 	CalculateRemapCommand   = "calculate-remap"

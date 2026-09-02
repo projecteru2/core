@@ -14,7 +14,6 @@ import (
 	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
 	resourcemocks "github.com/projecteru2/core/resource/mocks"
-	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
@@ -59,7 +58,6 @@ func TestAddNode(t *testing.T) {
 		},
 	}
 	store.On("AddNode", mock.Anything, mock.Anything).Return(node, nil)
-	rmgr.On("GetNodeMetrics", mock.Anything, mock.Anything).Return([]*plugintypes.Metrics{}, nil)
 	n, err := c.AddNode(ctx, opts)
 	assert.NoError(t, err)
 	assert.Equal(t, n.Name, name)
@@ -81,7 +79,6 @@ func TestAddNodeRedoesTheStalePluginMetadata(t *testing.T) {
 	rmgr.On("AddNode", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNodeExists).Once()
 	rmgr.On("RemoveNode", mock.Anything, nodename).Return(nil).Once()
 	rmgr.On("AddNode", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(resourcetypes.Resources{}, nil).Once()
-	rmgr.On("GetNodeMetrics", mock.Anything, mock.Anything).Return([]*plugintypes.Metrics{}, nil).Maybe()
 
 	store := c.store.(*storemocks.Store)
 	store.On("GetNode", mock.Anything, nodename).Return(nil, types.ErrMockError).Once()
@@ -279,7 +276,6 @@ func TestSetNode(t *testing.T) {
 	_, err = c.SetNode(ctx, opts)
 	assert.Error(t, err)
 	store.On("UpdateNodes", mock.Anything, mock.Anything).Return(nil)
-	rmgr.On("GetNodeMetrics", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*plugintypes.Metrics{}, nil)
 
 	node, err = c.SetNode(ctx, opts)
 	assert.NoError(t, err)

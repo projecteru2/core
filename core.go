@@ -96,7 +96,7 @@ func serve(ctx context.Context, _ *cli.Command) error {
 	})
 
 	if config.Profile != "" {
-		http.Handle("/metrics", metrics.Client.ResourceMiddleware(cluster)(promhttp.Handler()))
+		http.Handle("/metrics", metrics.Client.ResourceMiddleware(ctx, cluster)(promhttp.Handler()))
 		utils.SentryGo(func() {
 			server := &http.Server{
 				Addr:              config.Profile,

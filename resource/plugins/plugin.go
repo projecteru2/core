@@ -3,6 +3,8 @@ package plugins
 import (
 	"context"
 
+	"github.com/cockroachdb/errors"
+
 	enginetypes "github.com/projecteru2/core/engine/types"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 )
@@ -12,22 +14,20 @@ const (
 	Decr = false
 )
 
+// ErrVerbNotSupported marks a verb the plugin did not advertise; cobalt leaves the plugin out of that call.
+var ErrVerbNotSupported = errors.New("verb not supported by the plugin")
+
 type Plugin interface {
-	// CalculateDeploy allocates resource and returns per-workload engine and resource params, format: [{"cpus": 1.2}, {"cpus": 1.2}]
-	// pure calculation
+	// CalculateDeploy plans per-workload engine and resource params without writing anything.
 	CalculateDeploy(ctx context.Context, nodename string, deployCount int, resourceRequest plugintypes.WorkloadResourceRequest) (*plugintypes.CalculateDeployResponse, error)
 
-	// CalculateRealloc tries to reallocate resource, returns engine params, delta resource params and final resource params.
-	// should return error if resource of some node is not enough for the realloc operation.
-	// pure calculation
+	// CalculateRealloc plans a workload's new engine params, delta and final resource without writing anything.
 	CalculateRealloc(ctx context.Context, nodename string, resource plugintypes.WorkloadResource, resourceRequest plugintypes.WorkloadResourceRequest) (*plugintypes.CalculateReallocResponse, error)
 
-	// CalculateRemap tries to remap resource based on workload metadata and node resource usage, then returns engine params for workloads.
-	// pure calculation; the map key is the workload ID
+	// CalculateRemap plans engine params per workload ID from the node's usage without writing anything.
 	CalculateRemap(ctx context.Context, nodename string, workloadsResource map[string]plugintypes.WorkloadResource) (*plugintypes.CalculateRemapResponse, error)
 
-	// AddNode adds a node with requested resource, returns resource capacity and (empty) resource usage
-	// should return error if the node already exists
+	// AddNode records a node's capacity and an empty usage, and fails on a node it already has.
 	AddNode(ctx context.Context, nodename string, resource plugintypes.NodeResourceRequest, info *enginetypes.Info) (*plugintypes.AddNodeResponse, error)
 
 	RemoveNode(ctx context.Context, nodename string) (*plugintypes.RemoveNodeResponse, error)
@@ -39,8 +39,7 @@ type Plugin interface {
 	// GetNodeResourceInfo returns total resource info and available resource info of the node, format: {"cpu": 2}
 	GetNodeResourceInfo(ctx context.Context, nodename string, workloadsResource []plugintypes.WorkloadResource) (*plugintypes.GetNodeResourceInfoResponse, error)
 
-	// SetNodeResourceInfo sets both total node resource info and allocated resource info
-	// values are absolute, not deltas
+	// SetNodeResourceInfo stores a node's capacity and usage as absolute values.
 	SetNodeResourceInfo(ctx context.Context, nodename string, capacity, usage plugintypes.NodeResource) (*plugintypes.SetNodeResourceInfoResponse, error)
 
 	SetNodeResourceUsage(ctx context.Context, nodename string, resource plugintypes.NodeResource, resourceRequest plugintypes.NodeResourceRequest, workloadsResource []plugintypes.WorkloadResource, delta, incr bool) (*plugintypes.SetNodeResourceUsageResponse, error)
@@ -51,7 +50,7 @@ type Plugin interface {
 
 	GetMetricsDescription(ctx context.Context) (*plugintypes.GetMetricsDescriptionResponse, error)
 
-	GetMetrics(ctx context.Context, podname, nodename string) (*plugintypes.GetMetricsResponse, error)
+	GetMetrics(ctx context.Context, nodes []plugintypes.NodeRef) (*plugintypes.GetMetricsResponse, error)
 
 	Name() string
 }
