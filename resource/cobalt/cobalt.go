@@ -2,6 +2,7 @@ package cobalt
 
 import (
 	"context"
+	"slices"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resource/plugins"
@@ -14,8 +15,9 @@ import (
 
 // Manager fans resource operations out to the loaded plugins.
 type Manager struct {
-	config  types.Config
-	plugins []plugins.Plugin
+	config      types.Config
+	plugins     []plugins.Plugin
+	whitelisted []plugins.Plugin
 }
 
 func New(config types.Config) *Manager {
@@ -57,4 +59,10 @@ func (m *Manager) LoadPlugins(ctx context.Context, store store.Store) error {
 
 func (m *Manager) AddPlugins(ps ...plugins.Plugin) {
 	m.plugins = append(m.plugins, ps...)
+	m.whitelisted = m.plugins
+	if m.config.ResourcePlugin.Whitelist != nil {
+		m.whitelisted = slices.DeleteFunc(slices.Clone(m.plugins), func(plugin plugins.Plugin) bool {
+			return !slices.Contains(m.config.ResourcePlugin.Whitelist, plugin.Name())
+		})
+	}
 }
