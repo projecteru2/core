@@ -9,7 +9,6 @@ import (
 	"slices"
 	"strconv"
 
-	"github.com/cockroachdb/errors"
 	"github.com/sanity-io/litter"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -35,7 +34,7 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintyp
 		return nil, coretypes.ErrNodeExists
 	}
 
-	if !errors.Is(err, coretypes.ErrInvaildCount) {
+	if !p.store.NotFound(err) {
 		log.WithFunc("resource.cpumem.AddNode").WithField("node", nodename).Error(ctx, err, "failed to get resource info of node")
 		return nil, err
 	}
@@ -103,8 +102,8 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintyp
 }
 
 func (p Plugin) RemoveNode(ctx context.Context, nodename string) (*plugintypes.RemoveNodeResponse, error) {
-	var err error
-	if _, err = p.store.Delete(ctx, fmt.Sprintf(nodeResourceInfoKey, nodename)); err != nil {
+	err := p.store.Delete(ctx, []string{fmt.Sprintf(nodeResourceInfoKey, nodename)})
+	if err != nil {
 		log.WithFunc("resource.cpumem.RemoveNode").WithField("node", nodename).Error(ctx, err, "failed to delete node")
 	}
 	return &plugintypes.RemoveNodeResponse{}, err
@@ -346,18 +345,18 @@ func (p Plugin) doGetNodesResourceInfo(ctx context.Context, nodenames []string) 
 	for _, nodename := range nodenames {
 		keys = append(keys, fmt.Sprintf(nodeResourceInfoKey, nodename))
 	}
-	resps, err := p.store.GetMulti(ctx, keys)
+	data, err := p.store.GetMulti(ctx, keys)
 	if err != nil {
 		return nil, err
 	}
 
-	result := make(map[string]*cpumemtypes.NodeResourceInfo, len(resps))
-	for _, resp := range resps {
+	result := make(map[string]*cpumemtypes.NodeResourceInfo, len(data))
+	for key, value := range data {
 		r := &cpumemtypes.NodeResourceInfo{}
-		if err := json.Unmarshal(resp.Value, r); err != nil {
+		if err := json.Unmarshal([]byte(value), r); err != nil {
 			return nil, err
 		}
-		result[utils.Tail(string(resp.Key))] = r
+		result[utils.Tail(key)] = r
 	}
 	return result, nil
 }
@@ -372,8 +371,7 @@ func (p Plugin) doSetNodeResourceInfo(ctx context.Context, nodename string, reso
 		return err
 	}
 
-	_, err = p.store.Put(ctx, fmt.Sprintf(nodeResourceInfoKey, nodename), string(data))
-	return err
+	return p.store.Put(ctx, map[string]string{fmt.Sprintf(nodeResourceInfoKey, nodename): string(data)})
 }
 
 func (p Plugin) doGetNodeDeployCapacity(nodeResourceInfo *cpumemtypes.NodeResourceInfo, req *cpumemtypes.WorkloadResourceRequest) *plugintypes.NodeDeployCapacity {
@@ -405,7 +403,6 @@ func (p Plugin) doGetNodeDeployCapacity(nodeResourceInfo *cpumemtypes.NodeResour
 	return capacityInfo
 }
 
-// calculateNodeResource priority: node resource request > node resource > workload resource args list
 func (p Plugin) calculateNodeResource(req *cpumemtypes.NodeResourceRequest, nodeResource, origin *cpumemtypes.NodeResource, workloadsResource []*cpumemtypes.WorkloadResource, delta, incr bool) *cpumemtypes.NodeResource {
 	var resp *cpumemtypes.NodeResource
 	if origin == nil || !delta { // no delta means node resource rewrite with whole new data

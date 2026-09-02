@@ -57,8 +57,11 @@ One behaviour differs from etcd and is marked as such in the code: `Update` chec
 existence before writing rather than doing it in one transaction. Tests run against an embedded
 miniredis.
 
-Note that even with `store: redis`, the built-in cpumem resource plugin still uses the etcd
-config for its own bookkeeping — see [Resource plugins](resource-plugins.md).
+The built-in cpumem resource plugin keeps its node records in the same store — see
+[Resource plugins](resource-plugins.md). A `store: redis` deployment that predates this kept those
+records in etcd under `<etcd.prefix>/resource/cpumem/`: copy them into redis under the same keys
+before starting the new cores, and move every core together, since an old core would keep writing
+the etcd copy.
 
 ## Locks
 

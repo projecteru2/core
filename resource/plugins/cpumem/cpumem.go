@@ -3,9 +3,6 @@ package cpumem
 import (
 	"context"
 
-	"github.com/projecteru2/core/log"
-	"github.com/projecteru2/core/store/etcdv3/embedded"
-	"github.com/projecteru2/core/store/etcdv3/meta"
 	coretypes "github.com/projecteru2/core/types"
 )
 
@@ -16,24 +13,23 @@ const (
 	priority            = 100
 )
 
+// Store is the slice of the cluster store that keeps the node records of this plugin.
+type Store interface {
+	NotFound(err error) bool
+	GetMulti(ctx context.Context, keys []string) (map[string]string, error)
+	Put(ctx context.Context, data map[string]string) error
+	Delete(ctx context.Context, keys []string) error
+}
+
 // Plugin is the built-in cpu and memory resource plugin.
 type Plugin struct {
 	name   string
 	config coretypes.Config
-	store  meta.KV
+	store  Store
 }
 
-func NewPlugin(ctx context.Context, config coretypes.Config, embeddedETCD *embedded.Cluster) (*Plugin, error) {
-	if embeddedETCD == nil && len(config.Etcd.Machines) < 1 {
-		return nil, coretypes.ErrConfigInvaild
-	}
-	var err error
-	plugin := &Plugin{name: name, config: config}
-	if plugin.store, err = meta.NewETCD(ctx, config.Etcd, embeddedETCD); err != nil {
-		log.WithFunc("resource.cpumem.NewPlugin").Error(ctx, err)
-		return nil, err
-	}
-	return plugin, nil
+func NewPlugin(config coretypes.Config, store Store) *Plugin {
+	return &Plugin{name: name, config: config, store: store}
 }
 
 func (p Plugin) Name() string {

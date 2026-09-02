@@ -7,7 +7,7 @@ import (
 	"github.com/projecteru2/core/resource/plugins"
 	"github.com/projecteru2/core/resource/plugins/binary"
 	"github.com/projecteru2/core/resource/plugins/cpumem"
-	"github.com/projecteru2/core/store/etcdv3/embedded"
+	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -22,13 +22,9 @@ func New(config types.Config) *Manager {
 	return &Manager{config: config}
 }
 
-func (m *Manager) LoadPlugins(ctx context.Context, embeddedETCD *embedded.Cluster) error {
+func (m *Manager) LoadPlugins(ctx context.Context, store store.Store) error {
 	logger := log.WithFunc("resource.cobalt.LoadPlugins")
-	cm, err := cpumem.NewPlugin(ctx, m.config, embeddedETCD)
-	if err != nil {
-		return err
-	}
-	m.AddPlugins(cm)
+	m.AddPlugins(cpumem.NewPlugin(m.config, store))
 
 	if m.config.ResourcePlugin.Dir == "" {
 		return nil
