@@ -33,10 +33,7 @@ if mountpoint -q "$dir/merged"; then echo 1; else echo 0; fi
 cat "$dir/meta.json"
 `, workloadmeta.NotExistsCode)
 
-var (
-	_ engine.API          = (*Engine)(nil)
-	_ engine.NodeVerifier = (*Engine)(nil)
-)
+var _ engine.API = (*Engine)(nil)
 
 // Engine runs bare processes as systemd transient units over SSH.
 type Engine struct {

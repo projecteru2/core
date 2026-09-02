@@ -44,10 +44,7 @@ var machines = map[string]string{
 	"armv7l":  "arm",
 }
 
-var (
-	_ engine.API          = (*Engine)(nil)
-	_ engine.NodeVerifier = (*Engine)(nil)
-)
+var _ engine.API = (*Engine)(nil)
 
 // Engine runs containers through a node's own containerd socket, forwarded over SSH.
 type Engine struct {

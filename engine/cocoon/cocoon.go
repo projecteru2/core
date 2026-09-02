@@ -25,10 +25,7 @@ const (
 	defaultCgroupParent = "cocoon.slice"
 )
 
-var (
-	_ engine.API          = (*Engine)(nil)
-	_ engine.NodeVerifier = (*Engine)(nil)
-)
+var _ engine.API = (*Engine)(nil)
 
 // Engine runs VMs through the cocoon CLI over SSH.
 type Engine struct {

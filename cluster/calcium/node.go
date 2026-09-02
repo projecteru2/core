@@ -7,7 +7,6 @@ import (
 
 	"github.com/cockroachdb/errors"
 
-	"github.com/projecteru2/core/engine"
 	enginefactory "github.com/projecteru2/core/engine/factory"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
@@ -39,7 +38,7 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 	if err != nil {
 		return nil, evict(err)
 	}
-	if err = verifyNodeEngine(ctx, client); err != nil {
+	if err = client.VerifyNode(ctx); err != nil {
 		logger.Error(ctx, err)
 		return nil, evict(err)
 	}
@@ -320,12 +319,4 @@ func (c *Calcium) setAllWorkloadsOnNodeDown(ctx context.Context, nodename string
 			logger.Infof(ctx, "set workload %s on node %s as inactive", workload.ID, nodename)
 		}
 	}
-}
-
-func verifyNodeEngine(ctx context.Context, client engine.API) error {
-	verifier, ok := client.(engine.NodeVerifier)
-	if !ok {
-		return nil
-	}
-	return verifier.VerifyNode(ctx)
 }
