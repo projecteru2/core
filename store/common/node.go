@@ -18,6 +18,13 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
+type nodeQuery struct {
+	labels        map[string]string
+	statuses      map[string]struct{}
+	all           bool
+	withoutEngine bool
+}
+
 func (s *Store) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*types.Node, error) {
 	if _, err := s.GetPod(ctx, opts.Podname); err != nil {
 		return nil, err
@@ -80,16 +87,17 @@ func (s *Store) GetNodes(ctx context.Context, nodenames []string) ([]*types.Node
 	if err != nil {
 		return nil, err
 	}
-	return s.doGetNodes(ctx, kvs, nil, true, false)
+	return s.doGetNodes(ctx, kvs, nodeQuery{all: true})
 }
 
 func (s *Store) GetNodesByPod(ctx context.Context, nodeFilter *types.NodeFilter, withoutEngine bool) ([]*types.Node, error) {
+	q := nodeQuery{labels: nodeFilter.Labels, all: nodeFilter.All, withoutEngine: withoutEngine}
 	do := func(podname string) ([]*types.Node, error) {
 		kvs, err := s.GetPrefix(ctx, fmt.Sprintf(NodePodKey, podname, ""), 0)
 		if err != nil {
 			return nil, err
 		}
-		return s.doGetNodes(ctx, kvs, nodeFilter.Labels, nodeFilter.All, withoutEngine)
+		return s.doGetNodes(ctx, kvs, q)
 	}
 	if nodeFilter.Podname != "" {
 		return do(nodeFilter.Podname)
@@ -98,6 +106,7 @@ func (s *Store) GetNodesByPod(ctx context.Context, nodeFilter *types.NodeFilter,
 	if err != nil {
 		return nil, err
 	}
+	q.statuses = s.nodeStatusKeys(ctx, log.WithFunc("store.common.GetNodesByPod"))
 	result := []*types.Node{}
 	for _, pod := range pods {
 		ns, err := do(pod.Name)
@@ -228,59 +237,71 @@ func (s *Store) nodeStatusKeys(ctx context.Context, logger *log.Fields) map[stri
 	return statuses
 }
 
-func (s *Store) doGetNodes(
-	ctx context.Context, kvs map[string]string,
-	labels map[string]string, all, withoutEngine bool,
-) (nodes []*types.Node, err error) {
+func (s *Store) doGetNodes(ctx context.Context, kvs map[string]string, q nodeQuery) (nodes []*types.Node, err error) {
 	allNodes := []*types.Node{}
 	for _, value := range kvs {
 		node := &types.Node{}
 		if err := json.Unmarshal([]byte(value), node); err != nil {
 			return nil, err
 		}
-		if utils.LabelsFilter(node.Labels, labels) {
+		if utils.LabelsFilter(node.Labels, q.labels) {
 			allNodes = append(allNodes, node)
 		}
 	}
 	logger := log.WithFunc("store.common.doGetNodes")
 
-	var statuses map[string]struct{}
-	if len(allNodes) > 1 {
+	statuses := q.statuses
+	if statuses == nil && len(allNodes) > 1 {
 		statuses = s.nodeStatusKeys(ctx, logger)
+	}
+
+	prepare := func(node *types.Node) bool {
+		switch {
+		case node.Test:
+			node.Available = !node.Bypass
+		case statuses != nil:
+			_, node.Available = statuses[filepath.Join(NodeStatusPrefix, node.Name)]
+		default:
+			if _, err := s.GetNodeStatus(ctx, node.Name); err != nil && !s.NotFound(err) {
+				logger.Errorf(ctx, err, "failed to get node status of %+v", node.Name)
+			} else {
+				node.Available = err == nil
+			}
+		}
+
+		if !q.all && node.IsDown() {
+			return false
+		}
+
+		node.Engine = &fake.EngineWithErr{DefaultErr: types.ErrNilEngine, EP: enginetypes.NewParams(node.Name, node.Endpoint)}
+		if !q.withoutEngine {
+			if client, err := s.MakeClient(ctx, node); err != nil {
+				logger.Errorf(ctx, err, "failed to make client for %+v", node.Name)
+			} else {
+				node.Engine = client
+			}
+		}
+		return true
+	}
+
+	nodes = make([]*types.Node, 0, len(allNodes))
+	if q.withoutEngine && statuses != nil {
+		for _, node := range allNodes {
+			if prepare(node) {
+				nodes = append(nodes, node)
+			}
+		}
+		return nodes, nil
 	}
 
 	wg := &sync.WaitGroup{}
 	wg.Add(len(allNodes))
 	mu := sync.Mutex{}
-	nodes = make([]*types.Node, 0, len(allNodes))
-
 	for _, node := range allNodes {
 		_ = s.Pool.Invoke(func() {
 			defer wg.Done()
-			switch {
-			case node.Test:
-				node.Available = !node.Bypass
-			case statuses != nil:
-				_, node.Available = statuses[filepath.Join(NodeStatusPrefix, node.Name)]
-			default:
-				if _, err := s.GetNodeStatus(ctx, node.Name); err != nil && !s.NotFound(err) {
-					logger.Errorf(ctx, err, "failed to get node status of %+v", node.Name)
-				} else {
-					node.Available = err == nil
-				}
-			}
-
-			if !all && node.IsDown() {
+			if !prepare(node) {
 				return
-			}
-
-			node.Engine = &fake.EngineWithErr{DefaultErr: types.ErrNilEngine, EP: enginetypes.NewParams(node.Name, node.Endpoint)}
-			if !withoutEngine {
-				if client, err := s.MakeClient(ctx, node); err != nil {
-					logger.Errorf(ctx, err, "failed to make client for %+v", node.Name)
-				} else {
-					node.Engine = client
-				}
 			}
 			mu.Lock()
 			nodes = append(nodes, node)
