@@ -11,7 +11,7 @@ import (
 	"github.com/projecteru2/core/engine"
 	enginefactory "github.com/projecteru2/core/engine/factory"
 	"github.com/projecteru2/core/engine/fake"
-	"github.com/projecteru2/core/engine/mocks/fakeengine"
+	"github.com/projecteru2/core/engine/fakeengine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"

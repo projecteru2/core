@@ -16,7 +16,7 @@ The scheme prefix of `AddNode`'s `endpoint` selects the implementation:
 | `containerd://` | `engine/containerd` | containerd's own API, over an SSH forward of the node's socket |
 | `cocoon://` | `engine/cocoon` | VMs through the cocoon CLI, over SSH |
 | `process://` | `engine/process` | Bare processes as systemd transient units, over SSH |
-| `mock://` | `engine/mocks/fakeengine` | Fully mocked engine, for tests and dry runs |
+| `mock://` | `engine/fakeengine` | In-memory engine with canned answers, for tests and dry runs |
 
 An endpoint with any other prefix is rejected with `ErrInvaildNodeEndpoint`.
 
@@ -489,7 +489,7 @@ Two different things share the name:
 - `engine/fake.EngineWithErr` — a placeholder every method of which returns one stored error. The
   engine cache substitutes it for an engine that has stopped responding, so callers get the real
   connection error instead of a nil dereference.
-- `engine/mocks/fakeengine` (`mock://`) — a testify-based mock that reports a 100-CPU,
+- `engine/fakeengine` (`mock://`) — a plain engine with canned answers that reports a 100-CPU,
   100 GiB node and accepts every operation. Used by tests and for dry-running scheduling logic.
 
 ## The engine cache
