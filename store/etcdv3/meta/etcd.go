@@ -19,8 +19,8 @@ import (
 	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/lock/etcdlock"
 	"github.com/projecteru2/core/log"
-	embedded "github.com/projecteru2/core/store/etcdv3/embedded"
 	"github.com/projecteru2/core/store/common"
+	embedded "github.com/projecteru2/core/store/etcdv3/embedded"
 	"github.com/projecteru2/core/types"
 )
 
@@ -31,7 +31,6 @@ const (
 	cmpValue   = "value"
 
 	txnLimit = 125
-
 )
 
 // ETCDClientV3 is the etcd client surface the store depends on.
