@@ -44,13 +44,20 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 							ret.Hook = append(ret.Hook, bytes.NewBufferString(workloadErr.Error()))
 							ret.Success = false
 						}
-						ch <- ret
+						select {
+						case ch <- ret:
+						case <-ctx.Done():
+							return ctx.Err()
+						}
 					}
 					c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node) })
 					return nil
 				}); nodeErr != nil {
 					logger.WithField("node", nodename).Error(ctx, nodeErr, "failed to lock node")
-					ch <- &types.RemoveWorkloadMessage{Success: false}
+					select {
+					case ch <- &types.RemoveWorkloadMessage{Success: false}:
+					case <-ctx.Done():
+					}
 				}
 			})
 		}

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/cockroachdb/errors"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/log"
@@ -15,7 +16,11 @@ import (
 	"github.com/projecteru2/core/wal"
 )
 
-const ActiveKey = "/selfmon/active"
+const (
+	ActiveKey = "/selfmon/active"
+
+	nodeStatusHandlers = 16
+)
 
 // NodeStatusWatcher watches node status changes.
 type NodeStatusWatcher struct {
@@ -166,13 +171,19 @@ func (n *NodeStatusWatcher) monitor(ctx context.Context) error {
 	logger.Info(ctx, "watch node status started")
 	defer logger.Info(ctx, "stop watching node status")
 
+	var handlers errgroup.Group
+	handlers.SetLimit(nodeStatusHandlers)
+	defer func() { _ = handlers.Wait() }()
 	for {
 		select {
 		case message, ok := <-messageChan:
 			if !ok {
 				return types.ErrMessageChanClosed
 			}
-			go n.dealNodeStatusMessage(ctx, message)
+			handlers.Go(func() error {
+				n.dealNodeStatusMessage(ctx, message)
+				return nil
+			})
 		case <-ctx.Done():
 			return ctx.Err()
 		}

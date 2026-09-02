@@ -33,7 +33,11 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, IDs []string) (chan *t
 						logger.WithField("id", workloadID).Error(ctx, workloadErr, "failed to dissociate workload")
 						msg.Error = workloadErr
 					}
-					ch <- msg
+					select {
+					case ch <- msg:
+					case <-ctx.Done():
+						return ctx.Err()
+					}
 				}
 				c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node) })
 				return nil

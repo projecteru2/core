@@ -133,19 +133,21 @@ func (c *Calcium) withNodesLocked(ctx context.Context, nodeFilter *types.NodeFil
 		return err
 	}
 
-	var lock lock.DistributedLock
+	keys := make([]string, 0, len(ns))
 	for _, n := range ns {
-		key := genKey(n)
-		if _, ok := locks[key]; !ok {
-			lock, ctx, err = c.doLock(ctx, key, c.config.LockTimeout)
-			if err != nil {
-				return err
-			}
-			logger.Debugf(ctx, "key %s locked", key)
-			locks[key] = lock
-			lockKeys = append(lockKeys, key)
-		}
 		nodes[n.Name] = n
+		keys = append(keys, genKey(n))
+	}
+	slices.Sort(keys)
+	var lock lock.DistributedLock
+	for _, key := range slices.Compact(keys) {
+		lock, ctx, err = c.doLock(ctx, key, c.config.LockTimeout)
+		if err != nil {
+			return err
+		}
+		logger.Debugf(ctx, "key %s locked", key)
+		locks[key] = lock
+		lockKeys = append(lockKeys, key)
 	}
 	return f(ctx, nodes)
 }

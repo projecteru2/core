@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"context"
 	"slices"
+	"sync"
 
 	"github.com/cockroachdb/errors"
 
@@ -232,7 +233,9 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 					return updateErr
 				}
 				// capacity refresh is best effort; the store write already succeeded
-				_ = c.refreshResourceInfo(ctx, node)
+				if len(opts.Resources) != 0 {
+					_ = c.refreshResourceInfo(ctx, node)
+				}
 				c.invokePoolAsync(func() { c.doSendNodeMetrics(context.WithoutCancel(ctx), node) })
 				c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node) })
 				return nil
@@ -297,29 +300,35 @@ func (c *Calcium) setAllWorkloadsOnNodeDown(ctx context.Context, nodename string
 		return
 	}
 
+	wg := &sync.WaitGroup{}
+	wg.Add(len(workloads))
 	for _, workload := range workloads {
-		appname, entrypoint, _, err := utils.ParseWorkloadName(workload.Name)
-		if err != nil {
-			logger.Errorf(ctx, err, "set workload %s on node %s as inactive failed", workload.ID, nodename)
-			continue
-		}
+		_ = c.pool.Invoke(func() {
+			defer wg.Done()
+			appname, entrypoint, _, err := utils.ParseWorkloadName(workload.Name)
+			if err != nil {
+				logger.Errorf(ctx, err, "set workload %s on node %s as inactive failed", workload.ID, nodename)
+				return
+			}
 
-		if workload.StatusMeta == nil {
-			workload.StatusMeta = &types.StatusMeta{ID: workload.ID}
-		}
-		workload.StatusMeta.Running = false
-		workload.StatusMeta.Healthy = false
+			if workload.StatusMeta == nil {
+				workload.StatusMeta = &types.StatusMeta{ID: workload.ID}
+			}
+			workload.StatusMeta.Running = false
+			workload.StatusMeta.Healthy = false
 
-		workload.StatusMeta.Appname = appname
-		workload.StatusMeta.Nodename = workload.Nodename
-		workload.StatusMeta.Entrypoint = entrypoint
+			workload.StatusMeta.Appname = appname
+			workload.StatusMeta.Nodename = workload.Nodename
+			workload.StatusMeta.Entrypoint = entrypoint
 
-		if err = c.store.SetWorkloadStatus(ctx, workload.StatusMeta, 0); err != nil {
-			logger.Errorf(ctx, err, "set workload %s on node %s as inactive failed", workload.ID, nodename)
-		} else {
+			if err = c.store.SetWorkloadStatus(ctx, workload.StatusMeta, 0); err != nil {
+				logger.Errorf(ctx, err, "set workload %s on node %s as inactive failed", workload.ID, nodename)
+				return
+			}
 			logger.Infof(ctx, "set workload %s on node %s as inactive", workload.ID, nodename)
-		}
+		})
 	}
+	wg.Wait()
 }
 
 func verifyNodeEngine(ctx context.Context, client engine.API) error {
