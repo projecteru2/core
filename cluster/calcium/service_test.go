@@ -76,8 +76,9 @@ func TestServiceStatusStreamWithMultipleRegisteringAsExpired(t *testing.T) {
 
 	raw := make(chan struct{})
 	var expiry <-chan struct{} = raw
+	registeredAgain := make(chan struct{})
 	store.On("RegisterService", mock.Anything, mock.Anything, mock.Anything).Return(expiry, func() {}, nil).Once()
-	store.On("RegisterService", mock.Anything, mock.Anything, mock.Anything).Return(make(<-chan struct{}), func() {}, nil).Once()
+	store.On("RegisterService", mock.Anything, mock.Anything, mock.Anything).Run(func(mock.Arguments) { close(registeredAgain) }).Return(make(<-chan struct{}), func() {}, nil).Once()
 
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
@@ -85,7 +86,11 @@ func TestServiceStatusStreamWithMultipleRegisteringAsExpired(t *testing.T) {
 	assert.NoError(t, err)
 
 	close(raw)
-	time.Sleep(time.Millisecond)
+	select {
+	case <-registeredAgain:
+	case <-time.After(5 * time.Second):
+		t.Fatal("an expired registration must be renewed")
+	}
 	store.AssertExpectations(t)
 }
 
