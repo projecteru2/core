@@ -227,7 +227,9 @@ func TestGetNodeEngine(t *testing.T) {
 }
 
 func TestSetNode(t *testing.T) {
-	factory.InitEngineCache(t.Context(), types.Config{MaxConcurrency: 1, ConnectionTimeout: time.Second}, nil)
+	config := NewTestCluster().config
+	config.ConnectionTimeout = time.Second
+	factory.InitEngineCache(t.Context(), config, nil)
 	synctest.Test(t, func(t *testing.T) {
 		c := NewTestCluster()
 		defer c.pool.Release()
