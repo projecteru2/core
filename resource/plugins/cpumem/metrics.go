@@ -7,16 +7,10 @@ import (
 
 	cpumemtypes "github.com/projecteru2/core/resource/plugins/cpumem/types"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
-	resourcetypes "github.com/projecteru2/core/resource/types"
 	"github.com/projecteru2/core/utils"
 )
 
 const (
-	fieldName   = "name"
-	fieldHelp   = "help"
-	fieldType   = "type"
-	fieldLabels = "labels"
-
 	gaugeType = "gauge"
 
 	labelPodname  = "podname"
@@ -25,33 +19,32 @@ const (
 )
 
 func (p Plugin) GetMetricsDescription(context.Context) (*plugintypes.GetMetricsDescriptionResponse, error) {
-	resp := &plugintypes.GetMetricsDescriptionResponse{}
-	return resp, resourcetypes.Decode([]map[string]any{
+	return &plugintypes.GetMetricsDescriptionResponse{
 		{
-			fieldName:   "cpu_map",
-			fieldHelp:   "node available cpu.",
-			fieldType:   gaugeType,
-			fieldLabels: []string{labelPodname, labelNodename, labelCPUID},
+			Name:   "cpu_map",
+			Help:   "node available cpu.",
+			Type:   gaugeType,
+			Labels: []string{labelPodname, labelNodename, labelCPUID},
 		},
 		{
-			fieldName:   "cpu_used",
-			fieldHelp:   "node used cpu.",
-			fieldType:   gaugeType,
-			fieldLabels: []string{labelPodname, labelNodename},
+			Name:   "cpu_used",
+			Help:   "node used cpu.",
+			Type:   gaugeType,
+			Labels: []string{labelPodname, labelNodename},
 		},
 		{
-			fieldName:   "memory_capacity",
-			fieldHelp:   "node available memory.",
-			fieldType:   gaugeType,
-			fieldLabels: []string{labelPodname, labelNodename},
+			Name:   "memory_capacity",
+			Help:   "node available memory.",
+			Type:   gaugeType,
+			Labels: []string{labelPodname, labelNodename},
 		},
 		{
-			fieldName:   "memory_used",
-			fieldHelp:   "node used memory.",
-			fieldType:   gaugeType,
-			fieldLabels: []string{labelPodname, labelNodename},
+			Name:   "memory_used",
+			Help:   "node used memory.",
+			Type:   gaugeType,
+			Labels: []string{labelPodname, labelNodename},
 		},
-	}, resp)
+	}, nil
 }
 
 func (p Plugin) GetMetrics(ctx context.Context, nodes []plugintypes.NodeRef) (*plugintypes.GetMetricsResponse, error) {

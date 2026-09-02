@@ -29,8 +29,6 @@ import (
 const (
 	fieldCapacity = "capacity"
 	fieldUsage    = "usage"
-	fieldNodename = "nodename"
-	fieldPriority = "priority"
 )
 
 type nodeResourceInfos struct {
@@ -148,11 +146,10 @@ func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, 
 		}
 	}
 
-	resp := &plugintypes.GetNodesDeployCapacityResponse{}
-	return resp, resourcetypes.Decode(map[string]any{
-		"nodes_deploy_capacity_map": nodesDeployCapacityMap,
-		"total":                     total,
-	}, resp)
+	return &plugintypes.GetNodesDeployCapacityResponse{
+		NodeDeployCapacityMap: nodesDeployCapacityMap,
+		Total:                 total,
+	}, nil
 }
 
 func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, resource plugintypes.NodeResource, resourceRequest plugintypes.NodeResourceRequest, delta, incr bool) (*plugintypes.SetNodeResourceCapacityResponse, error) {
@@ -263,11 +260,7 @@ func (p Plugin) GetMostIdleNode(ctx context.Context, nodenames []string) (*plugi
 		}
 	}
 
-	resp := &plugintypes.GetMostIdleNodeResponse{}
-	return resp, resourcetypes.Decode(map[string]any{
-		fieldNodename: mostIdleNode,
-		fieldPriority: priority,
-	}, resp)
+	return &plugintypes.GetMostIdleNodeResponse{Nodename: mostIdleNode, Priority: priority}, nil
 }
 
 func (p Plugin) FixNodeResource(ctx context.Context, nodename string, workloadsResource []plugintypes.WorkloadResource) (*plugintypes.GetNodeResourceInfoResponse, error) {
