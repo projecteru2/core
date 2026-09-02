@@ -1,11 +1,9 @@
 package calcium
 
 import (
-	"cmp"
 	"context"
 	"fmt"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/projecteru2/core/cluster"
@@ -140,7 +138,7 @@ func (c *Calcium) withNodesLocked(ctx context.Context, nodeFilter *types.NodeFil
 	}
 
 	keys := keysOf(ns)
-	slices.SortFunc(keys, byLockOrder)
+	slices.Sort(keys)
 	var lock lock.DistributedLock
 	for _, key := range slices.Compact(keys) {
 		lock, ctx, err = c.doLock(ctx, key, c.config.LockTimeout)
@@ -208,15 +206,4 @@ func withNodeLocked(ctx context.Context, nodename string, withNodes func(context
 		}
 		return types.ErrNodeNotExists
 	})
-}
-
-// byLockOrder puts pod locks before node locks, so a plan blocks a node only for as long as it plans on it.
-func byLockOrder(a, b string) int {
-	rank := func(key string) int {
-		if strings.HasPrefix(key, "plock_") {
-			return 0
-		}
-		return 1
-	}
-	return cmp.Or(cmp.Compare(rank(a), rank(b)), strings.Compare(a, b))
 }

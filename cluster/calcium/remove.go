@@ -6,15 +6,11 @@ import (
 	"sync"
 
 	"github.com/cockroachdb/errors"
-	"golang.org/x/sync/errgroup"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
-
-// removeWorkers bounds the engine removes in flight on one node.
-const removeWorkers = 16
 
 func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) (chan *types.RemoveWorkloadMessage, error) {
 	logger := log.WithFunc("calcium.RemoveWorkload").WithField("IDs", IDs).WithField("force", force)
@@ -41,11 +37,11 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 					_ = send(caller, ch, &types.RemoveWorkloadMessage{Success: false})
 					return
 				}
-				var removes errgroup.Group
-				removes.SetLimit(removeWorkers)
+				var removes sync.WaitGroup
 				for _, workloadID := range workloadIDs {
-					removes.Go(func() error {
-						defer log.SentryDefer()
+					removes.Add(1)
+					_ = c.pool.Invoke(func() {
+						defer removes.Done()
 						ret := &types.RemoveWorkloadMessage{WorkloadID: workloadID, Success: true, Hook: []*bytes.Buffer{}}
 						if workloadErr := c.withWorkloadLocked(ctx, workloadID, false, func(ctx context.Context, workload *types.Workload) error {
 							if err := c.doRemoveOneWorkload(ctx, node, workload, force); err != nil {
@@ -59,10 +55,9 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 							ret.Success = false
 						}
 						_ = send(caller, ch, ret)
-						return nil
 					})
 				}
-				_ = removes.Wait()
+				removes.Wait()
 				c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node) })
 			})
 		}
@@ -72,12 +67,20 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 
 func (c *Calcium) doRemoveOneWorkload(ctx context.Context, node *types.Node, workload *types.Workload, force bool) error {
 	logger := log.WithFunc("calcium.doRemoveOneWorkload").WithField("id", workload.ID)
-	return c.withResourceReleased(ctx, logger, node, workload, func(ctx context.Context) error {
-		workloadCommit, err := c.journal(ctx, logger, eventWorkloadCreated, &types.Workload{ID: workload.ID, Name: workload.Name, Nodename: workload.Nodename})
-		if err != nil {
-			return err
-		}
-		defer workloadCommit()
+
+	nodeCommit, err := c.journal(ctx, logger, eventWorkloadResourceAllocated, []*types.Node{node})
+	if err != nil {
+		return err
+	}
+	defer nodeCommit()
+
+	workloadCommit, err := c.journal(ctx, logger, eventWorkloadCreated, &types.Workload{ID: workload.ID, Name: workload.Name, Nodename: workload.Nodename})
+	if err != nil {
+		return err
+	}
+	defer workloadCommit()
+
+	return c.withResourceReleased(ctx, node, workload, func(ctx context.Context) error {
 		return c.doRemoveWorkload(ctx, workload, force)
 	})
 }
