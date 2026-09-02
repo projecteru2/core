@@ -43,7 +43,6 @@ type Store interface {
 	RemoveWorkload(ctx context.Context, workload *types.Workload) error
 	GetWorkload(ctx context.Context, ID string) (*types.Workload, error)
 	GetWorkloads(ctx context.Context, IDs []string) ([]*types.Workload, error)
-	GetWorkloadStatus(ctx context.Context, ID string) (*types.StatusMeta, error)
 	SetWorkloadStatus(ctx context.Context, status *types.StatusMeta, ttl int64) error
 	ListWorkloads(ctx context.Context, appname, entrypoint, nodename string, limit int64, labels map[string]string) ([]*types.Workload, error)
 	ListNodeWorkloads(ctx context.Context, nodename string, labels map[string]string) ([]*types.Workload, error)

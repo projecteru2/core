@@ -63,7 +63,7 @@ func (m *Metrics) SendPodNodeStatus(ctx context.Context, node *types.Node) {
 	metrics := &plugintypes.Metrics{
 		Name:   podNodeStatusName,
 		Labels: []string{m.Hostname, node.Podname, node.Name},
-		Key:    fmt.Sprintf(podNodeStatusKey, node.Name),
+		Key:    fmt.Sprintf(podNodeStatusKey, utils.CleanStatsdMetrics(node.Name)),
 		Value:  strconv.Itoa(utils.Bool2Int(up)),
 	}
 

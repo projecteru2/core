@@ -66,26 +66,6 @@ func (s *RediaronTestSuite) TestGetWorkload() {
 	s.NoError(err)
 }
 
-func (s *RediaronTestSuite) TestGetWorkloadStatus() {
-	ctx := s.T().Context()
-	workload := s.newWorkloadFixture()
-	err := s.rediaron.AddWorkload(ctx, workload, nil)
-	s.NoError(err)
-	_, err = s.rediaron.GetWorkloadStatus(ctx, workloadID)
-	s.Error(err)
-	_, err = s.rediaron.AddPod(ctx, workloadPodname, "")
-	s.NoError(err)
-	_, err = s.rediaron.AddNode(ctx, &types.AddNodeOptions{
-		Nodename: workloadNodename,
-		Endpoint: "mock://",
-		Podname:  workloadPodname,
-	})
-	s.NoError(err)
-	c, err := s.rediaron.GetWorkloadStatus(ctx, workloadID)
-	s.NoError(err)
-	s.Nil(c)
-}
-
 func (s *RediaronTestSuite) TestSetWorkloadStatus() {
 	m := s.rediaron
 	ctx := s.T().Context()

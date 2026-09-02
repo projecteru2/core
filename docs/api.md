@@ -93,7 +93,7 @@ plugin name. See [Resource plugins](resource-plugins.md).
 
 | RPC | Request | Description |
 | --- | --- | --- |
-| `Copy` ⇊ | `targets` (workload ID → paths) | Copy files out of workloads. Each path is streamed as a tar archive in 4 KiB `data` chunks |
+| `Copy` ⇊ | `targets` (workload ID → paths) | Copy files out of workloads. Each path is streamed as a tar archive in 64 KiB `data` chunks |
 | `Send` ⇊ | `IDs`, `data`, `modes`, `owners` | Push in-memory files into workloads. Files with no uid/gid/mode get `0755` |
 | `SendLargeFile` ⇅ | stream of `ids`, `dst`, `size`, `mode`, `owner`, `chunk` | Same, chunked, for files too large for one message |
 

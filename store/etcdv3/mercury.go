@@ -13,8 +13,6 @@ import (
 // Mercury is the etcd backed store.
 type Mercury struct {
 	*common.Store
-
-	kv meta.KV
 }
 
 // New creates a Mercury on the given etcd cluster.
@@ -27,5 +25,5 @@ func New(ctx context.Context, config types.Config, embeddedETCD *embedded.Cluste
 	if err != nil {
 		return nil, err
 	}
-	return &Mercury{Store: common.New(&etcdKV{kv: kv}, config, pool), kv: kv}, nil
+	return &Mercury{Store: common.New(&etcdKV{kv: kv}, config, pool)}, nil
 }

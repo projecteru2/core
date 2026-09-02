@@ -68,17 +68,12 @@ func (s *Store) GetWorkloads(ctx context.Context, IDs []string) ([]*types.Worklo
 	return s.bindWorkloadsAdditions(ctx, workloads)
 }
 
-func (s *Store) GetWorkloadStatus(ctx context.Context, ID string) (*types.StatusMeta, error) {
-	workload, err := s.GetWorkload(ctx, ID)
-	if err != nil {
-		return nil, err
-	}
-	return workload.StatusMeta, nil
-}
-
 func (s *Store) SetWorkloadStatus(ctx context.Context, status *types.StatusMeta, ttl int64) error {
 	if status.Appname == "" || status.Entrypoint == "" || status.Nodename == "" {
 		return types.ErrInvaildWorkloadStatus
+	}
+	if ttl < 0 {
+		return types.ErrInvaildWorkloadStatusTTL
 	}
 
 	data, err := json.Marshal(status)

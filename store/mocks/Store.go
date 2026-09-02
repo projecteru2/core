@@ -1244,73 +1244,11 @@ func (_c *Store_GetWorkload_Call) RunAndReturn(run func(ctx context.Context, ID 
 	return _c
 }
 
-// GetWorkloadStatus provides a mock function for the type Store
-func (_mock *Store) GetWorkloadStatus(ctx context.Context, ID string) (*types.StatusMeta, error) {
-	ret := _mock.Called(ctx, ID)
 
-	if len(ret) == 0 {
-		panic("no return value specified for GetWorkloadStatus")
-	}
 
-	var r0 *types.StatusMeta
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*types.StatusMeta, error)); ok {
-		return returnFunc(ctx, ID)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *types.StatusMeta); ok {
-		r0 = returnFunc(ctx, ID)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.StatusMeta)
-		}
-	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = returnFunc(ctx, ID)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
-}
 
-// Store_GetWorkloadStatus_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetWorkloadStatus'
-type Store_GetWorkloadStatus_Call struct {
-	*mock.Call
-}
 
-// GetWorkloadStatus is a helper method to define mock.On call
-//   - ctx context.Context
-//   - ID string
-func (_e *Store_Expecter) GetWorkloadStatus(ctx any, ID any) *Store_GetWorkloadStatus_Call {
-	return &Store_GetWorkloadStatus_Call{Call: _e.mock.On("GetWorkloadStatus", ctx, ID)}
-}
 
-func (_c *Store_GetWorkloadStatus_Call) Run(run func(ctx context.Context, ID string)) *Store_GetWorkloadStatus_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 string
-		if args[1] != nil {
-			arg1 = args[1].(string)
-		}
-		run(
-			arg0,
-			arg1,
-		)
-	})
-	return _c
-}
-
-func (_c *Store_GetWorkloadStatus_Call) Return(statusMeta *types.StatusMeta, err error) *Store_GetWorkloadStatus_Call {
-	_c.Call.Return(statusMeta, err)
-	return _c
-}
-
-func (_c *Store_GetWorkloadStatus_Call) RunAndReturn(run func(ctx context.Context, ID string) (*types.StatusMeta, error)) *Store_GetWorkloadStatus_Call {
-	_c.Call.Return(run)
-	return _c
-}
 
 // GetWorkloads provides a mock function for the type Store
 func (_mock *Store) GetWorkloads(ctx context.Context, IDs []string) ([]*types.Workload, error) {

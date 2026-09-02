@@ -2,6 +2,7 @@ package interceptor
 
 import (
 	"context"
+	"io"
 	"sync"
 
 	"github.com/cenkalti/backoff/v4"
@@ -32,7 +33,7 @@ func (s *retryStream) SendMsg(m any) error {
 }
 
 func (s *retryStream) RecvMsg(m any) (err error) {
-	if err = s.ClientStream.RecvMsg(m); err == nil || errors.Is(err, context.Canceled) {
+	if err = s.ClientStream.RecvMsg(m); err == nil || s.retryOpts.Max == 0 || errors.Is(err, context.Canceled) || errors.Is(err, io.EOF) {
 		return err
 	}
 	logger := log.WithFunc("interceptor.RecvMsg")

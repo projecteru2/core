@@ -2,7 +2,6 @@ package common
 
 import (
 	"archive/zip"
-	"bytes"
 	"io"
 	"os"
 	"path/filepath"
@@ -12,12 +11,20 @@ import (
 )
 
 func unzipFile(body io.Reader, path string) error {
-	content, err := io.ReadAll(body)
+	archive, err := os.CreateTemp("", "eru-artifact-*.zip")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = archive.Close()
+		_ = os.Remove(archive.Name())
+	}()
+	size, err := io.Copy(archive, body)
 	if err != nil {
 		return err
 	}
 
-	reader, err := zip.NewReader(bytes.NewReader(content), int64(len(content)))
+	reader, err := zip.NewReader(archive, size)
 	if err != nil {
 		return err
 	}

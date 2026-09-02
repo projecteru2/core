@@ -14,7 +14,6 @@ keys. `{}` marks a substituted value.
 | `/pod/info/{podname}` | Pod metadata |
 | `/node/{nodename}` | Node metadata: endpoint, pod, labels, bypass, test |
 | `/node/{podname}:pod/{nodename}` | Pod-to-node index; listing a pod's nodes is a prefix scan here |
-| `/node/{nodename}:ca`, `:cert`, `:key` | The node's TLS material, as PEM content |
 | `/node/{nodename}:workloads/{workloadID}` | Node-to-workload index |
 | `/status:node/{nodename}` | Node liveness, written with a lease. Its presence *is* the node being up |
 | `/workloads/{workloadID}` | Workload metadata: pod, node, name, labels, image, env, resources |
