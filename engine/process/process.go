@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -44,6 +45,7 @@ type Engine struct {
 	host        string
 	stopTimeout time.Duration
 	execs       *sshrunner.Execs
+	records     sync.Map
 }
 
 func MakeClient(_ context.Context, config coretypes.Config, nodename, endpoint string) (engine.API, error) {
@@ -104,6 +106,19 @@ func (e *Engine) call(ctx context.Context, argv ...string) (*sshrunner.Result, e
 
 func (e *Engine) run(ctx context.Context, argv ...string) (*sshrunner.Result, error) {
 	return sshrunner.Run(ctx, e.runner, argv...)
+}
+
+// record returns the workload's immutable record, read from the node once.
+func (e *Engine) record(ctx context.Context, ID string) (*meta, error) {
+	if cached, ok := e.records.Load(ID); ok {
+		return cached.(*meta), nil
+	}
+	record, _, err := e.workloadMeta(ctx, ID)
+	if err != nil {
+		return nil, err
+	}
+	e.records.Store(ID, record)
+	return record, nil
 }
 
 // workloadMeta reads the durable record and the overlay's mount state in one round trip.

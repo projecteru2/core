@@ -104,6 +104,7 @@ func (e *Engine) VirtualizationRemove(ctx context.Context, ID string, _, force b
 	if err != nil {
 		return err
 	}
+	e.records.Delete(ID)
 	switch res.Code {
 	case workloadmeta.NotExistsCode:
 		return coretypes.ErrWorkloadNotExists
@@ -149,7 +150,7 @@ func (e *Engine) VirtualizationResize(context.Context, string, uint, uint) error
 }
 
 func (e *Engine) VirtualizationWait(ctx context.Context, ID, _ string) (*enginetypes.VirtualizationWaitResult, error) {
-	res, err := e.run(ctx, sshrunner.Shell(waitScript, unitName(ID))...)
+	res, err := sshrunner.Stream(ctx, e.runner, sshrunner.Shell(waitScript, unitName(ID))...)
 	if err != nil {
 		return &enginetypes.VirtualizationWaitResult{Message: err.Error(), Code: -1}, err
 	}

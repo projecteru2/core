@@ -25,6 +25,9 @@ const (
 	ptyWidth  = 80
 	// sshd's default MaxSessions is 10; queue past that instead of being refused.
 	maxSessions = 8
+	// streams live on connections of their own, opened as they fill up and closed once idle (projecteru2/core#670)
+	maxStreamClients = 4
+	streamIdle       = 30 * time.Second
 
 	openRetries       = 4
 	openRetryInterval = 100 * time.Millisecond
@@ -41,6 +44,7 @@ type sshRunner struct {
 	addr     string
 	config   *ssh.ClientConfig
 	sessions *semaphore.Weighted
+	streams  *streamPool
 
 	mu     sync.Mutex
 	client *ssh.Client
@@ -52,7 +56,9 @@ func New(addr string, config *ssh.ClientConfig) Runner {
 }
 
 func newSSHRunner(addr string, config *ssh.ClientConfig) *sshRunner {
-	return &sshRunner{addr: addr, config: config, sessions: semaphore.NewWeighted(maxSessions)}
+	r := &sshRunner{addr: addr, config: config, sessions: semaphore.NewWeighted(maxSessions)}
+	r.streams = newStreamPool(func(ctx context.Context) (streamConn, error) { return r.dial(ctx) })
+	return r
 }
 
 func (r *sshRunner) Run(ctx context.Context, line string, stdin io.Reader) (*Result, error) {
@@ -81,17 +87,12 @@ func (r *sshRunner) Run(ctx context.Context, line string, stdin io.Reader) (*Res
 }
 
 func (r *sshRunner) Start(ctx context.Context, line string, opts *StartOptions) (_ Session, err error) {
-	if err = r.sessions.Acquire(ctx, 1); err != nil {
-		return nil, err
-	}
-	release := sync.OnceFunc(func() { r.sessions.Release(1) })
-
-	sess, err := r.newSession(ctx)
+	stream, sess, err := r.openStream(ctx)
 	if err != nil {
-		release()
 		return nil, err
 	}
-	running := &sshSession{sess: sess, stop: closeOnDone(ctx, sess), release: release}
+	running := &sshSession{sess: sess, release: sync.OnceFunc(func() { r.streams.release(stream) })}
+	running.stop = closeOnDone(ctx, running)
 	defer func() {
 		if err != nil {
 			_ = running.Close()
@@ -134,7 +135,9 @@ func (r *sshRunner) Files(ctx context.Context) (Files, error) {
 		release()
 		return nil, err
 	}
-	return &sftpFiles{client: remote, release: release}, nil
+	files := &sftpFiles{client: remote, release: release}
+	files.stop = closeOnDone(ctx, files)
+	return files, nil
 }
 
 func (r *sshRunner) Dial(ctx context.Context, network, addr string) (net.Conn, error) {
@@ -152,6 +155,7 @@ func (r *sshRunner) Ping(ctx context.Context) error {
 }
 
 func (r *sshRunner) Close() error {
+	r.streams.close()
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.client == nil {
@@ -177,6 +181,15 @@ func (r *sshRunner) connect(ctx context.Context, stale *ssh.Client) (*ssh.Client
 		_ = r.client.Close()
 		r.client = nil
 	}
+	client, err := r.dial(ctx)
+	if err != nil {
+		return nil, err
+	}
+	r.client = client
+	return r.client, nil
+}
+
+func (r *sshRunner) dial(ctx context.Context) (*ssh.Client, error) {
 	conn, err := (&net.Dialer{Timeout: r.config.Timeout}).DialContext(ctx, "tcp", r.addr)
 	if err != nil {
 		return nil, err
@@ -186,8 +199,26 @@ func (r *sshRunner) connect(ctx context.Context, stale *ssh.Client) (*ssh.Client
 		_ = conn.Close()
 		return nil, err
 	}
-	r.client = ssh.NewClient(handshaked, chans, reqs)
-	return r.client, nil
+	return ssh.NewClient(handshaked, chans, reqs), nil
+}
+
+// openStream takes a slot on a stream connection and opens the session there; a dead connection is dropped and the open retried once.
+func (r *sshRunner) openStream(ctx context.Context) (*streamClient, *ssh.Session, error) {
+	for attempt := 0; ; attempt++ {
+		stream, err := r.streams.acquire(ctx)
+		if err != nil {
+			return nil, nil, err
+		}
+		sess, err := bounded(ctx, stream.conn.NewSession)
+		if err == nil {
+			return stream, sess, nil
+		}
+		if ctx.Err() != nil || !isTransportError(err) || attempt == 1 {
+			r.streams.release(stream)
+			return nil, nil, err
+		}
+		r.streams.evict(stream)
+	}
 }
 
 type sshSession struct {
@@ -221,6 +252,7 @@ func (s *sshSession) Close() error {
 
 type sftpFiles struct {
 	client  *sftp.Client
+	stop    func()
 	release func()
 }
 
@@ -262,6 +294,7 @@ func (f *sftpFiles) Chmod(path string, mode os.FileMode) error {
 }
 
 func (f *sftpFiles) Close() error {
+	f.stop()
 	f.release()
 	return f.client.Close()
 }
@@ -290,8 +323,9 @@ func NewClientConfig(cfg coretypes.SSHConfig, user string, timeout time.Duration
 	}, nil
 }
 
-func closeOnDone(ctx context.Context, sess *ssh.Session) func() {
-	stop := context.AfterFunc(ctx, func() { _ = sess.Close() })
+// closeOnDone closes the wrapper when ctx ends, so the slot goes back with the transport.
+func closeOnDone(ctx context.Context, c io.Closer) func() {
+	stop := context.AfterFunc(ctx, func() { _ = c.Close() })
 	return func() { stop() }
 }
 
@@ -306,24 +340,24 @@ func openOnce[T any](ctx context.Context, r *sshRunner, f sshOp[T]) (T, error) {
 	if err != nil {
 		return zero, err
 	}
-	v, err := bounded(ctx, client, f)
+	v, err := bounded(ctx, func() (T, error) { return f(client) })
 	if err == nil || ctx.Err() != nil || !isTransportError(err) {
 		return v, err
 	}
 	if client, err = r.connect(ctx, client); err != nil {
 		return zero, err
 	}
-	return bounded(ctx, client, f)
+	return bounded(ctx, func() (T, error) { return f(client) })
 }
 
-func bounded[T any](ctx context.Context, client *ssh.Client, f sshOp[T]) (T, error) {
+func bounded[T any](ctx context.Context, open func() (T, error)) (T, error) {
 	type opened struct {
 		v   T
 		err error
 	}
 	done := make(chan opened, 1)
 	go func() {
-		v, err := f(client)
+		v, err := open()
 		done <- opened{v, err}
 	}()
 	select {
