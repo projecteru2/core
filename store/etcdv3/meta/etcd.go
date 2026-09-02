@@ -395,9 +395,19 @@ func (e *ETCD) bindStatusWithoutTTL(ctx context.Context, entityKey, statusKey, s
 	if err != nil {
 		return err
 	}
-	if _, err = e.cliv3.Put(ctx, statusKey, statusValue, clientv3.WithLease(lease.ID)); err != nil {
+	orphaned, err := e.cliv3.Txn(ctx).
+		If(clientv3.Compare(clientv3.Version(entityKey), "=", 0)).
+		Then(clientv3.OpPut(statusKey, statusValue, clientv3.WithLease(lease.ID))).
+		Else(clientv3.OpPut(statusKey, statusValue)).
+		Commit()
+	if err != nil {
 		e.revokeLease(ctx, lease.ID)
 		return err
+	}
+	if !orphaned.Succeeded {
+		e.revokeLease(ctx, lease.ID)
+		logger.Infof(ctx, "put: key %s value %s", statusKey, statusValue)
+		return nil
 	}
 	logger.Infof(ctx, "put: key %s value %s, leased %ds without %s", statusKey, statusValue, orphanStatusTTL, entityKey)
 	return nil

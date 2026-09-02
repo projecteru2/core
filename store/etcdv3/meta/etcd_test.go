@@ -159,6 +159,23 @@ func TestBindStatusWithZeroTTL(t *testing.T) {
 	require.Equal(t, nil, e.BindStatus(t.Context(), "/entity", "/status", "status", 0))
 }
 
+func TestBindStatusOrphanPutYieldsToAnEntityThatAppeared(t *testing.T) {
+	e, etcd, assert := testKeepAliveETCD(t)
+	defer assert()
+
+	txn := &mocks.Txn{}
+	defer txn.AssertExpectations(t)
+	txn.On("If", mock.Anything).Return(txn)
+	txn.On("Then", mock.Anything).Return(txn)
+	txn.On("Else", mock.Anything).Return(txn)
+	txn.On("Commit").Return(&clientv3.TxnResponse{Succeeded: false}, nil)
+
+	etcd.On("Txn", mock.Anything).Return(txn)
+	etcd.On("Grant", mock.Anything, mock.Anything).Return(&clientv3.LeaseGrantResponse{ID: 7}, nil)
+	etcd.On("Revoke", mock.Anything, clientv3.LeaseID(7)).Return(&clientv3.LeaseRevokeResponse{}, nil)
+	require.NoError(t, e.BindStatus(t.Context(), "/entity", "/status", "status", 0))
+}
+
 func TestBindStatusWithoutEntityCarriesALease(t *testing.T) {
 	e := NewEmbeddedETCD(t)
 	ctx := t.Context()
