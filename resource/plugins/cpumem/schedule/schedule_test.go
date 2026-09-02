@@ -1,6 +1,8 @@
 package schedule
 
 import (
+	"math/rand/v2"
+	"reflect"
 	"strconv"
 	"testing"
 
@@ -398,6 +400,26 @@ func TestFragmentCoresAboveMaxShare(t *testing.T) {
 	assert.ElementsMatch(t, cpuPlans, []*types.CPUPlan{{CPUMap: types.CPUMap{"4": 50}}})
 }
 
+func TestGetCPUPlansMatchTheLinearSplitScan(t *testing.T) {
+	rng := rand.New(rand.NewPCG(7, 11))
+	for range 300 {
+		cores := 1 + rng.IntN(40)
+		cpuMap := types.CPUMap{}
+		for i := range cores {
+			cpuMap[strconv.Itoa(i)] = rng.IntN(4) * 25
+		}
+		shareBase, maxFragment := 100, -1+rng.IntN(cores+2)
+		full, fragment := 1+rng.IntN(3), 25*(1+rng.IntN(3))
+		request := float64(full) + float64(fragment)/float64(shareBase)
+
+		got := newHost(cpuMap, shareBase, maxFragment).getCPUPlans(request)
+		want := linearSplitCPUPlans(newHost(cpuMap, shareBase, maxFragment), request)
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("cores=%v maxFragment=%d request=%v: got %v, want %v", cpuMap, maxFragment, request, got, want)
+		}
+	}
+}
+
 func BenchmarkGetCPUPlans(b *testing.B) {
 	resourceInfo := &types.NodeResourceInfo{
 		Capacity: &types.NodeResource{
@@ -424,4 +446,43 @@ func applyCPUPlans(t *testing.T, resourceInfo *types.NodeResourceInfo, cpuPlans 
 		resourceInfo.Usage.CPUMap.Add(cpuPlan.CPUMap)
 	}
 	assert.Nil(t, resourceInfo.Validate())
+}
+
+// linearSplitCPUPlans is the pre-bestSplit planner: every split built and compared in order.
+func linearSplitCPUPlans(h *host, cpuRequest float64) []types.CPUMap {
+	piecesRequest := int(cpuRequest * float64(h.shareBase))
+	full, fragment := piecesRequest/h.shareBase, piecesRequest%h.shareBase
+	maxFragmentCores := len(h.fullCores) + len(h.fragmentCores) - full
+	if h.maxFragmentCores != -1 && h.maxFragmentCores < maxFragmentCores {
+		maxFragmentCores = h.maxFragmentCores
+	}
+	if fragment == 0 || full == 0 {
+		return h.getCPUPlans(cpuRequest)
+	}
+	totalFragmentCapacity := 0
+	bestCPUPlans := [2][]types.CPUMap{h.getFullCPUPlans(h.fullCores, full), h.getFragmentCPUPlans(h.fragmentCores, fragment)}
+	bestCapacity := min(len(bestCPUPlans[0]), len(bestCPUPlans[1]))
+	for _, core := range h.fragmentCores {
+		totalFragmentCapacity += core.pieces / fragment
+	}
+	for len(h.fragmentCores) < maxFragmentCores {
+		newFragmentCore := h.fullCores[0]
+		h.fragmentCores = append(h.fragmentCores, newFragmentCore)
+		h.fullCores = h.fullCores[1:]
+		totalFragmentCapacity += newFragmentCore.pieces / fragment
+		fullCPUPlans := h.getFullCPUPlans(h.fullCores, full)
+		if capacity := min(len(fullCPUPlans), totalFragmentCapacity); capacity > bestCapacity {
+			bestCPUPlans[0] = fullCPUPlans
+			bestCPUPlans[1] = h.getFragmentCPUPlans(h.fragmentCores, fragment)
+			bestCapacity = capacity
+		}
+	}
+	cpuPlans := []types.CPUMap{}
+	for i := range bestCapacity {
+		cpuMap := types.CPUMap{}
+		cpuMap.Add(bestCPUPlans[0][i])
+		cpuMap.Add(bestCPUPlans[1][i])
+		cpuPlans = append(cpuPlans, cpuMap)
+	}
+	return cpuPlans
 }

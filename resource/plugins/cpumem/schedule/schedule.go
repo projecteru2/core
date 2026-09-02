@@ -4,13 +4,16 @@ import (
 	"cmp"
 	"container/heap"
 	"slices"
+	"sort"
 
 	"github.com/projecteru2/core/resource/plugins/cpumem/types"
+	"github.com/projecteru2/core/utils"
 )
 
 type cpuCore struct {
 	ID     string
 	pieces int
+	index  int
 }
 
 type cpuCoreHeap []*cpuCore
@@ -94,121 +97,120 @@ func (h *host) getCPUPlans(cpuRequest float64) []types.CPUMap {
 		return h.getFragmentCPUPlans(h.fragmentCores, fragment)
 	}
 
-	fragmentCapacityMap := map[string]int{}
-	totalFragmentCapacity := 0
-	bestCPUPlans := [2][]types.CPUMap{h.getFullCPUPlans(h.fullCores, full), h.getFragmentCPUPlans(h.fragmentCores, fragment)}
-	bestCapacity := min(len(bestCPUPlans[0]), len(bestCPUPlans[1]))
-
-	for _, core := range h.fullCores {
-		fragmentCapacityMap[core.ID] = core.pieces / fragment
-	}
-
-	for _, core := range h.fragmentCores {
-		fragmentCapacityMap[core.ID] = core.pieces / fragment
-		totalFragmentCapacity += fragmentCapacityMap[core.ID]
-	}
-
-	for len(h.fragmentCores) < maxFragmentCores {
-		newFragmentCore := h.fullCores[0]
-		h.fragmentCores = append(h.fragmentCores, newFragmentCore)
-		h.fullCores = h.fullCores[1:]
-		totalFragmentCapacity += fragmentCapacityMap[newFragmentCore.ID]
-
-		fullCPUPlans := h.getFullCPUPlans(h.fullCores, full)
-		capacity := min(len(fullCPUPlans), totalFragmentCapacity)
-		if capacity > bestCapacity {
-			bestCPUPlans[0] = fullCPUPlans
-			bestCPUPlans[1] = h.getFragmentCPUPlans(h.fragmentCores, fragment)
-			bestCapacity = capacity
-		}
-	}
-
-	cpuPlans := []types.CPUMap{}
+	bestMoved, bestCapacity := h.bestSplit(full, fragment, max(min(maxFragmentCores-len(h.fragmentCores), len(h.fullCores)), 0))
+	fullCPUPlans := h.getFullCPUPlans(h.fullCores[bestMoved:], full)
+	fragmentCPUPlans := h.getFragmentCPUPlans(append(slices.Clone(h.fragmentCores), h.fullCores[:bestMoved]...), fragment)
+	cpuPlans := make([]types.CPUMap, 0, bestCapacity)
 	for i := range bestCapacity {
-		fullCPUPlans := bestCPUPlans[0]
-		fragmentCPUPlans := bestCPUPlans[1]
-
 		cpuMap := types.CPUMap{}
 		cpuMap.Add(fullCPUPlans[i])
 		cpuMap.Add(fragmentCPUPlans[i])
-
 		cpuPlans = append(cpuPlans, cpuMap)
 	}
-
 	return cpuPlans
 }
 
-func (h *host) getFullCPUPlans(cores []*cpuCore, full int) []types.CPUMap {
-	if h.affinity {
-		return h.getFullCPUPlansWithAffinity(cores, full)
+// bestSplit finds the first split with the largest capacity where the falling full-plan count meets the rising fragment count.
+func (h *host) bestSplit(full, fragment, maxMoved int) (int, int) {
+	fragmentCapacity := make([]int, maxMoved+1)
+	for _, core := range h.fragmentCores {
+		fragmentCapacity[0] += core.pieces / fragment
+	}
+	for moved := 1; moved <= maxMoved; moved++ {
+		fragmentCapacity[moved] = fragmentCapacity[moved-1] + h.fullCores[moved-1].pieces/fragment
+	}
+	fullCapacity := func(moved int) int { return h.countFullCPUPlans(h.fullCores[moved:], full) }
+	firstReaching := func(capacity int) int {
+		return sort.SearchInts(fragmentCapacity, capacity)
 	}
 
-	result := []types.CPUMap{}
-	cpuHeap := &cpuCoreHeap{}
-	indexMap := map[string]int{}
+	crossing := sort.Search(maxMoved+1, func(moved int) bool { return fragmentCapacity[moved] >= fullCapacity(moved) })
+	if crossing > maxMoved {
+		return firstReaching(fragmentCapacity[maxMoved]), fragmentCapacity[maxMoved]
+	}
+	capacity := fullCapacity(crossing)
+	if crossing > 0 && fragmentCapacity[crossing-1] >= capacity {
+		return firstReaching(fragmentCapacity[crossing-1]), fragmentCapacity[crossing-1]
+	}
+	return crossing, capacity
+}
+
+func (h *host) countFullCPUPlans(cores []*cpuCore, full int) int {
+	count := 0
+	h.eachFullCPUPlan(cores, full, func([]int) { count++ })
+	return count
+}
+
+func (h *host) getFullCPUPlans(cores []*cpuCore, full int) []types.CPUMap {
+	type ranked struct {
+		plan types.CPUMap
+		rank int
+	}
+	plans := []ranked{}
+	h.eachFullCPUPlan(cores, full, func(picked []int) {
+		plan, rank := types.CPUMap{}, 0
+		for _, i := range picked {
+			plan[cores[i].ID] = h.shareBase
+			rank += i
+		}
+		plans = append(plans, ranked{plan, rank})
+	})
+	if !h.affinity {
+		// restore the pre-heap core priority across the produced plans
+		slices.SortFunc(plans, func(a, b ranked) int { return cmp.Compare(a.rank, b.rank) })
+	}
+	return utils.Map(plans, func(r ranked) types.CPUMap { return r.plan })
+}
+
+// eachFullCPUPlan visits every whole-core plan as the indexes of its cores; with affinity the cores go in order, otherwise the busiest first.
+func (h *host) eachFullCPUPlan(cores []*cpuCore, full int, visit func(picked []int)) {
+	pieces := make([]int, len(cores))
 	for i, core := range cores {
-		indexMap[core.ID] = i
-		cpuHeap.Push(&cpuCore{ID: core.ID, pieces: core.pieces})
+		pieces[i] = core.pieces
+	}
+	if h.affinity {
+		order := make([]int, len(cores))
+		for i := range order {
+			order[i] = i
+		}
+		for len(order) >= full {
+			count := len(order) / full
+			kept := []int{}
+			for i := range count {
+				picked := order[i*full : i*full+full]
+				visit(picked)
+				for _, j := range picked {
+					if pieces[j] -= h.shareBase; pieces[j] > 0 {
+						kept = append(kept, j)
+					}
+				}
+			}
+			order = append(kept, order[count*full:]...)
+		}
+		return
+	}
+
+	cpuHeap := &cpuCoreHeap{}
+	for i, core := range cores {
+		cpuHeap.Push(&cpuCore{ID: core.ID, pieces: core.pieces, index: i})
 	}
 	heap.Init(cpuHeap)
-
+	picked := make([]int, full)
 	for cpuHeap.Len() >= full {
-		plan := types.CPUMap{}
 		resourcesToPush := []*cpuCore{}
-
-		for range full {
+		for n := range full {
 			core := heap.Pop(cpuHeap).(*cpuCore)
-			plan[core.ID] = h.shareBase
-
+			picked[n] = core.index
 			core.pieces -= h.shareBase
 			if core.pieces > 0 {
 				resourcesToPush = append(resourcesToPush, core)
 			}
 		}
-
-		result = append(result, plan)
+		visit(picked)
 		for _, core := range resourcesToPush {
 			heap.Push(cpuHeap, core)
 		}
 	}
-
-	// restore the pre-heap core priority across the produced plans
-	sumOfIDs := func(c types.CPUMap) int {
-		sum := 0
-		for ID := range c {
-			sum += indexMap[ID]
-		}
-		return sum
-	}
-
-	slices.SortFunc(result, func(a, b types.CPUMap) int { return cmp.Compare(sumOfIDs(a), sumOfIDs(b)) })
-
-	return result
-}
-
-func (h *host) getFullCPUPlansWithAffinity(cores []*cpuCore, full int) []types.CPUMap {
-	result := []types.CPUMap{}
-
-	for len(cores) >= full {
-		count := len(cores) / full
-		tempCores := []*cpuCore{}
-		for i := range count {
-			cpuMap := types.CPUMap{}
-			for j := i * full; j < i*full+full; j++ {
-				cpuMap[cores[j].ID] = h.shareBase
-
-				remainingPieces := cores[j].pieces - h.shareBase
-				if remainingPieces > 0 {
-					tempCores = append(tempCores, &cpuCore{ID: cores[j].ID, pieces: remainingPieces})
-				}
-			}
-			result = append(result, cpuMap)
-		}
-
-		cores = append(tempCores, cores[len(cores)/full*full:]...)
-	}
-
-	return result
 }
 
 func (h *host) getFragmentCPUPlans(cores []*cpuCore, fragment int) []types.CPUMap {
