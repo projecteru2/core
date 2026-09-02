@@ -87,7 +87,7 @@ func (e *EngineCache) checkAlive(ctx context.Context) {
 			params := client.GetParams()
 			_ = e.pool.Invoke(func() {
 				defer wg.Done()
-				cacheKey := params.CacheKey()
+				cacheKey := params.Endpoint
 				if _, ok := client.(*fake.EngineWithErr); ok {
 					if newClient, err := newEngine(ctx, e.config, params); err != nil {
 						logger.Errorf(ctx, err, "engine %+v is still unavailable", cacheKey)
@@ -144,7 +144,6 @@ func (e *EngineCache) checkNodeStatus(ctx context.Context) {
 				e.cache.Range(func(_, v any) bool {
 					ep := v.(engine.API).GetParams()
 					if ep.Nodename == ns.Nodename {
-						logger.Infof(ctx, "remove engine %+v from cache", ep.CacheKey())
 						RemoveEngineFromCache(ctx, ep.Endpoint)
 					}
 					return true
@@ -189,15 +188,14 @@ func GetEngine(ctx context.Context, config types.Config, nodename, endpoint stri
 		}
 		logger := log.WithFunc("engine.factory.GetEngine")
 		params := enginetypes.NewParams(nodename, endpoint)
-		cacheKey := params.CacheKey()
 		client, err := newEngine(ctx, config, params)
 		if err != nil {
-			engineCache.Set(cacheKey, &fake.EngineWithErr{DefaultErr: err, EP: params})
-			logger.Infof(ctx, "store fake engine %+v in cache", cacheKey)
+			engineCache.Set(endpoint, &fake.EngineWithErr{DefaultErr: err, EP: params})
+			logger.Infof(ctx, "store fake engine %+v in cache", endpoint)
 			return nil, err
 		}
-		engineCache.Set(cacheKey, client)
-		logger.Infof(ctx, "store engine %+v in cache", cacheKey)
+		engineCache.Set(endpoint, client)
+		logger.Infof(ctx, "store engine %+v in cache", endpoint)
 		return client, nil
 	})
 	if err != nil {

@@ -11,7 +11,3 @@ func NewParams(nodename, endpoint string) *Params {
 		Endpoint: endpoint,
 	}
 }
-
-func (p *Params) CacheKey() string {
-	return p.Endpoint
-}
