@@ -35,6 +35,7 @@ func MakeClient(_ context.Context, _ coretypes.Config, nodename, endpoint string
 	}
 	e.On("Info", mock.Anything).Return(&enginetypes.Info{NCPU: 100, MemTotal: units.GiB * 100, StorageTotal: units.GiB * 100}, nil)
 	e.On("Ping", mock.Anything).Return(nil)
+	e.On("VerifyNode", mock.Anything).Return(nil)
 	e.On("GetParams").Return(params)
 	e.On("CloseConn").Return(nil)
 	e.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return(
