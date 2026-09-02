@@ -8,9 +8,8 @@ import (
 )
 
 const (
-	Gitlab        = "gitlab"
-	Github        = "github"
-	CPUPeriodBase = 100000
+	Gitlab = "gitlab"
+	Github = "github"
 	// ERUMark labels a workload as controlled by eru.
 	ERUMark = "ERU"
 	// LabelMeta holds the encoded publish and healthcheck metadata.

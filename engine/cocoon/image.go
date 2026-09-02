@@ -169,12 +169,16 @@ func (e *Engine) partsArtifact(ctx context.Context, ref string) bool {
 }
 
 func (e *Engine) orasPresent(ctx context.Context) bool {
-	e.probe.Lock()
-	defer e.probe.Unlock()
-	if e.hasOras {
+	if e.hasOras.Load() {
 		return true
 	}
-	res, err := e.call(ctx, sshrunner.Shell(orasProbe)...)
-	e.hasOras = err == nil && res.Code == 0
-	return e.hasOras
+	present, _, _ := e.probe.Do("oras", func() (any, error) {
+		res, err := e.call(ctx, sshrunner.Shell(orasProbe)...)
+		found := err == nil && res.Code == 0
+		if found {
+			e.hasOras.Store(true)
+		}
+		return found, nil
+	})
+	return present.(bool)
 }

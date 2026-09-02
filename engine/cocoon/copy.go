@@ -25,7 +25,7 @@ func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target strin
 		return err
 	}
 	if !info.Running {
-		return errors.Wrap(coretypes.ErrEngineNotImplemented, "a vm takes files through its guest agent, send them after the vm boots")
+		return errors.Wrap(coretypes.ErrInvaildWorkloadOps, "a vm takes files through its guest agent, send them after the vm boots")
 	}
 	argv := e.vm("exec", "-i", ID, "--", "tar", "-x", "-P", "-f", "-")
 	running, err := e.runner.Start(ctx, sshrunner.Quote(argv), &sshrunner.StartOptions{Stdin: true})

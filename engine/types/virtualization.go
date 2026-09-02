@@ -4,6 +4,9 @@ import (
 	resourcetypes "github.com/projecteru2/core/resource/types"
 )
 
+// CPUPeriodBase is the cfs period a workload's cpu quota is expressed against.
+const CPUPeriodBase = 100000
+
 // VirtualizationCreateOptions describes a workload to create.
 type VirtualizationCreateOptions struct {
 	EngineParams resourcetypes.Resources
