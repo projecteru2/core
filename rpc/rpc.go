@@ -938,20 +938,12 @@ func logUnsentMessages(ctx context.Context, msgType string, err error, msg any) 
 
 func recvStdin[T any](ctx context.Context, name string, open bool, recv func() (T, error), payload func(T) []byte) <-chan []byte {
 	inCh := make(chan []byte)
-<<<<<<< HEAD
 	if !open {
 		close(inCh)
 		return inCh
 	}
 	utils.SentryGo(func() {
 		defer close(inCh)
-=======
-	utils.SentryGo(func() {
-		defer close(inCh)
-		if !open {
-			return
-		}
->>>>>>> 5350685c
 		for {
 			msg, err := recv()
 			if err != nil {
@@ -970,11 +962,7 @@ func recvStdin[T any](ctx context.Context, name string, open bool, recv func() (
 	return inCh
 }
 
-<<<<<<< HEAD
 func drain[T, R any](t *task, name string, ch <-chan T, send sender[R], to converter[T, R]) {
-=======
-func drain[T, R any](t *task, name string, ch <-chan T, send func(R) error, to func(T) R) {
->>>>>>> 5350685c
 	for m := range ch {
 		if err := send(to(m)); err != nil {
 			logUnsentMessages(t.context, name, err, m)
@@ -982,11 +970,7 @@ func drain[T, R any](t *task, name string, ch <-chan T, send func(R) error, to f
 	}
 }
 
-<<<<<<< HEAD
 func drainUntilStop[T, R any](t *task, name string, code codes.Code, stop <-chan struct{}, ch <-chan T, send sender[R], to converter[T, R]) error {
-=======
-func drainUntilStop[T, R any](t *task, name string, code codes.Code, stop <-chan struct{}, ch <-chan T, send func(R) error, to func(T) R) error {
->>>>>>> 5350685c
 	for {
 		select {
 		case m, ok := <-ch:
