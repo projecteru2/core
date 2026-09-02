@@ -266,29 +266,6 @@ func (e *ETCD) batchPut(ctx context.Context, data map[string]string, cond *txnCo
 	return e.doBatchOp(ctx, txnes)
 }
 
-func (e *ETCD) currentStatus(ctx context.Context, key string, ttl int64) (*mvccpb.KeyValue, bool, error) {
-	kv, err := e.GetOne(ctx, key)
-	if err != nil {
-		if errors.Is(err, types.ErrInvaildCount) {
-			return nil, ttl != 0, nil
-		}
-		return nil, false, err
-	}
-	if kv.Lease == 0 {
-		return kv, ttl != 0, nil
-	}
-
-	granted, err := e.cliv3.TimeToLive(ctx, clientv3.LeaseID(kv.Lease))
-	if err != nil {
-		return nil, false, err
-	}
-	changed := granted.GrantedTTL != ttl
-	if changed {
-		log.WithFunc("store.etcdv3.meta.currentStatus").Infof(ctx, "key %+v ttl changed from %+v to %+v", key, granted.GrantedTTL, ttl)
-	}
-	return kv, changed, nil
-}
-
 func (e *ETCD) bindStatusWithTTL(ctx context.Context, entityKey, statusKey, statusValue string, ttl int64) error {
 	logger := log.WithFunc("store.etcdv3.meta.bindStatusWithTTL")
 	renewed, err := e.cliv3.Txn(ctx).
