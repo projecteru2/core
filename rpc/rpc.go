@@ -23,6 +23,8 @@ import (
 	"github.com/projecteru2/core/version"
 )
 
+const copyChunkSize = 64 << 10
+
 type (
 	sender[R any]       func(R) error
 	converter[T, R any] func(T) R
@@ -438,7 +440,7 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 	if err != nil {
 		return grpcstatus.Error(Copy, err.Error())
 	}
-	p := make([]byte, 4096)
+	p := make([]byte, copyChunkSize)
 	for m := range ch {
 		msg := &pb.CopyMessage{
 			Id:   m.ID,

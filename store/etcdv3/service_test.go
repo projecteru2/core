@@ -21,12 +21,12 @@ func TestRegisterServiceWithDeregister(t *testing.T) {
 	_, deregister, err := m.RegisterService(ctx, svc, time.Minute)
 	assert.NoError(t, err)
 
-	kv, err := m.kv.GetOne(ctx, path)
+	kv, err := kvOf(m).GetOne(ctx, path)
 	assert.NoError(t, err)
 	assert.Equal(t, path, string(kv.Key))
 
 	deregister()
-	kv, err = m.kv.GetOne(ctx, path)
+	kv, err = kvOf(m).GetOne(ctx, path)
 	assert.Error(t, err)
 	assert.Nil(t, kv)
 }

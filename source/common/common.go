@@ -34,11 +34,13 @@ func NewGitScm(config types.GitConfig, authHeaders map[string]string) (*GitScm, 
 	if err != nil {
 		return nil, err
 	}
-	return &GitScm{
+	scm := &GitScm{
 		Config:      config,
 		AuthHeaders: authHeaders,
 		keyBytes:    b,
-	}, nil
+	}
+	scm.Timeout = config.CloneTimeout
+	return scm, nil
 }
 
 func (g *GitScm) SourceCode(ctx context.Context, repository, path, revision string, submodule bool) error {

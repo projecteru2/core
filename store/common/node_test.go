@@ -55,3 +55,5 @@ func (k *brokenWatchKV) Watch(_ context.Context, prefix string) iter.Seq[Event] 
 		yield(Event{Key: prefix + k.key, Type: EventPut})
 	}
 }
+
+func (k *brokenWatchKV) NotFound(error) bool { return false }

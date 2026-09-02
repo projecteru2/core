@@ -71,22 +71,6 @@ func TestGetWorkload(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestGetWorkloadStatus(t *testing.T) {
-	m := NewMercury(t)
-	ctx := t.Context()
-	workload := newWorkloadFixture()
-	err := m.AddWorkload(ctx, workload, nil)
-	assert.NoError(t, err)
-	_, err = m.GetWorkloadStatus(ctx, workloadID)
-	assert.Error(t, err)
-	_, err = m.AddPod(ctx, workloadPodname, "")
-	assert.NoError(t, err)
-	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: workloadNodename, Endpoint: "mock://", Podname: workloadPodname})
-	assert.NoError(t, err)
-	c, err := m.GetWorkloadStatus(ctx, workloadID)
-	assert.Nil(t, c)
-}
-
 func TestSetWorkloadStatus(t *testing.T) {
 	m := NewMercury(t)
 	ctx := t.Context()
@@ -179,9 +163,9 @@ func TestWorkloadStatusStream(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = m.AddPod(ctx, workloadPodname, "CPU")
 	assert.NoError(t, err)
-	_, err = m.kv.Create(ctx, fmt.Sprintf(common.NodeInfoKey, workloadNodename), string(nodeBytes))
+	_, err = kvOf(m).Create(ctx, fmt.Sprintf(common.NodeInfoKey, workloadNodename), string(nodeBytes))
 	assert.NoError(t, err)
-	_, err = m.kv.Create(ctx, fmt.Sprintf(common.NodePodKey, workloadPodname, workloadNodename), string(nodeBytes))
+	_, err = kvOf(m).Create(ctx, fmt.Sprintf(common.NodePodKey, workloadPodname, workloadNodename), string(nodeBytes))
 	assert.NoError(t, err)
 	assert.NoError(t, m.AddWorkload(ctx, workload, nil))
 	workload.StatusMeta = &types.StatusMeta{

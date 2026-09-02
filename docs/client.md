@@ -88,8 +88,9 @@ and re-establishes the watch rather than sitting on a silent connection.
 
 ## Retries
 
-The client installs both a unary and a stream retry interceptor. Both default to
-`Max: 0` — no retries — because a resource operation is not safe to replay blindly.
+The client installs a stream retry interceptor; unary calls are never retried, because a
+resource operation is not safe to replay blindly. The interceptor defaults to `Max: 0` — no
+retries — and a stream the server ends cleanly is not retried at any setting.
 
 The stream interceptor only wraps two methods, which are pure watches and therefore replayable:
 

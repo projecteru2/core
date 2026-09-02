@@ -94,6 +94,8 @@ type recoveringServiceKV struct {
 	reads atomic.Int32
 }
 
+func (k *recoveringServiceKV) NotFound(error) bool { return false }
+
 func (k *recoveringServiceKV) GetPrefix(context.Context, string, int64) (map[string]string, error) {
 	if k.reads.Add(1) == 1 {
 		return nil, types.ErrMockError
@@ -110,6 +112,8 @@ func (k *recoveringServiceKV) Watch(ctx context.Context, _ string) iter.Seq[Even
 type blockingServiceKV struct {
 	KV
 }
+
+func (k *blockingServiceKV) NotFound(error) bool { return false }
 
 func (k *blockingServiceKV) GetPrefix(context.Context, string, int64) (map[string]string, error) {
 	return map[string]string{}, nil

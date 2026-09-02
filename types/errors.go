@@ -12,11 +12,12 @@ var (
 
 	ErrNodeExists = errors.New("node already exists")
 
-	ErrInvaildNodeEndpoint  = errors.New("invalid node endpoint")
-	ErrNodeNotEmpty         = errors.New("node not empty, still has workloads associated")
-	ErrNodeNotExists        = errors.New("node not exists")
-	ErrInvaildNodeStatusTTL = errors.New("invalid TTL for node status, should be > 0")
-	ErrInvaildNodeFilter    = errors.New("node filter widens the configured selection")
+	ErrInvaildNodeEndpoint      = errors.New("invalid node endpoint")
+	ErrNodeNotEmpty             = errors.New("node not empty, still has workloads associated")
+	ErrNodeNotExists            = errors.New("node not exists")
+	ErrInvaildNodeStatusTTL     = errors.New("invalid TTL for node status, should be > 0")
+	ErrInvaildWorkloadStatusTTL = errors.New("invalid TTL for workload status, should be >= 0")
+	ErrInvaildNodeFilter        = errors.New("node filter widens the configured selection")
 
 	ErrLockKeyInvaild  = errors.New("lock key is invalid")
 	ErrLockSessionDone = errors.New("lock session done")

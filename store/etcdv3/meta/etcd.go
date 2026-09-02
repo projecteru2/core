@@ -54,8 +54,9 @@ type txnCond struct {
 
 // ETCD is the etcd backed meta store.
 type ETCD struct {
-	cliv3  ETCDClientV3
-	config types.EtcdConfig
+	cliv3      ETCDClientV3
+	lockClient *clientv3.Client
+	config     types.EtcdConfig
 
 	poolMux   sync.Mutex
 	lockPools map[time.Duration]*etcdlock.Pool
@@ -94,7 +95,7 @@ func NewETCD(ctx context.Context, config types.EtcdConfig, embeddedETCD *embedde
 		cliv3.Watcher = namespace.NewWatcher(cliv3.Watcher, config.Prefix)
 		cliv3.Lease = namespace.NewLease(cliv3.Lease, config.Prefix)
 	}
-	return &ETCD{cliv3: cliv3, config: config, lockPools: map[time.Duration]*etcdlock.Pool{}}, nil
+	return &ETCD{cliv3: cliv3, lockClient: cliv3, config: config, lockPools: map[time.Duration]*etcdlock.Pool{}}, nil
 }
 
 func (e *ETCD) CreateLock(key string, ttl time.Duration) (lock.DistributedLock, error) {
@@ -357,7 +358,7 @@ func (e *ETCD) lockPool(ttl time.Duration) *etcdlock.Pool {
 	defer e.poolMux.Unlock()
 	pool, ok := e.lockPools[ttl]
 	if !ok {
-		pool = etcdlock.NewPool(e.cliv3.(*clientv3.Client), ttl)
+		pool = etcdlock.NewPool(e.lockClient, ttl)
 		e.lockPools[ttl] = pool
 	}
 	return pool
