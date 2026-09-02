@@ -36,6 +36,23 @@ func TestAddNode(t *testing.T) {
 	assert.Equal(t, r.Capacity["memory"], float64(4*units.GB*rate/10))
 }
 
+func TestAddNodeKeepsTheRequestedNUMATopology(t *testing.T) {
+	ctx := t.Context()
+	cm := initCPUMEM(t)
+	req := plugintypes.NodeResourceRequest{
+		"numa-cpu":    []string{"0", "1"},
+		"numa-memory": []string{"1073741824", "1073741824"},
+	}
+
+	_, err := cm.AddNode(ctx, "numa-node", req, &enginetypes.Info{NCPU: 2, MemTotal: 4 * units.GB})
+	assert.Nil(t, err)
+
+	stored, err := cm.doGetNodeResourceInfo(ctx, "numa-node")
+	assert.Nil(t, err)
+	assert.Equal(t, types.NUMA{"0": "0", "1": "1"}, stored.Capacity.NUMA)
+	assert.Equal(t, types.NUMAMemory{"0": 1073741824, "1": 1073741824}, stored.Capacity.NUMAMemory)
+}
+
 func TestRemoveNode(t *testing.T) {
 	ctx := t.Context()
 	cm := initCPUMEM(t)

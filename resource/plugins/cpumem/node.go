@@ -56,30 +56,16 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintyp
 		return nil, err
 	}
 
-	if info != nil { //nolint:nestif
-		var nodeRes cpumemtypes.NodeResource
-		if b, ok := info.Resources[p.Name()]; ok {
-			if err = json.Unmarshal(b, &nodeRes); err != nil {
-				return nil, err
-			}
-			// NodeResource overrides what the engine reported
-			info.NCPU = int(nodeRes.CPU)
-			info.MemTotal = nodeRes.Memory
-		}
+	if info != nil {
 		if len(req.CPUMap) == 0 {
 			req.CPUMap = cpumemtypes.CPUMap{}
 			for i := range info.NCPU {
 				req.CPUMap[strconv.Itoa(i)] = p.config.Scheduler.ShareBase
 			}
-			req.NUMA = nodeRes.NUMA
 		}
 
 		if req.Memory == 0 {
 			req.Memory = info.MemTotal * rate / 10 // use 80% of real memory
-			req.NUMAMemory = cpumemtypes.NUMAMemory{}
-			for k, v := range nodeRes.NUMAMemory {
-				req.NUMAMemory[k] = v * rate / 10
-			}
 		}
 	}
 
