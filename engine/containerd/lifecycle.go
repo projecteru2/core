@@ -4,7 +4,6 @@ import (
 	"cmp"
 	"context"
 	"encoding/json"
-	"net/url"
 	"strconv"
 	"strings"
 	"syscall"
@@ -39,12 +38,8 @@ func (e *Engine) VirtualizationStart(ctx context.Context, ID string) (err error)
 	if err != nil {
 		return err
 	}
-	uri, err := url.Parse(logShimURI)
-	if err != nil {
-		return err
-	}
 	// a task has fifos or a log uri, never both: an interactive workload takes the node fifos
-	creator := cio.LogURI(uri)
+	creator := cio.LogURI(logShimURL)
 	if _, stdin := info.Labels[stdinLabel]; stdin {
 		if creator, err = e.relayFifos(ctx, ID); err != nil {
 			return err
