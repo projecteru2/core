@@ -24,6 +24,11 @@ import (
 )
 
 // Vibranium implements the CoreRPC gRPC server.
+type (
+	sender[R any]       func(R) error
+	converter[T, R any] func(T) R
+)
+
 type Vibranium struct {
 	cluster cluster.Cluster
 	config  types.Config
@@ -957,7 +962,7 @@ func recvStdin[T any](ctx context.Context, name string, open bool, recv func() (
 	return inCh
 }
 
-func drain[T, R any](t *task, name string, ch <-chan T, send func(R) error, to func(T) R) {
+func drain[T, R any](t *task, name string, ch <-chan T, send sender[R], to converter[T, R]) {
 	for m := range ch {
 		if err := send(to(m)); err != nil {
 			logUnsentMessages(t.context, name, err, m)
@@ -965,7 +970,7 @@ func drain[T, R any](t *task, name string, ch <-chan T, send func(R) error, to f
 	}
 }
 
-func drainUntilStop[T, R any](t *task, name string, code codes.Code, stop <-chan struct{}, ch <-chan T, send func(R) error, to func(T) R) error {
+func drainUntilStop[T, R any](t *task, name string, code codes.Code, stop <-chan struct{}, ch <-chan T, send sender[R], to converter[T, R]) error {
 	for {
 		select {
 		case m, ok := <-ch:
