@@ -39,14 +39,18 @@ func New(ctx context.Context, config types.GRPCConfig, store store.Store) *Heliu
 
 func (h *Helium) Subscribe() (uint32, <-chan types.ServiceStatus) {
 	ch := make(chan types.ServiceStatus, 1)
-	if latest := h.latest.Load(); latest != nil {
-		ch <- *latest
-	}
 	for {
 		ID := rand.Uint32() //nolint:gosec
-		if _, taken := h.subs.LoadOrStore(ID, ch); !taken {
-			return ID, ch
+		if _, taken := h.subs.LoadOrStore(ID, ch); taken {
+			continue
 		}
+		if latest := h.latest.Load(); latest != nil {
+			select {
+			case ch <- *latest:
+			default:
+			}
+		}
+		return ID, ch
 	}
 }
 
@@ -85,7 +89,8 @@ func (h *Helium) start(ctx context.Context) {
 					Addresses: addresses,
 					Interval:  h.interval * 2,
 				}
-				h.latest.Store(&latestStatus)
+				published := latestStatus
+				h.latest.Store(&published)
 
 			case ID := <-h.unsubChan:
 				if v, ok := h.subs.LoadAndDelete(ID); ok {
