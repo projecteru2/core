@@ -25,11 +25,7 @@ func (c *Calcium) RemovePod(ctx context.Context, podname string) error {
 		return types.ErrEmptyPodName
 	}
 
-	nodeFilter := &types.NodeFilter{
-		Podname: podname,
-		All:     true,
-	}
-	return c.withNodesPodLocked(ctx, nodeFilter, func(ctx context.Context, _ map[string]*types.Node) error {
+	return c.withPodLocked(ctx, podname, func(ctx context.Context, _ map[string]*types.Node) error {
 		err := c.store.RemovePod(ctx, podname)
 		logger.Error(ctx, err)
 		return err

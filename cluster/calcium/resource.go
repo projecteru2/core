@@ -13,7 +13,7 @@ import (
 func (c *Calcium) PodResource(ctx context.Context, podname string) (chan *types.NodeResourceInfo, error) {
 	logger := log.WithFunc("calcium.PodResource").WithField("podname", podname)
 	var ch chan *types.NodeResourceInfo
-	err := c.withNodesPodLocked(ctx, &types.NodeFilter{Podname: podname}, func(ctx context.Context, nodes map[string]*types.Node) error {
+	err := c.withNodes(ctx, &types.NodeFilter{Podname: podname}, func(ctx context.Context, nodes map[string]*types.Node) error {
 		ch = make(chan *types.NodeResourceInfo, len(nodes))
 		defer close(ch)
 		wg := &sync.WaitGroup{}
@@ -55,10 +55,15 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, inspec
 		return nil, types.ErrEmptyNodeName
 	}
 	var nr *types.NodeResourceInfo
-	if err := c.withNodePodLocked(ctx, nodename, func(ctx context.Context, node *types.Node) (err error) {
+	compute := func(ctx context.Context, node *types.Node) (err error) {
 		nr, err = c.doComputeNodeResource(ctx, node.Name, fix)
 		return err
-	}); err != nil {
+	}
+	withNode := c.withNode
+	if fix {
+		withNode = c.withNodeOperationLocked
+	}
+	if err := withNode(ctx, nodename, compute); err != nil {
 		return nil, err
 	}
 

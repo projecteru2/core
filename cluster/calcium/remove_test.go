@@ -2,6 +2,7 @@ package calcium
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"testing/synctest"
 
@@ -25,7 +26,7 @@ func TestRemoveWorkload(t *testing.T) {
 		defer c.pool.Release()
 		ctx := t.Context()
 		lock := &lockmocks.DistributedLock{}
-		lock.On("Lock", mock.Anything).Return(ctx, nil)
+		lock.On("Lock", mock.Anything).Return(context.Background(), nil)
 		lock.On("Unlock", mock.Anything).Return(nil)
 		store := c.store.(*storemocks.Store)
 		rmgr := c.rmgr.(*resourcemocks.Manager)
@@ -134,7 +135,7 @@ func TestRemoveWorkloadJournalsRepairEntries(t *testing.T) {
 	c.wal = mwal
 
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(ctx, nil)
+	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	engine := &enginemocks.API{}
 	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -158,4 +159,119 @@ func TestRemoveWorkloadJournalsRepairEntries(t *testing.T) {
 	}
 	assert.Equal(t, []string{eventWorkloadResourceAllocated, eventWorkloadCreated}, logged)
 	assert.Equal(t, 2, committed)
+}
+
+func TestRemoveWorkloadKeepsTheNodeEntryWhenTheReleaseFails(t *testing.T) {
+	c := NewTestCluster()
+	ctx := t.Context()
+
+	committed := []string{}
+	mwal := &walmocks.WAL{}
+	mwal.On("Log", mock.Anything, mock.Anything).Return(func(eventyp string, _ any) (wal.Commit, error) {
+		return func() error { committed = append(committed, eventyp); return nil }, nil
+	})
+	c.wal = mwal
+
+	lock := &lockmocks.DistributedLock{}
+	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
+	lock.On("Unlock", mock.Anything).Return(nil)
+	engine := &enginemocks.API{}
+	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	workload := &types.Workload{ID: "xx", Name: "test", Nodename: "test", Engine: engine}
+
+	store := c.store.(*storemocks.Store)
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
+	store.On("GetNode", mock.Anything, mock.Anything).Return(&types.Node{NodeMeta: types.NodeMeta{Name: "test"}}, nil)
+	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		nil, nil, types.ErrMockError,
+	)
+
+	ch, err := c.RemoveWorkload(ctx, []string{"xx"}, true)
+	assert.NoError(t, err)
+	for r := range ch {
+		assert.True(t, r.Success)
+	}
+	engine.AssertExpectations(t)
+	assert.Equal(t, []string{eventWorkloadCreated}, committed)
+}
+
+func TestRemoveWorkloadKeepsTheNodeEntryWhenTheRemovalFails(t *testing.T) {
+	c := NewTestCluster()
+	ctx := t.Context()
+
+	committed := []string{}
+	mwal := &walmocks.WAL{}
+	mwal.On("Log", mock.Anything, mock.Anything).Return(func(eventyp string, _ any) (wal.Commit, error) {
+		return func() error { committed = append(committed, eventyp); return nil }, nil
+	})
+	c.wal = mwal
+
+	lock := &lockmocks.DistributedLock{}
+	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
+	lock.On("Unlock", mock.Anything).Return(nil)
+	engine := &enginemocks.API{}
+	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(types.ErrMockError)
+	workload := &types.Workload{ID: "xx", Name: "test", Nodename: "test", Engine: engine}
+
+	store := c.store.(*storemocks.Store)
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
+	store.On("GetNode", mock.Anything, mock.Anything).Return(&types.Node{NodeMeta: types.NodeMeta{Name: "test"}}, nil)
+	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
+	store.On("AddWorkload", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		resourcetypes.Resources{}, resourcetypes.Resources{}, nil,
+	)
+
+	ch, err := c.RemoveWorkload(ctx, []string{"xx"}, true)
+	assert.NoError(t, err)
+	for r := range ch {
+		assert.False(t, r.Success)
+	}
+	engine.AssertExpectations(t)
+	assert.Equal(t, []string{eventWorkloadCreated}, committed)
+}
+
+func TestRemoveWorkloadLocksTheWorkloadThenItsNode(t *testing.T) {
+	c := NewTestCluster()
+	defer c.pool.Release()
+	ctx := t.Context()
+	store := c.store.(*storemocks.Store)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	engine := &enginemocks.API{}
+	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	workload := &types.Workload{ID: "w1", Name: "app_entry_x", Nodename: "n1", Engine: engine}
+	node := &types.Node{NodeMeta: types.NodeMeta{Name: "n1", Podname: "p1"}}
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
+	store.On("GetNode", mock.Anything, "n1").Return(node, nil)
+	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)
+	rmgr.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(resourcetypes.Resources{}, resourcetypes.Resources{}, nil)
+	rmgr.On("Remap", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)
+	lock := &lockmocks.DistributedLock{}
+	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
+	lock.On("Unlock", mock.Anything).Return(nil)
+	var mu sync.Mutex
+	keys := []string{}
+	store.On("CreateLock", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+		mu.Lock()
+		defer mu.Unlock()
+		keys = append(keys, args.String(0))
+	}).Return(lock, nil)
+
+	ch, err := c.RemoveWorkload(ctx, []string{"w1"}, true)
+	assert.NoError(t, err)
+	for m := range ch {
+		assert.True(t, m.Success)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	assert.Equal(t, []string{"clock_w1", "cnode_op_p1_n1"}, keys[:2], "the workload lock first, then the node lock around the release, never the pod lock")
+	assert.NotContains(t, keys, "plock_p1")
 }

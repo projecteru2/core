@@ -250,6 +250,9 @@ func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {
 
 	store := c.store.(*storemocks.Store)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		resourcetypes.Resources{}, resourcetypes.Resources{}, nil,
+	)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		resourcetypes.Resources{},
 		resourcetypes.Resources{},
@@ -287,7 +290,7 @@ func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {
 	store.On("DeleteProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(t.Context(), nil)
+	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil)

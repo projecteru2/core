@@ -14,24 +14,25 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-func (c *Calcium) withResourceReleased(ctx context.Context, node *types.Node, workload *types.Workload, then func(context.Context) error) error {
-	_, err := utils.Txn(
-		ctx,
-		func(ctx context.Context) (err error) {
-			_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []resourcetypes.Resources{workload.Resources}, true, plugins.Decr)
-			return err
-		},
-		then,
-		func(ctx context.Context, failedByCond bool) (err error) {
-			if failedByCond {
-				return nil
-			}
-			_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []resourcetypes.Resources{workload.Resources}, true, plugins.Incr)
-			return err
-		},
-		c.config.GlobalTimeout,
-	)
-	return err
+// withResourceReleased journals the node, runs the removal, then gives the workload's usage back under the node lock; the usage stays charged until the workload is gone, and a failed removal or release stays in the journal for repair.
+func (c *Calcium) withResourceReleased(ctx context.Context, logger *log.Fields, node *types.Node, workload *types.Workload, remove func(context.Context) error) error {
+	nodeCommit, err := c.journal(ctx, logger, eventWorkloadResourceAllocated, []*types.Node{node})
+	if err != nil {
+		return err
+	}
+	if err = remove(ctx); err != nil {
+		return err
+	}
+	err = c.withNodeKeyLocked(ctx, node, func(ctx context.Context) (err error) {
+		_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []resourcetypes.Resources{workload.Resources}, true, plugins.Decr)
+		return err
+	})
+	if err != nil {
+		logger.WithField("id", workload.ID).Error(ctx, err, "usage release left to the journal")
+		return nil
+	}
+	nodeCommit()
+	return nil
 }
 
 func (c *Calcium) invokePoolAsync(f func()) {

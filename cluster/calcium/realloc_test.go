@@ -28,7 +28,7 @@ func TestRealloc(t *testing.T) {
 	c.config.Scheduler.ShareBase = 100
 
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(ctx, nil)
+	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 
 	engine := &enginemocks.API{}
@@ -66,12 +66,12 @@ func TestRealloc(t *testing.T) {
 	store.AssertExpectations(t)
 	store.On("GetNode", mock.Anything, "node1").Return(node1, nil)
 
+	store.On("GetWorkloads", mock.Anything, []string{"c1"}).Return(newC1, nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	err = c.ReallocResource(ctx, opts)
 	assert.True(t, errors.Is(err, types.ErrMockError))
 	store.AssertExpectations(t)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	store.On("GetWorkloads", mock.Anything, []string{"c1"}).Return(newC1, nil)
 
 	rmgr.On("Realloc", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		resourcetypes.Resources{}, nil, nil, types.ErrMockError,
@@ -121,7 +121,7 @@ func TestReallocJournalsRepairEntries(t *testing.T) {
 	c.wal = mwal
 
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(ctx, nil)
+	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	engine := &enginemocks.API{}
 	engine.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -164,7 +164,7 @@ func TestReallocRepairsRuntimeBeforeCommittingItsJournal(t *testing.T) {
 	workload := &types.Workload{ID: "c1", Nodename: node.Name, Engine: engine, EngineParams: oldParams}
 
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(ctx, nil)
+	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store := c.store.(*storemocks.Store)
 	store.On("UpdateWorkload", mock.Anything, mock.Anything).Return(nil)
@@ -220,6 +220,10 @@ func TestReallocKeepsRepairEntriesUntilRollbackCompletes(t *testing.T) {
 			workload := &types.Workload{ID: "c1", Nodename: node.Name, Engine: engine, Resources: resourcetypes.Resources{}}
 
 			store := c.store.(*storemocks.Store)
+			lock := &lockmocks.DistributedLock{}
+			lock.On("Lock", mock.Anything).Return(context.Background(), nil)
+			lock.On("Unlock", mock.Anything).Return(nil)
+			store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 			store.On("UpdateWorkload", mock.Anything, workload).Return(types.ErrMockError).Once()
 			store.On("UpdateWorkload", mock.Anything, mock.Anything).Return(nil).Once()
 			rmgr := c.rmgr.(*resourcemocks.Manager)
