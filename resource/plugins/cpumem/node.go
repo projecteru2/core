@@ -6,12 +6,17 @@ import (
 	"fmt"
 	"maps"
 	"math"
+	"runtime"
 	"slices"
 	"strconv"
+	"sync"
 
 	"github.com/sanity-io/litter"
 
+	"golang.org/x/sync/errgroup"
+
 	enginetypes "github.com/projecteru2/core/engine/types"
+
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resource/plugins/cpumem/schedule"
 	cpumemtypes "github.com/projecteru2/core/resource/plugins/cpumem/types"
@@ -127,23 +132,33 @@ func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, 
 		return nil, err
 	}
 
-	nodesDeployCapacityMap := make(map[string]*plugintypes.NodeDeployCapacity, len(nodenames))
-	total := 0
-
 	nodesResourceInfos, err := p.doGetNodesResourceInfo(ctx, nodenames)
 	if err != nil {
 		return nil, err
 	}
 
+	var mu sync.Mutex
+	nodesDeployCapacityMap := make(map[string]*plugintypes.NodeDeployCapacity, len(nodenames))
+	var planners errgroup.Group
+	planners.SetLimit(runtime.GOMAXPROCS(0))
 	for nodename, nodeResourceInfo := range nodesResourceInfos {
-		nodeDeployCapacity := p.doGetNodeDeployCapacity(nodeResourceInfo, req)
-		if nodeDeployCapacity.Capacity > 0 {
-			nodesDeployCapacityMap[nodename] = nodeDeployCapacity
-			if total == math.MaxInt || nodeDeployCapacity.Capacity == math.MaxInt {
-				total = math.MaxInt
-			} else {
-				total += nodeDeployCapacity.Capacity
+		planners.Go(func() error {
+			if nodeDeployCapacity := p.doGetNodeDeployCapacity(nodeResourceInfo, req); nodeDeployCapacity.Capacity > 0 {
+				mu.Lock()
+				nodesDeployCapacityMap[nodename] = nodeDeployCapacity
+				mu.Unlock()
 			}
+			return nil
+		})
+	}
+	_ = planners.Wait()
+
+	total := 0
+	for _, nodeDeployCapacity := range nodesDeployCapacityMap {
+		if total == math.MaxInt || nodeDeployCapacity.Capacity == math.MaxInt {
+			total = math.MaxInt
+		} else {
+			total += nodeDeployCapacity.Capacity
 		}
 	}
 

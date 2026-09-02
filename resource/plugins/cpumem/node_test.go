@@ -468,3 +468,20 @@ func TestAddNodeSplitsMemoryPerNUMANode(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, map[string]any{"0": float64(4 * units.GB), "1": float64(4 * units.GB)}, numaMemory)
 }
+
+func BenchmarkGetNodesCapacityScaling(b *testing.B) {
+	for _, tc := range []struct{ nodes, cores int }{{100, 24}, {1000, 24}, {100, 64}, {100, 128}, {100, 256}, {1000, 128}} {
+		b.Run(fmt.Sprintf("nodes=%d/cores=%d", tc.nodes, tc.cores), func(b *testing.B) {
+			ctx := b.Context()
+			cm := initCPUMEM(b)
+			nodes := generateNodes(ctx, b, cm, tc.nodes, tc.cores, 128*units.GB, 100, 0)
+			req := plugintypes.WorkloadResourceRequest{"cpu-bind": true, "cpu-request": 1.3, "memory-request": "1"}
+			b.ResetTimer()
+			for b.Loop() {
+				if _, err := cm.GetNodesDeployCapacity(ctx, nodes, req); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
