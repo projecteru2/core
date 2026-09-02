@@ -2,7 +2,6 @@ package containerd
 
 import (
 	"context"
-	"slices"
 
 	"github.com/projecteru2/core/engine/cni"
 	"github.com/projecteru2/core/engine/sshrunner"
@@ -24,18 +23,5 @@ func (e *Engine) NetworkList(ctx context.Context, drivers []string) ([]*enginety
 	if err != nil {
 		return nil, err
 	}
-	return cni.Select(res.Stdout, func(c cni.Conf) bool { return drives(c, drivers) })
-}
-
-// drives reports whether one of the named plugin types implements the conf.
-func drives(c cni.Conf, drivers []string) bool {
-	if len(drivers) == 0 {
-		return true
-	}
-	if slices.Contains(drivers, c.Type) {
-		return true
-	}
-	return slices.ContainsFunc(c.Plugins, func(plugin cni.Conf) bool {
-		return slices.Contains(drivers, plugin.Type)
-	})
+	return cni.Parse(res.Stdout, drivers)
 }
