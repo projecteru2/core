@@ -9,7 +9,6 @@ import (
 	"slices"
 	"strconv"
 
-	"github.com/cockroachdb/errors"
 	"github.com/sanity-io/litter"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -35,7 +34,7 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintyp
 		return nil, coretypes.ErrNodeExists
 	}
 
-	if !errors.Is(err, coretypes.ErrInvaildCount) {
+	if !p.store.NotFound(err) {
 		log.WithFunc("resource.cpumem.AddNode").WithField("node", nodename).Error(ctx, err, "failed to get resource info of node")
 		return nil, err
 	}
@@ -404,7 +403,6 @@ func (p Plugin) doGetNodeDeployCapacity(nodeResourceInfo *cpumemtypes.NodeResour
 	return capacityInfo
 }
 
-// calculateNodeResource priority: node resource request > node resource > workload resource args list
 func (p Plugin) calculateNodeResource(req *cpumemtypes.NodeResourceRequest, nodeResource, origin *cpumemtypes.NodeResource, workloadsResource []*cpumemtypes.WorkloadResource, delta, incr bool) *cpumemtypes.NodeResource {
 	var resp *cpumemtypes.NodeResource
 	if origin == nil || !delta { // no delta means node resource rewrite with whole new data

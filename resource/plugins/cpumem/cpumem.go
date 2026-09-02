@@ -15,6 +15,7 @@ const (
 
 // Store is the slice of the cluster store that keeps the node records of this plugin.
 type Store interface {
+	NotFound(err error) bool
 	GetMulti(ctx context.Context, keys []string) (map[string]string, error)
 	Put(ctx context.Context, data map[string]string) error
 	Delete(ctx context.Context, keys []string) error

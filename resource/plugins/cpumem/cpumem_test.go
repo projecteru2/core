@@ -2,6 +2,7 @@ package cpumem
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"sync"
@@ -65,6 +66,10 @@ func generateNodeResourceRequests(t testing.TB, nums, cores int, memory int64, s
 type memStore struct {
 	mu   sync.Mutex
 	data map[string]string
+}
+
+func (s *memStore) NotFound(err error) bool {
+	return errors.Is(err, coretypes.ErrInvaildCount)
 }
 
 func (s *memStore) GetMulti(_ context.Context, keys []string) (map[string]string, error) {
