@@ -51,12 +51,14 @@ func (p *Pool) takeIdle() *concurrency.Session {
 
 func (p *Pool) put(session *concurrency.Session) {
 	p.mu.Lock()
-	defer p.mu.Unlock()
-	if len(p.idle) >= maxIdleSessions {
-		_ = session.Close()
-		return
+	pooled := len(p.idle) < maxIdleSessions
+	if pooled {
+		p.idle = append(p.idle, session)
 	}
-	p.idle = append(p.idle, session)
+	p.mu.Unlock()
+	if !pooled {
+		_ = session.Close()
+	}
 }
 
 // Mutex is an etcd session based distributed lock.
