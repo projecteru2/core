@@ -51,7 +51,10 @@ func (s *retryStream) RecvMsg(m any) (err error) {
 		if err = stream.SendMsg(sent); err != nil {
 			return err
 		}
-		return stream.RecvMsg(m)
+		if err = stream.RecvMsg(m); errors.Is(err, io.EOF) {
+			return backoff.Permanent(err)
+		}
+		return err
 	}, backoff.WithMaxRetries(backoff.WithContext(backoff.NewExponentialBackOff(), s.ctx), s.retryOpts.Max))
 }
 

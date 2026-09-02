@@ -9,6 +9,8 @@ import (
 	"slices"
 	"sync"
 
+	"github.com/cockroachdb/errors"
+
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -52,6 +54,9 @@ func (s *Store) GetWorkloads(ctx context.Context, IDs []string) ([]*types.Worklo
 
 	data, err := s.GetMulti(ctx, keys)
 	if err != nil {
+		if s.NotFound(err) {
+			return nil, errors.Join(types.ErrWorkloadNotExists, err)
+		}
 		return nil, err
 	}
 
