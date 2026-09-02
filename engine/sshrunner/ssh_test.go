@@ -7,6 +7,7 @@ import (
 	"syscall"
 	"testing"
 	"testing/synctest"
+	"time"
 
 	"github.com/cockroachdb/errors"
 	"golang.org/x/crypto/ssh"
@@ -93,7 +94,7 @@ func TestBoundedGivesUpOnADoneContextAndClosesTheLateResult(t *testing.T) {
 		late := &closeRecorder{}
 		result := make(chan error, 1)
 		go func() {
-			_, err := bounded(ctx, nil, func(*ssh.Client) (io.Closer, error) {
+			_, err := bounded(ctx, func() (io.Closer, error) {
 				<-release
 				return late, nil
 			})
@@ -120,7 +121,7 @@ func TestIsTransportErrorCountsAContextDeadline(t *testing.T) {
 
 func TestBoundedReturnsTheResultOfAnOpenThatFinishes(t *testing.T) {
 	want := &closeRecorder{}
-	got, err := bounded(t.Context(), nil, func(*ssh.Client) (io.Closer, error) { return want, nil })
+	got, err := bounded(t.Context(), func() (io.Closer, error) { return want, nil })
 	if err != nil || got != want {
 		t.Fatalf("got %v, %v; want the opened value", got, err)
 	}
@@ -153,6 +154,118 @@ func TestSSHRunnerBoundsConcurrentSessions(t *testing.T) {
 		t.Errorf("session %d must queue instead of opening", maxSessions+1)
 	}
 	runner.sessions.Release(maxSessions)
+}
+
+func TestStreamPoolOpensAConnectionPerEightSessions(t *testing.T) {
+	dials := 0
+	pool := newStreamPool(func(context.Context) (streamConn, error) { dials++; return &fakeConn{}, nil })
+	held := []*streamClient{}
+	for range maxSessions + 1 {
+		c, err := pool.acquire(t.Context())
+		if err != nil {
+			t.Fatalf("acquire: %v", err)
+		}
+		held = append(held, c)
+	}
+	if dials != 2 {
+		t.Fatalf("got %d dials, want 2 for %d sessions", dials, maxSessions+1)
+	}
+	if held[0] != held[maxSessions-1] || held[0] == held[maxSessions] {
+		t.Error("the first eight sessions share one connection and the ninth opens another")
+	}
+}
+
+func TestStreamPoolClosesAConnectionLeftIdle(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		conn := &fakeConn{}
+		pool := newStreamPool(func(context.Context) (streamConn, error) { return conn, nil })
+		c, err := pool.acquire(t.Context())
+		if err != nil {
+			t.Fatalf("acquire: %v", err)
+		}
+		pool.release(c)
+		time.Sleep(streamIdle / 2)
+		if _, err := pool.acquire(t.Context()); err != nil {
+			t.Fatalf("acquire: %v", err)
+		}
+		time.Sleep(streamIdle)
+		synctest.Wait()
+		if conn.closed {
+			t.Fatal("a connection taken again before its idle time must stay open")
+		}
+		pool.release(c)
+		time.Sleep(streamIdle + time.Second)
+		synctest.Wait()
+		if !conn.closed || len(pool.conns) != 0 {
+			t.Error("an idle connection must be closed and forgotten")
+		}
+	})
+}
+
+func TestStreamPoolWaitsWhenEveryConnectionIsFull(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		pool := newStreamPool(func(context.Context) (streamConn, error) { return &fakeConn{}, nil })
+		held := []*streamClient{}
+		for range maxStreamClients * maxSessions {
+			c, err := pool.acquire(t.Context())
+			if err != nil {
+				t.Fatalf("acquire: %v", err)
+			}
+			held = append(held, c)
+		}
+		ctx, cancel := context.WithCancel(t.Context())
+		cancel()
+		if _, err := pool.acquire(ctx); !errors.Is(err, context.Canceled) {
+			t.Fatalf("got %v, want the caller to wait on its context once every connection is full", err)
+		}
+		pool.release(held[0])
+		if _, err := pool.acquire(t.Context()); err != nil {
+			t.Fatalf("a released slot must be handed out again: %v", err)
+		}
+	})
+}
+
+func TestOpenStreamDropsADeadConnection(t *testing.T) {
+	dead, live := &fakeConn{err: io.EOF}, &fakeConn{}
+	conns := []streamConn{dead, live}
+	r := newSSHRunner("127.0.0.1:22", &ssh.ClientConfig{})
+	r.streams = newStreamPool(func(context.Context) (streamConn, error) { c := conns[0]; conns = conns[1:]; return c, nil })
+
+	stream, _, err := r.openStream(t.Context())
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	if stream.conn != live || !dead.closed {
+		t.Error("a connection whose session open fails on the transport must be closed and replaced")
+	}
+}
+
+func TestCloseOnDoneClosesWhenTheContextEnds(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		ctx, cancel := context.WithCancel(t.Context())
+		c := &closeRecorder{}
+		stop := closeOnDone(ctx, c)
+		cancel()
+		synctest.Wait()
+		if !c.closed {
+			t.Fatal("the closer must run when the context ends")
+		}
+		stop()
+	})
+}
+
+type fakeConn struct {
+	err    error
+	closed bool
+}
+
+func (c *fakeConn) NewSession() (*ssh.Session, error) {
+	return nil, c.err
+}
+
+func (c *fakeConn) Close() error {
+	c.closed = true
+	return nil
 }
 
 type closeRecorder struct{ closed bool }
