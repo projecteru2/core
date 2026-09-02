@@ -23,12 +23,12 @@ import (
 	"github.com/projecteru2/core/version"
 )
 
-// Vibranium implements the CoreRPC gRPC server.
 type (
 	sender[R any]       func(R) error
 	converter[T, R any] func(T) R
 )
 
+// Vibranium implements the CoreRPC gRPC server.
 type Vibranium struct {
 	cluster cluster.Cluster
 	config  types.Config
