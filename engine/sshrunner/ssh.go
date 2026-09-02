@@ -316,7 +316,6 @@ func openOnce[T any](ctx context.Context, r *sshRunner, f sshOp[T]) (T, error) {
 	return bounded(ctx, client, f)
 }
 
-// bounded gives up on ctx while a channel open hangs on a wedged transport; a result that lands late is closed.
 func bounded[T any](ctx context.Context, client *ssh.Client, f sshOp[T]) (T, error) {
 	type opened struct {
 		v   T
