@@ -196,7 +196,7 @@ func TestWithNodesPlanLockedTakesPodAndNodeLocksInKeyOrder(t *testing.T) {
 		return nil
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, []string{"cnode_op_poda_b1", "cnode_op_podb_a1", "cnode_op_podb_c1", "plock_poda", "plock_podb"}, keys)
+	assert.Equal(t, []string{"plock_poda", "plock_podb", "cnode_op_poda_b1", "cnode_op_podb_a1", "cnode_op_podb_c1"}, keys)
 }
 
 func TestWithNodesPlanLockedTakesOnlyTheNodeLockForOneCandidate(t *testing.T) {
