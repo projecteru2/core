@@ -33,10 +33,8 @@ func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 				if err != nil {
 					logger.Error(ctx, err)
 					for _, path := range paths {
-						ch <- &types.CopyMessage{
-							ID:    ID,
-							Path:  path,
-							Error: err,
+						if send(ctx, ch, &types.CopyMessage{ID: ID, Path: path, Error: err}) != nil {
+							return
 						}
 					}
 					return
@@ -44,7 +42,7 @@ func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 
 				for _, path := range paths {
 					content, uid, gid, mode, err := workload.Engine.VirtualizationCopyFrom(ctx, workload.ID, path)
-					ch <- &types.CopyMessage{
+					if send(ctx, ch, &types.CopyMessage{
 						ID:       ID,
 						Path:     path,
 						Error:    err,
@@ -53,6 +51,8 @@ func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 						UID:      uid,
 						GID:      gid,
 						Mode:     mode,
+					}) != nil {
+						return
 					}
 				}
 			})

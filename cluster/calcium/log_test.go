@@ -2,8 +2,10 @@ package calcium
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"testing"
+	"testing/synctest"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -47,4 +49,25 @@ func TestLogStream(t *testing.T) {
 		assert.Equal(t, c.ID, ID)
 		assert.NotEmpty(t, c.Data)
 	}
+}
+
+func TestLogStreamStopsWhenTheCallerLeaves(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		c := NewTestCluster()
+		defer c.pool.Release()
+		store := c.store.(*storemocks.Store)
+		engine := &enginemocks.API{}
+		store.On("GetWorkload", mock.Anything, mock.Anything).Return(&types.Workload{ID: "test", Engine: engine}, nil)
+		engine.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(io.NopCloser(bytes.NewBufferString("aaaa\nbbbb\n")), nil, nil)
+		ctx, cancel := context.WithCancel(t.Context())
+
+		ch, err := c.LogStream(ctx, &types.LogStreamOptions{ID: "test"})
+		assert.NoError(t, err)
+		synctest.Wait()
+		cancel()
+		synctest.Wait()
+
+		_, open := <-ch
+		assert.False(t, open, "the stream must close once its reader is gone")
+	})
 }

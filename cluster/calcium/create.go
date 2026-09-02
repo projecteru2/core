@@ -50,6 +50,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 		workloadResourcesMap = map[string][]resourcetypes.Resources{}
 	)
 
+	caller := ctx
 	utils.SentryGo(func() {
 		var resourceCommit func()
 		var processingCommits map[string]func()
@@ -76,7 +77,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 				defer func() {
 					if err != nil {
 						logger.Error(ctx, err)
-						ch <- &types.CreateWorkloadMessage{Error: err}
+						_ = send(caller, ch, &types.CreateWorkloadMessage{Error: err})
 					}
 				}()
 				return c.withNodesPodLocked(ctx, opts.NodeFilter, func(ctx context.Context, nodeMap map[string]*types.Node) (err error) {
@@ -116,7 +117,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 			},
 
 			func(ctx context.Context) (err error) {
-				rollbackMap, err = c.doDeployWorkloads(ctx, ch, opts, engineParamsMap, workloadResourcesMap, deployMap)
+				rollbackMap, err = c.doDeployWorkloads(ctx, func(msg *types.CreateWorkloadMessage) { _ = send(caller, ch, msg) }, opts, engineParamsMap, workloadResourcesMap, deployMap)
 				return err
 			},
 
@@ -153,7 +154,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 }
 
 func (c *Calcium) doDeployWorkloads(ctx context.Context,
-	ch chan *types.CreateWorkloadMessage,
+	emit func(*types.CreateWorkloadMessage),
 	opts *types.DeployOptions,
 	engineParamsMap map[string][]resourcetypes.Resources,
 	workloadResourcesMap map[string][]resourcetypes.Resources,
@@ -176,7 +177,7 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context,
 		seq += deploy
 		wg.Go(func() {
 			defer log.SentryDefer()
-			if indices, deployErr := c.doDeployWorkloadsOnNode(ctx, ch, nodename, opts, deploy, engineParamsMap[nodename], workloadResourcesMap[nodename], start); deployErr != nil {
+			if indices, deployErr := c.doDeployWorkloadsOnNode(ctx, emit, nodename, opts, deploy, engineParamsMap[nodename], workloadResourcesMap[nodename], start); deployErr != nil {
 				rollbackLock.Lock()
 				rollbackMap[nodename] = indices
 				rollbackLock.Unlock()
@@ -193,7 +194,7 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context,
 }
 
 func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
-	ch chan *types.CreateWorkloadMessage,
+	emit func(*types.CreateWorkloadMessage),
 	nodename string,
 	opts *types.DeployOptions,
 	deploy int,
@@ -206,7 +207,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
 	if err != nil {
 		logger.Error(ctx, err)
 		for range deploy {
-			ch <- &types.CreateWorkloadMessage{Error: err}
+			emit(&types.CreateWorkloadMessage{Error: err})
 		}
 		return utils.Range(deploy), err
 	}
@@ -233,7 +234,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
 					indices = append(indices, idx)
 					appendLock.Unlock()
 				}
-				ch <- createMsg
+				emit(createMsg)
 			}()
 
 			createMsg.EngineParams = engineParams[idx]

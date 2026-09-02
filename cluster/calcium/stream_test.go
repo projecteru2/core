@@ -3,12 +3,32 @@ package calcium
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"testing"
+	"testing/synctest"
 
 	"github.com/stretchr/testify/require"
 )
+
+func TestProcessStdStreamStopsWhenTheCallerLeaves(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		c := NewTestCluster()
+		defer c.pool.Release()
+		ctx, cancel := context.WithCancel(t.Context())
+		stdout := io.NopCloser(bytes.NewBufferString("aaaa\nbbbb\ncccc\n"))
+		stderr := io.NopCloser(bytes.NewBufferString("dddd\n"))
+
+		ch := c.processStdStream(ctx, stdout, stderr, bufio.ScanLines, byte('\n'))
+		synctest.Wait()
+		cancel()
+		synctest.Wait()
+
+		_, open := <-ch
+		require.False(t, open, "the merged stream must close once its reader is gone")
+	})
+}
 
 func TestProcessVirtualizationOutStreamCopiesTokens(t *testing.T) {
 	c := NewTestCluster()

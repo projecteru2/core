@@ -151,7 +151,7 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 				logger.Errorf(ctx, err, "failed to get node %s info", node.Name)
 			}
 		}
-		ch <- node
+		_ = send(ctx, ch, node)
 	}), nil
 }
 

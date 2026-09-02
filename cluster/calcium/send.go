@@ -18,6 +18,7 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 		return nil, err
 	}
 	ch := make(chan *types.SendMessage)
+	caller := ctx
 	utils.SentryGo(func() {
 		defer close(ch)
 		wg := &sync.WaitGroup{}
@@ -31,12 +32,14 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 					for _, file := range opts.Files {
 						err := c.doSendFileToWorkload(ctx, workload.Engine, workload.ID, file)
 						logger.Error(ctx, err)
-						ch <- &types.SendMessage{ID: ID, Path: file.Filename, Error: err}
+						if gone := send(caller, ch, &types.SendMessage{ID: ID, Path: file.Filename, Error: err}); gone != nil {
+							return gone
+						}
 					}
 					return nil
 				}); err != nil {
 					logger.Error(ctx, err)
-					ch <- &types.SendMessage{ID: ID, Error: err}
+					_ = send(caller, ch, &types.SendMessage{ID: ID, Error: err})
 				}
 			})
 		}
