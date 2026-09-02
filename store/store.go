@@ -13,6 +13,7 @@ type Store interface {
 	NotFound(err error) bool
 	Put(ctx context.Context, data map[string]string) error
 	Delete(ctx context.Context, keys []string) error
+	GetMulti(ctx context.Context, keys []string) (map[string]string, error)
 	GetPrefix(ctx context.Context, prefix string, limit int64) (map[string]string, error)
 	ListPrefix(ctx context.Context, prefix string) ([]string, error)
 

@@ -65,10 +65,9 @@ discard the result.
 
 ## cpumem — the built-in plugin
 
-Always loaded, under the name `cpumem`. It stores its own bookkeeping in etcd at
-`/resource/cpumem/<nodename>` (under `etcd.prefix`), reusing core's etcd config — including the
-embedded cluster when `--embedded-storage` is on. With `store: redis` and no etcd endpoints
-configured, plugin construction fails, so a redis deployment still needs `etcd.machines`.
+Always loaded, under the name `cpumem`. It keeps one record per node at
+`/resource/cpumem/<nodename>` in the cluster store core itself uses (under `etcd.prefix` on etcd),
+so a `store: redis` deployment needs no etcd.
 
 It reads two scheduler settings:
 

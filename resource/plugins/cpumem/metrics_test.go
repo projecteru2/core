@@ -9,7 +9,7 @@ import (
 
 func TestGetMetricsDescription(t *testing.T) {
 	ctx := t.Context()
-	cm := initCPUMEM(ctx, t)
+	cm := initCPUMEM(t)
 	md, err := cm.GetMetricsDescription(ctx)
 	assert.NoError(t, err)
 	assert.NotNil(t, md)
@@ -18,7 +18,7 @@ func TestGetMetricsDescription(t *testing.T) {
 
 func TestGetMetrics(t *testing.T) {
 	ctx := t.Context()
-	cm := initCPUMEM(ctx, t)
+	cm := initCPUMEM(t)
 	_, err := cm.GetMetrics(ctx, "", "")
 	assert.Error(t, err)
 

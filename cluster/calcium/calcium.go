@@ -65,7 +65,7 @@ func New(ctx context.Context, config types.Config, embeddedETCD *embedded.Cluste
 	watcher := helium.New(ctx, config.GRPCConfig, store)
 
 	rmgr := cobalt.New(config)
-	if err = rmgr.LoadPlugins(ctx, embeddedETCD); err != nil {
+	if err = rmgr.LoadPlugins(ctx, store); err != nil {
 		logger.Error(ctx, err)
 		return nil, err
 	}
