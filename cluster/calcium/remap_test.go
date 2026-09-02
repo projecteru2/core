@@ -49,7 +49,7 @@ func TestRemapResource(t *testing.T) {
 	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	c.RemapResourceAndLog(t.Context(), log.WithField("test", "zc"), node)
+	c.RemapResourceAndLog(t.Context(), log.WithField("test", "zc"), node.Name)
 }
 
 func TestRemapJournalRetainsUntilEngineSuccess(t *testing.T) {

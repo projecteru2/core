@@ -105,7 +105,7 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 	case err != nil:
 		return nil, err
 	}
-	c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node) })
+	c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node.Name) })
 	return nil, nil
 }
 

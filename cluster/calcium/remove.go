@@ -3,7 +3,6 @@ package calcium
 import (
 	"bytes"
 	"context"
-	"sync"
 
 	"github.com/cockroachdb/errors"
 
@@ -14,67 +13,36 @@ import (
 
 func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) (chan *types.RemoveWorkloadMessage, error) {
 	logger := log.WithFunc("calcium.RemoveWorkload").WithField("IDs", IDs).WithField("force", force)
-
-	nodeWorkloadGroup, err := c.groupWorkloadsByNode(ctx, IDs)
+	ch := make(chan *types.RemoveWorkloadMessage)
+	err := c.releaseWorkloads(ctx, logger, IDs, func(ctx context.Context, _ *types.Node, workload *types.Workload) error {
+		if err := c.doRemoveOneWorkload(ctx, workload, force); err != nil {
+			return err
+		}
+		logger.Infof(ctx, "workload %s removed", workload.ID)
+		return nil
+	}, func(workloadID string, err error) error {
+		ret := &types.RemoveWorkloadMessage{WorkloadID: workloadID, Success: err == nil, Hook: []*bytes.Buffer{}}
+		if err != nil {
+			logger.WithField("id", workloadID).Error(ctx, err, "failed to remove workload")
+			ret.Hook = append(ret.Hook, bytes.NewBufferString(err.Error()))
+		}
+		return send(ctx, ch, ret)
+	}, func() { close(ch) })
 	if err != nil {
 		logger.Error(ctx, err, "failed to group workloads by node")
 		return nil, err
 	}
-
-	ch := make(chan *types.RemoveWorkloadMessage)
-	caller := ctx
-	utils.SentryGo(func() {
-		defer close(ch)
-		wg := sync.WaitGroup{}
-		defer wg.Wait()
-		for nodename, workloadIDs := range nodeWorkloadGroup {
-			wg.Add(1)
-			_ = c.pool.Invoke(func() {
-				defer wg.Done()
-				node, err := c.store.GetNode(ctx, nodename)
-				if err != nil {
-					logger.WithField("node", nodename).Error(ctx, err, "failed to get node")
-					_ = send(caller, ch, &types.RemoveWorkloadMessage{Success: false})
-					return
-				}
-				var removes sync.WaitGroup
-				for _, workloadID := range workloadIDs {
-					removes.Add(1)
-					_ = c.pool.Invoke(func() {
-						defer removes.Done()
-						ret := &types.RemoveWorkloadMessage{WorkloadID: workloadID, Success: true, Hook: []*bytes.Buffer{}}
-						if workloadErr := c.withWorkloadLocked(ctx, workloadID, false, func(ctx context.Context, workload *types.Workload) error {
-							if err := c.doRemoveOneWorkload(ctx, node, workload, force); err != nil {
-								return err
-							}
-							logger.Infof(ctx, "workload %s removed", workload.ID)
-							return nil
-						}); workloadErr != nil {
-							logger.WithField("id", workloadID).Error(ctx, workloadErr, "failed to remove workload")
-							ret.Hook = append(ret.Hook, bytes.NewBufferString(workloadErr.Error()))
-							ret.Success = false
-						}
-						_ = send(caller, ch, ret)
-					})
-				}
-				removes.Wait()
-				c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node) })
-			})
-		}
-	})
 	return ch, nil
 }
 
-func (c *Calcium) doRemoveOneWorkload(ctx context.Context, node *types.Node, workload *types.Workload, force bool) error {
+func (c *Calcium) doRemoveOneWorkload(ctx context.Context, workload *types.Workload, force bool) error {
 	logger := log.WithFunc("calcium.doRemoveOneWorkload").WithField("id", workload.ID)
-	return c.withResourceReleased(ctx, logger, node, workload, func(ctx context.Context) error {
-		workloadCommit, err := c.journal(ctx, logger, eventWorkloadCreated, &types.Workload{ID: workload.ID, Name: workload.Name, Nodename: workload.Nodename})
-		if err != nil {
-			return err
-		}
-		defer workloadCommit()
-		return c.doRemoveWorkload(ctx, workload, force)
-	})
+	workloadCommit, err := c.journal(ctx, logger, eventWorkloadCreated, &types.Workload{ID: workload.ID, Name: workload.Name, Nodename: workload.Nodename})
+	if err != nil {
+		return err
+	}
+	defer workloadCommit()
+	return c.doRemoveWorkload(ctx, workload, force)
 }
 
 func (c *Calcium) doRemoveWorkload(ctx context.Context, workload *types.Workload, force bool) error {
