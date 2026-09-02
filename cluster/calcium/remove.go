@@ -8,6 +8,8 @@ import (
 	"github.com/cockroachdb/errors"
 
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/resource/plugins"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -31,32 +33,15 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 			_ = c.pool.Invoke(func() {
 				defer wg.Done()
 				if nodeErr := c.withNodePodLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
-					for _, workloadID := range workloadIDs {
-						ret := &types.RemoveWorkloadMessage{WorkloadID: workloadID, Success: true, Hook: []*bytes.Buffer{}}
-						if workloadErr := c.withWorkloadLocked(ctx, workloadID, false, func(ctx context.Context, workload *types.Workload) error {
-							if err := c.doRemoveOneWorkload(ctx, node, workload, force); err != nil {
-								return err
-							}
-							logger.Infof(ctx, "workload %s removed", workload.ID)
-							return nil
-						}); workloadErr != nil {
-							logger.WithField("id", workloadID).Error(ctx, workloadErr, "failed to remove workload")
-							ret.Hook = append(ret.Hook, bytes.NewBufferString(workloadErr.Error()))
-							ret.Success = false
-						}
-						select {
-						case ch <- ret:
-						case <-ctx.Done():
-							return ctx.Err()
-						}
-					}
-					c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node) })
-					return nil
+					return c.doRemoveNodeWorkloads(ctx, node, workloadIDs, force, ch)
 				}); nodeErr != nil {
-					logger.WithField("node", nodename).Error(ctx, nodeErr, "failed to lock node")
-					select {
-					case ch <- &types.RemoveWorkloadMessage{Success: false}:
-					case <-ctx.Done():
+					logger.WithField("node", nodename).Error(ctx, nodeErr, "failed to remove the workloads of the node")
+					for _, workloadID := range workloadIDs {
+						select {
+						case ch <- &types.RemoveWorkloadMessage{WorkloadID: workloadID, Success: false, Hook: []*bytes.Buffer{bytes.NewBufferString(nodeErr.Error())}}:
+						case <-ctx.Done():
+							return
+						}
 					}
 				}
 			})
@@ -65,24 +50,67 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 	return ch, nil
 }
 
-func (c *Calcium) doRemoveOneWorkload(ctx context.Context, node *types.Node, workload *types.Workload, force bool) error {
-	logger := log.WithFunc("calcium.doRemoveOneWorkload").WithField("id", workload.ID)
-
+func (c *Calcium) doRemoveNodeWorkloads(ctx context.Context, node *types.Node, IDs []string, force bool, ch chan<- *types.RemoveWorkloadMessage) error {
+	logger := log.WithFunc("calcium.doRemoveNodeWorkloads").WithField("node", node.Name)
+	workloads, err := c.store.GetWorkloads(ctx, IDs)
+	if err != nil {
+		return err
+	}
 	nodeCommit, err := c.journal(ctx, logger, eventWorkloadResourceAllocated, []*types.Node{node})
 	if err != nil {
 		return err
 	}
 	defer nodeCommit()
 
+	resources := make([]resourcetypes.Resources, 0, len(workloads))
+	for _, workload := range workloads {
+		resources = append(resources, workload.Resources)
+	}
+	if _, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, resources, true, plugins.Decr); err != nil {
+		return err
+	}
+
+	kept := []resourcetypes.Resources{}
+	defer func() {
+		if len(kept) == 0 {
+			return
+		}
+		restoreCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), c.config.GlobalTimeout)
+		defer cancel()
+		if _, _, err := c.rmgr.SetNodeResourceUsage(restoreCtx, node.Name, nil, nil, kept, true, plugins.Incr); err != nil {
+			logger.Error(ctx, err, "failed to give the workloads that stay their resources back")
+		}
+	}()
+	for _, workload := range workloads {
+		ret := &types.RemoveWorkloadMessage{WorkloadID: workload.ID, Success: true, Hook: []*bytes.Buffer{}}
+		if workloadErr := c.withWorkloadLocked(ctx, workload.ID, false, func(ctx context.Context, workload *types.Workload) error {
+			return c.doRemoveOneWorkload(ctx, workload, force)
+		}); workloadErr != nil {
+			logger.WithField("id", workload.ID).Error(ctx, workloadErr, "failed to remove workload")
+			ret.Hook = append(ret.Hook, bytes.NewBufferString(workloadErr.Error()))
+			ret.Success = false
+			kept = append(kept, workload.Resources)
+		} else {
+			logger.Infof(ctx, "workload %s removed", workload.ID)
+		}
+		select {
+		case ch <- ret:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node) })
+	return nil
+}
+
+func (c *Calcium) doRemoveOneWorkload(ctx context.Context, workload *types.Workload, force bool) error {
+	logger := log.WithFunc("calcium.doRemoveOneWorkload").WithField("id", workload.ID)
 	workloadCommit, err := c.journal(ctx, logger, eventWorkloadCreated, &types.Workload{ID: workload.ID, Name: workload.Name, Nodename: workload.Nodename})
 	if err != nil {
 		return err
 	}
 	defer workloadCommit()
-
-	return c.withResourceReleased(ctx, node, workload, func(ctx context.Context) error {
-		return c.doRemoveWorkload(ctx, workload, force)
-	})
+	return c.doRemoveWorkload(ctx, workload, force)
 }
 
 func (c *Calcium) doRemoveWorkload(ctx context.Context, workload *types.Workload, force bool) error {

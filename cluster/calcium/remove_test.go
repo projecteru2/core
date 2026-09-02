@@ -11,6 +11,7 @@ import (
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
 	resourcemocks "github.com/projecteru2/core/resource/mocks"
+	"github.com/projecteru2/core/resource/plugins"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	storemocks "github.com/projecteru2/core/store/mocks"
@@ -84,6 +85,42 @@ func TestRemoveWorkload(t *testing.T) {
 		assert.True(t, r.Success)
 	}
 	store.AssertExpectations(t)
+}
+
+func TestRemoveWorkloadReleasesResourcesOnce(t *testing.T) {
+	c := NewTestCluster()
+	ctx := t.Context()
+	lock := &lockmocks.DistributedLock{}
+	lock.On("Lock", mock.Anything).Return(ctx, nil)
+	lock.On("Unlock", mock.Anything).Return(nil)
+	engine := &enginemocks.API{}
+	engine.On("VirtualizationRemove", mock.Anything, "a", mock.Anything, mock.Anything).Return(nil)
+	engine.On("VirtualizationRemove", mock.Anything, "b", mock.Anything, mock.Anything).Return(types.ErrMockError)
+	workloads := []*types.Workload{
+		{ID: "a", Name: "test", Nodename: "test", Engine: engine, Resources: resourcetypes.Resources{"cpumem": {"cpu": 1}}},
+		{ID: "b", Name: "test", Nodename: "test", Engine: engine, Resources: resourcetypes.Resources{"cpumem": {"cpu": 2}}},
+	}
+	store := c.store.(*storemocks.Store)
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(workloads, nil)
+	store.On("GetNode", mock.Anything, mock.Anything).Return(&types.Node{NodeMeta: types.NodeMeta{Name: "test"}}, nil)
+	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
+	store.On("AddWorkload", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	released := mock.MatchedBy(func(r []resourcetypes.Resources) bool { return len(r) == 2 })
+	rmgr.On("SetNodeResourceUsage", mock.Anything, "test", mock.Anything, mock.Anything, released, true, plugins.Decr).Return(nil, nil, nil).Once()
+	restored := mock.MatchedBy(func(r []resourcetypes.Resources) bool { return len(r) == 1 && r[0]["cpumem"]["cpu"] == 2 })
+	rmgr.On("SetNodeResourceUsage", mock.Anything, "test", mock.Anything, mock.Anything, restored, true, plugins.Incr).Return(nil, nil, nil).Once()
+
+	ch, err := c.RemoveWorkload(ctx, []string{"a", "b"}, false)
+	assert.NoError(t, err)
+	results := map[string]bool{}
+	for r := range ch {
+		results[r.WorkloadID] = r.Success
+	}
+	assert.Equal(t, map[string]bool{"a": true, "b": false}, results)
+	rmgr.AssertExpectations(t)
 }
 
 func TestRemoveWorkloadJournalsRepairEntries(t *testing.T) {
