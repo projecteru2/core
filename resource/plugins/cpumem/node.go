@@ -12,11 +12,9 @@ import (
 	"sync"
 
 	"github.com/sanity-io/litter"
-
 	"golang.org/x/sync/errgroup"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
-
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resource/plugins/cpumem/schedule"
 	cpumemtypes "github.com/projecteru2/core/resource/plugins/cpumem/types"
@@ -30,13 +28,6 @@ const (
 	fieldCapacity = "capacity"
 	fieldUsage    = "usage"
 )
-
-type nodeResourceInfos struct {
-	req       *cpumemtypes.NodeResourceRequest
-	resource  *cpumemtypes.NodeResource
-	workloads []*cpumemtypes.WorkloadResource
-	info      *cpumemtypes.NodeResourceInfo
-}
 
 func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintypes.NodeResourceRequest, info *enginetypes.Info) (*plugintypes.AddNodeResponse, error) {
 	var err error
@@ -448,6 +439,13 @@ func (p Plugin) calculateNodeResource(req *cpumemtypes.NodeResourceRequest, node
 		}
 	}
 	return resp
+}
+
+type nodeResourceInfos struct {
+	req       *cpumemtypes.NodeResourceRequest
+	resource  *cpumemtypes.NodeResource
+	workloads []*cpumemtypes.WorkloadResource
+	info      *cpumemtypes.NodeResourceInfo
 }
 
 func (p Plugin) parseNodeResourceInfos(ctx context.Context, nodename string, resource plugintypes.NodeResource, resourceRequest plugintypes.NodeResourceRequest, workloadsResource []plugintypes.WorkloadResource) (*nodeResourceInfos, error) {

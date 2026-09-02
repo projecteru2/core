@@ -165,8 +165,7 @@ func (m *Manager) SetNodeResourceUsage(ctx context.Context, nodename string, nod
 	)
 }
 
-// GetNodesDeployCapacity returns the nodes meeting every plugin's requirements, and their total capacity.
-// the caller must hold the node locks
+// GetNodesDeployCapacity returns, under the caller's node locks, the nodes meeting every plugin's requirements and their total capacity.
 func (m *Manager) GetNodesDeployCapacity(ctx context.Context, nodenames []string, opts resourcetypes.Resources) (map[string]*plugintypes.NodeDeployCapacity, int, error) {
 	var resp map[string]*plugintypes.NodeDeployCapacity
 

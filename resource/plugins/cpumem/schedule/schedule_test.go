@@ -486,7 +486,6 @@ func applyCPUPlans(t *testing.T, resourceInfo *types.NodeResourceInfo, cpuPlans 
 	assert.Nil(t, resourceInfo.Validate())
 }
 
-// linearSplitCPUPlans is the pre-bestSplit planner: every split built and compared in order.
 func linearSplitCPUPlans(h *host, cpuRequest float64) []types.CPUMap {
 	piecesRequest := int(cpuRequest * float64(h.shareBase))
 	full, fragment := piecesRequest/h.shareBase, piecesRequest%h.shareBase
