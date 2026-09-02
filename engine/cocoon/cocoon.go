@@ -6,6 +6,8 @@ import (
 	"slices"
 	"sync"
 
+	"github.com/cockroachdb/errors"
+
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/engine/sshrunner"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -71,8 +73,14 @@ func (e *Engine) Info(ctx context.Context) (*enginetypes.Info, error) {
 }
 
 func (e *Engine) Ping(ctx context.Context) error {
-	_, err := e.run(ctx, e.cocoon.Binary, "version")
-	return err
+	return e.runner.Ping(ctx)
+}
+
+func (e *Engine) VerifyNode(ctx context.Context) error {
+	if _, err := e.run(ctx, e.cocoon.Binary, "version"); err != nil {
+		return errors.Wrapf(err, "node %s cannot serve %s", e.ep.Nodename, e.cocoon.Binary)
+	}
+	return nil
 }
 
 func (e *Engine) CloseConn() error {

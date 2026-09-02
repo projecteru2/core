@@ -24,6 +24,10 @@ func (f *EngineWithErr) Ping(_ context.Context) error {
 	return f.DefaultErr
 }
 
+func (f *EngineWithErr) VerifyNode(_ context.Context) error {
+	return f.DefaultErr
+}
+
 func (f *EngineWithErr) CloseConn() error {
 	return nil
 }

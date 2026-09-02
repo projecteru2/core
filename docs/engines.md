@@ -357,8 +357,9 @@ until its next start; in between, only a direct-boot guest's console logs are mi
 
 ### Node prerequisites
 
-cocoon, with `cocoon daemon` as a systemd service (the engine does not need it, eru-agent uses it
-for events), the cocoonstack `dev` builds of Cloud Hypervisor, Firecracker and
+cocoon — `AddNode` runs `cocoon version` once and refuses a node without it — with `cocoon daemon`
+as a systemd service (the engine does not need it, eru-agent uses it for events), the cocoonstack
+`dev` builds of Cloud Hypervisor, Firecracker and
 rust-hypervisor-firmware (the Windows fixes live there), the CNI plugin binaries in `/opt/cni/bin`
 with conf in `/etc/cni/net.d`, cocoon-agent inside the guest images (with `runuser`, `setpriv` and
 `env` there too, for execs that name a user or a working dir), `sshd` with core's key in
@@ -458,8 +459,9 @@ Two per-workload options ride in the deploy request's raw args:
 | `raw` | bool | Run on the host filesystem: no `RootDirectory=`, and the working directory defaults to the unpacked bundle. Such a workload has no filesystem boundary, so `ImageBuildFromExist` refuses it |
 | `tasks_max` | int | `TasksMax=` for the unit |
 
-Node prerequisites: systemd ≥ 244 on cgroup v2, `sshd`, `oras`, `util-linux` for `setpriv`,
-coreutils for `chroot`, and a writable `process.root`.
+Node prerequisites: systemd ≥ 244 on cgroup v2 — `AddNode` runs `systemctl --version` once and
+refuses a node without it — `sshd`, `oras`, `util-linux` for `setpriv`, coreutils for `chroot`,
+and a writable `process.root`.
 
 ### The bundle format
 
@@ -495,7 +497,10 @@ Two different things share the name:
 `engine/factory` keeps one client per `(endpoint, ca, cert, key)` tuple, so repeated calls to the
 same node reuse one connection. Two background loops keep it honest:
 
-- **Liveness sweep** — every `connection_timeout`, `Ping` every cached engine. A failing engine is
+- **Liveness sweep** — every `connection_timeout`, `Ping` every cached engine: `IsServing` over the
+  forward for containerd, an SSH keepalive request on the connection for process and cocoon. Neither
+  takes a session, so a node whose eight sessions are all held still answers, and the binary each
+  engine needs is checked once at `AddNode` instead. A failing engine is
   replaced by `EngineWithErr` holding the error; a cached `EngineWithErr` is retried, and if it
   connects, the real client takes its place. If the retry fails and the node's status key is gone,
   the entry is dropped.

@@ -13,6 +13,7 @@ type Runner interface {
 	Start(ctx context.Context, line string, opts *StartOptions) (Session, error)
 	Files(ctx context.Context) (Files, error)
 	Dial(ctx context.Context, network, addr string) (net.Conn, error)
+	Ping(ctx context.Context) error
 	Close() error
 }
 
@@ -57,11 +58,6 @@ type FileInfo struct {
 	Mode os.FileMode
 }
 
-// Reader streams a running command's stdout and closes the session with it.
-func Reader(sess Session) io.ReadCloser {
-	return &sessionReader{Reader: sess.Stdout(), sess: sess}
-}
-
 type sessionReader struct {
 	io.Reader
 	sess Session
@@ -69,4 +65,9 @@ type sessionReader struct {
 
 func (r *sessionReader) Close() error {
 	return r.sess.Close()
+}
+
+// Reader streams a running command's stdout and closes the session with it.
+func Reader(sess Session) io.ReadCloser {
+	return &sessionReader{Reader: sess.Stdout(), sess: sess}
 }

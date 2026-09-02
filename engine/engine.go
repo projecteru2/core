@@ -56,9 +56,7 @@ type API interface {
 	VirtualizationCopyFrom(ctx context.Context, ID, path string) (content []byte, uid, gid int, mode int64, _ error)
 
 	RawEngine(ctx context.Context, opts *enginetypes.RawEngineOptions) (*enginetypes.RawEngineResult, error)
-}
 
-// NodeVerifier vets the node-side dependencies an engine's workloads need, once, as the node is added.
-type NodeVerifier interface {
+	// VerifyNode vets the node-side dependencies the engine's workloads need, once, as the node is added.
 	VerifyNode(ctx context.Context) error
 }

@@ -1611,6 +1611,57 @@ func (_c *API_RawEngine_Call) RunAndReturn(run func(ctx context.Context, opts *t
 	return _c
 }
 
+// VerifyNode provides a mock function for the type API
+func (_mock *API) VerifyNode(ctx context.Context) error {
+	ret := _mock.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for VerifyNode")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context) error); ok {
+		r0 = returnFunc(ctx)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// API_VerifyNode_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'VerifyNode'
+type API_VerifyNode_Call struct {
+	*mock.Call
+}
+
+// VerifyNode is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *API_Expecter) VerifyNode(ctx any) *API_VerifyNode_Call {
+	return &API_VerifyNode_Call{Call: _e.mock.On("VerifyNode", ctx)}
+}
+
+func (_c *API_VerifyNode_Call) Run(run func(ctx context.Context)) *API_VerifyNode_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *API_VerifyNode_Call) Return(err error) *API_VerifyNode_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *API_VerifyNode_Call) RunAndReturn(run func(ctx context.Context) error) *API_VerifyNode_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // VirtualizationAttach provides a mock function for the type API
 func (_mock *API) VirtualizationAttach(ctx context.Context, ID string, stream bool, openStdin bool) (io.ReadCloser, io.ReadCloser, io.WriteCloser, error) {
 	ret := _mock.Called(ctx, ID, stream, openStdin)
