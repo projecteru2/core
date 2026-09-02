@@ -4,8 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alicebob/miniredis/v2"
-	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/projecteru2/core/types"
@@ -15,17 +13,7 @@ import (
 func TestEphemeralMustRevokeAfterKeepaliveFailed(t *testing.T) {
 	assert := assert.New(t)
 
-	s, err := miniredis.Run()
-	if err != nil {
-		t.Fail()
-	}
-	defer s.Close()
-
-	cli := redis.NewClient(&redis.Options{
-		Addr: s.Addr(),
-		DB:   0,
-	})
-	defer cli.Close()
+	cli, _ := testRedis(t)
 
 	pool, _ := utils.NewPool(10000)
 
