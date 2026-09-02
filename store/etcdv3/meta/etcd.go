@@ -19,6 +19,7 @@ import (
 	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/lock/etcdlock"
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/store/common"
 	embedded "github.com/projecteru2/core/store/etcdv3/embedded"
 	"github.com/projecteru2/core/types"
 )
@@ -30,8 +31,6 @@ const (
 	cmpValue   = "value"
 
 	txnLimit = 125
-
-	orphanStatusTTL = int64(time.Hour / time.Second)
 )
 
 // ETCDClientV3 is the etcd client surface the store depends on.
@@ -331,7 +330,7 @@ func (e *ETCD) bindStatusWithoutTTL(ctx context.Context, entityKey, statusKey, s
 		return nil
 	}
 
-	lease, err := e.cliv3.Grant(ctx, orphanStatusTTL)
+	lease, err := e.cliv3.Grant(ctx, common.OrphanStatusTTL)
 	if err != nil {
 		return err
 	}
@@ -349,7 +348,7 @@ func (e *ETCD) bindStatusWithoutTTL(ctx context.Context, entityKey, statusKey, s
 		logger.Infof(ctx, "put: key %s value %s", statusKey, statusValue)
 		return nil
 	}
-	logger.Infof(ctx, "put: key %s value %s, leased %ds without %s", statusKey, statusValue, orphanStatusTTL, entityKey)
+	logger.Infof(ctx, "put: key %s value %s, leased %ds without %s", statusKey, statusValue, common.OrphanStatusTTL, entityKey)
 	return nil
 }
 
