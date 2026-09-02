@@ -86,6 +86,49 @@ func TestRetryRefusedStopsOnADoneContext(t *testing.T) {
 	}
 }
 
+func TestBoundedGivesUpOnADoneContextAndClosesTheLateResult(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		ctx, cancel := context.WithCancel(t.Context())
+		release := make(chan struct{})
+		late := &closeRecorder{}
+		result := make(chan error, 1)
+		go func() {
+			_, err := bounded(ctx, nil, func(*ssh.Client) (io.Closer, error) {
+				<-release
+				return late, nil
+			})
+			result <- err
+		}()
+		synctest.Wait()
+		cancel()
+		if err := <-result; !errors.Is(err, context.Canceled) {
+			t.Fatalf("got %v, want a cancelled context", err)
+		}
+		close(release)
+		synctest.Wait()
+		if !late.closed {
+			t.Error("a session opened after the caller left must be closed")
+		}
+	})
+}
+
+func TestIsTransportErrorCountsAContextDeadline(t *testing.T) {
+	if !isTransportError(context.DeadlineExceeded) {
+		t.Skip("a context deadline no longer looks like a dead link")
+	}
+}
+
+func TestBoundedReturnsTheResultOfAnOpenThatFinishes(t *testing.T) {
+	want := &closeRecorder{}
+	got, err := bounded(t.Context(), nil, func(*ssh.Client) (io.Closer, error) { return want, nil })
+	if err != nil || got != want {
+		t.Fatalf("got %v, %v; want the opened value", got, err)
+	}
+	if want.closed {
+		t.Error("a result handed to the caller must stay open")
+	}
+}
+
 func TestConnectKeepsAClientAnotherCallerRenewed(t *testing.T) {
 	runner := newSSHRunner("127.0.0.1:1", &ssh.ClientConfig{})
 	current := &ssh.Client{}
@@ -110,4 +153,11 @@ func TestSSHRunnerBoundsConcurrentSessions(t *testing.T) {
 		t.Errorf("session %d must queue instead of opening", maxSessions+1)
 	}
 	runner.sessions.Release(maxSessions)
+}
+
+type closeRecorder struct{ closed bool }
+
+func (c *closeRecorder) Close() error {
+	c.closed = true
+	return nil
 }
