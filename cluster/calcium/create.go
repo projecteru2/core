@@ -5,12 +5,14 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"runtime"
 	"slices"
 	"sync"
 	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/sanity-io/litter"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/projecteru2/core/cluster"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -97,22 +99,29 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 					}
 
 					processingCommits = make(map[string]func())
+					mu := sync.Mutex{}
+					allocs := errgroup.Group{}
+					allocs.SetLimit(runtime.GOMAXPROCS(0))
 					for nodename, deploy := range deployMap {
-						workloadResources, engineParams, allocErr := c.rmgr.Alloc(ctx, nodename, deploy, opts.Resources)
-						if allocErr != nil {
-							return allocErr
-						}
-						workloadResourcesMap[nodename] = workloadResources
-						engineParamsMap[nodename] = engineParams
-						processing := opts.GetProcessing(nodename)
-						if processingCommits[nodename], err = c.journal(ctx, logger, eventProcessingCreated, processing); err != nil {
-							return err
-						}
-						if err = c.store.CreateProcessing(ctx, processing, deploy); err != nil {
-							return err
-						}
+						allocs.Go(func() error {
+							workloadResources, engineParams, allocErr := c.rmgr.Alloc(ctx, nodename, deploy, opts.Resources)
+							if allocErr != nil {
+								return allocErr
+							}
+							processing := opts.GetProcessing(nodename)
+							commit, journalErr := c.journal(ctx, logger, eventProcessingCreated, processing)
+							mu.Lock()
+							workloadResourcesMap[nodename] = workloadResources
+							engineParamsMap[nodename] = engineParams
+							processingCommits[nodename] = commit
+							mu.Unlock()
+							if journalErr != nil {
+								return journalErr
+							}
+							return c.store.CreateProcessing(ctx, processing, deploy)
+						})
 					}
-					return nil
+					return allocs.Wait()
 				})
 			},
 

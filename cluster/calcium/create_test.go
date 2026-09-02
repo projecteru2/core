@@ -141,7 +141,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 
 			rmgr.On("Alloc", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 				nil, nil, types.ErrMockError,
-			).Once()
+			).Twice()
 			ch, err = c.CreateWorkload(ctx, opts)
 			assert.Nil(t, err)
 			cnt = 0
