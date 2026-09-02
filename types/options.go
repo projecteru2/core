@@ -13,7 +13,7 @@ const (
 	TriTrue
 	TriFalse
 
-	SendLargeFileChunkSize = 2 << 10
+	SendLargeFileChunkSize = 256 << 10
 )
 
 // Processing tracks the unfinished workload count for one deploy.

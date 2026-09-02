@@ -2,6 +2,7 @@ package simple
 
 import (
 	"context"
+	"crypto/subtle"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -43,7 +44,7 @@ func (b *BasicAuth) doAuth(ctx context.Context) error {
 	if len(passwords) == 0 {
 		return types.ErrInvaildGRPCUsername
 	}
-	if passwords[0] != b.password {
+	if subtle.ConstantTimeCompare([]byte(passwords[0]), []byte(b.password)) != 1 {
 		return types.ErrInvaildGRPCPassword
 	}
 	return nil

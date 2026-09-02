@@ -14,16 +14,26 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
+const sentryFlushTimeout = 2 * time.Second
+
 // SentryDefer reports a panic to Sentry and re-raises it.
 func SentryDefer() {
 	if sentryDSN == "" {
 		return
 	}
-	defer sentry.Flush(2 * time.Second)
 	if r := recover(); r != nil {
 		sentry.CaptureMessage(fmt.Sprintf("%+v: %s", r, debug.Stack()))
+		sentry.Flush(sentryFlushTimeout)
 		panic(r)
 	}
+}
+
+// SentryFlush sends the events still queued; main defers it so a normal exit loses none.
+func SentryFlush() {
+	if sentryDSN == "" {
+		return
+	}
+	sentry.Flush(sentryFlushTimeout)
 }
 
 func genGRPCTracingInfo(ctx context.Context) string {
@@ -46,7 +56,6 @@ func reportToSentry(ctx context.Context, level sentry.Level, err error, format s
 	if sentryDSN == "" {
 		return
 	}
-	defer sentry.Flush(2 * time.Second)
 	event, extraDetails := errors.BuildSentryReport(err)
 	if len(extraDetails) > 0 {
 		event.Contexts["extra"] = extraDetails

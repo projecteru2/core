@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/cockroachdb/errors"
+	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
 
 	"github.com/projecteru2/core/cluster"
@@ -61,7 +62,7 @@ func (v *Vibranium) WatchServiceStatus(_ *pb.Empty, stream pb.CoreRPC_WatchServi
 			}
 			s := toRPCServiceStatus(status)
 			if err = stream.Send(s); err != nil {
-				logUnsentMessages(task.context, "WatchServicesStatus", err, s)
+				logUnsentMessages(task.context, "WatchServiceStatus", err, s)
 				return grpcstatus.Error(WatchServiceStatus, err.Error())
 			}
 		case <-task.context.Done():
@@ -273,7 +274,7 @@ func (v *Vibranium) NodeStatusStream(_ *pb.Empty, stream pb.CoreRPC_NodeStatusSt
 	task := v.newTask(stream.Context(), "NodeStatusStream", true)
 	defer task.done()
 
-	return drainUntilStop(task, "NodeStatusStream", v.stop, v.cluster.NodeStatusStream(task.context), stream.Send,
+	return drainUntilStop(task, "NodeStatusStream", NodeStatusStream, v.stop, v.cluster.NodeStatusStream(task.context), stream.Send,
 		func(m *types.NodeStatus) *pb.NodeStatusStreamMessage {
 			r := &pb.NodeStatusStreamMessage{
 				Nodename: m.Nodename,
@@ -339,7 +340,7 @@ func (v *Vibranium) WorkloadStatusStream(opts *pb.WorkloadStatusStreamOptions, s
 		task.context,
 		opts.Appname, opts.Entrypoint, opts.Nodename, opts.Labels,
 	)
-	return drainUntilStop(task, "WorkloadStatusStream", v.stop, ch, stream.Send,
+	return drainUntilStop(task, "WorkloadStatusStream", WorkloadStatusStream, v.stop, ch, stream.Send,
 		func(m *types.WorkloadStatus) *pb.WorkloadStatusStreamMessage {
 			r := &pb.WorkloadStatusStreamMessage{Id: m.ID, Delete: m.Delete}
 			if m.Error != nil {
@@ -690,7 +691,7 @@ func (v *Vibranium) RemoveWorkload(opts *pb.RemoveWorkloadOptions, stream pb.Cor
 	force := opts.GetForce()
 
 	if len(IDs) == 0 {
-		return types.ErrNoWorkloadIDs
+		return grpcstatus.Error(RemoveWorkload, types.ErrNoWorkloadIDs.Error())
 	}
 	ch, err := v.cluster.RemoveWorkload(task.context, IDs, force)
 	if err != nil {
@@ -707,7 +708,7 @@ func (v *Vibranium) DissociateWorkload(opts *pb.DissociateWorkloadOptions, strea
 
 	IDs := opts.GetIDs()
 	if len(IDs) == 0 {
-		return types.ErrNoWorkloadIDs
+		return grpcstatus.Error(DissociateWorkload, types.ErrNoWorkloadIDs.Error())
 	}
 
 	ch, err := v.cluster.DissociateWorkload(task.context, IDs)
@@ -728,7 +729,7 @@ func (v *Vibranium) ControlWorkload(opts *pb.ControlWorkloadOptions, stream pb.C
 	force := opts.GetForce()
 
 	if len(IDs) == 0 {
-		return types.ErrNoWorkloadIDs
+		return grpcstatus.Error(ControlWorkload, types.ErrNoWorkloadIDs.Error())
 	}
 
 	ch, err := v.cluster.ControlWorkload(task.context, IDs, t, force)
@@ -750,26 +751,7 @@ func (v *Vibranium) ExecuteWorkload(stream pb.CoreRPC_ExecuteWorkloadServer) err
 	}
 	executeWorkloadOpts := toCoreExecuteWorkloadOptions(opts)
 
-	inCh := make(chan []byte)
-	utils.SentryGo(func() {
-		defer close(inCh)
-		if !opts.OpenStdin {
-			return
-		}
-		for {
-			execWorkloadOpt, recvErr := stream.Recv()
-			if execWorkloadOpt == nil || recvErr != nil {
-				log.WithFunc("vibranium.ExecuteWorkload").Error(task.context, recvErr, "recv command")
-				return
-			}
-			select {
-			case inCh <- execWorkloadOpt.ReplCmd:
-			case <-task.context.Done():
-				return
-			}
-		}
-	})
-
+	inCh := recvStdin(task.context, "ExecuteWorkload", opts.OpenStdin, stream.Recv, (*pb.ExecuteWorkloadOptions).GetReplCmd)
 	drain(task, "ExecuteWorkload", v.cluster.ExecuteWorkload(task.context, executeWorkloadOpts, inCh), stream.Send, toRPCAttachWorkloadMessage)
 	return nil
 }
@@ -788,7 +770,7 @@ func (v *Vibranium) ReallocResource(ctx context.Context, opts *pb.ReallocOptions
 	}
 
 	return reallocResult(v.cluster.ReallocResource(
-		ctx,
+		task.context,
 		&types.ReallocOptions{
 			ID:        opts.Id,
 			Resources: resources,
@@ -855,26 +837,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 		ctx, cancel = context.WithCancel(task.context)
 	}
 
-	inCh := make(chan []byte)
-	utils.SentryGo(func() {
-		defer close(inCh)
-		if !opts.OpenStdin {
-			return
-		}
-		for {
-			replOpts, recvErr := stream.Recv()
-			if replOpts == nil || recvErr != nil {
-				logger.Error(ctx, recvErr, "recv command")
-				break
-			}
-			select {
-			case inCh <- replOpts.Cmd:
-			case <-ctx.Done():
-				return
-			}
-		}
-	})
-
+	inCh := recvStdin(ctx, "RunAndWait", opts.OpenStdin, stream.Recv, (*pb.RunAndWaitOptions).GetCmd)
 	IDs, ch, err := v.cluster.RunAndWait(ctx, deployOpts, inCh)
 	if err != nil {
 		task.done()
@@ -968,6 +931,31 @@ func logUnsentMessages(ctx context.Context, msgType string, err error, msg any) 
 	log.WithFunc("vibranium.logUnsentMessages").Warnf(ctx, "unsent %s streamed message %+v: %+v", msgType, msg, err)
 }
 
+func recvStdin[T any](ctx context.Context, name string, open bool, recv func() (T, error), payload func(T) []byte) <-chan []byte {
+	inCh := make(chan []byte)
+	utils.SentryGo(func() {
+		defer close(inCh)
+		if !open {
+			return
+		}
+		for {
+			msg, err := recv()
+			if err != nil {
+				if !errors.Is(err, io.EOF) {
+					log.WithFunc("vibranium."+name).Error(ctx, err, "recv command")
+				}
+				return
+			}
+			select {
+			case inCh <- payload(msg):
+			case <-ctx.Done():
+				return
+			}
+		}
+	})
+	return inCh
+}
+
 func drain[T, R any](t *task, name string, ch <-chan T, send func(R) error, to func(T) R) {
 	for m := range ch {
 		if err := send(to(m)); err != nil {
@@ -976,7 +964,7 @@ func drain[T, R any](t *task, name string, ch <-chan T, send func(R) error, to f
 	}
 }
 
-func drainUntilStop[T, R any](t *task, name string, stop <-chan struct{}, ch <-chan T, send func(R) error, to func(T) R) error {
+func drainUntilStop[T, R any](t *task, name string, code codes.Code, stop <-chan struct{}, ch <-chan T, send func(R) error, to func(T) R) error {
 	for {
 		select {
 		case m, ok := <-ch:
@@ -984,7 +972,7 @@ func drainUntilStop[T, R any](t *task, name string, stop <-chan struct{}, ch <-c
 				if t.context.Err() != nil {
 					return nil
 				}
-				return types.ErrMessageChanClosed
+				return grpcstatus.Error(code, types.ErrMessageChanClosed.Error())
 			}
 			if err := send(to(m)); err != nil {
 				logUnsentMessages(t.context, name, err, m)

@@ -15,25 +15,27 @@ const (
 	ListPods    codes.Code = 1024
 	PodResource codes.Code = 1025
 
-	AddNode         codes.Code = 1031
-	RemoveNode      codes.Code = 1032
-	ListPodNodes    codes.Code = 1033
-	GetNode         codes.Code = 1034
-	SetNode         codes.Code = 1035
-	SetNodeStatus   codes.Code = 1036
-	GetNodeResource codes.Code = 1037
-	GetNodeStatus   codes.Code = 1038
-	GetNodeEngine   codes.Code = 1039
+	AddNode          codes.Code = 1031
+	RemoveNode       codes.Code = 1032
+	ListPodNodes     codes.Code = 1033
+	GetNode          codes.Code = 1034
+	SetNode          codes.Code = 1035
+	SetNodeStatus    codes.Code = 1036
+	GetNodeResource  codes.Code = 1037
+	GetNodeStatus    codes.Code = 1038
+	GetNodeEngine    codes.Code = 1039
+	NodeStatusStream codes.Code = 10310
 
 	CalculateCapacity codes.Code = 1041
 
-	GetWorkload        codes.Code = 1051
-	GetWorkloads       codes.Code = 1052
-	ListWorkloads      codes.Code = 1053
-	ListNodeWorkloads  codes.Code = 1054
-	GetWorkloadsStatus codes.Code = 1055
-	SetWorkloadsStatus codes.Code = 1056
-	RawEngineStatus    codes.Code = 1057
+	GetWorkload          codes.Code = 1051
+	GetWorkloads         codes.Code = 1052
+	ListWorkloads        codes.Code = 1053
+	ListNodeWorkloads    codes.Code = 1054
+	GetWorkloadsStatus   codes.Code = 1055
+	SetWorkloadsStatus   codes.Code = 1056
+	RawEngineStatus      codes.Code = 1057
+	WorkloadStatusStream codes.Code = 1058
 
 	Copy          codes.Code = 1061
 	Send          codes.Code = 1062
