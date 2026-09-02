@@ -373,7 +373,7 @@ func TestHandleCreateLambda(t *testing.T) {
 		Once()
 	store.On("GetWorkloads", mock.Anything, []string{wrk.ID}).
 		Return([]*types.Workload{wrk}, nil).
-		Twice()
+		Times(3)
 	store.On("RemoveWorkload", mock.Anything, wrk).
 		Return(nil).
 		Once()
