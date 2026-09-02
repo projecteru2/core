@@ -30,6 +30,8 @@ const (
 	cmpValue   = "value"
 
 	txnLimit = 125
+
+	orphanStatusTTL = int64(time.Hour / time.Second)
 )
 
 // ETCDClientV3 is the etcd client surface the store depends on.
@@ -188,7 +190,7 @@ func (e *ETCD) BatchPut(ctx context.Context, data map[string]string) (*clientv3.
 
 func (e *ETCD) BindStatus(ctx context.Context, entityKey, statusKey, statusValue string, ttl int64) error {
 	if ttl == 0 {
-		return e.bindStatusWithoutTTL(ctx, statusKey, statusValue)
+		return e.bindStatusWithoutTTL(ctx, entityKey, statusKey, statusValue)
 	}
 	return e.bindStatusWithTTL(ctx, entityKey, statusKey, statusValue, ttl)
 }
@@ -371,39 +373,49 @@ func (e *ETCD) bindStatusWithTTL(ctx context.Context, entityKey, statusKey, stat
 	return err
 }
 
-// bindStatusWithoutTTL skips the entity check: an agent may report status before core records the entity.
-func (e *ETCD) bindStatusWithoutTTL(ctx context.Context, statusKey, statusValue string) error {
-	updateStatus := []clientv3.Op{clientv3.OpPut(statusKey, statusValue)}
+func (e *ETCD) bindStatusWithoutTTL(ctx context.Context, entityKey, statusKey, statusValue string) error {
 	logger := log.WithFunc("store.etcdv3.meta.bindStatusWithoutTTL")
 
-	ttlChanged, err := e.isTTLChanged(ctx, statusKey, 0)
-	if err != nil {
-		return err
-	}
-	if ttlChanged {
-		if _, err = e.Put(ctx, statusKey, statusValue); err != nil {
-			return err
-		}
-
-		logger.Infof(ctx, "put: key %s value %s", statusKey, statusValue)
-		return nil
-	}
-
 	resp, err := e.cliv3.Txn(ctx).
-		If(clientv3.Compare(clientv3.Version(statusKey), "!=", 0)).
+		If(clientv3.Compare(clientv3.Version(entityKey), "!=", 0)).
 		Then(clientv3.OpTxn(
-			[]clientv3.Cmp{clientv3.Compare(clientv3.Value(statusKey), "!=", statusValue)},
-			updateStatus,
+			[]clientv3.Cmp{
+				clientv3.Compare(clientv3.Value(statusKey), "=", statusValue),
+				clientv3.Compare(clientv3.LeaseValue(statusKey), "=", 0),
+			},
 			[]clientv3.Op{},
+			[]clientv3.Op{clientv3.OpPut(statusKey, statusValue)},
 		)).
-		Else(updateStatus...).
 		Commit()
 	if err != nil {
 		return err
 	}
-	if !resp.Succeeded || resp.Responses[0].GetResponseTxn().Succeeded {
-		logger.Infof(ctx, "put: key %s value %s", statusKey, statusValue)
+	if resp.Succeeded {
+		if !resp.Responses[0].GetResponseTxn().Succeeded {
+			logger.Infof(ctx, "put: key %s value %s", statusKey, statusValue)
+		}
+		return nil
 	}
+
+	lease, err := e.cliv3.Grant(ctx, orphanStatusTTL)
+	if err != nil {
+		return err
+	}
+	orphaned, err := e.cliv3.Txn(ctx).
+		If(clientv3.Compare(clientv3.Version(entityKey), "=", 0)).
+		Then(clientv3.OpPut(statusKey, statusValue, clientv3.WithLease(lease.ID))).
+		Else(clientv3.OpPut(statusKey, statusValue)).
+		Commit()
+	if err != nil {
+		e.revokeLease(ctx, lease.ID)
+		return err
+	}
+	if !orphaned.Succeeded {
+		e.revokeLease(ctx, lease.ID)
+		logger.Infof(ctx, "put: key %s value %s", statusKey, statusValue)
+		return nil
+	}
+	logger.Infof(ctx, "put: key %s value %s, leased %ds without %s", statusKey, statusValue, orphanStatusTTL, entityKey)
 	return nil
 }
 
