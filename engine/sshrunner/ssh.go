@@ -145,17 +145,8 @@ func (r *sshRunner) Dial(ctx context.Context, network, addr string) (net.Conn, e
 func (r *sshRunner) Ping(ctx context.Context) error {
 	// a global request on the connection answers even when every session is held
 	_, err := retry(ctx, r, func(client *ssh.Client) (struct{}, error) {
-		replied := make(chan error, 1)
-		go func() {
-			_, _, err := client.SendRequest(keepaliveRequest, true, nil)
-			replied <- err
-		}()
-		select {
-		case err := <-replied:
-			return struct{}{}, err
-		case <-ctx.Done():
-			return struct{}{}, ctx.Err()
-		}
+		_, _, err := client.SendRequest(keepaliveRequest, true, nil)
+		return struct{}{}, err
 	})
 	return err
 }
@@ -315,14 +306,41 @@ func openOnce[T any](ctx context.Context, r *sshRunner, f sshOp[T]) (T, error) {
 	if err != nil {
 		return zero, err
 	}
-	v, err := f(client)
+	v, err := bounded(ctx, client, f)
 	if err == nil || !isTransportError(err) {
 		return v, err
 	}
 	if client, err = r.connect(ctx, client); err != nil {
 		return zero, err
 	}
-	return f(client)
+	return bounded(ctx, client, f)
+}
+
+// bounded gives up on ctx while a channel open hangs on a wedged transport; a result that lands late is closed.
+func bounded[T any](ctx context.Context, client *ssh.Client, f sshOp[T]) (T, error) {
+	type opened struct {
+		v   T
+		err error
+	}
+	done := make(chan opened, 1)
+	go func() {
+		v, err := f(client)
+		done <- opened{v, err}
+	}()
+	select {
+	case res := <-done:
+		return res.v, res.err
+	case <-ctx.Done():
+		go func() {
+			if res := <-done; res.err == nil {
+				if c, ok := any(res.v).(io.Closer); ok {
+					_ = c.Close()
+				}
+			}
+		}()
+		var zero T
+		return zero, ctx.Err()
+	}
 }
 
 func retryRefused[T any](ctx context.Context, open func() (T, error)) (T, error) {
