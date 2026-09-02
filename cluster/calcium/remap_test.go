@@ -1,6 +1,7 @@
 package calcium
 
 import (
+	"context"
 	"strconv"
 	"sync/atomic"
 	"testing"
@@ -45,7 +46,7 @@ func TestRemapResource(t *testing.T) {
 
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(t.Context(), nil)
+	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	c.RemapResourceAndLog(t.Context(), log.WithField("test", "zc"), node)
@@ -131,7 +132,7 @@ func TestRemapReplayRecomputesFromLiveState(t *testing.T) {
 
 	store := c.store.(*storemocks.Store)
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(t.Context(), nil)
+	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	store.On("GetNode", mock.Anything, node.Name).Return(node, nil)
