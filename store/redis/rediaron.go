@@ -26,8 +26,9 @@ const (
 	actionSet     = "set"
 	actionDel     = "del"
 
-	createdExists  = "exists"
-	createdMissing = "missing"
+	replyExists  = "exists"
+	replyMissing = "missing"
+	replyChanged = "changed"
 
 	scanCount = 1000
 )
@@ -46,6 +47,11 @@ end
 if KEYS[1] ~= "" then redis.call("decr", KEYS[1]) end
 for i = 2, #KEYS do redis.call("set", KEYS[i], ARGV[i-1]) end
 return "ok"`)
+	refreshStatusScript = redis.NewScript(`
+if redis.call("exists", KEYS[1]) == 0 then return "missing" end
+if redis.call("get", KEYS[2]) ~= ARGV[1] then return "changed" end
+if tonumber(ARGV[2]) > 0 then redis.call("expire", KEYS[2], ARGV[2]) else redis.call("persist", KEYS[2]) end
+return "refreshed"`)
 
 	globMeta = strings.NewReplacer(`\`, `\\`, "*", `\*`, "?", `\?`, "[", `\[`, "]", `\]`)
 )
@@ -237,30 +243,17 @@ func (r *Rediaron) Delete(ctx context.Context, keys []string) error {
 }
 
 func (r *Rediaron) BindStatus(ctx context.Context, entityKey, statusKey, statusValue string, ttl int64) error {
-	var entity *redis.IntCmd
-	var current *redis.StringCmd
-	_, err := r.cli.Pipelined(ctx, func(pipe redis.Pipeliner) error {
-		entity = pipe.Exists(ctx, entityKey)
-		current = pipe.Get(ctx, statusKey)
-		return nil
-	})
-	if err != nil && !isRedisNoKeyError(err) {
-		return err
-	}
-	// mirrors etcd: a missing entity key is an error
-	if entity.Val() != 1 {
-		return types.ErrInvaildCount
-	}
-
-	expiry := time.Duration(ttl) * time.Second
+	refreshed, err := refreshStatusScript.Run(ctx, r.cli, []string{entityKey, statusKey}, statusValue, ttl).Text()
 	switch {
-	case current.Err() != nil || current.Val() != statusValue:
-		return r.cli.Set(ctx, statusKey, statusValue, expiry).Err()
-	case ttl > 0:
-		return r.cli.Expire(ctx, statusKey, expiry).Err()
-	default:
-		return r.cli.Persist(ctx, statusKey).Err()
+	case err != nil:
+		return err
+	// mirrors etcd: a missing entity key is an error
+	case refreshed == replyMissing:
+		return types.ErrInvaildCount
+	case refreshed == replyChanged:
+		return r.cli.Set(ctx, statusKey, statusValue, time.Duration(ttl)*time.Second).Err()
 	}
+	return nil
 }
 
 func (r *Rediaron) create(ctx context.Context, data map[string]string, decrKey string) error {
@@ -275,9 +268,9 @@ func (r *Rediaron) create(ctx context.Context, data map[string]string, decrKey s
 		return err
 	}
 	switch created {
-	case createdExists:
+	case replyExists:
 		return ErrAlreadyExists
-	case createdMissing:
+	case replyMissing:
 		return errors.Wrap(ErrKeyNotExists, decrKey)
 	}
 	return nil

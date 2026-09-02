@@ -179,6 +179,12 @@ func (s *RediaronTestSuite) TestBindStatusRefreshesAnUnchangedValueInPlace() {
 	s.NoError(s.rediaron.BindStatus(ctx, "entity", "status", "v2", 0))
 	s.Zero(s.rediserver.TTL("status"))
 	s.ErrorIs(s.rediaron.BindStatus(ctx, "absent", "status", "v2", 0), types.ErrInvaildCount)
+
+	s.NoError(s.rediaron.BindStatus(ctx, "entity", "status", "v2", 10))
+	s.rediserver.FastForward(11 * time.Second)
+	s.False(s.rediserver.Exists("status"))
+	s.NoError(s.rediaron.BindStatus(ctx, "entity", "status", "v2", 10))
+	s.Equal(10*time.Second, s.rediserver.TTL("status"))
 }
 
 func (s *RediaronTestSuite) TestPrefixReadsTakeGlobMetacharactersLiterally() {
