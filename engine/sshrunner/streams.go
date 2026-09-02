@@ -60,17 +60,26 @@ func (p *streamPool) release(c *streamClient) {
 	c.held--
 	p.total.Release(1)
 	if c.held == 0 {
-		c.idle = time.AfterFunc(streamIdle, func() { p.drop(c, false) })
+		c.idle = time.AfterFunc(streamIdle, func() { p.drop(c) })
 	}
 }
 
-func (p *streamPool) drop(c *streamClient, force bool) {
+func (p *streamPool) drop(c *streamClient) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	if c.held > 0 && !force {
+	if c.held > 0 {
 		return
 	}
 	p.forget(c)
+}
+
+// evict takes a dead connection out of the pool before its holder's slot goes back, so no one else can pick it up.
+func (p *streamPool) evict(c *streamClient) {
+	p.mu.Lock()
+	c.held--
+	p.forget(c)
+	p.mu.Unlock()
+	p.total.Release(1)
 }
 
 func (p *streamPool) close() {
