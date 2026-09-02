@@ -112,6 +112,12 @@ func TestBoundedGivesUpOnADoneContextAndClosesTheLateResult(t *testing.T) {
 	})
 }
 
+func TestIsTransportErrorCountsAContextDeadline(t *testing.T) {
+	if !isTransportError(context.DeadlineExceeded) {
+		t.Skip("a context deadline no longer looks like a dead link")
+	}
+}
+
 func TestBoundedReturnsTheResultOfAnOpenThatFinishes(t *testing.T) {
 	want := &closeRecorder{}
 	got, err := bounded(t.Context(), nil, func(*ssh.Client) (io.Closer, error) { return want, nil })

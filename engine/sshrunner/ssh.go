@@ -307,7 +307,7 @@ func openOnce[T any](ctx context.Context, r *sshRunner, f sshOp[T]) (T, error) {
 		return zero, err
 	}
 	v, err := bounded(ctx, client, f)
-	if err == nil || !isTransportError(err) {
+	if err == nil || ctx.Err() != nil || !isTransportError(err) {
 		return v, err
 	}
 	if client, err = r.connect(ctx, client); err != nil {
