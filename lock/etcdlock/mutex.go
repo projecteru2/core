@@ -67,6 +67,7 @@ type Mutex struct {
 	pool      *Pool
 	mutex     *concurrency.Mutex
 	session   *concurrency.Session
+	stopWatch context.CancelFunc
 	locked    bool
 	lockedMux sync.Mutex
 }
@@ -100,6 +101,10 @@ func (m *Mutex) Lock(ctx context.Context) (context.Context, error) {
 func (m *Mutex) Unlock(ctx context.Context) error {
 	if m.session == nil {
 		return nil
+	}
+	if stop := m.stopWatch; stop != nil {
+		m.stopWatch = nil
+		defer stop()
 	}
 	lockCtx, cancel := context.WithTimeout(ctx, m.timeout)
 	defer cancel()
@@ -139,6 +144,7 @@ func (m *Mutex) unlock(ctx context.Context) error {
 
 func (m *Mutex) watchSession(ctx context.Context) context.Context {
 	ctx, cancel := context.WithCancel(ctx)
+	m.stopWatch = cancel
 	rCtx := &lockContext{Context: ctx}
 	sessionDone := m.session.Done()
 

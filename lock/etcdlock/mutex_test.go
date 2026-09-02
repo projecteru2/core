@@ -2,6 +2,7 @@ package etcdlock
 
 import (
 	"context"
+	"runtime"
 	"testing"
 	"time"
 
@@ -27,7 +28,7 @@ func TestMutex(t *testing.T) {
 	assert.NoError(t, err)
 	err = mutex.Unlock(ctx)
 	assert.NoError(t, err)
-	assert.NoError(t, ctx.Err())
+	assert.ErrorIs(t, ctx.Err(), context.Canceled)
 
 	m2, err := New(pool, "test", time.Second)
 	assert.NoError(t, err)
@@ -52,6 +53,27 @@ func TestMutex(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = m5.Lock(t.Context())
 	assert.NoError(t, err)
+}
+
+func TestUnlockStopsTheSessionWatchdog(t *testing.T) {
+	cluster, err := embedded.New(t.TempDir())
+	assert.NoError(t, err)
+	t.Cleanup(cluster.Close)
+	pool := NewPool(cluster.Client("/test"), time.Second)
+
+	parent, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	before := runtime.NumGoroutine()
+	for range 32 {
+		mutex, err := New(pool, "watchdog", time.Second)
+		assert.NoError(t, err)
+		_, err = mutex.Lock(parent)
+		assert.NoError(t, err)
+		assert.NoError(t, mutex.Unlock(parent))
+	}
+	assert.Eventually(t, func() bool {
+		return runtime.NumGoroutine() < before+32
+	}, time.Second, 10*time.Millisecond)
 }
 
 func TestPoolReusesTheSessionOfAnUnlockedMutex(t *testing.T) {
