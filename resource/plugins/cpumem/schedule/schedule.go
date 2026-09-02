@@ -145,7 +145,8 @@ func (h *host) bestSplit(full, fragment, maxMoved int) (int, int) {
 	}
 	fullCapacity := func(moved int) int { return h.countFullCPUPlans(h.fullCores[moved:], full) }
 	firstReaching := func(capacity int) int {
-		return sort.SearchInts(fragmentCapacity, capacity)
+		at, _ := slices.BinarySearch(fragmentCapacity, capacity)
+		return at
 	}
 
 	crossing := sort.Search(maxMoved+1, func(moved int) bool { return fragmentCapacity[moved] >= fullCapacity(moved) })
