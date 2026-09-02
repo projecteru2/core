@@ -30,10 +30,7 @@ func initCPUMEM(t testing.TB) *Plugin {
 	return NewPlugin(config, &memStore{data: map[string]string{}})
 }
 
-func generateNodes(
-	ctx context.Context, t testing.TB, cm *Plugin,
-	nums, cores int, memory int64, shares, index int,
-) []string {
+func generateNodes(ctx context.Context, t testing.TB, cm *Plugin, nums, cores int, memory int64, shares, index int) []string {
 	reqs := generateNodeResourceRequests(t, nums, cores, memory, shares, index)
 	info := &enginetypes.Info{NCPU: 8, MemTotal: 2048}
 	names := []string{}
