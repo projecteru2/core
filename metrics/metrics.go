@@ -105,11 +105,11 @@ func (m *Metrics) SendMetrics(ctx context.Context, metrics ...*plugintypes.Metri
 	}
 }
 
-// SendNodeMetrics refreshes a node's resource metrics and pushes them.
-func (m *Metrics) SendNodeMetrics(ctx context.Context, node *types.Node) {
-	nodeMetrics, err := m.rmgr.GetNodeMetrics(ctx, node)
+// SendNodesMetrics refreshes the resource metrics of the nodes in one plugin call and pushes them.
+func (m *Metrics) SendNodesMetrics(ctx context.Context, nodes ...*types.Node) {
+	nodeMetrics, err := m.rmgr.GetNodesMetrics(ctx, nodes)
 	if err != nil {
-		log.WithFunc("metrics.SendNodeMetrics").Errorf(ctx, err, "convert node %s resource info to metrics failed", node.Name)
+		log.WithFunc("metrics.SendNodesMetrics").Error(ctx, err, "convert node resource info to metrics failed")
 		return
 	}
 	m.SendMetrics(ctx, nodeMetrics...)

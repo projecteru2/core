@@ -5,6 +5,8 @@ import (
 
 	"github.com/docker/go-units"
 	"github.com/stretchr/testify/assert"
+
+	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 )
 
 func TestGetMetricsDescription(t *testing.T) {
@@ -19,10 +21,11 @@ func TestGetMetricsDescription(t *testing.T) {
 func TestGetMetrics(t *testing.T) {
 	ctx := t.Context()
 	cm := initCPUMEM(t)
-	_, err := cm.GetMetrics(ctx, "", "")
+	_, err := cm.GetMetrics(ctx, []plugintypes.NodeRef{{}})
 	assert.Error(t, err)
 
-	nodes := generateNodes(ctx, t, cm, 1, 2, units.GB, 100, -1)
-	_, err = cm.GetMetrics(ctx, "testpod", nodes[0])
+	nodes := generateNodes(ctx, t, cm, 2, 2, units.GB, 100, -1)
+	metrics, err := cm.GetMetrics(ctx, []plugintypes.NodeRef{{Podname: "testpod", Nodename: nodes[0]}, {Podname: "testpod", Nodename: nodes[1]}})
 	assert.NoError(t, err)
+	assert.Len(t, *metrics, 10)
 }

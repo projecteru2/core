@@ -26,7 +26,7 @@ func (c *Calcium) InitMetrics(ctx context.Context) {
 }
 
 func (c *Calcium) doSendNodeMetrics(ctx context.Context, node *types.Node) {
-	nodeMetrics, err := c.rmgr.GetNodeMetrics(ctx, node)
+	nodeMetrics, err := c.rmgr.GetNodesMetrics(ctx, []*types.Node{node})
 	if err != nil {
 		log.WithFunc("calcium.doSendNodeMetrics").Errorf(ctx, err, "convert node %s resource info to metrics failed", node.Name)
 		return

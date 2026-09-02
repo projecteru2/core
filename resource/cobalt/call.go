@@ -16,9 +16,7 @@ func call[T any](ctx context.Context, ps []plugins.Plugin, f func(plugins.Plugin
 	errs := make([]error, len(ps))
 	for i, p := range ps {
 		wg.Go(func() {
-			if results[i], errs[i] = f(p); errs[i] != nil {
-				log.WithFunc("resource.cobalt.call").Errorf(ctx, errs[i], "failed to call plugin %+v", p.Name())
-			}
+			results[i], errs[i] = f(p)
 		})
 	}
 	wg.Wait()
@@ -26,7 +24,11 @@ func call[T any](ctx context.Context, ps []plugins.Plugin, f func(plugins.Plugin
 	var combinedErr error
 	ans := make(map[plugins.Plugin]T, len(ps))
 	for i, p := range ps {
+		if errors.Is(errs[i], plugins.ErrVerbNotSupported) {
+			continue
+		}
 		if errs[i] != nil {
+			log.WithFunc("resource.cobalt.call").Errorf(ctx, errs[i], "failed to call plugin %+v", p.Name())
 			combinedErr = errors.CombineErrors(combinedErr, errs[i])
 			continue
 		}

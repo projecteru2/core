@@ -4,7 +4,6 @@ import (
 	"context"
 	"maps"
 
-	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resource/plugins"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	resourcetypes "github.com/projecteru2/core/resource/types"
@@ -14,18 +13,13 @@ import (
 // Remap returns engine params per workload, format: {"workload-1": {"cpus": ["1-3"]}}.
 // remap never changes resource params
 func (m *Manager) Remap(ctx context.Context, nodename string, workloads []*types.Workload) (map[string]resourcetypes.Resources, error) {
-	logger := log.WithFunc("resource.cobalt.Remap").WithField("node", nodename)
 	resps, err := call(ctx, m.plugins, func(plugin plugins.Plugin) (*plugintypes.CalculateRemapResponse, error) {
 		name := plugin.Name()
 		workloadsResourceMap := make(map[string]plugintypes.WorkloadResource, len(workloads))
 		for _, workload := range workloads {
 			workloadsResourceMap[workload.ID] = workload.Resources[name]
 		}
-		resp, err := plugin.CalculateRemap(ctx, nodename, workloadsResourceMap)
-		if err != nil {
-			logger.Errorf(ctx, err, "plugin %+v node %+v failed to remap", plugin.Name(), nodename)
-		}
-		return resp, err
+		return plugin.CalculateRemap(ctx, nodename, workloadsResourceMap)
 	})
 	if err != nil {
 		return nil, err

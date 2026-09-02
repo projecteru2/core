@@ -30,11 +30,7 @@ func (m *Manager) AddNode(ctx context.Context, nodename string, opts resourcetyp
 				r := opts[plugin.Name()]
 				// plugins run even for a nil request: they read config from engine info and seed an empty etcd entry
 				logger.WithField("plugin", plugin.Name()).Debugf(ctx, "add node request %v", litter.Sdump(r))
-				resp, err := plugin.AddNode(ctx, nodename, r, nodeInfo)
-				if err != nil {
-					logger.Errorf(ctx, err, "node %+v plugin %+v failed to add node, req: %+v", nodename, plugin.Name(), litter.Sdump(r))
-				}
-				return resp, err
+				return plugin.AddNode(ctx, nodename, r, nodeInfo)
 			})
 			if err != nil {
 				rollbackPlugins = slices.Collect(maps.Keys(resps))
@@ -47,7 +43,7 @@ func (m *Manager) AddNode(ctx context.Context, nodename string, opts resourcetyp
 			return nil
 		},
 		func(ctx context.Context) error {
-			err := rollbackNodeResource(ctx, logger, nodename, rollbackPlugins, func(plugin plugins.Plugin) (*plugintypes.RemoveNodeResponse, error) {
+			err := rollbackNodeResource(ctx, rollbackPlugins, func(plugin plugins.Plugin) (*plugintypes.RemoveNodeResponse, error) {
 				return plugin.RemoveNode(ctx, nodename)
 			})
 			if err != nil {
@@ -77,11 +73,7 @@ func (m *Manager) RemoveNode(ctx context.Context, nodename string) error {
 		},
 		func(ctx context.Context) error {
 			resps, err := call(ctx, m.plugins, func(plugin plugins.Plugin) (*plugintypes.RemoveNodeResponse, error) {
-				resp, err := plugin.RemoveNode(ctx, nodename)
-				if err != nil {
-					logger.Errorf(ctx, err, "plugin %+v failed to remove node", plugin.Name())
-				}
-				return resp, err
+				return plugin.RemoveNode(ctx, nodename)
 			})
 			if err != nil {
 				rollbackPlugins = slices.Collect(maps.Keys(resps))
@@ -91,7 +83,7 @@ func (m *Manager) RemoveNode(ctx context.Context, nodename string) error {
 			return nil
 		},
 		func(ctx context.Context) error {
-			err := rollbackNodeResource(ctx, logger, nodename, rollbackPlugins, func(plugin plugins.Plugin) (*plugintypes.SetNodeResourceInfoResponse, error) {
+			err := rollbackNodeResource(ctx, rollbackPlugins, func(plugin plugins.Plugin) (*plugintypes.SetNodeResourceInfoResponse, error) {
 				return plugin.SetNodeResourceInfo(ctx, nodename, nodeCapacity[plugin.Name()], nodeUsage[plugin.Name()])
 			})
 			if err != nil {
@@ -110,11 +102,7 @@ func (m *Manager) GetMostIdleNode(ctx context.Context, nodenames []string) (stri
 	}
 
 	resps, err := call(ctx, m.plugins, func(plugin plugins.Plugin) (*plugintypes.GetMostIdleNodeResponse, error) {
-		resp, err := plugin.GetMostIdleNode(ctx, nodenames)
-		if err != nil {
-			logger.Errorf(ctx, err, "plugin %+v failed to get the most idle node of %+v", plugin.Name(), nodenames)
-		}
-		return resp, err
+		return plugin.GetMostIdleNode(ctx, nodenames)
 	})
 	if err != nil {
 		logger.Errorf(ctx, err, "failed to get the most idle node of %+v", nodenames)
@@ -176,7 +164,7 @@ func (m *Manager) SetNodeResourceUsage(ctx context.Context, nodename string, nod
 			return err
 		},
 		func(ctx context.Context) error {
-			return rollbackNodeResource(ctx, logger, nodename, rollbackPlugins, func(plugin plugins.Plugin) (*plugintypes.SetNodeResourceUsageResponse, error) {
+			return rollbackNodeResource(ctx, rollbackPlugins, func(plugin plugins.Plugin) (*plugintypes.SetNodeResourceUsageResponse, error) {
 				return plugin.SetNodeResourceUsage(ctx, nodename, before[plugin.Name()], nil, nil, false, false)
 			})
 		},
@@ -187,15 +175,10 @@ func (m *Manager) SetNodeResourceUsage(ctx context.Context, nodename string, nod
 // GetNodesDeployCapacity returns the nodes meeting every plugin's requirements, and their total capacity.
 // the caller must hold the node locks
 func (m *Manager) GetNodesDeployCapacity(ctx context.Context, nodenames []string, opts resourcetypes.Resources) (map[string]*plugintypes.NodeDeployCapacity, int, error) {
-	logger := log.WithFunc("resource.cobalt.GetNodesDeployCapacity")
 	var resp map[string]*plugintypes.NodeDeployCapacity
 
 	resps, err := call(ctx, m.plugins, func(plugin plugins.Plugin) (*plugintypes.GetNodesDeployCapacityResponse, error) {
-		resp, err := plugin.GetNodesDeployCapacity(ctx, nodenames, opts[plugin.Name()])
-		if err != nil {
-			logger.Errorf(ctx, err, "plugin %+v failed to get available nodenames, request %+v", plugin.Name(), opts[plugin.Name()])
-		}
-		return resp, err
+		return plugin.GetNodesDeployCapacity(ctx, nodenames, opts[plugin.Name()])
 	})
 	if err != nil {
 		return nil, 0, err
@@ -234,11 +217,7 @@ func (m *Manager) SetNodeResourceCapacity(ctx context.Context, nodename string, 
 				if nodeResource[plugin.Name()] == nil && nodeResourceRequest[plugin.Name()] == nil {
 					return nil, nil
 				}
-				resp, err := plugin.SetNodeResourceCapacity(ctx, nodename, nodeResource[plugin.Name()], nodeResourceRequest[plugin.Name()], delta, incr)
-				if err != nil {
-					logger.Errorf(ctx, err, "plugin %+v failed to set node resource capacity", plugin.Name())
-				}
-				return resp, err
+				return plugin.SetNodeResourceCapacity(ctx, nodename, nodeResource[plugin.Name()], nodeResourceRequest[plugin.Name()], delta, incr)
 			})
 			for plugin, resp := range resps {
 				if resp == nil {
@@ -257,7 +236,7 @@ func (m *Manager) SetNodeResourceCapacity(ctx context.Context, nodename string, 
 			return nil
 		},
 		func(ctx context.Context) error {
-			return rollbackNodeResource(ctx, logger, nodename, rollbackPlugins, func(plugin plugins.Plugin) (*plugintypes.SetNodeResourceCapacityResponse, error) {
+			return rollbackNodeResource(ctx, rollbackPlugins, func(plugin plugins.Plugin) (*plugintypes.SetNodeResourceCapacityResponse, error) {
 				return plugin.SetNodeResourceCapacity(ctx, nodename, nil, before[plugin.Name()], false, false)
 			})
 		},
@@ -284,9 +263,6 @@ func (m *Manager) getNodeResourceInfo(ctx context.Context, nodename string, ps [
 			resp, err = plugin.FixNodeResource(ctx, nodename, wrks)
 		} else {
 			resp, err = plugin.GetNodeResourceInfo(ctx, nodename, wrks)
-		}
-		if err != nil {
-			log.WithFunc("resource.cobalt.GetNodeResourceInfo").WithField("node", nodename).Errorf(ctx, err, "plugin %+v failed to get node resource", plugin.Name())
 		}
 		return resp, err
 	})
@@ -332,13 +308,7 @@ func mergeCapacity(m1, m2 map[string]*plugintypes.NodeDeployCapacity) map[string
 }
 
 // rollbackNodeResource restores every plugin that applied a failed set of the node's resources.
-func rollbackNodeResource[T any](ctx context.Context, logger *log.Fields, nodename string, ps []plugins.Plugin, restore func(plugins.Plugin) (T, error)) error {
-	_, err := call(ctx, ps, func(plugin plugins.Plugin) (T, error) {
-		resp, err := restore(plugin)
-		if err != nil {
-			logger.Errorf(ctx, err, "node %+v plugin %+v failed to rollback", nodename, plugin.Name())
-		}
-		return resp, err
-	})
+func rollbackNodeResource[T any](ctx context.Context, ps []plugins.Plugin, restore func(plugins.Plugin) (T, error)) error {
+	_, err := call(ctx, ps, func(plugin plugins.Plugin) (T, error) { return restore(plugin) })
 	return err
 }

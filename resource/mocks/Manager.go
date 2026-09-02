@@ -337,74 +337,6 @@ func (_c *Manager_GetMostIdleNode_Call) RunAndReturn(run func(context1 context.C
 	return _c
 }
 
-// GetNodeMetrics provides a mock function for the type Manager
-func (_mock *Manager) GetNodeMetrics(context1 context.Context, node *types2.Node) ([]*types1.Metrics, error) {
-	ret := _mock.Called(context1, node)
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetNodeMetrics")
-	}
-
-	var r0 []*types1.Metrics
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *types2.Node) ([]*types1.Metrics, error)); ok {
-		return returnFunc(context1, node)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *types2.Node) []*types1.Metrics); ok {
-		r0 = returnFunc(context1, node)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*types1.Metrics)
-		}
-	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, *types2.Node) error); ok {
-		r1 = returnFunc(context1, node)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
-}
-
-// Manager_GetNodeMetrics_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetNodeMetrics'
-type Manager_GetNodeMetrics_Call struct {
-	*mock.Call
-}
-
-// GetNodeMetrics is a helper method to define mock.On call
-//   - context1 context.Context
-//   - node *types2.Node
-func (_e *Manager_Expecter) GetNodeMetrics(context1 any, node any) *Manager_GetNodeMetrics_Call {
-	return &Manager_GetNodeMetrics_Call{Call: _e.mock.On("GetNodeMetrics", context1, node)}
-}
-
-func (_c *Manager_GetNodeMetrics_Call) Run(run func(context1 context.Context, node *types2.Node)) *Manager_GetNodeMetrics_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 *types2.Node
-		if args[1] != nil {
-			arg1 = args[1].(*types2.Node)
-		}
-		run(
-			arg0,
-			arg1,
-		)
-	})
-	return _c
-}
-
-func (_c *Manager_GetNodeMetrics_Call) Return(metricss []*types1.Metrics, err error) *Manager_GetNodeMetrics_Call {
-	_c.Call.Return(metricss, err)
-	return _c
-}
-
-func (_c *Manager_GetNodeMetrics_Call) RunAndReturn(run func(context1 context.Context, node *types2.Node) ([]*types1.Metrics, error)) *Manager_GetNodeMetrics_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // GetNodeResourceInfo provides a mock function for the type Manager
 func (_mock *Manager) GetNodeResourceInfo(context1 context.Context, s string, workloads []*types2.Workload, b bool) (types.Resources, types.Resources, []string, error) {
 	ret := _mock.Called(context1, s, workloads, b)
@@ -577,6 +509,74 @@ func (_c *Manager_GetNodesDeployCapacity_Call) Return(stringToNodeDeployCapacity
 }
 
 func (_c *Manager_GetNodesDeployCapacity_Call) RunAndReturn(run func(context1 context.Context, strings []string, resources types.Resources) (map[string]*types1.NodeDeployCapacity, int, error)) *Manager_GetNodesDeployCapacity_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetNodesMetrics provides a mock function for the type Manager
+func (_mock *Manager) GetNodesMetrics(context1 context.Context, nodes []*types2.Node) ([]*types1.Metrics, error) {
+	ret := _mock.Called(context1, nodes)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetNodesMetrics")
+	}
+
+	var r0 []*types1.Metrics
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []*types2.Node) ([]*types1.Metrics, error)); ok {
+		return returnFunc(context1, nodes)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []*types2.Node) []*types1.Metrics); ok {
+		r0 = returnFunc(context1, nodes)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*types1.Metrics)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, []*types2.Node) error); ok {
+		r1 = returnFunc(context1, nodes)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// Manager_GetNodesMetrics_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetNodesMetrics'
+type Manager_GetNodesMetrics_Call struct {
+	*mock.Call
+}
+
+// GetNodesMetrics is a helper method to define mock.On call
+//   - context1 context.Context
+//   - nodes []*types2.Node
+func (_e *Manager_Expecter) GetNodesMetrics(context1 any, nodes any) *Manager_GetNodesMetrics_Call {
+	return &Manager_GetNodesMetrics_Call{Call: _e.mock.On("GetNodesMetrics", context1, nodes)}
+}
+
+func (_c *Manager_GetNodesMetrics_Call) Run(run func(context1 context.Context, nodes []*types2.Node)) *Manager_GetNodesMetrics_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 []*types2.Node
+		if args[1] != nil {
+			arg1 = args[1].([]*types2.Node)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *Manager_GetNodesMetrics_Call) Return(metricss []*types1.Metrics, err error) *Manager_GetNodesMetrics_Call {
+	_c.Call.Return(metricss, err)
+	return _c
+}
+
+func (_c *Manager_GetNodesMetrics_Call) RunAndReturn(run func(context1 context.Context, nodes []*types2.Node) ([]*types1.Metrics, error)) *Manager_GetNodesMetrics_Call {
 	_c.Call.Return(run)
 	return _c
 }

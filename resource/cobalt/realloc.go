@@ -20,11 +20,7 @@ func (m *Manager) Realloc(ctx context.Context, nodename string, nodeResource, op
 	return engineParams, deltaResources, workloadResource, utils.PCR(ctx,
 		func(ctx context.Context) error {
 			resps, err := call(ctx, m.plugins, func(plugin plugins.Plugin) (*plugintypes.CalculateReallocResponse, error) {
-				resp, err := plugin.CalculateRealloc(ctx, nodename, nodeResource[plugin.Name()], opts[plugin.Name()])
-				if err != nil {
-					logger.Errorf(ctx, err, "plugin %+v failed to calculate realloc args", plugin.Name())
-				}
-				return resp, err
+				return plugin.CalculateRealloc(ctx, nodename, nodeResource[plugin.Name()], opts[plugin.Name()])
 			})
 			if err != nil {
 				logger.Errorf(ctx, err, "realloc failed, origin: %+v, opts: %+v", nodeResource, opts)

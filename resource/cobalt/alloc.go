@@ -26,11 +26,7 @@ func (m *Manager) Alloc(ctx context.Context, nodename string, deployCount int, o
 	return workloadsParams, engineParams, utils.PCR(ctx,
 		func(ctx context.Context) error {
 			resps, err := call(ctx, m.plugins, func(plugin plugins.Plugin) (*plugintypes.CalculateDeployResponse, error) {
-				resp, err := plugin.CalculateDeploy(ctx, nodename, deployCount, opts[plugin.Name()])
-				if err != nil {
-					logger.Errorf(ctx, err, "plugin %+v failed to compute alloc args, request %+v, node %+v, deploy count %+v", plugin.Name(), opts, nodename, deployCount)
-				}
-				return resp, err
+				return plugin.CalculateDeploy(ctx, nodename, deployCount, opts[plugin.Name()])
 			})
 			if err != nil {
 				return err

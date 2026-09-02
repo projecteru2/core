@@ -7,6 +7,7 @@ import (
 	"github.com/projecteru2/core/resource/plugins"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 func (m *Manager) GetMetricsDescription(ctx context.Context) ([]*plugintypes.MetricsDescription, error) {
@@ -25,19 +26,20 @@ func (m *Manager) GetMetricsDescription(ctx context.Context) ([]*plugintypes.Met
 	return metricsDescriptions, nil
 }
 
-func (m *Manager) GetNodeMetrics(ctx context.Context, node *types.Node) ([]*plugintypes.Metrics, error) {
-	logger := log.WithFunc("resource.cobalt.GetNodeMetrics").WithField("node", node.Name)
+func (m *Manager) GetNodesMetrics(ctx context.Context, nodes []*types.Node) ([]*plugintypes.Metrics, error) {
+	if len(nodes) == 0 {
+		return nil, nil
+	}
+	refs := utils.Map(nodes, func(node *types.Node) plugintypes.NodeRef {
+		return plugintypes.NodeRef{Podname: node.Podname, Nodename: node.Name}
+	})
 
 	var metrics []*plugintypes.Metrics
 	resps, err := call(ctx, m.plugins, func(plugin plugins.Plugin) (*plugintypes.GetMetricsResponse, error) {
-		resp, err := plugin.GetMetrics(ctx, node.Podname, node.Name)
-		if err != nil {
-			logger.Errorf(ctx, err, "plugin %+v failed to convert node resource info to metrics", plugin.Name())
-		}
-		return resp, err
+		return plugin.GetMetrics(ctx, refs)
 	})
 	if err != nil {
-		logger.Error(ctx, err, "failed to convert node resource info to metrics")
+		log.WithFunc("resource.cobalt.GetNodesMetrics").Error(ctx, err, "failed to convert node resource info to metrics")
 		return nil, err
 	}
 
