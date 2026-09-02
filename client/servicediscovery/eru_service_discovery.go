@@ -15,6 +15,7 @@ import (
 	"github.com/projecteru2/core/log"
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 const retryInterval = 10 * time.Second
@@ -104,9 +105,5 @@ func (w *EruServiceDiscovery) dial(cores resolver.Builder) (*grpc.ClientConn, er
 }
 
 func addressState(endpoints ...string) resolver.State {
-	addresses := make([]resolver.Address, 0, len(endpoints))
-	for _, ep := range endpoints {
-		addresses = append(addresses, resolver.Address{Addr: ep})
-	}
-	return resolver.State{Addresses: addresses}
+	return resolver.State{Addresses: utils.Map(endpoints, func(ep string) resolver.Address { return resolver.Address{Addr: ep} })}
 }
