@@ -136,7 +136,6 @@ func (e *Engine) Ping(ctx context.Context) error {
 	return nil
 }
 
-// VerifyNode proves the node holds an agent binary that answers the hooks every spec references.
 func (e *Engine) VerifyNode(ctx context.Context) error {
 	if _, err := e.run(ctx, hookBinary, hookCommand, "--help"); err != nil {
 		return errors.Wrapf(err, "node %s cannot serve %s", e.ep.Nodename, hookBinary)

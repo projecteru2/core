@@ -32,6 +32,8 @@ const (
 	keepaliveRequest = "keepalive@openssh.com"
 )
 
+type sshOp[T any] func(*ssh.Client) (T, error)
+
 var _ Runner = (*sshRunner)(nil)
 
 // sshRunner keeps one connection per node and redials when the transport drops.
@@ -135,13 +137,13 @@ func (r *sshRunner) Files(ctx context.Context) (Files, error) {
 	return &sftpFiles{client: remote, release: release}, nil
 }
 
-// Dial forwards a node socket; a forward is not a session, so MaxSessions does not bound it.
 func (r *sshRunner) Dial(ctx context.Context, network, addr string) (net.Conn, error) {
+	// a forward is not a session, so MaxSessions does not bound it
 	return retry(ctx, r, func(client *ssh.Client) (net.Conn, error) { return client.Dial(network, addr) })
 }
 
-// Ping is a global request on the connection itself, so a node whose sessions are all held still answers.
 func (r *sshRunner) Ping(ctx context.Context) error {
+	// a global request on the connection answers even when every session is held
 	_, err := retry(ctx, r, func(client *ssh.Client) (struct{}, error) {
 		replied := make(chan error, 1)
 		go func() {
@@ -303,11 +305,11 @@ func closeOnDone(ctx context.Context, sess *ssh.Session) func() {
 }
 
 // retry backs off on a refused channel open, and redials a transport that died underneath the call.
-func retry[T any](ctx context.Context, r *sshRunner, f func(*ssh.Client) (T, error)) (T, error) {
+func retry[T any](ctx context.Context, r *sshRunner, f sshOp[T]) (T, error) {
 	return retryRefused(ctx, func() (T, error) { return openOnce(ctx, r, f) })
 }
 
-func openOnce[T any](ctx context.Context, r *sshRunner, f func(*ssh.Client) (T, error)) (T, error) {
+func openOnce[T any](ctx context.Context, r *sshRunner, f sshOp[T]) (T, error) {
 	var zero T
 	client, err := r.connect(ctx, nil)
 	if err != nil {
