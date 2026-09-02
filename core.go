@@ -44,6 +44,7 @@ func serve(ctx context.Context, _ *cli.Command) error {
 	if err = log.SetupLog(ctx, &config.Log, config.SentryDSN); err != nil {
 		zerolog.Fatal().Err(err).Send()
 	}
+	defer log.SentryFlush()
 	defer log.SentryDefer()
 	logger := log.WithFunc("main.serve")
 

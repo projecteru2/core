@@ -13,7 +13,7 @@ const (
 	TriTrue
 	TriFalse
 
-	SendLargeFileChunkSize = 2 << 10
+	SendLargeFileChunkSize = 256 << 10
 )
 
 // Processing tracks the unfinished workload count for one deploy.
@@ -22,6 +22,37 @@ type Processing struct {
 	Entryname string
 	Nodename  string
 	Ident     string
+}
+
+type ListWorkloadsOptions struct {
+	Appname    string
+	Entrypoint string
+	Nodename   string
+	Limit      int64
+	Labels     map[string]string
+}
+
+type ListNodesOptions struct {
+	Podname  string
+	Labels   map[string]string
+	All      bool
+	CallInfo bool
+}
+
+type TriOptions int
+
+type ExecuteWorkloadOptions struct {
+	WorkloadID string
+	Commands   []string
+	Envs       []string
+	Workdir    string
+	OpenStdin  bool
+	ReplCmd    []byte
+}
+
+type ReallocOptions struct {
+	ID        string
+	Resources resourcetypes.Resources
 }
 
 type DeployOptions struct {
@@ -135,14 +166,6 @@ func (o *SendOptions) Validate() error {
 	return nil
 }
 
-type ListWorkloadsOptions struct {
-	Appname    string
-	Entrypoint string
-	Nodename   string
-	Limit      int64
-	Labels     map[string]string
-}
-
 type ReplaceOptions struct {
 	DeployOptions
 	NetworkInherit bool
@@ -166,13 +189,6 @@ func (o *ReplaceOptions) Normalize() {
 	}
 }
 
-type ListNodesOptions struct {
-	Podname  string
-	Labels   map[string]string
-	All      bool
-	CallInfo bool
-}
-
 type AddNodeOptions struct {
 	Nodename  string
 	Endpoint  string
@@ -194,8 +210,6 @@ func (o *AddNodeOptions) Validate() error {
 	}
 	return nil
 }
-
-type TriOptions int
 
 type SetNodeOptions struct {
 	Nodename      string
@@ -228,20 +242,6 @@ func (o *ImageOptions) Validate() error {
 		return ErrEmptyPodName
 	}
 	return nil
-}
-
-type ExecuteWorkloadOptions struct {
-	WorkloadID string
-	Commands   []string
-	Envs       []string
-	Workdir    string
-	OpenStdin  bool
-	ReplCmd    []byte
-}
-
-type ReallocOptions struct {
-	ID        string
-	Resources resourcetypes.Resources
 }
 
 type RawArgs []byte

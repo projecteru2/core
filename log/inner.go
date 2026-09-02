@@ -12,6 +12,7 @@ var argFormats = [...]string{"", "%+v", "%+v %+v", "%+v %+v %+v", "%+v %+v %+v %
 
 func fatalf(ctx context.Context, err error, format string, fields []field, args ...any) {
 	reportToSentry(ctx, sentry.LevelFatal, err, format, args...)
+	SentryFlush()
 	f := globalLogger.Fatal()
 	wrap(f, fields).Err(err).Msgf(format, args...)
 }
