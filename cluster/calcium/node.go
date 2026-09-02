@@ -238,7 +238,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 					_ = c.refreshResourceInfo(ctx, node)
 				}
 				c.invokePoolAsync(func() { c.doSendNodeMetrics(context.WithoutCancel(ctx), node) })
-				c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node) })
+				c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node.Name) })
 				return nil
 			},
 			func(ctx context.Context, failureByCond bool) error {

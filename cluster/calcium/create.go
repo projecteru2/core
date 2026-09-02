@@ -245,7 +245,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
 	}
 	wg.Wait()
 
-	c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node) })
+	c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node.Name) })
 
 	return indices, err
 }

@@ -171,7 +171,7 @@ func (c *Calcium) doReplaceWorkload(
 		return createMessage, removeMessage, err
 	}
 
-	c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node) })
+	c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node.Name) })
 
 	return createMessage, removeMessage, err
 }

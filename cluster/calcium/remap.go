@@ -13,11 +13,11 @@ import (
 )
 
 // RemapResourceAndLog remaps node resources after a binding change and logs the outcome.
-func (c *Calcium) RemapResourceAndLog(ctx context.Context, logger *log.Fields, node *types.Node) {
+func (c *Calcium) RemapResourceAndLog(ctx context.Context, logger *log.Fields, nodename string) {
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), c.config.GlobalTimeout)
 	defer cancel()
 
-	err := c.withNodeOperationLocked(ctx, node.Name, func(ctx context.Context, node *types.Node) error {
+	err := c.withNodeOperationLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
 		return c.doRemapResource(ctx, logger, node)
 	})
 	if err != nil {

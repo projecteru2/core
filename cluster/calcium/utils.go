@@ -7,12 +7,17 @@ import (
 
 	"github.com/cockroachdb/errors"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resource/plugins"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
+
+// releaseWorkers bounds the engine removes in flight on one node.
+const releaseWorkers = 16
 
 // withResourceReleased journals the node, runs the removal, then gives the workload's usage back under the node lock; the usage stays charged until the workload is gone, and a failed removal or release stays in the journal for repair.
 func (c *Calcium) withResourceReleased(ctx context.Context, logger *log.Fields, node *types.Node, workload *types.Workload, remove func(context.Context) error) error {
@@ -32,6 +37,47 @@ func (c *Calcium) withResourceReleased(ctx context.Context, logger *log.Fields, 
 		return nil
 	}
 	nodeCommit()
+	return nil
+}
+
+// releaseWorkloads runs release under each workload's lock, node by node with releaseWorkers in flight per node, gives the usage back, reports each outcome, remaps the node afterwards and calls done once every node is through.
+func (c *Calcium) releaseWorkloads(ctx context.Context, logger *log.Fields, IDs []string, release func(context.Context, *types.Node, *types.Workload) error, report func(workloadID string, err error) error, done func()) error {
+	nodeWorkloadGroup, err := c.groupWorkloadsByNode(ctx, IDs)
+	if err != nil {
+		return err
+	}
+	utils.SentryGo(func() {
+		defer done()
+		wg := sync.WaitGroup{}
+		defer wg.Wait()
+		for nodename, workloadIDs := range nodeWorkloadGroup {
+			wg.Add(1)
+			_ = c.pool.Invoke(func() {
+				defer wg.Done()
+				node, err := c.store.GetNode(ctx, nodename)
+				if err != nil {
+					logger.WithField("node", nodename).Error(ctx, err, "failed to get node")
+					for _, workloadID := range workloadIDs {
+						_ = report(workloadID, err)
+					}
+					return
+				}
+				var releases errgroup.Group
+				releases.SetLimit(releaseWorkers)
+				for _, workloadID := range workloadIDs {
+					releases.Go(func() error {
+						defer log.SentryDefer()
+						err := c.withWorkloadLocked(ctx, workloadID, false, func(ctx context.Context, workload *types.Workload) error {
+							return c.withResourceReleased(ctx, logger, node, workload, func(ctx context.Context) error { return release(ctx, node, workload) })
+						})
+						return report(workloadID, err)
+					})
+				}
+				_ = releases.Wait()
+				c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node.Name) })
+			})
+		}
+	})
 	return nil
 }
 
