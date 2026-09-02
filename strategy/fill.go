@@ -22,14 +22,14 @@ func FillPlan(_ context.Context, infos []Info, need, _, limit int) (_ map[string
 	slices.SortFunc(infos, func(a, b Info) int {
 		return cmp.Or(cmp.Compare(b.Count, a.Count), cmp.Compare(b.Capacity, a.Capacity))
 	})
-	deployMap, toDeploy := make(map[string]int), 0
+	deployMap, toDeploy, remain := make(map[string]int), 0, limit
 	for _, info := range infos {
 		if info.Count+info.Capacity >= need {
 			deploy := max(need-info.Count, 0)
 			deployMap[info.Nodename] = deploy
 			toDeploy += deploy
-			limit--
-			if limit == 0 {
+			remain--
+			if remain == 0 {
 				if toDeploy == 0 {
 					err = types.ErrAlreadyFilled
 				}
