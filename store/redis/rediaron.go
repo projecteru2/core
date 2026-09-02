@@ -22,17 +22,32 @@ import (
 const (
 	keyNotifyPrefix = "__keyspace@%d__:%s"
 
-	actionExpire  = "expire"
 	actionExpired = "expired"
 	actionSet     = "set"
 	actionDel     = "del"
+
+	createdExists  = "exists"
+	createdMissing = "missing"
+
+	scanCount = 1000
 )
 
 var (
-	// ErrAlreadyExists indicates SETNX found the key already set.
+	// ErrAlreadyExists indicates a create found one of its keys already set.
 	ErrAlreadyExists = errors.New("key already exists")
 	// ErrKeyNotExists indicates an update targeted a missing key, as the etcd store reports it.
 	ErrKeyNotExists = errors.New("key not exists")
+
+	createScript = redis.NewScript(`
+if KEYS[1] ~= "" and redis.call("exists", KEYS[1]) == 0 then return "missing" end
+for i = 2, #KEYS do
+    if redis.call("exists", KEYS[i]) == 1 then return "exists" end
+end
+if KEYS[1] ~= "" then redis.call("decr", KEYS[1]) end
+for i = 2, #KEYS do redis.call("set", KEYS[i], ARGV[i-1]) end
+return "ok"`)
+
+	globMeta = strings.NewReplacer(`\`, `\\`, "*", `\*`, "?", `\?`, "[", `\[`, "]", `\]`)
 )
 
 // Rediaron is a store implemented by redis
@@ -123,7 +138,7 @@ func (r *Rediaron) GetOne(ctx context.Context, key string) (string, error) {
 }
 
 func (r *Rediaron) GetPrefix(ctx context.Context, prefix string, limit int64) (map[string]string, error) {
-	keys, err := r.scanKeys(ctx, prefix+"*", limit)
+	keys, err := r.scanKeys(ctx, globPrefix(prefix), limit)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +146,7 @@ func (r *Rediaron) GetPrefix(ctx context.Context, prefix string, limit int64) (m
 }
 
 func (r *Rediaron) ListPrefix(ctx context.Context, prefix string) ([]string, error) {
-	return r.scanKeys(ctx, prefix+"*", 0)
+	return r.scanKeys(ctx, globPrefix(prefix), 0)
 }
 
 func (r *Rediaron) NotFound(err error) bool {
@@ -139,17 +154,19 @@ func (r *Rediaron) NotFound(err error) bool {
 }
 
 func (r *Rediaron) Watch(ctx context.Context, prefix string) iter.Seq[common.Event] {
-	messages := r.KNotify(ctx, prefix+"*")
+	messages := r.KNotify(ctx, globPrefix(prefix))
 	return func(yield func(common.Event) bool) {
 		for message := range messages {
 			event := common.Event{Key: message.Key}
 			switch message.Action {
-			case actionSet, actionExpire:
+			case actionSet:
 				event.Type = common.EventPut
 			case actionDel:
 				event.Type = common.EventDelete
 			case actionExpired:
 				event.Type = common.EventExpire
+			default:
+				continue
 			}
 			if !yield(event) {
 				return
@@ -193,24 +210,7 @@ func (r *Rediaron) Update(ctx context.Context, data map[string]string) error {
 }
 
 func (r *Rediaron) Create(ctx context.Context, data map[string]string) error {
-	create := func(pipe redis.Pipeliner) error {
-		for key, value := range data {
-			pipe.SetNX(ctx, key, value, 0)
-		}
-		return nil
-	}
-
-	cmds, err := r.cli.TxPipelined(ctx, create)
-	if err != nil {
-		return err
-	}
-
-	for _, cmd := range cmds {
-		if created, _ := cmd.(*redis.BoolCmd).Result(); !created {
-			return ErrAlreadyExists
-		}
-	}
-	return nil
+	return r.create(ctx, data, "")
 }
 
 func (r *Rediaron) Put(ctx context.Context, data map[string]string) error {
@@ -225,16 +225,8 @@ func (r *Rediaron) Put(ctx context.Context, data map[string]string) error {
 	return err
 }
 
-func (r *Rediaron) CreateAndDecr(ctx context.Context, data map[string]string, decrKey string) (err error) {
-	batchCreateAndDecr := func(pipe redis.Pipeliner) error {
-		pipe.Decr(ctx, decrKey)
-		for key, value := range data {
-			pipe.SetNX(ctx, key, value, 0)
-		}
-		return nil
-	}
-	_, err = r.cli.TxPipelined(ctx, batchCreateAndDecr)
-	return err
+func (r *Rediaron) CreateAndDecr(ctx context.Context, data map[string]string, decrKey string) error {
+	return r.create(ctx, data, decrKey)
 }
 
 func (r *Rediaron) Delete(ctx context.Context, keys []string) error {
@@ -245,17 +237,50 @@ func (r *Rediaron) Delete(ctx context.Context, keys []string) error {
 }
 
 func (r *Rediaron) BindStatus(ctx context.Context, entityKey, statusKey, statusValue string, ttl int64) error {
-	count, err := r.cli.Exists(ctx, entityKey).Result()
-	if err != nil {
+	var entity *redis.IntCmd
+	var current *redis.StringCmd
+	_, err := r.cli.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+		entity = pipe.Exists(ctx, entityKey)
+		current = pipe.Get(ctx, statusKey)
+		return nil
+	})
+	if err != nil && !isRedisNoKeyError(err) {
 		return err
 	}
 	// mirrors etcd: a missing entity key is an error
-	if count != 1 {
+	if entity.Val() != 1 {
 		return types.ErrInvaildCount
 	}
 
-	_, err = r.cli.Set(ctx, statusKey, statusValue, time.Duration(ttl)*time.Second).Result()
-	return err
+	expiry := time.Duration(ttl) * time.Second
+	switch {
+	case current.Err() != nil || current.Val() != statusValue:
+		return r.cli.Set(ctx, statusKey, statusValue, expiry).Err()
+	case ttl > 0:
+		return r.cli.Expire(ctx, statusKey, expiry).Err()
+	default:
+		return r.cli.Persist(ctx, statusKey).Err()
+	}
+}
+
+func (r *Rediaron) create(ctx context.Context, data map[string]string, decrKey string) error {
+	keys := []string{decrKey}
+	values := make([]any, 0, len(data))
+	for _, key := range slices.Sorted(maps.Keys(data)) {
+		keys = append(keys, key)
+		values = append(values, data[key])
+	}
+	created, err := createScript.Run(ctx, r.cli, keys, values...).Text()
+	if err != nil {
+		return err
+	}
+	switch created {
+	case createdExists:
+		return ErrAlreadyExists
+	case createdMissing:
+		return errors.Wrap(ErrKeyNotExists, decrKey)
+	}
+	return nil
 }
 
 // go-redis does not export proto.Error, so the message is the only signal.

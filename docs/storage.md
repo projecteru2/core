@@ -54,8 +54,11 @@ transactional pipelines, while multi-key reads and deletes are single `MGET` / `
 see status changes otherwise. Ephemeral keys are ordinary keys with a TTL, refreshed on a timer.
 
 One behaviour differs from etcd and is marked as such in the code: `Update` checks key
-existence before writing rather than doing it in one transaction. Tests run against an embedded
-miniredis.
+existence before writing rather than doing it in one transaction. `Create` and `CreateAndDecr`
+run as one Lua script, so a conflicting key writes nothing and the processing counter must exist,
+as on etcd. A status heartbeat that carries an unchanged value only refreshes the key's TTL, and
+TTL refreshes are not watch events, so streams see status changes rather than heartbeats. Tests
+run against an embedded miniredis.
 
 Note that even with `store: redis`, the built-in cpumem resource plugin still uses the etcd
 config for its own bookkeeping — see [Resource plugins](resource-plugins.md).
