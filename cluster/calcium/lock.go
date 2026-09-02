@@ -10,6 +10,7 @@ import (
 	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 type (
@@ -17,7 +18,7 @@ type (
 	nodesHandler     func(context.Context, map[string]*types.Node) error
 	workloadHandler  func(context.Context, *types.Workload) error
 	workloadsHandler func(context.Context, map[string]*types.Workload) error
-	nodeLockKey      func(*types.Node) string
+	nodeLockKeys     func([]*types.Node) []string
 )
 
 func (c *Calcium) doLock(ctx context.Context, name string, timeout time.Duration) (lock lock.DistributedLock, rCtx context.Context, err error) {
@@ -94,29 +95,29 @@ func (c *Calcium) withWorkloadsLocked(ctx context.Context, ignoreLock bool, IDs 
 	return f(ctx, workloads)
 }
 
-func (c *Calcium) withNodePodLocked(ctx context.Context, nodename string, f nodeHandler) error {
-	return withNodeLocked(ctx, nodename, c.withNodesPodLocked, f)
-}
-
 func (c *Calcium) withNodeOperationLocked(ctx context.Context, nodename string, f nodeHandler) error {
 	return withNodeLocked(ctx, nodename, c.withNodesOperationLocked, f)
 }
 
 func (c *Calcium) withNodesOperationLocked(ctx context.Context, nodeFilter *types.NodeFilter, f nodesHandler) error {
-	genKey := func(node *types.Node) string {
-		return fmt.Sprintf(cluster.NodeOperationLock, node.Podname, node.Name)
-	}
-	return c.withNodesLocked(ctx, nodeFilter, genKey, f)
+	return c.withNodesLocked(ctx, nodeFilter, nodeOperationKeys, f)
 }
 
-func (c *Calcium) withNodesPodLocked(ctx context.Context, nodeFilter *types.NodeFilter, f nodesHandler) error {
-	genKey := func(node *types.Node) string {
-		return fmt.Sprintf(cluster.PodLock, node.Podname)
-	}
-	return c.withNodesLocked(ctx, nodeFilter, genKey, f)
+// withNodesPlanLocked serializes a deploy plan: one candidate takes its node lock, several take the pod lock and every node lock.
+func (c *Calcium) withNodesPlanLocked(ctx context.Context, nodeFilter *types.NodeFilter, f nodesHandler) error {
+	return c.withNodesLocked(ctx, nodeFilter, func(nodes []*types.Node) []string {
+		if len(nodes) == 1 {
+			return nodeOperationKeys(nodes)
+		}
+		return append(podKeys(nodes), nodeOperationKeys(nodes)...)
+	}, f)
 }
 
-func (c *Calcium) withNodesLocked(ctx context.Context, nodeFilter *types.NodeFilter, genKey nodeLockKey, f nodesHandler) error {
+func (c *Calcium) withPodLocked(ctx context.Context, podname string, f nodesHandler) error {
+	return c.withNodesLocked(ctx, &types.NodeFilter{Podname: podname, All: true}, podKeys, f)
+}
+
+func (c *Calcium) withNodesLocked(ctx context.Context, nodeFilter *types.NodeFilter, keysOf nodeLockKeys, f nodesHandler) error {
 	nodes := map[string]*types.Node{}
 	locks := map[string]lock.DistributedLock{}
 	lockKeys := []string{}
@@ -132,12 +133,11 @@ func (c *Calcium) withNodesLocked(ctx context.Context, nodeFilter *types.NodeFil
 	if err != nil {
 		return err
 	}
-
-	keys := make([]string, 0, len(ns))
 	for _, n := range ns {
 		nodes[n.Name] = n
-		keys = append(keys, genKey(n))
 	}
+
+	keys := keysOf(ns)
 	slices.Sort(keys)
 	var lock lock.DistributedLock
 	for _, key := range slices.Compact(keys) {
@@ -150,6 +150,49 @@ func (c *Calcium) withNodesLocked(ctx context.Context, nodeFilter *types.NodeFil
 		lockKeys = append(lockKeys, key)
 	}
 	return f(ctx, nodes)
+}
+
+// withNodeKeyLocked takes one node's operation lock around f; the caller already holds the node.
+func (c *Calcium) withNodeKeyLocked(ctx context.Context, node *types.Node, f func(context.Context) error) error {
+	lock, ctx, err := c.doLock(ctx, nodeOperationKey(node), c.config.LockTimeout)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := c.doUnlock(context.WithoutCancel(ctx), lock, nodeOperationKey(node)); err != nil {
+			log.WithFunc("calcium.withNodeKeyLocked").Errorf(ctx, err, "failed to unlock %s", nodeOperationKey(node))
+		}
+	}()
+	return f(ctx)
+}
+
+// withNodes resolves the filter without taking any lock, for paths that only read.
+func (c *Calcium) withNodes(ctx context.Context, nodeFilter *types.NodeFilter, f nodesHandler) error {
+	ns, err := c.filterNodes(ctx, nodeFilter)
+	if err != nil {
+		return err
+	}
+	nodes := make(map[string]*types.Node, len(ns))
+	for _, n := range ns {
+		nodes[n.Name] = n
+	}
+	return f(ctx, nodes)
+}
+
+func (c *Calcium) withNode(ctx context.Context, nodename string, f nodeHandler) error {
+	return withNodeLocked(ctx, nodename, c.withNodes, f)
+}
+
+func nodeOperationKey(node *types.Node) string {
+	return fmt.Sprintf(cluster.NodeOperationLock, node.Podname, node.Name)
+}
+
+func nodeOperationKeys(nodes []*types.Node) []string {
+	return utils.Map(nodes, nodeOperationKey)
+}
+
+func podKeys(nodes []*types.Node) []string {
+	return utils.Map(nodes, func(node *types.Node) string { return fmt.Sprintf(cluster.PodLock, node.Podname) })
 }
 
 func withNodeLocked(ctx context.Context, nodename string, withNodes func(context.Context, *types.NodeFilter, nodesHandler) error, f nodeHandler) error {

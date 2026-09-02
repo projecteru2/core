@@ -23,26 +23,26 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, IDs []string) (chan *t
 		defer close(ch)
 
 		for nodename, workloadIDs := range nodeWorkloadGroup {
-			if nodeErr := c.withNodePodLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
-				for _, workloadID := range workloadIDs {
-					msg := &types.DissociateWorkloadMessage{WorkloadID: workloadID}
-					if workloadErr := c.withWorkloadLocked(ctx, workloadID, false, func(ctx context.Context, workload *types.Workload) error {
-						return c.withResourceReleased(ctx, node, workload, func(ctx context.Context) error {
-							return c.store.RemoveWorkload(ctx, workload)
-						})
-					}); workloadErr != nil {
-						logger.WithField("id", workloadID).Error(ctx, workloadErr, "failed to dissociate workload")
-						msg.Error = workloadErr
-					}
-					if err := send(caller, ch, msg); err != nil {
-						return err
-					}
-				}
-				c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node) })
-				return nil
-			}); nodeErr != nil {
-				logger.WithField("node", nodename).Error(ctx, nodeErr, "failed to lock node")
+			node, err := c.store.GetNode(ctx, nodename)
+			if err != nil {
+				logger.WithField("node", nodename).Error(ctx, err, "failed to get node")
+				continue
 			}
+			for _, workloadID := range workloadIDs {
+				msg := &types.DissociateWorkloadMessage{WorkloadID: workloadID}
+				if workloadErr := c.withWorkloadLocked(ctx, workloadID, false, func(ctx context.Context, workload *types.Workload) error {
+					return c.withResourceReleased(ctx, node, workload, func(ctx context.Context) error {
+						return c.store.RemoveWorkload(ctx, workload)
+					})
+				}); workloadErr != nil {
+					logger.WithField("id", workloadID).Error(ctx, workloadErr, "failed to dissociate workload")
+					msg.Error = workloadErr
+				}
+				if err := send(caller, ch, msg); err != nil {
+					return
+				}
+			}
+			c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node) })
 		}
 	})
 	return ch, nil

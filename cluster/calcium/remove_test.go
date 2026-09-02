@@ -2,6 +2,7 @@ package calcium
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -155,4 +156,42 @@ func TestRemoveWorkloadJournalsRepairEntries(t *testing.T) {
 	}
 	assert.Equal(t, []string{eventWorkloadResourceAllocated, eventWorkloadCreated}, logged)
 	assert.Equal(t, 2, committed)
+}
+
+func TestRemoveWorkloadLocksTheWorkloadThenItsNode(t *testing.T) {
+	c := NewTestCluster()
+	defer c.pool.Release()
+	ctx := t.Context()
+	store := c.store.(*storemocks.Store)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	engine := &enginemocks.API{}
+	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	workload := &types.Workload{ID: "w1", Name: "app_entry_x", Nodename: "n1", Engine: engine}
+	node := &types.Node{NodeMeta: types.NodeMeta{Name: "n1", Podname: "p1"}}
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
+	store.On("GetNode", mock.Anything, "n1").Return(node, nil)
+	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)
+	rmgr.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(resourcetypes.Resources{}, resourcetypes.Resources{}, nil)
+	rmgr.On("Remap", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)
+	lock := &lockmocks.DistributedLock{}
+	lock.On("Lock", mock.Anything).Return(ctx, nil)
+	lock.On("Unlock", mock.Anything).Return(nil)
+	var mu sync.Mutex
+	keys := []string{}
+	store.On("CreateLock", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+		mu.Lock()
+		defer mu.Unlock()
+		keys = append(keys, args.String(0))
+	}).Return(lock, nil)
+
+	ch, err := c.RemoveWorkload(ctx, []string{"w1"}, true)
+	assert.NoError(t, err)
+	for m := range ch {
+		assert.True(t, m.Success)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	assert.Equal(t, []string{"clock_w1", "cnode_op_p1_n1"}, keys[:2], "the workload lock first, then the node lock around the release, never the pod lock")
+	assert.NotContains(t, keys, "plock_p1")
 }

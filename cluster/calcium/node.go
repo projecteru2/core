@@ -93,7 +93,7 @@ func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 		logger.Error(ctx, types.ErrEmptyNodeName)
 		return types.ErrEmptyNodeName
 	}
-	return c.withNodePodLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
+	return c.withNodeOperationLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
 		workloads, err := c.ListNodeWorkloads(ctx, node.Name, nil)
 		if err != nil {
 			logger.Error(ctx, err)
@@ -195,7 +195,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 		return nil, err
 	}
 	var n *types.Node
-	err := c.withNodePodLocked(ctx, opts.Nodename, func(ctx context.Context, node *types.Node) error {
+	err := c.withNodeOperationLocked(ctx, opts.Nodename, func(ctx context.Context, node *types.Node) error {
 		logger.Info(ctx, "set node")
 		var err error
 		if err = c.refreshResourceInfo(ctx, node); err != nil {

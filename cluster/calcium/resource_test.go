@@ -21,10 +21,6 @@ func TestPodResource(t *testing.T) {
 	nodename := "testnode"
 	store := c.store.(*storemocks.Store)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
-	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(ctx, nil)
-	lock.On("Unlock", mock.Anything).Return(nil)
-
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch, err := c.PodResource(ctx, podname)
 	assert.Error(t, err)
@@ -35,8 +31,6 @@ func TestPodResource(t *testing.T) {
 		},
 	}
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
-	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch, err = c.PodResource(ctx, podname)
 	assert.NoError(t, err)

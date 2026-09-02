@@ -21,15 +21,15 @@ func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOption
 	if err != nil {
 		return err
 	}
+	node, err := c.store.GetNode(ctx, workload.Nodename)
+	if err != nil {
+		return err
+	}
 	var repair reallocRepair
-	err = c.withNodePodLocked(ctx, workload.Nodename, func(ctx context.Context, node *types.Node) error {
-		return c.withNodeOperationLocked(ctx, node.Name, func(ctx context.Context, node *types.Node) error {
-			return c.withWorkloadLocked(ctx, opts.ID, false, func(ctx context.Context, workload *types.Workload) error {
-				repair, err = c.doReallocOnNode(ctx, node, workload, opts)
-				logger.Error(ctx, err)
-				return err
-			})
-		})
+	err = c.withWorkloadLocked(ctx, opts.ID, false, func(ctx context.Context, workload *types.Workload) error {
+		repair, err = c.doReallocOnNode(ctx, node, workload, opts)
+		logger.Error(ctx, err)
+		return err
 	})
 	if repair != nil {
 		repair()
@@ -60,9 +60,10 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 	settled, err := utils.Txn(
 		ctx,
 		func(ctx context.Context) error {
-			// Realloc mutates node resource meta in the resource plugin
-			engineParams, deltaResources, resources, err = c.rmgr.Realloc(ctx, workload.Nodename, workload.Resources, opts.Resources)
-			if err != nil {
+			if err = c.withNodeKeyLocked(ctx, node, func(ctx context.Context) (err error) {
+				engineParams, deltaResources, resources, err = c.rmgr.Realloc(ctx, workload.Nodename, workload.Resources, opts.Resources)
+				return err
+			}); err != nil {
 				return err
 			}
 			reallocated = true
@@ -81,7 +82,9 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 			}
 			c.remapped.Delete(workload.Nodename)
 			var rollbackErr error
-			if resourceErr := c.rmgr.RollbackRealloc(ctx, workload.Nodename, deltaResources); resourceErr != nil {
+			if resourceErr := c.withNodeKeyLocked(ctx, node, func(ctx context.Context) error {
+				return c.rmgr.RollbackRealloc(ctx, workload.Nodename, deltaResources)
+			}); resourceErr != nil {
 				rollbackErr = errors.Join(rollbackErr, resourceErr)
 				logger.Errorf(ctx, rollbackErr, "failed to rollback workload %+v, resource args %+v, engine args %+v", workload.ID, litter.Sdump(resources), litter.Sdump(engineParams))
 			}
