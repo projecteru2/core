@@ -95,7 +95,7 @@ func TestMutexesOnOneKeyHoldDistinctSessions(t *testing.T) {
 	assert.NoError(t, holder.Unlock(t.Context()))
 }
 
-func TestLockFailureRevokesTheSession(t *testing.T) {
+func TestLockTimeoutLeavesTheSessionReusable(t *testing.T) {
 	cluster, err := embedded.New(t.TempDir())
 	assert.NoError(t, err)
 	t.Cleanup(cluster.Close)
@@ -109,13 +109,22 @@ func TestLockFailureRevokesTheSession(t *testing.T) {
 
 	waiter, err := New(pool, "revoke", 100*time.Millisecond)
 	assert.NoError(t, err)
+	session := waiter.session
 	_, err = waiter.Lock(t.Context())
 	assert.EqualError(t, err, "context deadline exceeded")
 
 	leases, err := cli.Leases(t.Context())
 	assert.NoError(t, err)
-	assert.Len(t, leases.Leases, 1)
-	assert.Empty(t, pool.idle)
+	assert.Len(t, leases.Leases, 2)
+	assert.Len(t, pool.idle, 1)
 	assert.NoError(t, waiter.Unlock(t.Context()))
+	assert.Len(t, pool.idle, 1)
+
+	reuser, err := New(pool, "reuse-after-timeout", time.Second)
+	assert.NoError(t, err)
+	assert.Same(t, session, reuser.session)
+	_, err = reuser.Lock(t.Context())
+	assert.NoError(t, err)
+	assert.NoError(t, reuser.Unlock(t.Context()))
 	assert.NoError(t, holder.Unlock(t.Context()))
 }
