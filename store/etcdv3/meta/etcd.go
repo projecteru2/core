@@ -266,111 +266,68 @@ func (e *ETCD) batchPut(ctx context.Context, data map[string]string, cond *txnCo
 	return e.doBatchOp(ctx, txnes)
 }
 
-func (e *ETCD) isTTLChanged(ctx context.Context, key string, ttl int64) (bool, error) {
-	resp, err := e.GetOne(ctx, key)
+func (e *ETCD) currentStatus(ctx context.Context, key string, ttl int64) (*mvccpb.KeyValue, bool, error) {
+	kv, err := e.GetOne(ctx, key)
 	if err != nil {
 		if errors.Is(err, types.ErrInvaildCount) {
-			return ttl != 0, nil
+			return nil, ttl != 0, nil
 		}
-		return false, err
+		return nil, false, err
+	}
+	if kv.Lease == 0 {
+		return kv, ttl != 0, nil
 	}
 
-	leaseID := clientv3.LeaseID(resp.Lease)
-	if leaseID == 0 {
-		return ttl != 0, nil
-	}
-
-	getTTLResp, err := e.cliv3.TimeToLive(ctx, leaseID)
+	granted, err := e.cliv3.TimeToLive(ctx, clientv3.LeaseID(kv.Lease))
 	if err != nil {
-		return false, err
+		return nil, false, err
 	}
-
-	changed := getTTLResp.GrantedTTL != ttl
+	changed := granted.GrantedTTL != ttl
 	if changed {
-		log.WithFunc("store.etcdv3.meta.isTTLChanged").Infof(ctx, "key %+v ttl changed from %+v to %+v", key, getTTLResp.GrantedTTL, ttl)
+		log.WithFunc("store.etcdv3.meta.currentStatus").Infof(ctx, "key %+v ttl changed from %+v to %+v", key, granted.GrantedTTL, ttl)
 	}
-
-	return changed, nil
+	return kv, changed, nil
 }
 
 func (e *ETCD) bindStatusWithTTL(ctx context.Context, entityKey, statusKey, statusValue string, ttl int64) error {
+	logger := log.WithFunc("store.etcdv3.meta.bindStatusWithTTL")
+	renewed, err := e.cliv3.Txn(ctx).
+		If(
+			clientv3.Compare(clientv3.Version(entityKey), "!=", 0),
+			clientv3.Compare(clientv3.Value(statusKey), "=", statusValue),
+		).
+		Then(clientv3.OpGet(statusKey)).
+		Commit()
+	if err != nil {
+		return err
+	}
+	if renewed.Succeeded {
+		if kvs := renewed.Responses[0].GetResponseRange().Kvs; len(kvs) == 1 && kvs[0].Lease != 0 {
+			alive, keepErr := e.cliv3.KeepAliveOnce(ctx, clientv3.LeaseID(kvs[0].Lease))
+			if keepErr == nil && alive.TTL == ttl {
+				return nil
+			}
+		}
+	}
+
 	lease, err := e.cliv3.Grant(ctx, ttl)
 	if err != nil {
 		return err
 	}
-
-	leaseID := lease.ID
-	updateStatus := []clientv3.Op{clientv3.OpPut(statusKey, statusValue, clientv3.WithLease(leaseID))}
-	logger := log.WithFunc("store.etcdv3.meta.bindStatusWithTTL")
-
-	ttlChanged, err := e.isTTLChanged(ctx, statusKey, ttl)
+	bound, err := e.cliv3.Txn(ctx).
+		If(clientv3.Compare(clientv3.Version(entityKey), "!=", 0)).
+		Then(clientv3.OpPut(statusKey, statusValue, clientv3.WithLease(lease.ID))).
+		Commit()
 	if err != nil {
+		e.revokeLease(ctx, lease.ID)
 		return err
 	}
-
-	var entityTxn *clientv3.TxnResponse
-
-	if ttlChanged {
-		entityTxn, err = e.cliv3.Txn(ctx).
-			If(clientv3.Compare(clientv3.Version(entityKey), "!=", 0)).
-			Then(updateStatus...).
-			Commit()
-	} else {
-		entityTxn, err = e.cliv3.Txn(ctx).
-			If(clientv3.Compare(clientv3.Version(entityKey), "!=", 0)).
-			Then(
-				clientv3.OpTxn(
-					[]clientv3.Cmp{clientv3.Compare(clientv3.Version(statusKey), "!=", 0)},
-					[]clientv3.Op{clientv3.OpTxn(
-						[]clientv3.Cmp{clientv3.Compare(clientv3.LeaseValue(statusKey), "!=", 0)},
-						[]clientv3.Op{clientv3.OpTxn(
-							[]clientv3.Cmp{clientv3.Compare(clientv3.Value(statusKey), "=", statusValue)},
-							[]clientv3.Op{clientv3.OpGet(statusKey)},
-							updateStatus,
-						)},
-						updateStatus,
-					)},
-					updateStatus,
-				),
-			).Commit()
-	}
-
-	if err != nil {
-		e.revokeLease(ctx, leaseID)
-		return err
-	}
-
-	if !entityTxn.Succeeded {
-		e.revokeLease(ctx, leaseID)
+	if !bound.Succeeded {
+		e.revokeLease(ctx, lease.ID)
 		return types.ErrInvaildCount
 	}
-
-	if ttlChanged {
-		logger.Infof(ctx, "put: key %s value %s", statusKey, statusValue)
-		return nil
-	}
-
-	valueTxn := entityTxn.Responses[0].GetResponseTxn()
-	for range 2 {
-		if !valueTxn.Succeeded {
-			logger.Infof(ctx, "put: key %s value %s", statusKey, statusValue)
-			return nil
-		}
-		valueTxn = valueTxn.Responses[0].GetResponseTxn()
-	}
-	if !valueTxn.Succeeded {
-		logger.Infof(ctx, "put: key %s value %s", statusKey, statusValue)
-		return nil
-	}
-
-	origLeaseID := clientv3.LeaseID(valueTxn.Responses[0].GetResponseRange().Kvs[0].Lease)
-
-	if origLeaseID != leaseID {
-		e.revokeLease(ctx, leaseID)
-	}
-
-	_, err = e.cliv3.KeepAliveOnce(ctx, origLeaseID)
-	return err
+	logger.Infof(ctx, "put: key %s value %s", statusKey, statusValue)
+	return nil
 }
 
 func (e *ETCD) bindStatusWithoutTTL(ctx context.Context, entityKey, statusKey, statusValue string) error {
