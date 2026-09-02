@@ -37,6 +37,7 @@ type Info struct {
 
 type strategyFunc = func(_ context.Context, _ []Info, need, total, limit int) (map[string]int, error)
 
+// Deploy spreads count workloads over strategyInfos by the named plan; a plan may reorder the slice.
 func Deploy(ctx context.Context, strategy string, count, nodesLimit int, strategyInfos []Info, total int) (map[string]int, error) {
 	deployMethod, ok := Plans[strategy]
 	if !ok {

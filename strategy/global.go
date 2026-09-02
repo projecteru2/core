@@ -30,7 +30,9 @@ func GlobalPlan(_ context.Context, infos []Info, need, total, _ int) (map[string
 		deployMap[infoWithMinUsage.Nodename]++
 		infoWithMinUsage.Usage += infoWithMinUsage.Rate
 		infoWithMinUsage.Capacity--
-		heap.Push(h, infoWithMinUsage)
+		if h.admit(infoWithMinUsage) {
+			heap.Push(h, infoWithMinUsage)
+		}
 	}
 
 	return deployMap, nil

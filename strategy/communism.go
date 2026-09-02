@@ -37,6 +37,8 @@ func CommunismPlan(_ context.Context, infos []Info, need, total, limit int) (map
 		}
 		info.Count++
 		info.Capacity--
-		heap.Push(iHeap, info)
+		if iHeap.admit(info) {
+			heap.Push(iHeap, info)
+		}
 	}
 }

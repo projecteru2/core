@@ -145,20 +145,16 @@ func (n *NodeStatusWatcher) initNodeStatus(ctx context.Context) {
 		})
 	}()
 
+	var handlers errgroup.Group
+	handlers.SetLimit(nodeStatusHandlers)
 	for node := range nodes {
-		status, err := n.cluster.GetNodeStatus(ctx, node.Name)
-		if err != nil {
-			status = &types.NodeStatus{
-				Nodename: node.Name,
-				Podname:  node.Podname,
-				Alive:    false,
-			}
-		}
-		if node.Test {
-			status.Alive = true
-		}
-		n.dealNodeStatusMessage(ctx, status)
+		status := &types.NodeStatus{Nodename: node.Name, Podname: node.Podname, Alive: node.Available || node.Test}
+		handlers.Go(func() error {
+			n.dealNodeStatusMessage(ctx, status)
+			return nil
+		})
 	}
+	_ = handlers.Wait()
 }
 
 func (n *NodeStatusWatcher) monitor(ctx context.Context) error {
