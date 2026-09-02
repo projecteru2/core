@@ -239,7 +239,7 @@ func TestVirtualizationInspectReportsAMissingWorkload(t *testing.T) {
 }
 
 func TestVirtualizationWaitReturnsExecMainStatus(t *testing.T) {
-	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: "3\n"} }}
+	runner := &sshrunnertest.Fake{Started: []*sshrunnertest.Session{{Out: "3\n"}}}
 	e := testEngine(t, runner)
 
 	waited, err := e.VirtualizationWait(t.Context(), "w1", "")
@@ -249,10 +249,13 @@ func TestVirtualizationWaitReturnsExecMainStatus(t *testing.T) {
 	if waited.Code != 3 {
 		t.Errorf("got code %d, want 3", waited.Code)
 	}
+	if !runner.Started[0].Closed() {
+		t.Error("the wait must give its stream session back")
+	}
 }
 
 func TestVirtualizationWaitFailsOnAnUnreadableStatus(t *testing.T) {
-	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: "\n"} }}
+	runner := &sshrunnertest.Fake{Started: []*sshrunnertest.Session{{Out: "\n"}}}
 	e := testEngine(t, runner)
 
 	waited, err := e.VirtualizationWait(t.Context(), "w1", "")

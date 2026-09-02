@@ -14,7 +14,7 @@ import (
 const chdirScript = `cd "$1" && shift && exec "$@"`
 
 func (e *Engine) Execute(ctx context.Context, ID string, config *enginetypes.ExecConfig) (execID string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
-	record, _, err := e.workloadMeta(ctx, ID)
+	record, err := e.record(ctx, ID)
 	if err != nil {
 		return "", nil, nil, nil, err
 	}

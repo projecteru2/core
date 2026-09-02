@@ -2,11 +2,13 @@ package sshrunner
 
 import (
 	"context"
+	"io"
 	"net"
 	"slices"
 	"strings"
 
 	"github.com/cockroachdb/errors"
+	"golang.org/x/sync/errgroup"
 
 	coretypes "github.com/projecteru2/core/types"
 )
@@ -70,5 +72,29 @@ func Run(ctx context.Context, runner Runner, argv ...string) (*Result, error) {
 	if err != nil {
 		return nil, err
 	}
+	return res, ExitError(argv, res)
+}
+
+// Stream runs argv on a stream connection and reports a non-zero exit as an error, for commands that outlive a control call.
+func Stream(ctx context.Context, runner Runner, argv ...string) (*Result, error) {
+	running, err := runner.Start(ctx, Quote(argv), &StartOptions{})
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = running.Close()
+	}()
+	var out, errOut []byte
+	var readers errgroup.Group
+	readers.Go(func() (err error) { out, err = io.ReadAll(running.Stdout()); return err })
+	readers.Go(func() (err error) { errOut, err = io.ReadAll(running.Stderr()); return err })
+	if readErr := readers.Wait(); readErr != nil {
+		return nil, readErr
+	}
+	code, waitErr := running.Wait()
+	if waitErr != nil {
+		return nil, waitErr
+	}
+	res := &Result{Stdout: string(out), Stderr: string(errOut), Code: code}
 	return res, ExitError(argv, res)
 }
