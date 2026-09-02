@@ -188,11 +188,11 @@ func (h *host) getFullCPUPlans(cores []*cpuCore, full int) []types.CPUMap {
 
 // eachFullCPUPlan visits every whole-core plan as the indexes of its cores; with affinity the cores go in order, otherwise the busiest first.
 func (h *host) eachFullCPUPlan(cores []*cpuCore, full int, visit func(picked []int)) {
-	pieces := make([]int, len(cores))
-	for i, core := range cores {
-		pieces[i] = core.pieces
-	}
 	if h.affinity {
+		pieces := make([]int, len(cores))
+		for i, core := range cores {
+			pieces[i] = core.pieces
+		}
 		order := make([]int, len(cores))
 		for i := range order {
 			order[i] = i
@@ -214,16 +214,17 @@ func (h *host) eachFullCPUPlan(cores []*cpuCore, full int, visit func(picked []i
 		return
 	}
 
-	cpuHeap := &cpuCoreHeap{}
+	cpuHeap := make(cpuCoreHeap, len(cores))
 	for i, core := range cores {
-		cpuHeap.Push(&cpuCore{ID: core.ID, pieces: core.pieces, index: i})
+		cpuHeap[i] = &cpuCore{ID: core.ID, pieces: core.pieces, index: i}
 	}
-	heap.Init(cpuHeap)
+	heap.Init(&cpuHeap)
 	picked := make([]int, full)
+	resourcesToPush := make([]*cpuCore, 0, full)
 	for cpuHeap.Len() >= full {
-		resourcesToPush := []*cpuCore{}
+		resourcesToPush = resourcesToPush[:0]
 		for n := range full {
-			core := heap.Pop(cpuHeap).(*cpuCore)
+			core := heap.Pop(&cpuHeap).(*cpuCore)
 			picked[n] = core.index
 			core.pieces -= h.shareBase
 			if core.pieces > 0 {
@@ -232,7 +233,7 @@ func (h *host) eachFullCPUPlan(cores []*cpuCore, full int, visit func(picked []i
 		}
 		visit(picked)
 		for _, core := range resourcesToPush {
-			heap.Push(cpuHeap, core)
+			heap.Push(&cpuHeap, core)
 		}
 	}
 }
