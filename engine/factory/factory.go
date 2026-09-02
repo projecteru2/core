@@ -80,24 +80,14 @@ func (e *EngineCache) checkAlive(ctx context.Context) {
 	defer logger.Info(ctx, "check alive ends")
 	defer e.pool.Release()
 	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-
 		wg := &sync.WaitGroup{}
 		e.cache.Range(func(_, v any) bool {
 			wg.Add(1)
-			params := v.(engine.API).GetParams()
+			client := v.(engine.API)
+			params := client.GetParams()
 			_ = e.pool.Invoke(func() {
 				defer wg.Done()
 				cacheKey := params.CacheKey()
-				client := e.Get(cacheKey)
-				if client == nil {
-					e.Delete(cacheKey)
-					return
-				}
 				if _, ok := client.(*fake.EngineWithErr); ok {
 					if newClient, err := newEngine(ctx, e.config, params); err != nil {
 						logger.Errorf(ctx, err, "engine %+v is still unavailable", cacheKey)
@@ -118,7 +108,11 @@ func (e *EngineCache) checkAlive(ctx context.Context) {
 			return true
 		})
 		wg.Wait()
-		time.Sleep(e.config.ConnectionTimeout)
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(e.config.ConnectionTimeout):
+		}
 	}
 }
 
