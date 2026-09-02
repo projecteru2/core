@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -52,6 +53,9 @@ type txnCond struct {
 type ETCD struct {
 	cliv3  ETCDClientV3
 	config types.EtcdConfig
+
+	poolMux   sync.Mutex
+	lockPools map[time.Duration]*etcdlock.Pool
 }
 
 func NewETCD(ctx context.Context, config types.EtcdConfig, embeddedETCD *embedded.Cluster) (*ETCD, error) {
@@ -87,12 +91,12 @@ func NewETCD(ctx context.Context, config types.EtcdConfig, embeddedETCD *embedde
 		cliv3.Watcher = namespace.NewWatcher(cliv3.Watcher, config.Prefix)
 		cliv3.Lease = namespace.NewLease(cliv3.Lease, config.Prefix)
 	}
-	return &ETCD{cliv3: cliv3, config: config}, nil
+	return &ETCD{cliv3: cliv3, config: config, lockPools: map[time.Duration]*etcdlock.Pool{}}, nil
 }
 
 func (e *ETCD) CreateLock(key string, ttl time.Duration) (lock.DistributedLock, error) {
 	lockKey := fmt.Sprintf("%s/%s", e.config.LockPrefix, key)
-	mutex, err := etcdlock.New(e.cliv3.(*clientv3.Client), lockKey, ttl)
+	mutex, err := etcdlock.New(e.lockPool(ttl), lockKey, ttl)
 	return mutex, err
 }
 
@@ -399,6 +403,17 @@ func (e *ETCD) bindStatusWithoutTTL(ctx context.Context, statusKey, statusValue 
 		logger.Infof(ctx, "put: key %s value %s", statusKey, statusValue)
 	}
 	return nil
+}
+
+func (e *ETCD) lockPool(ttl time.Duration) *etcdlock.Pool {
+	e.poolMux.Lock()
+	defer e.poolMux.Unlock()
+	pool, ok := e.lockPools[ttl]
+	if !ok {
+		pool = etcdlock.NewPool(e.cliv3.(*clientv3.Client), ttl)
+		e.lockPools[ttl] = pool
+	}
+	return pool
 }
 
 func (e *ETCD) revokeLease(ctx context.Context, leaseID clientv3.LeaseID) {
