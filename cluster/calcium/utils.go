@@ -14,14 +14,13 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-// withResourceReleased journals the node, runs the removal, then gives the workload's usage back under the node lock; the usage stays charged until the workload is gone, and a failed release stays in the journal for repair.
+// withResourceReleased journals the node, runs the removal, then gives the workload's usage back under the node lock; the usage stays charged until the workload is gone, and a failed removal or release stays in the journal for repair.
 func (c *Calcium) withResourceReleased(ctx context.Context, logger *log.Fields, node *types.Node, workload *types.Workload, remove func(context.Context) error) error {
 	nodeCommit, err := c.journal(ctx, logger, eventWorkloadResourceAllocated, []*types.Node{node})
 	if err != nil {
 		return err
 	}
 	if err = remove(ctx); err != nil {
-		nodeCommit()
 		return err
 	}
 	err = c.withNodeKeyLocked(ctx, node, func(ctx context.Context) (err error) {
