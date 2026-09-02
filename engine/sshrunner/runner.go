@@ -13,6 +13,7 @@ type Runner interface {
 	Start(ctx context.Context, line string, opts *StartOptions) (Session, error)
 	Files(ctx context.Context) (Files, error)
 	Dial(ctx context.Context, network, addr string) (net.Conn, error)
+	Ping(ctx context.Context) error
 	Close() error
 }
 

@@ -86,6 +86,20 @@ func TestRetryRefusedStopsOnADoneContext(t *testing.T) {
 	}
 }
 
+func TestConnectKeepsAClientAnotherCallerRenewed(t *testing.T) {
+	runner := newSSHRunner("127.0.0.1:1", &ssh.ClientConfig{})
+	current := &ssh.Client{}
+	runner.client = current
+
+	got, err := runner.connect(t.Context(), &ssh.Client{})
+	if err != nil {
+		t.Fatalf("connect: %v", err)
+	}
+	if got != current {
+		t.Error("a stale client that is no longer current must not trigger a redial")
+	}
+}
+
 func TestSSHRunnerBoundsConcurrentSessions(t *testing.T) {
 	runner := newSSHRunner("127.0.0.1:22", &ssh.ClientConfig{})
 

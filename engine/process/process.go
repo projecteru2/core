@@ -33,7 +33,10 @@ if mountpoint -q "$dir/merged"; then echo 1; else echo 0; fi
 cat "$dir/meta.json"
 `, workloadmeta.NotExistsCode)
 
-var _ engine.API = (*Engine)(nil)
+var (
+	_ engine.API          = (*Engine)(nil)
+	_ engine.NodeVerifier = (*Engine)(nil)
+)
 
 // Engine runs bare processes as systemd transient units over SSH.
 type Engine struct {
@@ -76,8 +79,14 @@ func (e *Engine) Info(ctx context.Context) (*enginetypes.Info, error) {
 }
 
 func (e *Engine) Ping(ctx context.Context) error {
-	_, err := e.run(ctx, "systemctl", "--version")
-	return err
+	return e.runner.Ping(ctx)
+}
+
+func (e *Engine) VerifyNode(ctx context.Context) error {
+	if _, err := e.run(ctx, "systemctl", "--version"); err != nil {
+		return errors.Wrapf(err, "node %s cannot serve systemd", e.ep.Nodename)
+	}
+	return nil
 }
 
 func (e *Engine) CloseConn() error {

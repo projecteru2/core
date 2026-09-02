@@ -28,6 +28,8 @@ const (
 
 	openRetries       = 4
 	openRetryInterval = 100 * time.Millisecond
+
+	keepaliveRequest = "keepalive@openssh.com"
 )
 
 var _ Runner = (*sshRunner)(nil)
@@ -138,6 +140,24 @@ func (r *sshRunner) Dial(ctx context.Context, network, addr string) (net.Conn, e
 	return retry(ctx, r, func(client *ssh.Client) (net.Conn, error) { return client.Dial(network, addr) })
 }
 
+// Ping is a global request on the connection itself, so a node whose sessions are all held still answers.
+func (r *sshRunner) Ping(ctx context.Context) error {
+	_, err := retry(ctx, r, func(client *ssh.Client) (struct{}, error) {
+		replied := make(chan error, 1)
+		go func() {
+			_, _, err := client.SendRequest(keepaliveRequest, true, nil)
+			replied <- err
+		}()
+		select {
+		case err := <-replied:
+			return struct{}{}, err
+		case <-ctx.Done():
+			return struct{}{}, ctx.Err()
+		}
+	})
+	return err
+}
+
 func (r *sshRunner) Close() error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -153,11 +173,12 @@ func (r *sshRunner) newSession(ctx context.Context) (*ssh.Session, error) {
 	return retry(ctx, r, (*ssh.Client).NewSession)
 }
 
-func (r *sshRunner) connect(ctx context.Context, renew bool) (*ssh.Client, error) {
+// connect hands out the current client, and redials only when the caller's stale client is still the current one.
+func (r *sshRunner) connect(ctx context.Context, stale *ssh.Client) (*ssh.Client, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.client != nil {
-		if !renew {
+		if r.client != stale {
 			return r.client, nil
 		}
 		_ = r.client.Close()
@@ -288,7 +309,7 @@ func retry[T any](ctx context.Context, r *sshRunner, f func(*ssh.Client) (T, err
 
 func openOnce[T any](ctx context.Context, r *sshRunner, f func(*ssh.Client) (T, error)) (T, error) {
 	var zero T
-	client, err := r.connect(ctx, false)
+	client, err := r.connect(ctx, nil)
 	if err != nil {
 		return zero, err
 	}
@@ -296,7 +317,7 @@ func openOnce[T any](ctx context.Context, r *sshRunner, f func(*ssh.Client) (T, 
 	if err == nil || !isTransportError(err) {
 		return v, err
 	}
-	if client, err = r.connect(ctx, true); err != nil {
+	if client, err = r.connect(ctx, client); err != nil {
 		return zero, err
 	}
 	return f(client)

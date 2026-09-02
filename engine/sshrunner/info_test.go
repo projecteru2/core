@@ -88,6 +88,10 @@ func (r *stubRunner) Dial(context.Context, string, string) (net.Conn, error) {
 	return nil, os.ErrInvalid
 }
 
+func (r *stubRunner) Ping(context.Context) error {
+	return nil
+}
+
 func (r *stubRunner) Close() error {
 	return nil
 }

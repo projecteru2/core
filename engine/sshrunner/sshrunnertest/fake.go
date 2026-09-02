@@ -87,6 +87,10 @@ func (f *Fake) Dial(context.Context, string, string) (net.Conn, error) {
 	return nil, coretypes.ErrEngineNotImplemented
 }
 
+func (f *Fake) Ping(ctx context.Context) error {
+	return ctx.Err()
+}
+
 func (f *Fake) Close() error {
 	return nil
 }
