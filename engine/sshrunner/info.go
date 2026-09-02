@@ -26,12 +26,8 @@ printf '%s\n' "$id" "$ncpu" "$memory" "$storage"
 )
 
 func NodeInfo(ctx context.Context, runner Runner, root string) (*enginetypes.Info, error) {
-	argv := Shell(infoScript, root)
-	res, err := runner.Run(ctx, Quote(argv), nil)
+	res, err := Run(ctx, runner, Shell(infoScript, root)...)
 	if err != nil {
-		return nil, err
-	}
-	if err = ExitError(argv, res); err != nil {
 		return nil, err
 	}
 	fields := strings.Split(strings.TrimRight(res.Stdout, "\n"), "\n")
