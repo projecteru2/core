@@ -28,6 +28,13 @@ const (
 	fieldPriority = "priority"
 )
 
+type nodeResourceInfos struct {
+	req       *cpumemtypes.NodeResourceRequest
+	resource  *cpumemtypes.NodeResource
+	workloads []*cpumemtypes.WorkloadResource
+	info      *cpumemtypes.NodeResourceInfo
+}
+
 func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintypes.NodeResourceRequest, info *enginetypes.Info) (*plugintypes.AddNodeResponse, error) {
 	var err error
 	if _, err = p.doGetNodeResourceInfo(ctx, nodename); err == nil {
@@ -149,10 +156,11 @@ func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, 
 
 func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, resource plugintypes.NodeResource, resourceRequest plugintypes.NodeResourceRequest, delta, incr bool) (*plugintypes.SetNodeResourceCapacityResponse, error) {
 	logger := log.WithFunc("resource.cpumem.SetNodeResourceCapacity").WithField("node", nodename)
-	req, nodeResource, _, nodeResourceInfo, err := p.parseNodeResourceInfos(ctx, nodename, resource, resourceRequest, nil)
+	parsed, err := p.parseNodeResourceInfos(ctx, nodename, resource, resourceRequest, nil)
 	if err != nil {
 		return nil, err
 	}
+	req, nodeResource, nodeResourceInfo := parsed.req, parsed.resource, parsed.info
 	origin := nodeResourceInfo.Capacity
 	before := origin.DeepCopy()
 
@@ -213,10 +221,11 @@ func (p Plugin) SetNodeResourceInfo(ctx context.Context, nodename string, capaci
 
 func (p Plugin) SetNodeResourceUsage(ctx context.Context, nodename string, resource plugintypes.NodeResource, resourceRequest plugintypes.NodeResourceRequest, workloadsResource []plugintypes.WorkloadResource, delta, incr bool) (*plugintypes.SetNodeResourceUsageResponse, error) {
 	logger := log.WithFunc("resource.cpumem.SetNodeResourceUsage").WithField("node", nodename)
-	req, nodeResource, wrksResource, nodeResourceInfo, err := p.parseNodeResourceInfos(ctx, nodename, resource, resourceRequest, workloadsResource)
+	parsed, err := p.parseNodeResourceInfos(ctx, nodename, resource, resourceRequest, workloadsResource)
 	if err != nil {
 		return nil, err
 	}
+	req, nodeResource, wrksResource, nodeResourceInfo := parsed.req, parsed.resource, parsed.workloads, parsed.info
 	origin := nodeResourceInfo.Usage
 	before := origin.DeepCopy()
 
@@ -448,18 +457,7 @@ func (p Plugin) calculateNodeResource(req *cpumemtypes.NodeResourceRequest, node
 	return resp
 }
 
-func (p Plugin) parseNodeResourceInfos(
-	ctx context.Context, nodename string,
-	resource plugintypes.NodeResource,
-	resourceRequest plugintypes.NodeResourceRequest,
-	workloadsResource []plugintypes.WorkloadResource,
-) (
-	*cpumemtypes.NodeResourceRequest,
-	*cpumemtypes.NodeResource,
-	[]*cpumemtypes.WorkloadResource,
-	*cpumemtypes.NodeResourceInfo,
-	error,
-) {
+func (p Plugin) parseNodeResourceInfos(ctx context.Context, nodename string, resource plugintypes.NodeResource, resourceRequest plugintypes.NodeResourceRequest, workloadsResource []plugintypes.WorkloadResource) (*nodeResourceInfos, error) {
 	var req *cpumemtypes.NodeResourceRequest
 	var nodeResource *cpumemtypes.NodeResource
 	wrksResource := []*cpumemtypes.WorkloadResource{}
@@ -467,28 +465,28 @@ func (p Plugin) parseNodeResourceInfos(
 	if resourceRequest != nil {
 		req = &cpumemtypes.NodeResourceRequest{}
 		if err := req.Parse(p.config, resourceRequest); err != nil {
-			return nil, nil, nil, nil, err
+			return nil, err
 		}
 	}
 
 	if resource != nil {
 		nodeResource = &cpumemtypes.NodeResource{}
 		if err := nodeResource.Parse(resource); err != nil {
-			return nil, nil, nil, nil, err
+			return nil, err
 		}
 	}
 
 	for _, workloadResource := range workloadsResource {
 		wrkResource := &cpumemtypes.WorkloadResource{}
 		if err := wrkResource.Parse(workloadResource); err != nil {
-			return nil, nil, nil, nil, err
+			return nil, err
 		}
 		wrksResource = append(wrksResource, wrkResource)
 	}
 
 	nodeResourceInfo, err := p.doGetNodeResourceInfo(ctx, nodename)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, err
 	}
-	return req, nodeResource, wrksResource, nodeResourceInfo, nil
+	return &nodeResourceInfos{req: req, resource: nodeResource, workloads: wrksResource, info: nodeResourceInfo}, nil
 }
