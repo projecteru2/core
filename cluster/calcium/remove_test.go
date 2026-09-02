@@ -1,6 +1,7 @@
 package calcium
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -84,6 +85,38 @@ func TestRemoveWorkload(t *testing.T) {
 		assert.True(t, r.Success)
 	}
 	store.AssertExpectations(t)
+}
+
+func TestRemoveWorkloadReportsEveryWorkloadAfterTheLockIsLost(t *testing.T) {
+	c := NewTestCluster()
+	ctx := t.Context()
+	lostCtx, lose := context.WithCancel(ctx)
+	lose()
+	lock := &lockmocks.DistributedLock{}
+	lock.On("Lock", mock.Anything).Return(lostCtx, nil)
+	lock.On("Unlock", mock.Anything).Return(nil)
+	engine := &enginemocks.API{}
+	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	workloads := []*types.Workload{
+		{ID: "a", Name: "test", Nodename: "test", Engine: engine},
+		{ID: "b", Name: "test", Nodename: "test", Engine: engine},
+	}
+	store := c.store.(*storemocks.Store)
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(workloads, nil)
+	store.On("GetNode", mock.Anything, mock.Anything).Return(&types.Node{NodeMeta: types.NodeMeta{Name: "test"}}, nil)
+	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(resourcetypes.Resources{}, resourcetypes.Resources{}, nil)
+
+	ch, err := c.RemoveWorkload(ctx, []string{"a", "b"}, false)
+	assert.NoError(t, err)
+	reported := []string{}
+	for r := range ch {
+		reported = append(reported, r.WorkloadID)
+	}
+	assert.ElementsMatch(t, []string{"a", "b"}, reported)
 }
 
 func TestRemoveWorkloadJournalsRepairEntries(t *testing.T) {

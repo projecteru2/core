@@ -22,6 +22,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 	}
 
 	ch := make(chan *types.RemoveWorkloadMessage)
+	caller := ctx
 	utils.SentryGo(func() {
 		defer close(ch)
 		wg := sync.WaitGroup{}
@@ -44,7 +45,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 							ret.Hook = append(ret.Hook, bytes.NewBufferString(workloadErr.Error()))
 							ret.Success = false
 						}
-						if err := send(ctx, ch, ret); err != nil {
+						if err := send(caller, ch, ret); err != nil {
 							return err
 						}
 					}
@@ -52,7 +53,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 					return nil
 				}); nodeErr != nil {
 					logger.WithField("node", nodename).Error(ctx, nodeErr, "failed to lock node")
-					_ = send(ctx, ch, &types.RemoveWorkloadMessage{Success: false})
+					_ = send(caller, ch, &types.RemoveWorkloadMessage{Success: false})
 				}
 			})
 		}
