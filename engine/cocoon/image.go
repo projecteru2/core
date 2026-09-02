@@ -1,11 +1,13 @@
 package cocoon
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"io"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/cockroachdb/errors"
 
@@ -172,13 +174,20 @@ func (e *Engine) orasPresent(ctx context.Context) bool {
 	if e.hasOras.Load() {
 		return true
 	}
-	present, _, _ := e.probe.Do("oras", func() (any, error) {
-		res, err := e.call(ctx, sshrunner.Shell(orasProbe)...)
+	probed := e.probe.DoChan("oras", func() (any, error) {
+		probeCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), cmp.Or(e.config.ConnectionTimeout, time.Minute))
+		defer cancel()
+		res, err := e.call(probeCtx, sshrunner.Shell(orasProbe)...)
 		found := err == nil && res.Code == 0
 		if found {
 			e.hasOras.Store(true)
 		}
 		return found, nil
 	})
-	return present.(bool)
+	select {
+	case result := <-probed:
+		return result.Val.(bool)
+	case <-ctx.Done():
+		return false
+	}
 }
