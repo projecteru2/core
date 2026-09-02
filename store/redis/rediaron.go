@@ -34,8 +34,6 @@ const (
 var (
 	// ErrAlreadyExists indicates a create found one of its keys already set.
 	ErrAlreadyExists = errors.New("key already exists")
-	// ErrKeyNotExists indicates an update targeted a missing key, as the etcd store reports it.
-	ErrKeyNotExists = errors.New("key not exists")
 
 	createScript = redis.NewScript(`
 if KEYS[1] ~= "" and redis.call("exists", KEYS[1]) == 0 then return "missing" end
@@ -215,7 +213,7 @@ func (r *Rediaron) Update(ctx context.Context, data map[string]string) error {
 		return err
 	}
 	if int(e) != len(keys) {
-		return ErrKeyNotExists
+		return types.ErrKeyNotExists
 	}
 
 	return r.Put(ctx, data)
@@ -275,7 +273,7 @@ func (r *Rediaron) create(ctx context.Context, data map[string]string, decrKey s
 	case replyExists:
 		return ErrAlreadyExists
 	case replyMissing:
-		return errors.Wrap(ErrKeyNotExists, decrKey)
+		return errors.Wrap(types.ErrKeyNotExists, decrKey)
 	}
 	return nil
 }

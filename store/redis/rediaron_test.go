@@ -148,7 +148,7 @@ func (s *RediaronTestSuite) TestCreateWritesNothingOnAConflict() {
 
 func (s *RediaronTestSuite) TestCreateAndDecrNeedsTheCounter() {
 	ctx := s.T().Context()
-	s.ErrorIs(s.rediaron.CreateAndDecr(ctx, map[string]string{"a": "1"}, "counter"), ErrKeyNotExists)
+	s.ErrorIs(s.rediaron.CreateAndDecr(ctx, map[string]string{"a": "1"}, "counter"), types.ErrKeyNotExists)
 	s.False(s.rediserver.Exists("a"))
 
 	s.NoError(s.rediaron.cli.Set(ctx, "counter", "2", 0).Err())
