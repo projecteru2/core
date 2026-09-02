@@ -14,15 +14,26 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-// withResourceReleased runs the removal, then gives the workload's usage back under the node lock; the usage stays charged until the workload is gone, so a deploy in between cannot take it.
-func (c *Calcium) withResourceReleased(ctx context.Context, node *types.Node, workload *types.Workload, remove func(context.Context) error) error {
-	if err := remove(ctx); err != nil {
+// withResourceReleased journals the node, runs the removal, then gives the workload's usage back under the node lock; the usage stays charged until the workload is gone, and a failed release stays in the journal for repair.
+func (c *Calcium) withResourceReleased(ctx context.Context, logger *log.Fields, node *types.Node, workload *types.Workload, remove func(context.Context) error) error {
+	nodeCommit, err := c.journal(ctx, logger, eventWorkloadResourceAllocated, []*types.Node{node})
+	if err != nil {
 		return err
 	}
-	return c.withNodeKeyLocked(ctx, node, func(ctx context.Context) (err error) {
+	if err = remove(ctx); err != nil {
+		nodeCommit()
+		return err
+	}
+	err = c.withNodeKeyLocked(ctx, node, func(ctx context.Context) (err error) {
 		_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []resourcetypes.Resources{workload.Resources}, true, plugins.Decr)
 		return err
 	})
+	if err != nil {
+		logger.WithField("id", workload.ID).Error(ctx, err, "usage release left to the journal")
+		return nil
+	}
+	nodeCommit()
+	return nil
 }
 
 func (c *Calcium) invokePoolAsync(f func()) {
