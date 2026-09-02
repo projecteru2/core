@@ -60,8 +60,8 @@ func TestVirtualizationCopyToRefusesAGuestThatHasNotBooted(t *testing.T) {
 	e := testEngine(t, runner)
 
 	err := e.VirtualizationCopyTo(t.Context(), "w1", "/etc/app.conf", []byte("x"), 0, 0, 0o644)
-	if !errors.Is(err, coretypes.ErrEngineNotImplemented) {
-		t.Errorf("got %v, want ErrEngineNotImplemented", err)
+	if !errors.Is(err, coretypes.ErrInvaildWorkloadOps) {
+		t.Errorf("got %v, want ErrInvaildWorkloadOps", err)
 	}
 	if len(runner.Lines()) != 1 {
 		t.Errorf("got %q, want the state check and no exec", runner.Lines())

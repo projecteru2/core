@@ -4,9 +4,11 @@ import (
 	"cmp"
 	"context"
 	"slices"
-	"sync"
+	"sync/atomic"
 
 	"github.com/cockroachdb/errors"
+
+	"golang.org/x/sync/singleflight"
 
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/engine/sshrunner"
@@ -36,8 +38,8 @@ type Engine struct {
 
 	execs *sshrunner.Execs
 
-	probe   sync.Mutex
-	hasOras bool
+	probe   singleflight.Group
+	hasOras atomic.Bool
 }
 
 func MakeClient(_ context.Context, config coretypes.Config, nodename, endpoint string) (engine.API, error) {

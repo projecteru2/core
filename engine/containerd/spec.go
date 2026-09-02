@@ -18,7 +18,6 @@ import (
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 
-	corecluster "github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	coretypes "github.com/projecteru2/core/types"
@@ -256,11 +255,11 @@ func withDevices(devices []nodeDevice) oci.SpecOpts {
 func resourceSpec(resource *engine.VirtualizationResource, rArgs *RawArgs, devices []blockDevice) *specs.LinuxResources {
 	limits := &specs.LinuxResources{CPU: &specs.LinuxCPU{}}
 	shares := uint64(defaultCPUShare)
-	period := uint64(corecluster.CPUPeriodBase)
+	period := uint64(enginetypes.CPUPeriodBase)
 	limits.CPU.Period = &period
 
 	if resource.Quota > 0 {
-		quota := int64(resource.Quota * float64(corecluster.CPUPeriodBase))
+		quota := int64(resource.Quota * float64(enginetypes.CPUPeriodBase))
 		limits.CPU.Quota = &quota
 	}
 	if len(resource.CPU) > 0 {

@@ -21,7 +21,7 @@ core.go            flags, config, logging, gRPC server, signal handling
 ```
 
 The dependency direction is one-way: `rpc` knows `cluster`, `cluster` knows `store`, `resource`,
-`engine`, `strategy` and `wal`, and none of those know `cluster`.
+`engine`, `strategy` and `wal`; of those only `engine` looks back at `cluster`, for the label names it writes.
 
 ## Startup
 
