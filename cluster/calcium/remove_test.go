@@ -158,6 +158,44 @@ func TestRemoveWorkloadJournalsRepairEntries(t *testing.T) {
 	assert.Equal(t, 2, committed)
 }
 
+func TestRemoveWorkloadKeepsTheNodeEntryWhenTheReleaseFails(t *testing.T) {
+	c := NewTestCluster()
+	ctx := t.Context()
+
+	committed := []string{}
+	mwal := &walmocks.WAL{}
+	mwal.On("Log", mock.Anything, mock.Anything).Return(func(eventyp string, _ any) (wal.Commit, error) {
+		return func() error { committed = append(committed, eventyp); return nil }, nil
+	})
+	c.wal = mwal
+
+	lock := &lockmocks.DistributedLock{}
+	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
+	lock.On("Unlock", mock.Anything).Return(nil)
+	engine := &enginemocks.API{}
+	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	workload := &types.Workload{ID: "xx", Name: "test", Nodename: "test", Engine: engine}
+
+	store := c.store.(*storemocks.Store)
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
+	store.On("GetNode", mock.Anything, mock.Anything).Return(&types.Node{NodeMeta: types.NodeMeta{Name: "test"}}, nil)
+	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		nil, nil, types.ErrMockError,
+	)
+
+	ch, err := c.RemoveWorkload(ctx, []string{"xx"}, true)
+	assert.NoError(t, err)
+	for r := range ch {
+		assert.True(t, r.Success)
+	}
+	engine.AssertExpectations(t)
+	assert.Equal(t, []string{eventWorkloadCreated}, committed)
+}
+
 func TestRemoveWorkloadLocksTheWorkloadThenItsNode(t *testing.T) {
 	c := NewTestCluster()
 	defer c.pool.Release()
