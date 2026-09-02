@@ -7,6 +7,7 @@ import (
 	"github.com/projecteru2/core/resource/plugins"
 	"github.com/projecteru2/core/resource/plugins/binary"
 	"github.com/projecteru2/core/resource/plugins/cpumem"
+	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -21,7 +22,7 @@ func New(config types.Config) *Manager {
 	return &Manager{config: config}
 }
 
-func (m *Manager) LoadPlugins(ctx context.Context, store cpumem.Store) error {
+func (m *Manager) LoadPlugins(ctx context.Context, store store.Store) error {
 	logger := log.WithFunc("resource.cobalt.LoadPlugins")
 	m.AddPlugins(cpumem.NewPlugin(m.config, store))
 
