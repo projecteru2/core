@@ -82,21 +82,30 @@ func (m *Mutex) Lock(ctx context.Context) (context.Context, error) {
 	defer cancel()
 
 	if err := m.mutex.Lock(lockCtx); err != nil {
+		m.close()
 		return nil, err
 	}
 	return m.watchSession(ctx), nil
 }
 
 func (m *Mutex) Unlock(ctx context.Context) error {
+	if m.session == nil {
+		return nil
+	}
 	lockCtx, cancel := context.WithTimeout(ctx, m.timeout)
 	defer cancel()
-	err := m.unlock(lockCtx)
-	if err != nil {
-		_ = m.session.Close()
+	if err := m.unlock(lockCtx); err != nil {
+		m.close()
 		return err
 	}
 	m.pool.put(m.session)
+	m.session = nil
 	return nil
+}
+
+func (m *Mutex) close() {
+	_ = m.session.Close()
+	m.session = nil
 }
 
 func (m *Mutex) unlock(ctx context.Context) error {
@@ -112,6 +121,7 @@ func (m *Mutex) unlock(ctx context.Context) error {
 func (m *Mutex) watchSession(ctx context.Context) context.Context {
 	ctx, cancel := context.WithCancel(ctx)
 	rCtx := &lockContext{Context: ctx}
+	sessionDone := m.session.Done()
 
 	m.lockedMux.Lock()
 	m.locked = true
@@ -122,7 +132,7 @@ func (m *Mutex) watchSession(ctx context.Context) context.Context {
 
 		// session.Done() fires on a lost lease, which the lock outlives only while it is still held
 		select {
-		case <-m.session.Done():
+		case <-sessionDone:
 			m.lockedMux.Lock()
 			if m.locked {
 				rCtx.setError(types.ErrLockSessionDone)
