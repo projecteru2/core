@@ -99,7 +99,7 @@ func (s *RediaronTestSuite) TestSetNodeStatus() {
 	_, err := s.rediaron.GetOne(s.T().Context(), key)
 	s.NoError(err)
 	time.Sleep(2 * time.Second)
-	s.rediserver.FastForward(2 * time.Second)
+	s.advance(2 * time.Second)
 	_, err = s.rediaron.GetOne(s.T().Context(), key)
 	s.Error(err)
 }
@@ -124,7 +124,7 @@ func (s *RediaronTestSuite) TestGetNodeStatus() {
 	s.Equal(ns.Nodename, node.Name)
 	s.True(ns.Alive)
 	time.Sleep(2 * time.Second)
-	s.rediserver.FastForward(2 * time.Second)
+	s.advance(2 * time.Second)
 	ns1, err := s.rediaron.GetNodeStatus(s.T().Context(), node.Name)
 	s.Error(err)
 	s.Nil(ns1)

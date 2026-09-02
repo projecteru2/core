@@ -39,3 +39,25 @@ jobs:
 
       - name: Build binary
         run: CGO_ENABLED=0 go build -o eru-core .
+
+  test-redis:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      ERU_TEST_REDIS_ADDR: 127.0.0.1:6379
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Test the redis store against a real redis
+        run: go test -race -timeout 600s -count=1 ./store/redis/...

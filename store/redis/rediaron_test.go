@@ -2,7 +2,9 @@ package redis
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -16,13 +18,11 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-func TestRediaron(t *testing.T) {
-	s, err := miniredis.Run()
-	if err != nil {
-		t.Fail()
-	}
-	defer s.Close()
+// realRedisEnv names a running redis the tests use instead of miniredis; the CI redis job sets it.
+const realRedisEnv = "ERU_TEST_REDIS_ADDR"
 
+func TestRediaron(t *testing.T) {
+	cli, s := testRedis(t)
 	config := types.Config{}
 	config.LockTimeout = 10 * time.Second
 	config.GlobalTimeout = 30 * time.Second
@@ -32,14 +32,7 @@ func TestRediaron(t *testing.T) {
 	defer cancel()
 	factory.InitEngineCache(ctx, config, nil)
 
-	cli := redis.NewClient(&redis.Options{
-		Addr: s.Addr(),
-		DB:   0,
-	})
-
 	pool, _ := utils.NewPool(20)
-
-	defer cli.Close()
 	suite.Run(t, &RediaronTestSuite{
 		rediserver: s,
 		rediaron:   newRediaron(cli, config, pool),
@@ -141,25 +134,25 @@ func (s *RediaronTestSuite) TestCreateWritesNothingOnAConflict() {
 	s.NoError(s.rediaron.cli.Set(ctx, "b", "old", 0).Err())
 
 	s.ErrorIs(s.rediaron.Create(ctx, map[string]string{"a": "1", "b": "2"}), ErrAlreadyExists)
-	s.False(s.rediserver.Exists("a"))
-	value, _ := s.rediserver.Get("b")
+	s.False(s.exists("a"))
+	value := s.get("b")
 	s.Equal("old", value)
 }
 
 func (s *RediaronTestSuite) TestCreateAndDecrNeedsTheCounter() {
 	ctx := s.T().Context()
 	s.ErrorIs(s.rediaron.CreateAndDecr(ctx, map[string]string{"a": "1"}, "counter"), types.ErrKeyNotExists)
-	s.False(s.rediserver.Exists("a"))
+	s.False(s.exists("a"))
 
 	s.NoError(s.rediaron.cli.Set(ctx, "counter", "2", 0).Err())
 	s.NoError(s.rediaron.CreateAndDecr(ctx, map[string]string{"a": "1"}, "counter"))
-	counter, _ := s.rediserver.Get("counter")
+	counter := s.get("counter")
 	s.Equal("1", counter)
 
 	s.ErrorIs(s.rediaron.CreateAndDecr(ctx, map[string]string{"a": "1", "c": "3"}, "counter"), ErrAlreadyExists)
-	counter, _ = s.rediserver.Get("counter")
+	counter = s.get("counter")
 	s.Equal("1", counter)
-	s.False(s.rediserver.Exists("c"))
+	s.False(s.exists("c"))
 }
 
 func (s *RediaronTestSuite) TestBindStatusRefreshesAnUnchangedValueInPlace() {
@@ -167,27 +160,27 @@ func (s *RediaronTestSuite) TestBindStatusRefreshesAnUnchangedValueInPlace() {
 	s.NoError(s.rediaron.cli.Set(ctx, "entity", "1", 0).Err())
 
 	s.NoError(s.rediaron.BindStatus(ctx, "entity", "status", "v1", 10))
-	s.Equal(10*time.Second, s.rediserver.TTL("status"))
-	s.rediserver.FastForward(4 * time.Second)
+	s.InDelta(10, s.ttl("status").Seconds(), 1)
+	s.advance(4 * time.Second)
 	s.NoError(s.rediaron.BindStatus(ctx, "entity", "status", "v1", 10))
-	s.Equal(10*time.Second, s.rediserver.TTL("status"))
+	s.InDelta(10, s.ttl("status").Seconds(), 1)
 
 	s.NoError(s.rediaron.BindStatus(ctx, "entity", "status", "v2", 10))
-	value, _ := s.rediserver.Get("status")
+	value := s.get("status")
 	s.Equal("v2", value)
 
 	s.NoError(s.rediaron.BindStatus(ctx, "entity", "status", "v2", 0))
-	s.Zero(s.rediserver.TTL("status"))
+	s.Zero(s.ttl("status"))
 	s.ErrorIs(s.rediaron.BindStatus(ctx, "absent", "orphan", "v2", 10), types.ErrInvaildCount)
-	s.False(s.rediserver.Exists("orphan"))
+	s.False(s.exists("orphan"))
 	s.NoError(s.rediaron.BindStatus(ctx, "absent", "orphan", "v2", 0))
-	s.Equal(time.Hour, s.rediserver.TTL("orphan"))
+	s.InDelta(time.Hour.Seconds(), s.ttl("orphan").Seconds(), 1)
 
 	s.NoError(s.rediaron.BindStatus(ctx, "entity", "status", "v2", 10))
-	s.rediserver.FastForward(11 * time.Second)
-	s.False(s.rediserver.Exists("status"))
+	s.advance(11 * time.Second)
+	s.False(s.exists("status"))
 	s.NoError(s.rediaron.BindStatus(ctx, "entity", "status", "v2", 10))
-	s.Equal(10*time.Second, s.rediserver.TTL("status"))
+	s.InDelta(10, s.ttl("status").Seconds(), 1)
 }
 
 func (s *RediaronTestSuite) TestPrefixReadsTakeGlobMetacharactersLiterally() {
@@ -228,7 +221,49 @@ func (s *RediaronTestSuite) TestWatchSkipsTTLRefreshes() {
 	s.Equal([]common.Event{{Key: "aab", Type: common.EventPut}, {Key: "aaa", Type: common.EventExpire}}, events)
 }
 
+func (s *RediaronTestSuite) exists(key string) bool {
+	n, err := s.rediaron.cli.Exists(s.T().Context(), key).Result()
+	s.Require().NoError(err)
+	return n > 0
+}
+
+func (s *RediaronTestSuite) get(key string) string {
+	value, err := s.rediaron.cli.Get(s.T().Context(), key).Result()
+	if errors.Is(err, redis.Nil) {
+		return ""
+	}
+	s.Require().NoError(err)
+	return value
+}
+
+func (s *RediaronTestSuite) ttl(key string) time.Duration {
+	ttl, err := s.rediaron.cli.TTL(s.T().Context(), key).Result()
+	s.Require().NoError(err)
+	return max(ttl, 0)
+}
+
+func (s *RediaronTestSuite) advance(d time.Duration) {
+	if s.rediserver != nil {
+		s.rediserver.FastForward(d)
+		return
+	}
+	time.Sleep(d + 500*time.Millisecond)
+}
+
 func triggerMockedKeyspaceNotification(cli *redis.Client, key, action string) {
 	channel := fmt.Sprintf(keyNotifyPrefix, 0, key)
 	cli.Publish(context.Background(), channel, action).Result()
+}
+
+func testRedis(t testing.TB) (*redis.Client, *miniredis.Miniredis) {
+	t.Helper()
+	if addr := os.Getenv(realRedisEnv); addr != "" {
+		cli := redis.NewClient(&redis.Options{Addr: addr})
+		t.Cleanup(func() { _ = cli.Close() })
+		return cli, nil
+	}
+	s := miniredis.RunT(t)
+	cli := redis.NewClient(&redis.Options{Addr: s.Addr()})
+	t.Cleanup(func() { _ = cli.Close() })
+	return cli, s
 }

@@ -57,15 +57,18 @@ func (s *RediaronTestSuite) TestServiceStatusStream() {
 	time.Sleep(500 * time.Millisecond)
 	triggerMockedKeyspaceNotification(s.rediaron.cli, fmt.Sprintf(common.ServiceStatusKey, "127.0.0.1:5001"), actionDel)
 
-	s.rediserver.FastForward(time.Second)
+	s.advance(time.Second)
 	s.Equal(<-ch, []string{"127.0.0.1:5002"})
 }
 
 func (s *RediaronTestSuite) TestServiceStatusStreamResnapshotsAfterReconnect() {
+	if s.rediserver == nil {
+		s.T().Skip("restarts the server, which only miniredis can do")
+	}
 	ctx, cancel := context.WithCancel(s.T().Context())
 	defer cancel()
 	key := fmt.Sprintf(common.ServiceStatusKey, "127.0.0.1:5001")
-	s.Require().NoError(s.rediserver.Set(key, "token"))
+	s.Require().NoError(s.rediaron.cli.Set(ctx, key, "token", 0).Err())
 
 	ch, err := s.rediaron.ServiceStatusStream(ctx)
 	s.Require().NoError(err)
