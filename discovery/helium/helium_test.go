@@ -44,6 +44,28 @@ func TestHelium(t *testing.T) {
 	close(chAddr)
 }
 
+func TestSubscribeGetsTheLatestStatusAtOnce(t *testing.T) {
+	chAddr := make(chan []string)
+	store := &storemocks.Store{}
+	store.On("ServiceStatusStream", mock.Anything).Return(chAddr, nil)
+	service := New(t.Context(), types.GRPCConfig{ServiceDiscoveryPushInterval: time.Hour}, store)
+
+	chAddr <- []string{"10.0.0.1"}
+	first, chFirst := service.Subscribe()
+	<-chFirst
+	service.Unsubscribe(first)
+
+	ID, chStatus := service.Subscribe()
+	select {
+	case status := <-chStatus:
+		assert.Equal(t, []string{"10.0.0.1"}, status.Addresses)
+	case <-time.After(time.Second):
+		t.Fatal("a new subscriber must be handed the latest status without waiting for the next push")
+	}
+	service.Unsubscribe(ID)
+	close(chAddr)
+}
+
 func TestDispatchDoesNotWaitForAStuckSubscriber(t *testing.T) {
 	chAddr := make(chan []string)
 	store := &storemocks.Store{}

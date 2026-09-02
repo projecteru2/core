@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/rand/v2"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/projecteru2/core/log"
@@ -16,6 +17,7 @@ const interval = 15 * time.Second
 type Helium struct {
 	store     store.Store
 	subs      sync.Map
+	latest    atomic.Pointer[types.ServiceStatus]
 	interval  time.Duration
 	unsubChan chan uint32
 	done      chan struct{}
@@ -37,6 +39,9 @@ func New(ctx context.Context, config types.GRPCConfig, store store.Store) *Heliu
 
 func (h *Helium) Subscribe() (uint32, <-chan types.ServiceStatus) {
 	ch := make(chan types.ServiceStatus, 1)
+	if latest := h.latest.Load(); latest != nil {
+		ch <- *latest
+	}
 	for {
 		ID := rand.Uint32() //nolint:gosec
 		if _, taken := h.subs.LoadOrStore(ID, ch); !taken {
@@ -80,6 +85,7 @@ func (h *Helium) start(ctx context.Context) {
 					Addresses: addresses,
 					Interval:  h.interval * 2,
 				}
+				h.latest.Store(&latestStatus)
 
 			case ID := <-h.unsubChan:
 				if v, ok := h.subs.LoadAndDelete(ID); ok {
