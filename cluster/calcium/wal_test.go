@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
-	"time"
+	"testing/synctest"
 
 	"github.com/cockroachdb/errors"
 	"github.com/stretchr/testify/mock"
@@ -326,85 +326,91 @@ func TestHandleReallocWorkloadOnAnEngineThatCannotReplayIt(t *testing.T) {
 }
 
 func TestHandleCreateLambda(t *testing.T) {
-	c := NewTestCluster()
-	enableTestWAL(t, c)
-	rmgr := c.rmgr.(*resourcemocks.Manager)
-	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		resourcetypes.Resources{},
-		resourcetypes.Resources{},
-		[]string{},
-		nil,
-	)
-	rmgr.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		resourcetypes.Resources{},
-		resourcetypes.Resources{},
-		nil,
-	)
-	rmgr.On("Remap", mock.Anything, mock.Anything, mock.Anything).Return(
-		resourcetypes.Resources{},
-		nil,
-	)
+	synctest.Test(t, func(t *testing.T) {
+		c := NewTestCluster()
+		defer c.pool.Release()
+		enableTestWAL(t, c)
+		rmgr := c.rmgr.(*resourcemocks.Manager)
+		rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+			resourcetypes.Resources{},
+			resourcetypes.Resources{},
+			[]string{},
+			nil,
+		)
+		rmgr.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+			resourcetypes.Resources{},
+			resourcetypes.Resources{},
+			nil,
+		)
+		rmgr.On("Remap", mock.Anything, mock.Anything, mock.Anything).Return(
+			resourcetypes.Resources{},
+			nil,
+		)
 
-	_, err := c.wal.Log(eventCreateLambda, "workloadid")
-	require.NoError(t, err)
+		_, err := c.wal.Log(eventCreateLambda, "workloadid")
+		require.NoError(t, err)
 
-	node := &types.Node{
-		NodeMeta: types.NodeMeta{Name: "nodename"},
-		Engine:   &enginemocks.API{},
-	}
-	wrk := &types.Workload{
-		ID:       "workloadid",
-		Nodename: node.Name,
-		Engine:   node.Engine,
-	}
+		node := &types.Node{
+			NodeMeta: types.NodeMeta{Name: "nodename"},
+			Engine:   &enginemocks.API{},
+		}
+		wrk := &types.Workload{
+			ID:       "workloadid",
+			Nodename: node.Name,
+			Engine:   node.Engine,
+		}
 
-	store := c.store.(*storemocks.Store)
-	store.On("GetWorkload", mock.Anything, mock.Anything).
-		Return(wrk, nil).
-		Once()
-	store.On("GetNode", mock.Anything, wrk.Nodename).
-		Return(node, nil)
-	eng := wrk.Engine.(*enginemocks.API)
-	eng.On("VirtualizationWait", mock.Anything, wrk.ID, "").Return(&enginetypes.VirtualizationWaitResult{Code: 0}, nil).Once()
-	eng.On("VirtualizationRemove", mock.Anything, wrk.ID, true, true).
-		Return(nil).
-		Once()
-	store.On("GetWorkloads", mock.Anything, []string{wrk.ID}).
-		Return([]*types.Workload{wrk}, nil).
-		Twice()
-	store.On("RemoveWorkload", mock.Anything, wrk).
-		Return(nil).
-		Once()
-	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil).Once()
-	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(t.Context(), nil)
-	lock.On("Unlock", mock.Anything).Return(nil)
-	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+		store := c.store.(*storemocks.Store)
+		store.On("GetWorkload", mock.Anything, mock.Anything).
+			Return(wrk, nil).
+			Once()
+		store.On("GetNode", mock.Anything, wrk.Nodename).
+			Return(node, nil)
+		eng := wrk.Engine.(*enginemocks.API)
+		eng.On("VirtualizationWait", mock.Anything, wrk.ID, "").Return(&enginetypes.VirtualizationWaitResult{Code: 0}, nil).Once()
+		eng.On("VirtualizationRemove", mock.Anything, wrk.ID, true, true).
+			Return(nil).
+			Once()
+		store.On("GetWorkloads", mock.Anything, []string{wrk.ID}).
+			Return([]*types.Workload{wrk}, nil).
+			Twice()
+		store.On("RemoveWorkload", mock.Anything, wrk).
+			Return(nil).
+			Once()
+		store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil).Once()
+		lock := &lockmocks.DistributedLock{}
+		lock.On("Lock", mock.Anything).Return(t.Context(), nil)
+		lock.On("Unlock", mock.Anything).Return(nil)
+		store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 
-	c.wal.Recover(t.Context())
-	time.Sleep(500 * time.Millisecond)
-	c.wal.Recover(t.Context())
-	time.Sleep(500 * time.Millisecond)
-	store.AssertExpectations(t)
-	eng.AssertExpectations(t)
+		c.wal.Recover(t.Context())
+		synctest.Wait()
+		c.wal.Recover(t.Context())
+		synctest.Wait()
+		store.AssertExpectations(t)
+		eng.AssertExpectations(t)
+	})
 }
 
 func TestHandleCreateLambdaKeepsEntryUntilRemoved(t *testing.T) {
-	c := NewTestCluster()
-	enableTestWAL(t, c)
+	synctest.Test(t, func(t *testing.T) {
+		c := NewTestCluster()
+		defer c.pool.Release()
+		enableTestWAL(t, c)
 
-	_, err := c.wal.Log(eventCreateLambda, "workloadid")
-	require.NoError(t, err)
+		_, err := c.wal.Log(eventCreateLambda, "workloadid")
+		require.NoError(t, err)
 
-	store := c.store.(*storemocks.Store)
-	store.On("GetWorkload", mock.Anything, "workloadid").Return(nil, types.ErrMockError).Twice()
-	store.On("NotFound", types.ErrMockError).Return(false).Twice()
+		store := c.store.(*storemocks.Store)
+		store.On("GetWorkload", mock.Anything, "workloadid").Return(nil, types.ErrMockError).Twice()
+		store.On("NotFound", types.ErrMockError).Return(false).Twice()
 
-	c.wal.Recover(t.Context())
-	time.Sleep(500 * time.Millisecond)
-	c.wal.Recover(t.Context())
-	time.Sleep(500 * time.Millisecond)
-	store.AssertExpectations(t)
+		c.wal.Recover(t.Context())
+		synctest.Wait()
+		c.wal.Recover(t.Context())
+		synctest.Wait()
+		store.AssertExpectations(t)
+	})
 }
 
 func enableTestWAL(t *testing.T, c *Calcium) {
