@@ -23,7 +23,7 @@ func (c *Calcium) CalculateCapacity(ctx context.Context, opts *types.DeployOptio
 		NodeCapacities: map[string]int{},
 	}
 
-	return msg, c.withNodesPodLocked(ctx, opts.NodeFilter, func(ctx context.Context, nodeMap map[string]*types.Node) error {
+	return msg, c.withNodes(ctx, opts.NodeFilter, func(ctx context.Context, nodeMap map[string]*types.Node) error {
 		nodenames := slices.Collect(maps.Keys(nodeMap))
 
 		if opts.DeployStrategy != strategy.Dummy {

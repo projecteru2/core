@@ -17,17 +17,21 @@ import (
 func (c *Calcium) withResourceReleased(ctx context.Context, node *types.Node, workload *types.Workload, then func(context.Context) error) error {
 	_, err := utils.Txn(
 		ctx,
-		func(ctx context.Context) (err error) {
-			_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []resourcetypes.Resources{workload.Resources}, true, plugins.Decr)
-			return err
+		func(ctx context.Context) error {
+			return c.withNodeKeyLocked(ctx, node, func(ctx context.Context) (err error) {
+				_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []resourcetypes.Resources{workload.Resources}, true, plugins.Decr)
+				return err
+			})
 		},
 		then,
-		func(ctx context.Context, failedByCond bool) (err error) {
+		func(ctx context.Context, failedByCond bool) error {
 			if failedByCond {
 				return nil
 			}
-			_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []resourcetypes.Resources{workload.Resources}, true, plugins.Incr)
-			return err
+			return c.withNodeKeyLocked(ctx, node, func(ctx context.Context) (err error) {
+				_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []resourcetypes.Resources{workload.Resources}, true, plugins.Incr)
+				return err
+			})
 		},
 		c.config.GlobalTimeout,
 	)

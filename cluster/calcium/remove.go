@@ -31,8 +31,17 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 			wg.Add(1)
 			_ = c.pool.Invoke(func() {
 				defer wg.Done()
-				if nodeErr := c.withNodePodLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
-					for _, workloadID := range workloadIDs {
+				node, err := c.store.GetNode(ctx, nodename)
+				if err != nil {
+					logger.WithField("node", nodename).Error(ctx, err, "failed to get node")
+					_ = send(caller, ch, &types.RemoveWorkloadMessage{Success: false})
+					return
+				}
+				var removes sync.WaitGroup
+				for _, workloadID := range workloadIDs {
+					removes.Add(1)
+					_ = c.pool.Invoke(func() {
+						defer removes.Done()
 						ret := &types.RemoveWorkloadMessage{WorkloadID: workloadID, Success: true, Hook: []*bytes.Buffer{}}
 						if workloadErr := c.withWorkloadLocked(ctx, workloadID, false, func(ctx context.Context, workload *types.Workload) error {
 							if err := c.doRemoveOneWorkload(ctx, node, workload, force); err != nil {
@@ -45,16 +54,11 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 							ret.Hook = append(ret.Hook, bytes.NewBufferString(workloadErr.Error()))
 							ret.Success = false
 						}
-						if err := send(caller, ch, ret); err != nil {
-							return err
-						}
-					}
-					c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node) })
-					return nil
-				}); nodeErr != nil {
-					logger.WithField("node", nodename).Error(ctx, nodeErr, "failed to lock node")
-					_ = send(caller, ch, &types.RemoveWorkloadMessage{Success: false})
+						_ = send(caller, ch, ret)
+					})
 				}
+				removes.Wait()
+				c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node) })
 			})
 		}
 	})
