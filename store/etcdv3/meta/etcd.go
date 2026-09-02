@@ -24,6 +24,8 @@ import (
 )
 
 const (
+	revokeTimeout = 10 * time.Second
+
 	cmpVersion = "version"
 	cmpValue   = "value"
 
@@ -420,6 +422,8 @@ func (e *ETCD) revokeLease(ctx context.Context, leaseID clientv3.LeaseID) {
 	if leaseID == 0 {
 		return
 	}
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), revokeTimeout)
+	defer cancel()
 	if _, err := e.cliv3.Revoke(ctx, leaseID); err != nil {
 		log.WithFunc("store.etcdv3.meta.revokeLease").Error(ctx, err, "revoke lease failed")
 	}

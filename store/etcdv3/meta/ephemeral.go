@@ -24,8 +24,10 @@ func (e *ETCD) StartEphemeral(ctx context.Context, path string, heartbeat time.D
 		Then(clientv3.OpPut(path, "", clientv3.WithLease(lease.ID))).
 		Commit(); {
 	case err != nil:
+		e.revokeLease(ctx, lease.ID)
 		return nil, nil, err
 	case !tx.Succeeded:
+		e.revokeLease(ctx, lease.ID)
 		return nil, nil, errors.Wrap(types.ErrKeyExists, path)
 	}
 

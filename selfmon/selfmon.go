@@ -56,16 +56,11 @@ func (n *NodeStatusWatcher) withActiveLock(parentCtx context.Context, f func(ctx
 		}
 	}()
 
+	retryInterval := max(time.Second, n.config.HAKeepaliveInterval/4)
+	warnEvery := max(1, int(time.Minute/retryInterval))
 	retryCounter := 0
 
 	for {
-		select {
-		case <-ctx.Done():
-			logger.Info(ctx, "context canceled")
-			return
-		default:
-		}
-
 		ne, un, err := n.store.StartEphemeral(ctx, ActiveKey, n.config.HAKeepaliveInterval)
 		if err == nil {
 			logger.Info(ctx, "node status watcher has been active")
@@ -77,16 +72,19 @@ func (n *NodeStatusWatcher) withActiveLock(parentCtx context.Context, f func(ctx
 			logger.Info(ctx, "context canceled")
 			return
 		}
-		if !errors.Is(err, types.ErrKeyExists) {
+		switch {
+		case !errors.Is(err, types.ErrKeyExists):
 			logger.Error(ctx, err, "failed to register")
-			time.Sleep(time.Second)
-			continue
-		}
-		if retryCounter == 0 {
+		case retryCounter == 0:
 			logger.Warn(ctx, "failed to register, there has been another active node status watcher")
 		}
-		retryCounter = (retryCounter + 1) % 60
-		time.Sleep(time.Second)
+		retryCounter = (retryCounter + 1) % warnEvery
+		select {
+		case <-ctx.Done():
+			logger.Info(ctx, "context canceled")
+			return
+		case <-time.After(retryInterval):
+		}
 	}
 
 	go func() {
