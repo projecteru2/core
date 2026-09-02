@@ -18,6 +18,7 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, IDs []string) (chan *t
 	}
 
 	ch := make(chan *types.DissociateWorkloadMessage)
+	caller := ctx
 	utils.SentryGo(func() {
 		defer close(ch)
 
@@ -33,7 +34,9 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, IDs []string) (chan *t
 						logger.WithField("id", workloadID).Error(ctx, workloadErr, "failed to dissociate workload")
 						msg.Error = workloadErr
 					}
-					ch <- msg
+					if err := send(caller, ch, msg); err != nil {
+						return err
+					}
 				}
 				c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node) })
 				return nil

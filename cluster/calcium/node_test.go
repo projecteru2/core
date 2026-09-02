@@ -290,6 +290,32 @@ func TestSetNode(t *testing.T) {
 	rmgr.AssertExpectations(t)
 }
 
+func TestSetWorkloadsDownDoesNotWaitForThePool(t *testing.T) {
+	c := NewTestCluster()
+	pool, err := utils.NewPool(1)
+	assert.NoError(t, err)
+	c.pool = pool
+	release := make(chan struct{})
+	defer close(release)
+	_ = c.pool.Invoke(func() { <-release })
+
+	store := c.store.(*storemocks.Store)
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Workload{{ID: "1", Name: "a_b_c"}, {ID: "2", Name: "a_b_d"}}, nil)
+	store.On("SetWorkloadStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		c.setAllWorkloadsOnNodeDown(t.Context(), "node")
+	}()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("marking workloads down waited for a pool worker while holding the node lock")
+	}
+	store.AssertNumberOfCalls(t, "SetWorkloadStatus", 2)
+}
+
 func TestFilterNodes(t *testing.T) {
 	c := NewTestCluster()
 	ctx := t.Context()

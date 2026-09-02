@@ -110,3 +110,12 @@ func pullImage(ctx context.Context, node *types.Node, image string) error {
 	logger.Infof(ctx, "done pulling image %s", image)
 	return nil
 }
+
+func send[T any](ctx context.Context, ch chan<- T, msg T) error {
+	select {
+	case ch <- msg:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}

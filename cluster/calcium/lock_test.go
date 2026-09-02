@@ -174,6 +174,31 @@ func TestWithNodesPodLocked(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestWithNodesPodLockedTakesPodLocksInKeyOrder(t *testing.T) {
+	c := NewTestCluster()
+	store := c.store.(*storemocks.Store)
+	nodes := []*types.Node{
+		{NodeMeta: types.NodeMeta{Name: "a1", Podname: "podb"}, Available: true},
+		{NodeMeta: types.NodeMeta{Name: "b1", Podname: "poda"}, Available: true},
+		{NodeMeta: types.NodeMeta{Name: "c1", Podname: "podb"}, Available: true},
+	}
+	store.On("GetNodes", mock.Anything, mock.Anything).Return(nodes, nil)
+	lock := &lockmocks.DistributedLock{}
+	lock.On("Lock", mock.Anything).Return(t.Context(), nil)
+	lock.On("Unlock", mock.Anything).Return(nil)
+	keys := []string{}
+	store.On("CreateLock", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+		keys = append(keys, args.String(0))
+	}).Return(lock, nil)
+
+	err := c.withNodesPodLocked(t.Context(), &types.NodeFilter{Includes: []string{"a1", "b1", "c1"}}, func(_ context.Context, locked map[string]*types.Node) error {
+		assert.Len(t, locked, 3)
+		return nil
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"plock_poda", "plock_podb"}, keys)
+}
+
 func TestWithNodePodLocked(t *testing.T) {
 	c := NewTestCluster()
 	ctx := t.Context()
