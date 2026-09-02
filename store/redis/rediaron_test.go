@@ -178,7 +178,10 @@ func (s *RediaronTestSuite) TestBindStatusRefreshesAnUnchangedValueInPlace() {
 
 	s.NoError(s.rediaron.BindStatus(ctx, "entity", "status", "v2", 0))
 	s.Zero(s.rediserver.TTL("status"))
-	s.ErrorIs(s.rediaron.BindStatus(ctx, "absent", "status", "v2", 0), types.ErrInvaildCount)
+	s.ErrorIs(s.rediaron.BindStatus(ctx, "absent", "orphan", "v2", 10), types.ErrInvaildCount)
+	s.False(s.rediserver.Exists("orphan"))
+	s.NoError(s.rediaron.BindStatus(ctx, "absent", "orphan", "v2", 0))
+	s.Equal(time.Hour, s.rediserver.TTL("orphan"))
 
 	s.NoError(s.rediaron.BindStatus(ctx, "entity", "status", "v2", 10))
 	s.rediserver.FastForward(11 * time.Second)

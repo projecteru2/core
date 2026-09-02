@@ -7,7 +7,6 @@ import (
 	"maps"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/panjf2000/ants/v2"
@@ -28,7 +27,6 @@ const (
 
 	replyExists  = "exists"
 	replyMissing = "missing"
-	replyChanged = "changed"
 
 	scanCount = 1000
 )
@@ -47,11 +45,19 @@ end
 if KEYS[1] ~= "" then redis.call("decr", KEYS[1]) end
 for i = 2, #KEYS do redis.call("set", KEYS[i], ARGV[i-1]) end
 return "ok"`)
-	refreshStatusScript = redis.NewScript(`
-if redis.call("exists", KEYS[1]) == 0 then return "missing" end
-if redis.call("get", KEYS[2]) ~= ARGV[1] then return "changed" end
-if tonumber(ARGV[2]) > 0 then redis.call("expire", KEYS[2], ARGV[2]) else redis.call("persist", KEYS[2]) end
-return "refreshed"`)
+	bindStatusScript = redis.NewScript(`
+local ttl = tonumber(ARGV[2])
+if redis.call("exists", KEYS[1]) == 0 then
+    if ttl > 0 then return "missing" end
+    redis.call("set", KEYS[2], ARGV[1], "EX", ARGV[3])
+    return "orphaned"
+end
+if redis.call("get", KEYS[2]) == ARGV[1] then
+    if ttl > 0 then redis.call("expire", KEYS[2], ARGV[2]) else redis.call("persist", KEYS[2]) end
+    return "refreshed"
+end
+if ttl > 0 then redis.call("set", KEYS[2], ARGV[1], "EX", ARGV[2]) else redis.call("set", KEYS[2], ARGV[1]) end
+return "written"`)
 
 	globMeta = strings.NewReplacer(`\`, `\\`, "*", `\*`, "?", `\?`, "[", `\[`, "]", `\]`)
 )
@@ -144,7 +150,7 @@ func (r *Rediaron) GetOne(ctx context.Context, key string) (string, error) {
 }
 
 func (r *Rediaron) GetPrefix(ctx context.Context, prefix string, limit int64) (map[string]string, error) {
-	keys, err := r.scanKeys(ctx, globPrefix(prefix), limit)
+	keys, err := r.scanKeys(ctx, prefix, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +158,7 @@ func (r *Rediaron) GetPrefix(ctx context.Context, prefix string, limit int64) (m
 }
 
 func (r *Rediaron) ListPrefix(ctx context.Context, prefix string) ([]string, error) {
-	return r.scanKeys(ctx, globPrefix(prefix), 0)
+	return r.scanKeys(ctx, prefix, 0)
 }
 
 func (r *Rediaron) NotFound(err error) bool {
@@ -243,15 +249,13 @@ func (r *Rediaron) Delete(ctx context.Context, keys []string) error {
 }
 
 func (r *Rediaron) BindStatus(ctx context.Context, entityKey, statusKey, statusValue string, ttl int64) error {
-	refreshed, err := refreshStatusScript.Run(ctx, r.cli, []string{entityKey, statusKey}, statusValue, ttl).Text()
-	switch {
-	case err != nil:
+	bound, err := bindStatusScript.Run(ctx, r.cli, []string{entityKey, statusKey}, statusValue, ttl, common.OrphanStatusTTL).Text()
+	if err != nil {
 		return err
-	// mirrors etcd: a missing entity key is an error
-	case refreshed == replyMissing:
+	}
+	// mirrors etcd: a missing entity key is an error for a status that carries a ttl
+	if bound == replyMissing {
 		return types.ErrInvaildCount
-	case refreshed == replyChanged:
-		return r.cli.Set(ctx, statusKey, statusValue, time.Duration(ttl)*time.Second).Err()
 	}
 	return nil
 }

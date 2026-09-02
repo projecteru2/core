@@ -4,7 +4,8 @@ import (
 	"context"
 )
 
-func (r *Rediaron) scanKeys(ctx context.Context, pattern string, limit int64) ([]string, error) {
+func (r *Rediaron) scanKeys(ctx context.Context, prefix string, limit int64) ([]string, error) {
+	pattern := globPrefix(prefix)
 	var cursor uint64
 	seen := map[string]struct{}{}
 	keys := []string{}
