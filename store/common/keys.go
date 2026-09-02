@@ -3,12 +3,16 @@ package common
 import (
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
 
 const (
+	// OrphanStatusTTL bounds a status reported before core recorded its entity, on every backend.
+	OrphanStatusTTL = int64(time.Hour / time.Second)
+
 	PodInfoKey       = "/pod/info/%s" // /pod/info/{podname}
 	ServiceStatusKey = "/services/%s" // /service/{ipv4:port}
 

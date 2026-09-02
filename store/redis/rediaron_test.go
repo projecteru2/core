@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/projecteru2/core/engine/factory"
+	"github.com/projecteru2/core/store/common"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -133,6 +134,98 @@ func (s *RediaronTestSuite) TestKeyNotifyCancellationUnblocksPendingMessage() {
 	case <-time.After(time.Second):
 		s.FailNow("key notification did not stop")
 	}
+}
+
+func (s *RediaronTestSuite) TestCreateWritesNothingOnAConflict() {
+	ctx := s.T().Context()
+	s.NoError(s.rediaron.cli.Set(ctx, "b", "old", 0).Err())
+
+	s.ErrorIs(s.rediaron.Create(ctx, map[string]string{"a": "1", "b": "2"}), ErrAlreadyExists)
+	s.False(s.rediserver.Exists("a"))
+	value, _ := s.rediserver.Get("b")
+	s.Equal("old", value)
+}
+
+func (s *RediaronTestSuite) TestCreateAndDecrNeedsTheCounter() {
+	ctx := s.T().Context()
+	s.ErrorIs(s.rediaron.CreateAndDecr(ctx, map[string]string{"a": "1"}, "counter"), types.ErrKeyNotExists)
+	s.False(s.rediserver.Exists("a"))
+
+	s.NoError(s.rediaron.cli.Set(ctx, "counter", "2", 0).Err())
+	s.NoError(s.rediaron.CreateAndDecr(ctx, map[string]string{"a": "1"}, "counter"))
+	counter, _ := s.rediserver.Get("counter")
+	s.Equal("1", counter)
+
+	s.ErrorIs(s.rediaron.CreateAndDecr(ctx, map[string]string{"a": "1", "c": "3"}, "counter"), ErrAlreadyExists)
+	counter, _ = s.rediserver.Get("counter")
+	s.Equal("1", counter)
+	s.False(s.rediserver.Exists("c"))
+}
+
+func (s *RediaronTestSuite) TestBindStatusRefreshesAnUnchangedValueInPlace() {
+	ctx := s.T().Context()
+	s.NoError(s.rediaron.cli.Set(ctx, "entity", "1", 0).Err())
+
+	s.NoError(s.rediaron.BindStatus(ctx, "entity", "status", "v1", 10))
+	s.Equal(10*time.Second, s.rediserver.TTL("status"))
+	s.rediserver.FastForward(4 * time.Second)
+	s.NoError(s.rediaron.BindStatus(ctx, "entity", "status", "v1", 10))
+	s.Equal(10*time.Second, s.rediserver.TTL("status"))
+
+	s.NoError(s.rediaron.BindStatus(ctx, "entity", "status", "v2", 10))
+	value, _ := s.rediserver.Get("status")
+	s.Equal("v2", value)
+
+	s.NoError(s.rediaron.BindStatus(ctx, "entity", "status", "v2", 0))
+	s.Zero(s.rediserver.TTL("status"))
+	s.ErrorIs(s.rediaron.BindStatus(ctx, "absent", "orphan", "v2", 10), types.ErrInvaildCount)
+	s.False(s.rediserver.Exists("orphan"))
+	s.NoError(s.rediaron.BindStatus(ctx, "absent", "orphan", "v2", 0))
+	s.Equal(time.Hour, s.rediserver.TTL("orphan"))
+
+	s.NoError(s.rediaron.BindStatus(ctx, "entity", "status", "v2", 10))
+	s.rediserver.FastForward(11 * time.Second)
+	s.False(s.rediserver.Exists("status"))
+	s.NoError(s.rediaron.BindStatus(ctx, "entity", "status", "v2", 10))
+	s.Equal(10*time.Second, s.rediserver.TTL("status"))
+}
+
+func (s *RediaronTestSuite) TestPrefixReadsTakeGlobMetacharactersLiterally() {
+	ctx := s.T().Context()
+	s.NoError(s.rediaron.cli.MSet(ctx, "node/web-[01]/x", "1", "node/web-0/x", "2", "node/web-1/x", "3").Err())
+
+	keys, err := s.rediaron.ListPrefix(ctx, "node/web-[01]/")
+	s.NoError(err)
+	s.Equal([]string{"node/web-[01]/x"}, keys)
+
+	data, err := s.rediaron.GetPrefix(ctx, "node/web-", 0)
+	s.NoError(err)
+	s.Len(data, 3)
+}
+
+func (s *RediaronTestSuite) TestWatchSkipsTTLRefreshes() {
+	ctx, cancel := context.WithCancel(s.T().Context())
+	events := []common.Event{}
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for event := range s.rediaron.Watch(ctx, "a") {
+			events = append(events, event)
+		}
+	}()
+	s.Require().Eventually(func() bool {
+		count, err := s.rediaron.cli.PubSubNumPat(s.T().Context()).Result()
+		return err == nil && count > 0
+	}, time.Second, 10*time.Millisecond)
+
+	triggerMockedKeyspaceNotification(s.rediaron.cli, "aaa", "expire")
+	triggerMockedKeyspaceNotification(s.rediaron.cli, "aab", actionSet)
+	triggerMockedKeyspaceNotification(s.rediaron.cli, "aaa", actionExpired)
+	time.Sleep(50 * time.Millisecond)
+	cancel()
+	<-done
+
+	s.Equal([]common.Event{{Key: "aab", Type: common.EventPut}, {Key: "aaa", Type: common.EventExpire}}, events)
 }
 
 func triggerMockedKeyspaceNotification(cli *redis.Client, key, action string) {
