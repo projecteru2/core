@@ -128,26 +128,20 @@ func (n *NodeStatusWatcher) replayDeadJournals(ctx context.Context) {
 func (n *NodeStatusWatcher) initNodeStatus(ctx context.Context) {
 	logger := log.WithFunc("selfmon.initNodeStatus")
 	logger.Debug(ctx, "init node status started")
-	nodes := make(chan *types.Node)
 
-	go func() {
-		defer close(nodes)
-		utils.WithTimeout(ctx, n.config.GlobalTimeout, func(ctx context.Context) {
-			ch, err := n.cluster.ListPodNodes(ctx, &types.ListNodesOptions{All: true})
-			if err != nil {
-				logger.Error(ctx, err, "get pod nodes failed")
-				return
-			}
-			for node := range ch {
-				logger.Debugf(ctx, "watched %s/%s", node.Name, node.Endpoint)
-				nodes <- node
-			}
-		})
-	}()
+	var nodes []*types.Node
+	var err error
+	utils.WithTimeout(ctx, n.config.GlobalTimeout, func(ctx context.Context) {
+		nodes, err = n.store.GetNodesByPod(ctx, &types.NodeFilter{All: true}, true)
+	})
+	if err != nil {
+		logger.Error(ctx, err, "get pod nodes failed")
+		return
+	}
 
 	var handlers errgroup.Group
 	handlers.SetLimit(nodeStatusHandlers)
-	for node := range nodes {
+	for _, node := range nodes {
 		status := &types.NodeStatus{Nodename: node.Name, Podname: node.Podname, Alive: node.Available || node.Test}
 		handlers.Go(func() error {
 			n.dealNodeStatusMessage(ctx, status)
