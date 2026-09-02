@@ -13,12 +13,6 @@ import (
 
 const interval = 15 * time.Second
 
-type entry struct {
-	ch     chan types.ServiceStatus
-	ctx    context.Context
-	cancel context.CancelFunc
-}
-
 type Helium struct {
 	store     store.Store
 	subs      sync.Map
@@ -41,17 +35,11 @@ func New(ctx context.Context, config types.GRPCConfig, store store.Store) *Heliu
 	return h
 }
 
-func (h *Helium) Subscribe(ctx context.Context) (uint32, <-chan types.ServiceStatus) {
-	subCtx, cancel := context.WithCancel(ctx)
-	ch := make(chan types.ServiceStatus)
-	sub := entry{
-		ch:     ch,
-		ctx:    subCtx,
-		cancel: cancel,
-	}
+func (h *Helium) Subscribe() (uint32, <-chan types.ServiceStatus) {
+	ch := make(chan types.ServiceStatus, 1)
 	for {
 		ID := rand.Uint32() //nolint:gosec
-		if _, taken := h.subs.LoadOrStore(ID, sub); !taken {
+		if _, taken := h.subs.LoadOrStore(ID, ch); !taken {
 			return ID, ch
 		}
 	}
@@ -94,11 +82,8 @@ func (h *Helium) start(ctx context.Context) {
 				}
 
 			case ID := <-h.unsubChan:
-				if v, ok := h.subs.Load(ID); ok {
-					sub := v.(entry)
-					sub.cancel()
-					h.subs.Delete(ID)
-					close(sub.ch)
+				if v, ok := h.subs.LoadAndDelete(ID); ok {
+					close(v.(chan types.ServiceStatus))
 				}
 
 			case <-ticker.C:
@@ -111,10 +96,14 @@ func (h *Helium) start(ctx context.Context) {
 
 func (h *Helium) dispatch(status types.ServiceStatus) {
 	h.subs.Range(func(_, v any) bool {
-		sub := v.(entry)
+		ch := v.(chan types.ServiceStatus)
 		select {
-		case sub.ch <- status:
-		case <-sub.ctx.Done():
+		case <-ch:
+		default:
+		}
+		select {
+		case ch <- status:
+		default:
 		}
 		return true
 	})

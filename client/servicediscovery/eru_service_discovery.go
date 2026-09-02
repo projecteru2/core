@@ -2,16 +2,16 @@ package servicediscovery
 
 import (
 	"context"
-	"fmt"
 	"math"
 	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/resolver"
+	"google.golang.org/grpc/resolver/manual"
 
 	"github.com/projecteru2/core/auth"
 	"github.com/projecteru2/core/client/interceptor"
-	"github.com/projecteru2/core/client/utils"
 	"github.com/projecteru2/core/log"
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
@@ -32,20 +32,21 @@ func New(endpoint string, authConfig types.AuthConfig) *EruServiceDiscovery {
 	}
 }
 
-func (w *EruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err error) {
-	cc, err := w.dial()
+// Watch streams the core addresses the cluster publishes; the connection it watches over follows them as well.
+func (w *EruServiceDiscovery) Watch(ctx context.Context) (<-chan []string, error) {
 	logger := log.WithFunc("servicediscovery.Watch").WithField("endpoint", w.endpoint)
+	cores := manual.NewBuilderWithScheme("lb")
+	cores.InitialState(addressState(w.endpoint))
+	cc, err := w.dial(cores)
 	if err != nil {
 		logger.Error(ctx, err, "dial")
 		return nil, err
 	}
 	client := pb.NewCoreRPCClient(cc)
 	ch := make(chan []string)
-	epPusher := &utils.EndpointPusher{}
-	epPusher.Register(ch)
-	epPusher.Register(lbResolverBuilder.updateCh)
 	go func() {
 		defer close(ch)
+		defer func() { _ = cc.Close() }()
 		for ctx.Err() == nil {
 			watchCtx, cancelWatch := context.WithCancel(ctx)
 			stream, err := client.WatchServiceStatus(watchCtx, &pb.Empty{})
@@ -71,8 +72,15 @@ func (w *EruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err
 					break
 				}
 				expectedInterval = time.Duration(status.GetIntervalInSecond()) * time.Second
-
-				epPusher.Push(ctx, status.GetAddresses())
+				addresses := status.GetAddresses()
+				if len(addresses) == 0 {
+					continue
+				}
+				cores.UpdateState(addressState(addresses...))
+				select {
+				case ch <- addresses:
+				case <-ctx.Done():
+				}
 			}
 			cancelWatch()
 		}
@@ -81,15 +89,24 @@ func (w *EruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err
 	return ch, nil
 }
 
-func (w *EruServiceDiscovery) dial() (*grpc.ClientConn, error) {
+func (w *EruServiceDiscovery) dial(cores resolver.Builder) (*grpc.ClientConn, error) {
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithStreamInterceptor(interceptor.NewStreamRetry(interceptor.RetryOptions{Max: 1})),
+		grpc.WithResolvers(cores),
 	}
 
 	if w.authConfig.Username != "" {
 		opts = append(opts, grpc.WithPerRPCCredentials(auth.NewCredential(w.authConfig)))
 	}
 
-	return grpc.NewClient(fmt.Sprintf("lb://_/%s", w.endpoint), opts...)
+	return grpc.NewClient("lb:///"+w.endpoint, opts...)
+}
+
+func addressState(endpoints ...string) resolver.State {
+	addresses := make([]resolver.Address, 0, len(endpoints))
+	for _, ep := range endpoints {
+		addresses = append(addresses, resolver.Address{Addr: ep})
+	}
+	return resolver.State{Addresses: addresses}
 }
