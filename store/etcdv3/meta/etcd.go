@@ -367,7 +367,6 @@ func (e *ETCD) bindStatusWithTTL(ctx context.Context, entityKey, statusKey, stat
 	return err
 }
 
-// bindStatusWithoutTTL skips the entity check: an agent may report status before core records the entity.
 func (e *ETCD) bindStatusWithoutTTL(ctx context.Context, entityKey, statusKey, statusValue string) error {
 	logger := log.WithFunc("store.etcdv3.meta.bindStatusWithoutTTL")
 
