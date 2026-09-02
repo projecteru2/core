@@ -14,14 +14,14 @@ import (
 
 const scrapeFanout = 8
 
-// ResourceMiddleware refreshes node metrics before the wrapped handler runs; overlapping scrapes share one refresh.
+// ResourceMiddleware refreshes node metrics before the wrapped handler runs; overlapping scrapes share one refresh, which outlives the scrape that started it.
 func (m *Metrics) ResourceMiddleware(cluster cluster.Cluster) func(http.Handler) http.Handler {
 	logger := log.WithFunc("metrics.ResourceMiddleware")
 	var scrapes singleflight.Group
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			_, _, _ = scrapes.Do("refresh", func() (any, error) {
-				ctx, cancel := context.WithTimeout(r.Context(), m.Config.GlobalTimeout)
+			refreshed := scrapes.DoChan("refresh", func() (any, error) {
+				ctx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), m.Config.GlobalTimeout)
 				defer cancel()
 				nodes, err := cluster.ListPodNodes(ctx, &types.ListNodesOptions{All: true})
 				if err != nil {
@@ -39,6 +39,11 @@ func (m *Metrics) ResourceMiddleware(cluster cluster.Cluster) func(http.Handler)
 				}
 				return nil, g.Wait()
 			})
+			select {
+			case <-refreshed:
+			case <-r.Context().Done():
+				return
+			}
 			h.ServeHTTP(w, r)
 		})
 	}
