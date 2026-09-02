@@ -3,6 +3,8 @@ package calcium
 import (
 	"bytes"
 	"context"
+	"maps"
+	"slices"
 	"sync"
 
 	"github.com/cockroachdb/errors"
@@ -62,22 +64,23 @@ func (c *Calcium) doRemoveNodeWorkloads(ctx context.Context, node *types.Node, I
 	}
 	defer nodeCommit()
 
+	staying := make(map[string]resourcetypes.Resources, len(workloads))
 	resources := make([]resourcetypes.Resources, 0, len(workloads))
 	for _, workload := range workloads {
+		staying[workload.ID] = workload.Resources
 		resources = append(resources, workload.Resources)
 	}
 	if _, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, resources, true, plugins.Decr); err != nil {
 		return err
 	}
 
-	kept := []resourcetypes.Resources{}
 	defer func() {
-		if len(kept) == 0 {
+		if len(staying) == 0 {
 			return
 		}
 		restoreCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), c.config.GlobalTimeout)
 		defer cancel()
-		if _, _, err := c.rmgr.SetNodeResourceUsage(restoreCtx, node.Name, nil, nil, kept, true, plugins.Incr); err != nil {
+		if _, _, err := c.rmgr.SetNodeResourceUsage(restoreCtx, node.Name, nil, nil, slices.Collect(maps.Values(staying)), true, plugins.Incr); err != nil {
 			logger.Error(ctx, err, "failed to give the workloads that stay their resources back")
 		}
 	}()
@@ -89,8 +92,8 @@ func (c *Calcium) doRemoveNodeWorkloads(ctx context.Context, node *types.Node, I
 			logger.WithField("id", workload.ID).Error(ctx, workloadErr, "failed to remove workload")
 			ret.Hook = append(ret.Hook, bytes.NewBufferString(workloadErr.Error()))
 			ret.Success = false
-			kept = append(kept, workload.Resources)
 		} else {
+			delete(staying, workload.ID)
 			logger.Infof(ctx, "workload %s removed", workload.ID)
 		}
 		select {

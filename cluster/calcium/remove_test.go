@@ -1,6 +1,7 @@
 package calcium
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -120,6 +121,38 @@ func TestRemoveWorkloadReleasesResourcesOnce(t *testing.T) {
 		results[r.WorkloadID] = r.Success
 	}
 	assert.Equal(t, map[string]bool{"a": true, "b": false}, results)
+	rmgr.AssertExpectations(t)
+}
+
+func TestRemoveWorkloadGivesUnvisitedWorkloadsTheirResourcesBack(t *testing.T) {
+	c := NewTestCluster()
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	lock := &lockmocks.DistributedLock{}
+	lock.On("Lock", mock.Anything).Return(ctx, nil)
+	lock.On("Unlock", mock.Anything).Return(nil)
+	engine := &enginemocks.API{}
+	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	workloads := []*types.Workload{
+		{ID: "a", Name: "test", Nodename: "test", Engine: engine, Resources: resourcetypes.Resources{"cpumem": {"cpu": 1}}},
+		{ID: "b", Name: "test", Nodename: "test", Engine: engine, Resources: resourcetypes.Resources{"cpumem": {"cpu": 2}}},
+	}
+	store := c.store.(*storemocks.Store)
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(workloads, nil)
+	store.On("GetNode", mock.Anything, mock.Anything).Return(&types.Node{NodeMeta: types.NodeMeta{Name: "test"}}, nil)
+	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	released := mock.MatchedBy(func(r []resourcetypes.Resources) bool { return len(r) == 2 })
+	rmgr.On("SetNodeResourceUsage", mock.Anything, "test", mock.Anything, mock.Anything, released, true, plugins.Decr).Run(func(mock.Arguments) { cancel() }).Return(nil, nil, nil).Once()
+	restored := mock.MatchedBy(func(r []resourcetypes.Resources) bool { return len(r) == 1 && r[0]["cpumem"]["cpu"] == 2 })
+	rmgr.On("SetNodeResourceUsage", mock.Anything, "test", mock.Anything, mock.Anything, restored, true, plugins.Incr).Return(nil, nil, nil).Once()
+
+	ch, err := c.RemoveWorkload(ctx, []string{"a", "b"}, false)
+	assert.NoError(t, err)
+	time.Sleep(500 * time.Millisecond)
+	for range ch { //nolint:revive
+	}
 	rmgr.AssertExpectations(t)
 }
 
