@@ -74,30 +74,17 @@ func newHost(cpuMap types.CPUMap, shareBase, maxFragmentCores int) *host {
 }
 
 func (h *host) getCPUPlans(cpuRequest float64) []types.CPUMap {
-	piecesRequest := int(cpuRequest * float64(h.shareBase))
-	if piecesRequest == 0 {
+	full, fragment, maxFragmentCores := h.split(cpuRequest)
+	switch {
+	case full == 0 && fragment == 0:
 		return nil
-	}
-	full := piecesRequest / h.shareBase
-	fragment := piecesRequest % h.shareBase
-
-	maxFragmentCores := len(h.fullCores) + len(h.fragmentCores) - full
-	if h.maxFragmentCores != -1 && h.maxFragmentCores < maxFragmentCores {
-		maxFragmentCores = h.maxFragmentCores
-	}
-
-	if fragment == 0 {
+	case fragment == 0:
 		return h.getFullCPUPlans(h.fullCores, full)
+	case full == 0:
+		return h.getFragmentCPUPlans(h.moveToFragment(maxFragmentCores), fragment)
 	}
 
-	if full == 0 {
-		diff := max(maxFragmentCores-len(h.fragmentCores), 0)
-		h.fragmentCores = append(h.fragmentCores, h.fullCores[:diff]...)
-		h.fullCores = h.fullCores[diff:]
-		return h.getFragmentCPUPlans(h.fragmentCores, fragment)
-	}
-
-	bestMoved, bestCapacity := h.bestSplit(full, fragment, max(min(maxFragmentCores-len(h.fragmentCores), len(h.fullCores)), 0))
+	bestMoved, bestCapacity := h.bestSplit(full, fragment, h.maxMoved(maxFragmentCores))
 	fullCPUPlans := h.getFullCPUPlans(h.fullCores[bestMoved:], full)
 	fragmentCPUPlans := h.getFragmentCPUPlans(append(slices.Clone(h.fragmentCores), h.fullCores[:bestMoved]...), fragment)
 	cpuPlans := make([]types.CPUMap, 0, bestCapacity)
@@ -108,6 +95,43 @@ func (h *host) getCPUPlans(cpuRequest float64) []types.CPUMap {
 		cpuPlans = append(cpuPlans, cpuMap)
 	}
 	return cpuPlans
+}
+
+func (h *host) countCPUPlans(cpuRequest float64) int {
+	full, fragment, maxFragmentCores := h.split(cpuRequest)
+	switch {
+	case full == 0 && fragment == 0:
+		return 0
+	case fragment == 0:
+		return h.countFullCPUPlans(h.fullCores, full)
+	case full == 0:
+		return h.countFragmentCPUPlans(h.moveToFragment(maxFragmentCores), fragment)
+	}
+
+	_, bestCapacity := h.bestSplit(full, fragment, h.maxMoved(maxFragmentCores))
+	return bestCapacity
+}
+
+func (h *host) split(cpuRequest float64) (full, fragment, maxFragmentCores int) {
+	piecesRequest := int(cpuRequest * float64(h.shareBase))
+	full, fragment = piecesRequest/h.shareBase, piecesRequest%h.shareBase
+
+	maxFragmentCores = len(h.fullCores) + len(h.fragmentCores) - full
+	if h.maxFragmentCores != -1 && h.maxFragmentCores < maxFragmentCores {
+		maxFragmentCores = h.maxFragmentCores
+	}
+	return full, fragment, maxFragmentCores
+}
+
+func (h *host) maxMoved(maxFragmentCores int) int {
+	return max(min(maxFragmentCores-len(h.fragmentCores), len(h.fullCores)), 0)
+}
+
+func (h *host) moveToFragment(maxFragmentCores int) []*cpuCore {
+	diff := max(maxFragmentCores-len(h.fragmentCores), 0)
+	h.fragmentCores = append(h.fragmentCores, h.fullCores[:diff]...)
+	h.fullCores = h.fullCores[diff:]
+	return h.fragmentCores
 }
 
 // bestSplit finds the first split with the largest capacity where the falling full-plan count meets the rising fragment count.
@@ -223,6 +247,14 @@ func (h *host) getFragmentCPUPlans(cores []*cpuCore, fragment int) []types.CPUMa
 	return result
 }
 
+func (h *host) countFragmentCPUPlans(cores []*cpuCore, fragment int) int {
+	count := 0
+	for _, core := range cores {
+		count += core.pieces / fragment
+	}
+	return count
+}
+
 func GetCPUPlans(resourceInfo *types.NodeResourceInfo, originCPUMap types.CPUMap, shareBase, maxFragmentCores int, req *types.WorkloadResourceRequest) []*types.CPUPlan {
 	cpuPlans := []*types.CPUPlan{}
 	availableResource := resourceInfo.GetAvailableResource()
@@ -261,6 +293,14 @@ func GetCPUPlans(resourceInfo *types.NodeResourceInfo, originCPUMap types.CPUMap
 	return cpuPlans
 }
 
+func CountCPUPlans(resourceInfo *types.NodeResourceInfo, originCPUMap types.CPUMap, shareBase, maxFragmentCores int, req *types.WorkloadResourceRequest) int {
+	if len(resourceInfo.Capacity.NUMA) > 0 {
+		return len(GetCPUPlans(resourceInfo, originCPUMap, shareBase, maxFragmentCores, req))
+	}
+	availableResource := resourceInfo.GetAvailableResource()
+	return doCountCPUPlans(originCPUMap, availableResource.CPUMap, availableResource.Memory, shareBase, maxFragmentCores, req.CPURequest, req.MemRequest)
+}
+
 func doGetCPUPlans(originCPUMap, availableCPUMap types.CPUMap, availableMemory int64, shareBase, maxFragmentCores int, cpuRequest float64, memoryRequest int64) []types.CPUMap {
 	h := newHost(availableCPUMap, shareBase, maxFragmentCores)
 
@@ -277,6 +317,21 @@ func doGetCPUPlans(originCPUMap, availableCPUMap types.CPUMap, availableMemory i
 		}
 	}
 	return cpuPlans
+}
+
+func doCountCPUPlans(originCPUMap, availableCPUMap types.CPUMap, availableMemory int64, shareBase, maxFragmentCores int, cpuRequest float64, memoryRequest int64) int {
+	h := newHost(availableCPUMap, shareBase, maxFragmentCores)
+
+	if len(originCPUMap) > 0 {
+		originH := newHost(originCPUMap, shareBase, maxFragmentCores)
+		reorderByAffinity(originH, h)
+	}
+
+	count := h.countCPUPlans(cpuRequest)
+	if memoryRequest > 0 {
+		return min(count, int(availableMemory/memoryRequest))
+	}
+	return count
 }
 
 // reorderByAffinity keeps the cores the workload already holds at the front of newH.

@@ -398,8 +398,7 @@ func (p Plugin) doGetNodeDeployCapacity(nodeResourceInfo *cpumemtypes.NodeResour
 		return capacityInfo
 	}
 
-	cpuPlans := schedule.GetCPUPlans(nodeResourceInfo, nil, p.config.Scheduler.ShareBase, p.config.Scheduler.MaxShare, req)
-	capacityInfo.Capacity = len(cpuPlans)
+	capacityInfo.Capacity = schedule.CountCPUPlans(nodeResourceInfo, nil, p.config.Scheduler.ShareBase, p.config.Scheduler.MaxShare, req)
 	capacityInfo.Usage = utils.AdvancedDivide(nodeResourceInfo.Usage.CPU, nodeResourceInfo.Capacity.CPU)
 	capacityInfo.Rate = utils.AdvancedDivide(req.CPURequest, nodeResourceInfo.Capacity.CPU)
 	capacityInfo.Weight = 100 // cpu-bind above all
