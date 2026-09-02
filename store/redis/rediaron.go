@@ -276,6 +276,10 @@ func (r *Rediaron) create(ctx context.Context, data map[string]string, decrKey s
 	return nil
 }
 
+func globPrefix(prefix string) string {
+	return globMeta.Replace(prefix) + "*"
+}
+
 // go-redis does not export proto.Error, so the message is the only signal.
 func isRedisNoKeyError(e error) bool {
 	return e != nil && strings.Contains(e.Error(), "redis: nil")

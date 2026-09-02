@@ -30,7 +30,3 @@ func (r *Rediaron) scanKeys(ctx context.Context, pattern string, limit int64) ([
 	}
 	return keys, nil
 }
-
-func globPrefix(prefix string) string {
-	return globMeta.Replace(prefix) + "*"
-}
