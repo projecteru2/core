@@ -1,7 +1,6 @@
 package process
 
 import (
-	"bytes"
 	"context"
 	"io"
 	"os"
@@ -17,10 +16,6 @@ const (
 	upperDir  = "upper"
 	mergedDir = "merged"
 )
-
-func (e *Engine) VirtualizationCopyTo(ctx context.Context, ID, target string, content []byte, uid, gid int, mode int64) error {
-	return e.VirtualizationCopyChunkTo(ctx, ID, target, int64(len(content)), bytes.NewReader(content), uid, gid, mode)
-}
 
 func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target string, _ int64, content io.Reader, uid, gid int, mode int64) error {
 	paths, err := e.hostPaths(ctx, ID, target)

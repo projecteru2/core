@@ -2,7 +2,6 @@ package cocoon
 
 import (
 	"archive/tar"
-	"bytes"
 	"context"
 	"io"
 	"strings"
@@ -13,10 +12,6 @@ import (
 	"github.com/projecteru2/core/engine/sshrunner"
 	coretypes "github.com/projecteru2/core/types"
 )
-
-func (e *Engine) VirtualizationCopyTo(ctx context.Context, ID, target string, content []byte, uid, gid int, mode int64) error {
-	return e.VirtualizationCopyChunkTo(ctx, ID, target, int64(len(content)), bytes.NewReader(content), uid, gid, mode)
-}
 
 // VirtualizationCopyChunkTo streams one tar entry into `tar -x -P`; the absolute name makes tar create the parents.
 func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target string, size int64, content io.Reader, uid, gid int, mode int64) error {

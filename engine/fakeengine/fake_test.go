@@ -95,7 +95,6 @@ func apiCalls() []struct {
 		{"VirtualizationCreate", func(ctx context.Context, a engine.API) {
 			a.VirtualizationCreate(ctx, &enginetypes.VirtualizationCreateOptions{})
 		}},
-		{"VirtualizationCopyTo", func(ctx context.Context, a engine.API) { a.VirtualizationCopyTo(ctx, "id", "/t", nil, 0, 0, 0) }},
 		{"VirtualizationCopyChunkTo", func(ctx context.Context, a engine.API) {
 			a.VirtualizationCopyChunkTo(ctx, "id", "/t", 0, strings.NewReader(""), 0, 0, 0)
 		}},

@@ -112,10 +112,6 @@ func (f *EngineWithErr) VirtualizationCreate(context.Context, *enginetypes.Virtu
 	return nil, f.DefaultErr
 }
 
-func (f *EngineWithErr) VirtualizationCopyTo(context.Context, string, string, []byte, int, int, int64) error {
-	return f.DefaultErr
-}
-
 func (f *EngineWithErr) VirtualizationCopyChunkTo(context.Context, string, string, int64, io.Reader, int, int, int64) error {
 	return f.DefaultErr
 }
