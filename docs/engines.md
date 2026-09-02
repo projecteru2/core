@@ -26,10 +26,11 @@ An endpoint with any other prefix is rejected with `ErrInvaildNodeEndpoint`.
 on TCP — `plugins/server/grpc` registers on the TCP listener just the plugins implementing
 `RegisterTCP`, and CRI is the only one — so the native API (containers, tasks, images, content,
 diff, events) is reachable on the unix socket alone. Core therefore dials it the way it dials a
-process node: one SSH connection per node, with containerd's gRPC client running over an OpenSSH
-socket forward (`direct-streamlocal`, on by default in sshd) of `containerd.socket`. The same
-connection carries `journalctl`, `ctr` and the CNI conf listing. `types.Node.{ca,cert,key}` are
-unused by this engine.
+process node: one control connection per node, plus up to four more for long-lived streams, with
+containerd's gRPC client running over an OpenSSH socket forward (`direct-streamlocal`, on by
+default in sshd) of `containerd.socket`. The control connection carries the non-follow
+`journalctl` and the CNI conf listing; `ctr tasks exec` and a followed `journalctl` take stream
+connections of their own. `types.Node.{ca,cert,key}` are unused by this engine.
 
 Everything containerd's API cannot answer from core is asked of the node over that connection: a
 task's stdio lives in node-local FIFOs, so `Execute` and the copy verbs run `ctr tasks exec` on
@@ -124,8 +125,8 @@ leaves nothing on the node and hangs the workload forever, which is precisely th
 must not be silent.
 
 The relays are closed once that exit is consumed, or when the workload is removed, and the fifo
-directory goes with the workload directory. Until then they hold three of the eight SSH sessions a
-node allows ([core#670](https://github.com/projecteru2/core/issues/670)). Such a workload has no
+directory goes with the workload directory. Until then they hold three slots on the node's stream
+connections ([core#670](https://github.com/projecteru2/core/issues/670)). Such a workload has no
 log shim and nothing in journald: its output travels the stream, exactly as it did with docker.
 Everything else keeps `NewTask` + `LogURI`.
 
@@ -263,7 +264,7 @@ the cocoon daemon's events on it. The eru name stays in the meta file and in cor
 | `VirtualizationLogs` | `journalctl SYSLOG_IDENTIFIER=eru ERU_ID=<id>` with `-n`, `--since` and `--until` — eru-agent copies the guest console into journald; a followed stream ends when the guest stops, and both `journalctl` and the status watcher are killed by pid rather than through a pipeline, since the watcher only notices a closed pipe at its next event |
 | `VirtualizationAttach` | without stdin, the journald follow; with stdin, `ErrEngineNotImplemented` — the console needs a pty (core#660) |
 | `Execute` / `ExecExitCode` | `vm exec [-i] [-e K=V …] <id> -- <cmd>` through cocoon-agent in pipe mode, stdio on the SSH session, the exit code the guest command's. `ExecResize` is `ErrEngineNotImplemented` (core#660). A `user` and a `working_dir` are applied inside a Linux guest by wrapping the command — `runuser -u U -- env --chdir=D <cmd>` for a bare user name, `setpriv --reuid=U --regid=G --clear-groups -- env --chdir=D <cmd>` when the id is numeric or a group is named — so the directory is entered as the target user; on a Windows guest both are `ErrEngineNotImplemented` |
-| `VirtualizationCopyTo` / `CopyFrom` | a one-entry tar through `vm exec … tar -x -P -f -` / `tar -c -P -f -`: the absolute entry name makes tar create the parents, and `tar.exe` ships with Windows 10+. A copy into a guest that is not running is `ErrEngineNotImplemented` — the state is checked first, one round trip per file |
+| `VirtualizationCopyTo` / `CopyFrom` | a one-entry tar through `vm exec … tar -x -P -f -` / `tar -c -P -f -`: the absolute entry name makes tar create the parents, and `tar.exe` ships with Windows 10+. A copy into a guest that is not running is `ErrInvaildWorkloadOps` — the state is checked first, one round trip per file |
 | `VirtualizationUpdateResource` | a remap (the cpumem binding refresh core runs after every deploy) is a no-op without a round trip; a realloc is `ErrEngineNotImplemented`, CPU and memory hot-plug wait on cocoon (core#661) |
 | `ImagePull` | `image pull <ref>` for OCI VM images and cloud-image URLs, registry auth left to cocoon's own config; a split-qcow2 artifact (the Windows images) is `oras pull`ed and `image import`ed under the same ref, once |
 | `ImageList` / `ImageRemove` | `image list --format json` filtered by name prefix / `image rm`. An empty store answers `No images found.` in prose rather than `[]`, and reads as an empty list, not a failed node |
@@ -302,7 +303,7 @@ hook carries survives both wrappers, which is why neither is a login shell.
 
 A VM has no way to take a file before it boots: the copy verbs go through cocoon-agent inside the
 guest, and core sends a deploy's `--file` set between the create and the start. Such a deploy fails
-with `ErrEngineNotImplemented` and "send them after the vm boots" rather than a tar error from a
+with `ErrInvaildWorkloadOps` and "send them after the vm boots" rather than a tar error from a
 guest that does not exist yet; the same holds for `replace --copy`. Files reach a VM through
 `eru-cli send` once it is running, or through the image.
 
@@ -386,8 +387,8 @@ artifacts can be pulled.
 pair in the `ssh` config block — the endpoint's user overrides `ssh.user` — and drives `systemd`,
 `journalctl`, `oras` and sftp. No eru daemon runs on the node. Every remote command is built as an
 argv and single-quoted before it is sent, so workload names, paths and environment values are
-never interpolated into a shell line. Sessions are bounded at eight per node, so a wide deploy
-queues instead of exhausting sshd's `MaxSessions`.
+never interpolated into a shell line. Control calls are bounded at eight sessions per node, so a
+wide deploy queues instead of exhausting sshd's `MaxSessions`.
 
 One transient service per workload (`eru-<id>.service`), one slice per pod (`eru-<pod>.slice`):
 
@@ -437,8 +438,8 @@ minimal bundle carries `sh` and often not `env`, which is why the shell enters t
 `ImagePush` has nothing left to do — `ImageBuildFromExist` pushes the artifact as it builds it.
 
 Resources land on cgroup v2 unit properties: `AllowedCPUs`, `AllowedMemoryNodes` and `CPUWeight`
-for bound CPUs, `CPUQuota` whenever a quota is set, then `MemoryMax`, `MemoryLow` (half the
-reservation), `MemorySwapMax=0`, `TasksMax` and the four `IO*Max` knobs per device. Volume
+for bound CPUs, `CPUQuota` whenever a quota is set, then `MemoryMax`, `MemoryLow` (half the limit,
+never under 4 MiB), `MemorySwapMax=0`, `TasksMax` and the four `IO*Max` knobs per device. Volume
 bindings become `BindPaths=` — `BindReadOnlyPaths=` for an `ro` mode — with the source expanded
 against the workload's environment and created before the unit starts; a bind needs no
 `RootDirectory=`, so raw workloads get them too. The resource knobs live in `<id>/props`, one
@@ -494,16 +495,15 @@ Two different things share the name:
 
 ## The engine cache
 
-`engine/factory` keeps one client per `(endpoint, ca, cert, key)` tuple, so repeated calls to the
-same node reuse one connection. Two background loops keep it honest:
+`engine/factory` keeps one client per node endpoint, so repeated calls to the same node reuse one
+connection. Two background loops keep it honest:
 
 - **Liveness sweep** — every `connection_timeout`, `Ping` every cached engine: `IsServing` over the
   forward for containerd, an SSH keepalive request on the connection for process and cocoon. Neither
   takes a session, so a node whose eight sessions are all held still answers, and the binary each
   engine needs is checked once at `AddNode` instead. A failing engine is
   replaced by `EngineWithErr` holding the error; a cached `EngineWithErr` is retried, and if it
-  connects, the real client takes its place. If the retry fails and the node's status key is gone,
-  the entry is dropped.
+  connects, the real client takes its place.
 - **Node status subscriber** — reads the store's node status stream. When a node goes down, every
   cached engine belonging to it is evicted; when a node's metadata turns out to be invalid, its
   metrics labels are removed too.

@@ -23,7 +23,7 @@ username and whose *value* is the password. The Go client does this for you — 
 | RPC | Request | Description |
 | --- | --- | --- |
 | `AddPod` | `name`, `desc` | Create a pod |
-| `RemovePod` | `name` | Remove a pod. Locks every node in it first |
+| `RemovePod` | `name` | Remove a pod. Takes the pod lock first |
 | `GetPod` | `name` | One pod |
 | `ListPods` | `Empty` | All pods |
 
@@ -31,12 +31,12 @@ username and whose *value* is the password. The Go client does this for you — 
 
 | RPC | Request | Description |
 | --- | --- | --- |
-| `AddNode` | `nodename`, `endpoint`, `podname`, `ca`/`cert`/`key`, `labels`, `resources`, `test` | Connect to the endpoint, read engine info, register the node with the resource plugins, then write its metadata |
+| `AddNode` | `nodename`, `endpoint`, `podname`, `labels`, `resources`, `test` | Connect to the endpoint, read engine info, register the node with the resource plugins, then write its metadata |
 | `RemoveNode` | `nodename` | Remove a node. Fails if it still hosts workloads |
 | `ListPodNodes` ⇊ | `podname`, `all`, `labels`, `timeout_in_second`, `skip_info` | Nodes of a pod. `all` includes nodes that are down; `skip_info` skips the engine round-trip; a `timeout_in_second` of 0 or less falls back to `connection_timeout` |
 | `GetNode` | `nodename`, `labels` | One node |
 | `GetNodeEngineInfo` | `nodename` | The node's engine type |
-| `SetNode` | `nodename`, `endpoint`, `ca`/`cert`/`key`, `labels`, `resources`, `delta`, `workloads_down`, `bypass` | Update a node. `delta` treats `resources` as a delta; `bypass` is a tri-state (`KEEP`/`TRUE`/`FALSE`) that takes the node out of scheduling; `workloads_down` marks its workloads dead |
+| `SetNode` | `nodename`, `endpoint`, `labels`, `resources`, `delta`, `workloads_down`, `bypass` | Update a node. `delta` treats `resources` as a delta; `bypass` is a tri-state (`KEEP`/`TRUE`/`FALSE`) that takes the node out of scheduling; `workloads_down` marks its workloads dead |
 
 `resources` on `AddNode`/`SetNode` is `map<string, bytes>` — one JSON document per resource
 plugin name. See [Resource plugins](resource-plugins.md).
@@ -87,7 +87,7 @@ plugin name. See [Resource plugins](resource-plugins.md).
 | `ExecuteWorkload` ⇅ | `workload_id`, `commands`, `envs`, `workdir`, `open_stdin` | Exec inside a workload. When `open_stdin` is set, further client messages carry stdin in `repl_cmd` |
 | `RunAndWait` ⇅ | `deploy_options`, `cmd`, `async`, `async_timeout` | Lambda: deploy, attach, wait for exit, then remove. The first messages carry the new workload IDs (`TYPEWORKLOADID`), the last output line is `[exitcode] <n>`. With `async`, core sends the IDs, detaches from the stream, forces `open_stdin` off, and logs the output itself under `async_timeout` seconds (default `global_timeout`) |
 | `LogStream` ⇊ | `id`, `tail`, `since`, `until`, `follow` | Engine logs for one workload |
-| `RawEngine` | `id`, `op`, `params`, `ignore_lock` | Pass an engine-specific operation through to the node's engine. No engine implements it today; every one returns `ErrEngineNotImplemented` |
+| `RawEngine` | `id`, `op`, `params`, `ignore_lock` | Pass an engine-specific operation through to the node's engine. No real engine implements it; containerd, cocoon and process all return `ErrEngineNotImplemented` (the `mock://` engine answers with a canned result) |
 
 ## Files
 
@@ -139,7 +139,7 @@ The message behind `CreateWorkload`, `CalculateCapacity`, `RunAndWait` and `Repl
 | `env`, `dns`, `extra_hosts`, `networks`, `user`, `labels`, `nodelabels` | Passed to the engine |
 | `data`, `modes`, `owners` | Files to place inside each workload at create time |
 | `after_create` | Commands to run once the workload exists |
-| `open_stdin`, `debug`, `ignore_hook`, `ignore_pull` | Behaviour switches |
+| `open_stdin`, `debug`, `ignore_hook`, `ignore_pull` | Behaviour switches. `debug` is accepted but no code in core reads it today |
 | `raw_args` | Engine-specific JSON blob merged into the create request |
 
 Core adds `APP_NAME`, `ERU_POD`, `ERU_NODE_NAME` and `ERU_WORKLOAD_SEQ` to every workload's

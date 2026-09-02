@@ -44,7 +44,9 @@ Importing `client` registers two gRPC resolvers, so `addr` may be:
 `eru://` is the interesting one: the client connects to the given address, subscribes to
 `WatchServiceStatus`, and rewrites the connection's address list every time core pushes a new set.
 Instances that come up join the round-robin pool, instances that go away leave it — no restart, no
-config change. A push with no addresses is ignored: a connection with none could never learn new ones. Credentials are passed as the `types.AuthConfig` argument to `NewClient`, not in the URL.
+config change. A push with no addresses is ignored: a connection with none could never learn new
+ones. The outer connection takes its credentials from the `types.AuthConfig` argument to
+`NewClient`; the `eru://` resolver takes the service-discovery credentials from the URL authority.
 
 ## Connection pool
 
@@ -82,9 +84,10 @@ for addresses := range ch {
 }
 ```
 
-`Watch` reconnects on its own: if the stream dies it retries after 10 seconds, and if no push
-arrives within the interval core advertised (twice `grpc.service_discovery_interval`) it cancels
-and re-establishes the watch rather than sitting on a silent connection.
+`Watch` reconnects on its own: a failed open is retried after 10 seconds, a broken stream is
+re-established at once, and if no push arrives within the interval core advertised (twice
+`grpc.service_discovery_interval`) it cancels and re-establishes the watch rather than sitting on
+a silent connection.
 
 ## Retries
 
