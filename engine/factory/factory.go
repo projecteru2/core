@@ -13,7 +13,7 @@ import (
 	"github.com/projecteru2/core/engine/cocoon"
 	"github.com/projecteru2/core/engine/containerd"
 	"github.com/projecteru2/core/engine/fake"
-	"github.com/projecteru2/core/engine/mocks/fakeengine"
+	"github.com/projecteru2/core/engine/fakeengine"
 	"github.com/projecteru2/core/engine/process"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
