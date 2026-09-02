@@ -40,7 +40,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 
 	lambda := func(message *types.CreateWorkloadMessage) (attachMessage *types.AttachWorkloadMessage) {
 		defer func() {
-			runMsgCh <- attachMessage
+			_ = send(ctx, runMsgCh, attachMessage)
 		}()
 
 		if message.Error != nil || message.WorkloadID == "" {
@@ -96,10 +96,12 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		}
 
 		for m := range c.processStdStream(ctx, stdout, stderr, splitFunc, split) {
-			runMsgCh <- &types.AttachWorkloadMessage{
+			if send(ctx, runMsgCh, &types.AttachWorkloadMessage{
 				WorkloadID:    message.WorkloadID,
 				Data:          m.Data,
 				StdStreamType: m.StdStreamType,
+			}) != nil {
+				break
 			}
 		}
 

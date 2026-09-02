@@ -28,7 +28,9 @@ func (c *Calcium) CacheImage(ctx context.Context, opts *types.ImageOptions) (cha
 				m.Success = false
 				m.Message = err.Error()
 			}
-			ch <- m
+			if send(ctx, ch, m) != nil {
+				return
+			}
 		}
 	}), nil
 }
@@ -56,7 +58,9 @@ func (c *Calcium) RemoveImage(ctx context.Context, opts *types.ImageOptions) (ch
 					m.Messages = append(m.Messages, fmt.Sprintf("Clean: %s", item))
 				}
 			}
-			ch <- m
+			if send(ctx, ch, m) != nil {
+				return
+			}
 		}
 		if opts.Prune {
 			if err := node.Engine.ImagesPrune(ctx); err != nil {
@@ -92,7 +96,7 @@ func (c *Calcium) ListImage(ctx context.Context, opts *types.ImageOptions) (chan
 				})
 			}
 		}
-		ch <- msg
+		_ = send(ctx, ch, msg)
 	}), nil
 }
 

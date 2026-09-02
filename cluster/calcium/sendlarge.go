@@ -39,6 +39,7 @@ func (c *Calcium) SendLargeFile(ctx context.Context, inputChan chan *types.SendL
 
 func (c *Calcium) newWorkloadSender(ctx context.Context, ID string, resp chan *types.SendMessage, wg *sync.WaitGroup) chan *types.SendLargeFileOptions {
 	logger := log.WithFunc("calcium.newWorkloadSender")
+	caller := ctx
 	buffer := make(chan *types.SendLargeFileOptions, 10)
 	utils.SentryGo(func() {
 		defer wg.Done()
@@ -60,10 +61,10 @@ func (c *Calcium) newWorkloadSender(ctx context.Context, ID string, resp chan *t
 					defer func() { _ = pr.Close() }()
 					if err := c.withWorkloadLocked(ctx, ID, false, func(ctx context.Context, workload *types.Workload) error {
 						err := errors.WithStack(workload.Engine.VirtualizationCopyChunkTo(ctx, ID, curFile, data.Size, pr, data.UID, data.GID, data.Mode))
-						resp <- &types.SendMessage{ID: ID, Path: curFile, Error: err}
+						_ = send(caller, resp, &types.SendMessage{ID: ID, Path: curFile, Error: err})
 						return nil
 					}); err != nil {
-						resp <- &types.SendMessage{ID: ID, Error: err}
+						_ = send(caller, resp, &types.SendMessage{ID: ID, Error: err})
 					}
 				})
 			}

@@ -77,7 +77,7 @@ func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOption
 				} else {
 					logger.Infof(ctx, "replaced workload %s with %s", ID, createMessage.WorkloadID)
 				}
-				ch <- &types.ReplaceWorkloadMessage{Create: createMessage, Remove: removeMessage, Error: err}
+				_ = send(ctx, ch, &types.ReplaceWorkloadMessage{Create: createMessage, Remove: removeMessage, Error: err})
 			})
 		}
 	})

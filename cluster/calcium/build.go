@@ -149,7 +149,9 @@ func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, nod
 				logger.Errorf(ctx, err, "decode build image message failed, buffered: %s", malformed)
 				return
 			}
-			ch <- message
+			if send(ctx, ch, message) != nil {
+				return
+			}
 			lastMessage = message
 		}
 
@@ -163,15 +165,21 @@ func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, nod
 			rc, err := node.Engine.ImagePush(ctx, tag)
 			if err != nil {
 				logger.Error(ctx, err)
-				ch <- &types.BuildImageMessage{Error: err.Error()}
+				if send(ctx, ch, &types.BuildImageMessage{Error: err.Error()}) != nil {
+					return
+				}
 				continue
 			}
 
 			for message := range c.processBuildImageStream(ctx, rc) {
-				ch <- message
+				if send(ctx, ch, message) != nil {
+					return
+				}
 			}
 
-			ch <- &types.BuildImageMessage{Stream: fmt.Sprintf("finished %s\n", tag), Status: "finished", Progress: tag}
+			if send(ctx, ch, &types.BuildImageMessage{Stream: fmt.Sprintf("finished %s\n", tag), Status: "finished", Progress: tag}) != nil {
+				return
+			}
 		}
 		_ = c.pool.Invoke(func() {
 			cleanupNodeImages(ctx, node, tags, c.config.GlobalTimeout)

@@ -135,7 +135,9 @@ func (c *Calcium) processVirtualizationOutStream(
 			if split != 0 {
 				bs = append(bs, split)
 			}
-			outCh <- bs
+			if send(ctx, outCh, bs) != nil {
+				return
+			}
 		}
 		if err := scanner.Err(); err != nil {
 			log.WithFunc("calcium.processVirtualizationOutStream").Warnf(ctx, "failed to read output from output stream: %+v", err)
@@ -158,11 +160,13 @@ func (c *Calcium) processBuildImageStream(ctx context.Context, reader io.ReadClo
 					malformed, _ := io.ReadAll(decoder.Buffered())
 					log.WithFunc("calcium.processBuildImageStream").Errorf(ctx, err, "decode image message failed, buffered: %s", string(malformed))
 					message.Error = err.Error()
-					ch <- message
+					_ = send(ctx, ch, message)
 				}
 				break
 			}
-			ch <- message
+			if send(ctx, ch, message) != nil {
+				return
+			}
 		}
 	})
 	return ch
@@ -180,7 +184,9 @@ func (c *Calcium) processStdStream(ctx context.Context, stdout, stderr io.ReadCl
 		wg.Go(func() {
 			defer log.SentryDefer()
 			for data := range c.processVirtualizationOutStream(ctx, source.stream, splitFunc, split) {
-				ch <- types.StdStreamMessage{Data: data, StdStreamType: source.typ}
+				if send(ctx, ch, types.StdStreamMessage{Data: data, StdStreamType: source.typ}) != nil {
+					return
+				}
 			}
 		})
 	}

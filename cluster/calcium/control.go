@@ -57,11 +57,11 @@ func (c *Calcium) ControlWorkload(ctx context.Context, IDs []string, typ string,
 				} else {
 					logger.Error(ctx, err)
 				}
-				ch <- &types.ControlWorkloadMessage{
+				_ = send(ctx, ch, &types.ControlWorkloadMessage{
 					WorkloadID: ID,
 					Error:      err,
 					Hook:       message,
-				}
+				})
 			})
 		}
 	})
