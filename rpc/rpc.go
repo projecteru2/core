@@ -933,11 +933,12 @@ func logUnsentMessages(ctx context.Context, msgType string, err error, msg any) 
 
 func recvStdin[T any](ctx context.Context, name string, open bool, recv func() (T, error), payload func(T) []byte) <-chan []byte {
 	inCh := make(chan []byte)
+	if !open {
+		close(inCh)
+		return inCh
+	}
 	utils.SentryGo(func() {
 		defer close(inCh)
-		if !open {
-			return
-		}
 		for {
 			msg, err := recv()
 			if err != nil {
