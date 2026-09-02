@@ -188,7 +188,7 @@ func (s *Store) nodeStatusStream(ctx context.Context, logger *log.Fields, ch cha
 			Nodename: nodename,
 			Alive:    event.Type == EventPut,
 		}
-		node, err := s.GetNode(ctx, nodename)
+		node, err := s.getNodeMeta(ctx, nodename)
 		if err != nil {
 			status.Error = err
 		} else {
@@ -201,6 +201,18 @@ func (s *Store) nodeStatusStream(ctx context.Context, logger *log.Fields, ch cha
 		}
 	}
 	return types.ErrMessageChanClosed
+}
+
+func (s *Store) getNodeMeta(ctx context.Context, nodename string) (*types.Node, error) {
+	value, err := s.GetOne(ctx, fmt.Sprintf(NodeInfoKey, nodename))
+	if err != nil {
+		return nil, err
+	}
+	node := &types.Node{}
+	if err := json.Unmarshal([]byte(value), node); err != nil {
+		return nil, err
+	}
+	return node, nil
 }
 
 func (s *Store) nodeStatusKeys(ctx context.Context, logger *log.Fields) map[string]struct{} {
