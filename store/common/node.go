@@ -203,6 +203,19 @@ func (s *Store) nodeStatusStream(ctx context.Context, logger *log.Fields, ch cha
 	return types.ErrMessageChanClosed
 }
 
+func (s *Store) nodeStatusKeys(ctx context.Context, logger *log.Fields) map[string]struct{} {
+	keys, err := s.ListPrefix(ctx, NodeStatusPrefix)
+	if err != nil {
+		logger.Error(ctx, err, "failed to list node statuses")
+		return nil
+	}
+	statuses := make(map[string]struct{}, len(keys))
+	for _, key := range keys {
+		statuses[key] = struct{}{}
+	}
+	return statuses
+}
+
 func (s *Store) doGetNodes(
 	ctx context.Context, kvs map[string]string,
 	labels map[string]string, all, withoutEngine bool,
@@ -219,13 +232,9 @@ func (s *Store) doGetNodes(
 	}
 	logger := log.WithFunc("store.common.doGetNodes")
 
-	var statuses map[string]string
+	var statuses map[string]struct{}
 	if len(allNodes) > 1 {
-		var err error
-		if statuses, err = s.GetPrefix(ctx, NodeStatusPrefix, 0); err != nil {
-			logger.Error(ctx, err, "failed to list node statuses")
-			statuses = nil
-		}
+		statuses = s.nodeStatusKeys(ctx, logger)
 	}
 
 	wg := &sync.WaitGroup{}
