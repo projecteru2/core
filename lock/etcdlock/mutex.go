@@ -28,6 +28,13 @@ func NewPool(cli *clientv3.Client, ttl time.Duration) *Pool {
 }
 
 func (p *Pool) get() (*concurrency.Session, error) {
+	if session := p.takeIdle(); session != nil {
+		return session, nil
+	}
+	return concurrency.NewSession(p.cli, concurrency.WithTTL(p.ttl))
+}
+
+func (p *Pool) takeIdle() *concurrency.Session {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	for len(p.idle) > 0 {
@@ -36,10 +43,10 @@ func (p *Pool) get() (*concurrency.Session, error) {
 		select {
 		case <-session.Done():
 		default:
-			return session, nil
+			return session
 		}
 	}
-	return concurrency.NewSession(p.cli, concurrency.WithTTL(p.ttl))
+	return nil
 }
 
 func (p *Pool) put(session *concurrency.Session) {
