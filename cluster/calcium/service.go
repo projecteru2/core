@@ -12,7 +12,7 @@ import (
 )
 
 func (c *Calcium) WatchServiceStatus(ctx context.Context) (<-chan types.ServiceStatus, error) {
-	id, ch := c.watcher.Subscribe(ctx)
+	id, ch := c.watcher.Subscribe()
 	context.AfterFunc(ctx, func() { c.watcher.Unsubscribe(id) })
 	return ch, nil
 }

@@ -1,7 +1,7 @@
 package helium
 
 import (
-	"context"
+	"slices"
 	"testing"
 	"time"
 
@@ -22,9 +22,7 @@ func TestHelium(t *testing.T) {
 		ServiceDiscoveryPushInterval: time.Duration(1) * time.Second,
 	}
 	service := New(t.Context(), grpcConfig, store)
-	ctx, cancel := context.WithCancel(t.Context())
-	defer cancel()
-	ID, chStatus := service.Subscribe(ctx)
+	ID, chStatus := service.Subscribe()
 
 	addresses1 := []string{
 		"10.0.0.1",
@@ -34,18 +32,42 @@ func TestHelium(t *testing.T) {
 		"10.0.0.1",
 	}
 
-	go func() {
-		chAddr <- addresses1
-		chAddr <- addresses2
-	}()
-
+	chAddr <- addresses1
 	status1 := <-chStatus
+	chAddr <- addresses2
 	status2 := <-chStatus
 	assert.Equal(t, addresses1, status1.Addresses)
 	assert.Equal(t, addresses2, status2.Addresses)
 	assert.NotEqual(t, status1.Addresses, status2.Addresses)
 
 	service.Unsubscribe(ID)
+	close(chAddr)
+}
+
+func TestDispatchDoesNotWaitForAStuckSubscriber(t *testing.T) {
+	chAddr := make(chan []string)
+	store := &storemocks.Store{}
+	store.On("ServiceStatusStream", mock.Anything).Return(chAddr, nil)
+	service := New(t.Context(), types.GRPCConfig{ServiceDiscoveryPushInterval: time.Second}, store)
+	stuckID, _ := service.Subscribe()
+	readerID, reader := service.Subscribe()
+
+	for range 3 {
+		chAddr <- []string{"10.0.0.1"}
+		chAddr <- []string{"10.0.0.2"}
+		deadline := time.After(5 * time.Second)
+		for latest := []string(nil); !slices.Equal(latest, []string{"10.0.0.2"}); {
+			select {
+			case status := <-reader:
+				latest = status.Addresses
+			case <-deadline:
+				t.Fatal("a subscriber that never reads held up the others")
+			}
+		}
+	}
+
+	service.Unsubscribe(stuckID)
+	service.Unsubscribe(readerID)
 	close(chAddr)
 }
 
@@ -59,12 +81,10 @@ func TestPanic(t *testing.T) {
 		ServiceDiscoveryPushInterval: time.Duration(1) * time.Second,
 	}
 	service := New(t.Context(), grpcConfig, store)
-	ctx, cancel := context.WithCancel(t.Context())
-	defer cancel()
 
 	for range 1000 {
 		go func() {
-			ID, _ := service.Subscribe(ctx)
+			ID, _ := service.Subscribe()
 			time.Sleep(time.Second)
 			service.Unsubscribe(ID)
 		}()
@@ -87,7 +107,7 @@ func TestUnsubscribeAfterWatchClosed(t *testing.T) {
 
 	grpcConfig := types.GRPCConfig{ServiceDiscoveryPushInterval: time.Second}
 	service := New(t.Context(), grpcConfig, store)
-	ID, _ := service.Subscribe(t.Context())
+	ID, _ := service.Subscribe()
 
 	close(chAddr)
 	<-service.done

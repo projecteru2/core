@@ -40,12 +40,11 @@ Importing `client` registers two gRPC resolvers, so `addr` may be:
 | `host:port` | one instance, no resolution |
 | `static://_/addr1,addr2,addr3` | a fixed set of instances, round-robined |
 | `eru:///addr` | bootstrap from one instance, then follow service discovery |
-| `lb://_/addr` | internal: the target `servicediscovery` dials, kept in step with the pushed endpoint list |
 
 `eru://` is the interesting one: the client connects to the given address, subscribes to
 `WatchServiceStatus`, and rewrites the connection's address list every time core pushes a new set.
 Instances that come up join the round-robin pool, instances that go away leave it — no restart, no
-config change. Credentials are passed as the `types.AuthConfig` argument to `NewClient`, not in the URL.
+config change. A push with no addresses is ignored: a connection with none could never learn new ones. Credentials are passed as the `types.AuthConfig` argument to `NewClient`, not in the URL.
 
 ## Connection pool
 
