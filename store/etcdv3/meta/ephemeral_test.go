@@ -87,4 +87,8 @@ func TestEphemeralFailedAsPutAlready(t *testing.T) {
 
 	_, _, err = m.StartEphemeral(ctx, path, heartbeat)
 	require.Error(t, err)
+
+	leases, err := m.cliv3.Leases(ctx)
+	require.NoError(t, err)
+	require.Len(t, leases.Leases, 1)
 }
