@@ -257,14 +257,9 @@ func ParseVolumeBinds(volumes, env []string) []VolumeBind {
 	return binds
 }
 
-// ParseRAMInHuman parses a human-readable size ("100KB", "-1T") into bytes; the implementation lives beside RawParams.
-func ParseRAMInHuman(ram string) (int64, error) {
-	return resourcetypes.ParseRAMInHuman(ram)
-}
-
 // ParseRate reads a human byte rate, treating junk and negatives as zero.
 func ParseRate(rate string) int64 {
-	parsed, err := ParseRAMInHuman(rate)
+	parsed, err := resourcetypes.ParseRAMInHuman(rate)
 	if err != nil || parsed < 0 {
 		return 0
 	}
