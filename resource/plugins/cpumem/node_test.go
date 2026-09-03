@@ -1,6 +1,7 @@
 package cpumem
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"testing"
@@ -345,6 +346,16 @@ func TestGetAndFixNodeResourceInfo(t *testing.T) {
 	assert.Len(t, r.Usage["numa_memory"], 2)
 }
 
+func TestFixNodeResourceReturnsTheWriteError(t *testing.T) {
+	ctx := t.Context()
+	cm := initCPUMEM(t)
+	node := generateNodes(ctx, t, cm, 1, 2, 4*units.GB, 100, 0)[0]
+	cm.store = &putErrorStore{Store: cm.store}
+
+	_, err := cm.FixNodeResource(ctx, node, []plugintypes.WorkloadResource{{"cpu_request": 1.0, "memory_request": units.GB}})
+	assert.ErrorIs(t, err, coretypes.ErrMockError)
+}
+
 func TestSetNodeResourceInfo(t *testing.T) {
 	ctx := t.Context()
 	cm := initCPUMEM(t)
@@ -501,4 +512,12 @@ func BenchmarkGetNodesCapacityScaling(b *testing.B) {
 			}
 		})
 	}
+}
+
+type putErrorStore struct {
+	Store
+}
+
+func (putErrorStore) Put(context.Context, map[string]string) error {
+	return coretypes.ErrMockError
 }
