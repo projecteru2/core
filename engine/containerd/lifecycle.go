@@ -40,10 +40,14 @@ func (e *Engine) VirtualizationStart(ctx context.Context, ID string) (err error)
 	}
 	// a task has fifos or a log uri, never both: an interactive workload takes the node fifos
 	creator := cio.LogURI(logShimURL)
+	var relay *attach
 	if _, stdin := info.Labels[stdinLabel]; stdin {
 		if creator, err = e.relayFifos(ctx, ID); err != nil {
 			return err
 		}
+		e.mu.Lock()
+		relay = e.attaches[ID]
+		e.mu.Unlock()
 		defer func() {
 			if err != nil {
 				e.releaseAttach(ID)
@@ -66,10 +70,21 @@ func (e *Engine) VirtualizationStart(ctx context.Context, ID string) (err error)
 	if err = e.relayFailure(ID); err != nil {
 		return err
 	}
-	return e.setDesiredStatus(ctx, found, info.Labels, client.Running)
+	if err = e.setDesiredStatus(ctx, found, info.Labels, client.Running); err != nil {
+		return err
+	}
+	if relay != nil {
+		go e.releaseAttachWhenTaskEnds(context.WithoutCancel(ctx), ID, relay, task)
+	}
+	return nil
 }
 
-func (e *Engine) VirtualizationStop(ctx context.Context, ID string, gracefulTimeout time.Duration) error {
+func (e *Engine) VirtualizationStop(ctx context.Context, ID string, gracefulTimeout time.Duration) (err error) {
+	defer func() {
+		if err == nil {
+			e.releaseAttach(ID)
+		}
+	}()
 	found, labels, err := e.markStopped(ctx, ID)
 	if err != nil {
 		return err
@@ -189,10 +204,10 @@ func (e *Engine) VirtualizationWait(ctx context.Context, ID, _ string) (*enginet
 	}
 	select {
 	case status := <-exited:
-		e.releaseAttach(ID)
 		if err = status.Error(); err != nil {
 			return &enginetypes.VirtualizationWaitResult{Message: err.Error(), Code: -1}, err
 		}
+		e.releaseAttach(ID)
 		return &enginetypes.VirtualizationWaitResult{Code: int64(status.ExitCode())}, nil
 	case <-ctx.Done():
 		return &enginetypes.VirtualizationWaitResult{Message: ctx.Err().Error(), Code: -1}, ctx.Err()

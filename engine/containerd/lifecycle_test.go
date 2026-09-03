@@ -19,6 +19,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/projecteru2/core/engine/sshrunner/sshrunnertest"
 	coretypes "github.com/projecteru2/core/types"
 )
 
@@ -62,6 +63,55 @@ func TestStopTreatsAVanishedTaskAsStopped(t *testing.T) {
 	}
 	if err := nilIfGone(coretypes.ErrMockError); !errors.Is(err, coretypes.ErrMockError) {
 		t.Errorf("got %v, want a real failure preserved", err)
+	}
+}
+
+func TestStopReleasesAttachWhenTaskIsAlreadyGone(t *testing.T) {
+	store := &trackingContainerStore{record: containers.Container{ID: "w1"}}
+	runtimeClient, err := client.New("", client.WithServices(
+		client.WithContainerStore(store),
+		client.WithTaskClient(&missingTaskClient{}),
+	))
+	if err != nil {
+		t.Fatalf("client: %v", err)
+	}
+	opened := []*sshrunnertest.Session{{}, {}, {}}
+	e := newEngine(&Engine{client: runtimeClient})
+	e.attaches["w1"] = &attach{stdin: opened[0], stdout: opened[1], stderr: opened[2]}
+
+	if err = e.VirtualizationStop(t.Context(), "w1", 0); err != nil {
+		t.Fatalf("stop: %v", err)
+	}
+
+	for i, sess := range opened {
+		if !sess.Closed() {
+			t.Errorf("relay %d outlived the stopped task", i)
+		}
+	}
+	if _, ok := e.attaches["w1"]; ok {
+		t.Error("a stopped task leaves no attach behind")
+	}
+}
+
+func TestWaitFailureKeepsAttachForFinalCleanup(t *testing.T) {
+	store := &trackingContainerStore{record: containers.Container{ID: "w1"}}
+	runtimeClient, err := client.New("", client.WithServices(
+		client.WithContainerStore(store),
+		client.WithTaskClient(&waitFailureTaskClient{}),
+	))
+	if err != nil {
+		t.Fatalf("client: %v", err)
+	}
+	relay := &attach{stdin: &sshrunnertest.Session{}}
+	e := newEngine(&Engine{client: runtimeClient})
+	e.attaches["w1"] = relay
+
+	if _, err = e.VirtualizationWait(t.Context(), "w1", ""); err == nil {
+		t.Fatal("a failed task wait must be reported")
+	}
+
+	if e.attaches["w1"] != relay {
+		t.Error("a failed wait must leave the attach for stop, remove, or restart to clean")
 	}
 }
 
@@ -130,4 +180,24 @@ type runningTaskClient struct {
 
 func (c *runningTaskClient) Get(context.Context, *tasks.GetRequest, ...grpc.CallOption) (*tasks.GetResponse, error) {
 	return &tasks.GetResponse{Process: &tasktypes.Process{ID: "w1", Status: tasktypes.Status_RUNNING}}, nil
+}
+
+type missingTaskClient struct {
+	tasks.TasksClient
+}
+
+func (c *missingTaskClient) Get(context.Context, *tasks.GetRequest, ...grpc.CallOption) (*tasks.GetResponse, error) {
+	return nil, status.Error(codes.NotFound, "task not found")
+}
+
+type waitFailureTaskClient struct {
+	tasks.TasksClient
+}
+
+func (c *waitFailureTaskClient) Get(context.Context, *tasks.GetRequest, ...grpc.CallOption) (*tasks.GetResponse, error) {
+	return &tasks.GetResponse{Process: &tasktypes.Process{ID: "w1", Status: tasktypes.Status_RUNNING}}, nil
+}
+
+func (c *waitFailureTaskClient) Wait(context.Context, *tasks.WaitRequest, ...grpc.CallOption) (*tasks.WaitResponse, error) {
+	return nil, status.Error(codes.Unavailable, "wait failed")
 }
