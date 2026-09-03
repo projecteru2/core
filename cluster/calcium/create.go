@@ -281,8 +281,7 @@ func (c *Calcium) doGetAndPrepareNode(ctx context.Context, nodename, image strin
 	return node, err
 }
 
-func (c *Calcium) doDeployOneWorkload(ctx context.Context, node *types.Node, opts *types.DeployOptions,
-	msg *types.CreateWorkloadMessage, createOpts *enginetypes.VirtualizationCreateOptions, decrProcessing bool) (err error) {
+func (c *Calcium) doDeployOneWorkload(ctx context.Context, node *types.Node, opts *types.DeployOptions, msg *types.CreateWorkloadMessage, createOpts *enginetypes.VirtualizationCreateOptions, decrProcessing bool) (err error) {
 	logger := log.WithFunc("calcium.doDeployOneWorkload").WithField("node", node.Name).WithField("ident", opts.ProcessIdent).WithField("msg", msg)
 	workload := &types.Workload{
 		Resources:    msg.Resources,
