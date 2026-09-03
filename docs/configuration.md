@@ -1,8 +1,9 @@
 # Configuration
 
 Core reads one YAML file, given by `--config` or `ERU_CONFIG_PATH` (default `/etc/eru/core.yaml`).
-The file is loaded with [configor](https://github.com/jinzhu/configor): keys that are absent fall
-back to the `default` declared on the field in `types/config.go`, and unknown keys are ignored.
+The file is loaded with `gopkg.in/yaml.v3`; the `default` and `required` struct tags declared on
+the fields in `types/config.go` are applied by `utils/config.go`, so absent keys fall back to
+their default and unknown keys are ignored.
 
 [`core.yaml.sample`](https://github.com/projecteru2/core/blob/master/core.yaml.sample) in the repo
 root is a working starting point. Every key below is grouped the way that file groups them.
@@ -80,11 +81,12 @@ so the server must have them enabled.
 ## Git / SCM
 
 Only needed for `BuildImage` with the SCM build method. If `scm_type` is unset, core logs a
-warning at startup and the build API returns an error.
+warning at startup and an SCM build that names a repo fails with `ErrNoSCMSetting`; `RAW` and
+`EXIST` builds still work.
 
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `git.scm_type` | string | — | `github` or `gitlab`; anything else disables the build API |
+| `git.scm_type` | string | — | `github` or `gitlab`; anything else leaves the SCM client unset, which only disables SCM builds |
 | `git.private_key` | string | — | Path to the SSH private key used to clone |
 | `git.token` | string | — | API token, sent as the `Authorization` header when fetching artifacts |
 | `git.clone_timeout` | duration | `300s` | Clone deadline |
@@ -183,9 +185,9 @@ See [Resource plugins](resource-plugins.md) for the contract these files must sa
 | `log.max_age` | int | `28` | Keep rotated files this many days |
 | `log.max_backups` | int | `3` | Keep at most this many rotated files |
 
-## Keys the sample still shows but core no longer reads
+## Keys core no longer reads
 
-`core.yaml.sample` predates two renames. Both are silently ignored if you copy them verbatim:
+`core.yaml.sample` still shows the first; older configs may carry all three. Each is silently ignored:
 
 - top-level `log_level` — use the `log:` section above (`log.level`)
 - the whole `docker:` section — the engine it configured is gone; `hub` and `namespace` moved to

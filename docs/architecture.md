@@ -51,11 +51,13 @@ The package splits by concern — `create.go`, `realloc.go`, `remove.go`, `disso
 `lambda.go`, `log.go`, `network.go`, `node.go`, `pod.go`, `status.go`, `capacity.go`,
 `raw_engine.go`, `service.go`, `wal.go`, `remap.go` — over a small shared base:
 
-- `lock.go` — `withWorkloadLocked`, `withNodePodLocked`, `withNodeOperationLocked`. Locks are
-  taken in sorted order and released in reverse, and lock keys are `clock_<id>` for a workload,
-  `plock_<pod>` for a pod and `cnode_op_<pod>_<node>` for a node operation.
+- `lock.go` — `withWorkloadLocked`, `withNodesPlanLocked`, `withPodLocked`,
+  `withNodeOperationLocked`. Locks are taken in sorted order, pod locks before node locks, and
+  released in reverse; lock keys are `clock_<id>` for a workload, `plock_<pod>` for a pod and
+  `cnode_op_<pod>_<node>` for a node operation.
 - `utils.Txn` — the if/then/rollback shape used everywhere a resource change and a metadata
-  change must agree. If `then` fails, `rollback` runs; if `if` fails, it does not.
+  change must agree. `rollback` runs on either failure and is told which stage failed;
+  `utils.PCR` is the variant that skips it when the `if` failed.
 - `c.pool` — an ants pool sized by `max_concurrency`, so fan-out over nodes and workloads has a
   bounded goroutine count.
 
@@ -72,7 +74,7 @@ service registration, ephemeral keys and lock creation. Two implementations —
 
 `engine.API` is the runtime abstraction: virtualization lifecycle, exec, image, network and log
 operations. `engine/factory` picks the implementation from the node endpoint's scheme and caches
-the client, keyed by endpoint plus TLS material. Engines are horizontally decoupled — no engine
+the client, keyed by the node endpoint. Engines are horizontally decoupled — no engine
 imports another; what they share lives in its own package, `engine/sshrunner` for the SSH
 transport the containerd and process engines both run on, `engine/journal` for the journalctl
 arguments they both render. See [Engines](engines.md).
@@ -90,8 +92,9 @@ bookkeeping; core owns node and workload metadata. See [Resource plugins](resour
 1. **rpc** converts the request, opens a task, and calls `Cluster.CreateWorkload`.
 2. **calcium** validates the options, stamps a random `ProcessIdent` on them and returns the
    channel; the rest happens on a pooled goroutine inside one `utils.Txn`.
-3. **Allocate** (`if`): lock every candidate node's pod, journal a
-   `allocate-workload` WAL entry naming the nodes, then
+3. **Allocate** (`if`): lock the candidate nodes (one candidate takes its node lock, several take
+   the pod lock and every node lock), journal a `allocate-workload` WAL entry naming the nodes,
+   then
    - ask the resource manager for each node's deploy capacity,
    - read the current deploy count per node from the store (deployed + in-flight),
    - hand both to `strategy.Deploy`, which returns `node -> count`,

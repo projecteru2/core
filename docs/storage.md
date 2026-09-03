@@ -41,8 +41,9 @@ ephemeral keys.
 - **TLS** — enabled only when `etcd.ca`, `etcd.cert` and `etcd.key` are all set.
 - **Auth** — `etcd.auth.username` / `password`.
 - **Watch streams** — `ServiceStatusStream`, `NodeStatusStream` and `WorkloadStatusStream` are
-  etcd watches on a prefix. Each opens the watch *before* the initial `Get`, so nothing is missed
-  between the snapshot and the stream.
+  etcd watches on a prefix. `ServiceStatusStream` opens its watch *before* its initial `Get`, so
+  nothing is missed between the snapshot and the stream; the node and workload streams carry no
+  snapshot and report changes only.
 
 ## redis
 
@@ -78,12 +79,12 @@ Core takes three kinds of lock, always in sorted order and always released in re
 
 | Key | Taken by |
 | --- | --- |
-| `plock_{podname}` | anything that reads or changes node resources: deploy, realloc, remove, dissociate, node resource inspection |
+| `plock_{podname}` | `RemovePod`, and a deploy whose plan spans more than one node |
 | `clock_{workloadID}` | anything that touches one workload |
 | `cnode_op_{podname}_{nodename}` | node operations that must not interleave, notably remap |
 
-A deploy holds the *pod* lock for the whole allocation phase, which is what serializes capacity
-decisions across instances.
+A deploy that plans on more than one node holds the *pod* lock for the whole allocation phase; a
+single-candidate deploy holds only that node's operation lock.
 
 ## Embedded etcd
 

@@ -18,6 +18,7 @@ zero-padded, so replaying the keys in order replays the entries in order.
 | `create-workload` | the engine is asked to create a workload, and before one is removed | removes the workload — from the store if it is there, otherwise off the engine, found by name when the entry has no ID yet |
 | `replace-workload` | the old workload of a replace is removed | removes the old workload if the new one reached the store, releasing nothing, because the new one inherited its resources |
 | `realloc-workload` | a realloc mutates plugin usage, metadata and engine limits | re-applies the stored engine params under the node-operation lock — the same step a failed realloc runs inline as its repair, committing the entry only when the reapply holds |
+| `remap-node` | a node's engine params are reapplied to its workloads | recomputes the remap and reapplies it under the node-operation lock |
 | `create-processing` | an in-flight deploy counter is written | deletes the stale counter, so it stops inflating deploy counts forever |
 | `create-lambda` | a `RunAndWait` workload starts | waits for it to exit, then removes it |
 
@@ -25,9 +26,9 @@ Each replayed handler gets a 32-second deadline. Entries whose handler is unknow
 skipped; entries that fail are logged and left in place for the next start.
 
 Because the journal is in the store, **any instance can finish another's work**. The active node
-status watcher keeps the live service addresses from the store's service stream and, every
-`grpc.service_heartbeat_interval`, replays the journal of every `/wal/` prefix whose address is no
-longer registered. It holds `/wal-replay/{address}` while it does, so two instances that disagree
+status watcher re-reads the live service addresses from the store every
+`grpc.service_heartbeat_interval` and replays the journal of every `/wal/` prefix whose address is
+no longer registered. It holds `/wal-replay/{address}` while it does, so two instances that disagree
 about who is dead still cannot replay one journal twice; the handlers are idempotent, so a second
 pass is harmless anyway.
 
@@ -44,8 +45,8 @@ workloads, ask the plugins for capacity and usage, inspect each workload on the 
 
 Every core instance starts a node status watcher, but only one is active at a time. They compete
 for an ephemeral key at `/selfmon/active` with a `ha_keepalive_interval` TTL; the winner runs, the
-losers retry every second and log once a minute. If the winner dies, its key expires and another
-takes over.
+losers retry every `ha_keepalive_interval`/4 (at least a second) and log once a minute. If the
+winner dies, its key expires and another takes over.
 
 The active watcher:
 
@@ -129,7 +130,8 @@ seconds.
 
 ## Instance identity
 
-Each instance's identifier is the SHA-256 of its marshalled config, and every workload it creates
-is labelled `eru.coreid` with that value. Instances sharing a config share an identity by design —
-it identifies the *cluster configuration* a workload belongs to, not the process that created it.
+Each instance's identifier is the SHA-256 of its store settings (`store`, `etcd.machines`,
+`etcd.prefix`, `redis.addr`, `redis.db`), and every workload it creates is labelled `eru.coreid`
+with that value. Instances sharing a store share an identity by design — it identifies the *store*
+a workload belongs to, not the process that created it.
 `Info` returns it.
