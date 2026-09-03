@@ -4,11 +4,6 @@ import (
 	"context"
 )
 
-type field struct {
-	key   string
-	value any
-}
-
 // Fields carries key-value context for one log entry.
 type Fields struct {
 	kv []field
@@ -69,4 +64,9 @@ func WithField(key string, value any) *Fields {
 // WithFunc tags the entry with the enclosing function name.
 func WithFunc(fname string) *Fields {
 	return WithField("func", fname)
+}
+
+type field struct {
+	key   string
+	value any
 }
