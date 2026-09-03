@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"cmp"
 	"context"
 	"strings"
 	"sync"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/panjf2000/ants/v2"
+	"golang.org/x/sync/singleflight"
 
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/engine/cocoon"
@@ -32,6 +34,7 @@ var (
 	}
 
 	engineCache *EngineCache
+	dials       singleflight.Group
 )
 
 type factory func(ctx context.Context, config types.Config, nodename, endpoint string) (engine.API, error)
@@ -78,37 +81,30 @@ func (e *EngineCache) checkAlive(ctx context.Context) {
 	defer logger.Info(ctx, "check alive ends")
 	defer e.pool.Release()
 	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-
 		wg := &sync.WaitGroup{}
 		e.cache.Range(func(_, v any) bool {
 			wg.Add(1)
-			params := v.(engine.API).GetParams()
+			client := v.(engine.API)
+			params := client.GetParams()
 			_ = e.pool.Invoke(func() {
 				defer wg.Done()
-				cacheKey := params.CacheKey()
-				client := e.Get(cacheKey)
-				if client == nil {
-					e.Delete(cacheKey)
-					return
-				}
+				cacheKey := params.Endpoint
 				if _, ok := client.(*fake.EngineWithErr); ok {
-					if newClient, err := newEngine(ctx, e.config, params); err != nil {
+					newClient, err := newEngine(ctx, e.config, params)
+					if err != nil {
 						logger.Errorf(ctx, err, "engine %+v is still unavailable", cacheKey)
-						e.Set(cacheKey, &fake.EngineWithErr{DefaultErr: err, EP: params})
-					} else {
-						e.Set(cacheKey, newClient)
+						newClient = &fake.EngineWithErr{DefaultErr: err, EP: params}
+					}
+					if !e.cache.CompareAndSwap(cacheKey, client, newClient) {
+						closeEngine(newClient)
 					}
 					return
 				}
 				if err := validateEngine(ctx, client, e.config.ConnectionTimeout); err != nil {
 					logger.Errorf(ctx, err, "engine %+v is unavailable, will be replaced and removed", cacheKey)
-					closeEngine(client)
-					e.Set(cacheKey, &fake.EngineWithErr{DefaultErr: err, EP: params})
+					if e.cache.CompareAndSwap(cacheKey, client, &fake.EngineWithErr{DefaultErr: err, EP: params}) {
+						closeEngine(client)
+					}
 					return
 				}
 				logger.Debugf(ctx, "engine %+v is available", cacheKey)
@@ -116,7 +112,11 @@ func (e *EngineCache) checkAlive(ctx context.Context) {
 			return true
 		})
 		wg.Wait()
-		time.Sleep(e.config.ConnectionTimeout)
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(e.config.ConnectionTimeout):
+		}
 	}
 }
 
@@ -148,7 +148,6 @@ func (e *EngineCache) checkNodeStatus(ctx context.Context) {
 				e.cache.Range(func(_, v any) bool {
 					ep := v.(engine.API).GetParams()
 					if ep.Nodename == ns.Nodename {
-						logger.Infof(ctx, "remove engine %+v from cache", ep.CacheKey())
 						RemoveEngineFromCache(ctx, ep.Endpoint)
 					}
 					return true
@@ -182,25 +181,38 @@ func RemoveEngineFromCache(ctx context.Context, endpoint string) {
 }
 
 // GetEngine returns the cached engine for an endpoint, building one if absent.
-func GetEngine(ctx context.Context, config types.Config, nodename, endpoint string) (client engine.API, err error) {
-	logger := log.WithFunc("engine.factory.GetEngine")
-	if client = GetEngineFromCache(ctx, endpoint); client != nil {
+func GetEngine(ctx context.Context, config types.Config, nodename, endpoint string) (engine.API, error) {
+	if client := GetEngineFromCache(ctx, endpoint); client != nil {
 		return client, nil
 	}
 
-	params := enginetypes.NewParams(nodename, endpoint)
-	defer func() {
-		cacheKey := params.CacheKey()
-		if err == nil {
-			engineCache.Set(cacheKey, client)
-			logger.Infof(ctx, "store engine %+v in cache", cacheKey)
-		} else {
-			engineCache.Set(cacheKey, &fake.EngineWithErr{DefaultErr: err, EP: params})
-			logger.Infof(ctx, "store fake engine %+v in cache", cacheKey)
+	dialed := dials.DoChan(endpoint, func() (any, error) {
+		dialCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), cmp.Or(config.GlobalTimeout, config.ConnectionTimeout))
+		defer cancel()
+		if client := GetEngineFromCache(dialCtx, endpoint); client != nil {
+			return client, nil
 		}
-	}()
-
-	return newEngine(ctx, config, params)
+		logger := log.WithFunc("engine.factory.GetEngine")
+		params := enginetypes.NewParams(nodename, endpoint)
+		client, err := newEngine(dialCtx, config, params)
+		if err != nil {
+			engineCache.Set(endpoint, &fake.EngineWithErr{DefaultErr: err, EP: params})
+			logger.Infof(dialCtx, "store fake engine %+v in cache", endpoint)
+			return nil, err
+		}
+		engineCache.Set(endpoint, client)
+		logger.Infof(dialCtx, "store engine %+v in cache", endpoint)
+		return client, nil
+	})
+	select {
+	case result := <-dialed:
+		if result.Err != nil {
+			return nil, result.Err
+		}
+		return result.Val.(engine.API), nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
 }
 
 // closeEngine releases the connection an engine owns; a fake engine holds none.

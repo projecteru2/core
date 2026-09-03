@@ -14,12 +14,12 @@ import (
 	coretypes "github.com/projecteru2/core/types"
 )
 
-func TestVirtualizationCopyToStreamsOneTarEntry(t *testing.T) {
+func TestVirtualizationCopyChunkToStreamsOneTarEntry(t *testing.T) {
 	session := &sshrunnertest.Session{}
 	runner := &sshrunnertest.Fake{Started: []*sshrunnertest.Session{session}, Respond: runningRecord}
 	e := testEngine(t, runner)
 
-	if err := e.VirtualizationCopyTo(t.Context(), "w1", "/etc/app/app.conf", []byte("key=value\n"), 1000, 1000, 0o640); err != nil {
+	if err := e.VirtualizationCopyChunkTo(t.Context(), "w1", "/etc/app/app.conf", int64(len("key=value\n")), strings.NewReader("key=value\n"), 1000, 1000, 0o640); err != nil {
 		t.Fatalf("copy to: %v", err)
 	}
 	want := sshrunner.Quote([]string{testBinary, "vm", "exec", "-i", "w1", "--", "tar", "-x", "-P", "-f", "-"})
@@ -43,23 +43,23 @@ func TestVirtualizationCopyToStreamsOneTarEntry(t *testing.T) {
 	}
 }
 
-func TestVirtualizationCopyToReportsTheGuestFailure(t *testing.T) {
+func TestVirtualizationCopyChunkToReportsTheGuestFailure(t *testing.T) {
 	runner := &sshrunnertest.Fake{Started: []*sshrunnertest.Session{{Code: 2, Err: "tar: cannot open"}}, Respond: runningRecord}
 	e := testEngine(t, runner)
 
-	err := e.VirtualizationCopyTo(t.Context(), "w1", "/etc/app.conf", []byte("x"), 0, 0, 0o644)
+	err := e.VirtualizationCopyChunkTo(t.Context(), "w1", "/etc/app.conf", 1, strings.NewReader("x"), 0, 0, 0o644)
 	if err == nil || !strings.Contains(err.Error(), "tar: cannot open") {
 		t.Errorf("got %v, want the guest's stderr", err)
 	}
 }
 
-func TestVirtualizationCopyToRefusesAGuestThatHasNotBooted(t *testing.T) {
+func TestVirtualizationCopyChunkToRefusesAGuestThatHasNotBooted(t *testing.T) {
 	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result {
 		return &sshrunner.Result{Stdout: storedRecord + "\n" + stoppedVM}
 	}}
 	e := testEngine(t, runner)
 
-	err := e.VirtualizationCopyTo(t.Context(), "w1", "/etc/app.conf", []byte("x"), 0, 0, 0o644)
+	err := e.VirtualizationCopyChunkTo(t.Context(), "w1", "/etc/app.conf", 1, strings.NewReader("x"), 0, 0, 0o644)
 	if !errors.Is(err, coretypes.ErrInvaildWorkloadOps) {
 		t.Errorf("got %v, want ErrInvaildWorkloadOps", err)
 	}

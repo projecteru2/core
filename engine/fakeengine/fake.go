@@ -121,10 +121,6 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	return &enginetypes.VirtualizationCreated{ID: utils.RandomString(64), Name: "mock-test-cvm" + utils.RandomString(6)}, nil
 }
 
-func (e *Engine) VirtualizationCopyTo(context.Context, string, string, []byte, int, int, int64) error {
-	return nil
-}
-
 func (e *Engine) VirtualizationCopyChunkTo(context.Context, string, string, int64, io.Reader, int, int, int64) error {
 	return nil
 }

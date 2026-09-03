@@ -76,8 +76,7 @@ It reads two scheduler settings:
 
 On `AddNode`, when the request does not spell out a CPU map, cpumem builds one from the engine's
 reported CPU count at `sharebase` pieces each, and takes memory as **80%** of the engine's
-reported total. If the engine's info carries a `cpumem` blob of its own, that
-blob wins over the engine's generic numbers, and it also supplies the NUMA topology.
+reported total. The NUMA topology always comes from the request's `numa-cpu` and `numa-memory`.
 
 ## Binary plugins
 

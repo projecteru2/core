@@ -45,6 +45,11 @@ USER {{.User}}
 `
 )
 
+var (
+	commonTemplate = template.Must(template.New("common").Parse(commonTmpl))
+	userTemplate   = template.Must(template.New("user").Parse(userTmpl))
+)
+
 func makeDockerfile(ctx context.Context, opts *enginetypes.BuildContentOptions, scm coresource.Source, buildDir string) error {
 	var preCache map[string]string
 	var preStage string
@@ -141,7 +146,7 @@ func preparedSource(ctx context.Context, build *enginetypes.Build, scm coresourc
 }
 
 func makeMainPart(build *enginetypes.Build, from string, commands, copys []string) (string, error) {
-	common, err := renderTemplate("common", commonTmpl, build)
+	common, err := renderTemplate(commonTemplate, build)
 	if err != nil {
 		return "", err
 	}
@@ -152,11 +157,10 @@ func makeMainPart(build *enginetypes.Build, from string, commands, copys []strin
 }
 
 func makeUserPart(opts *enginetypes.BuildContentOptions) (string, error) {
-	return renderTemplate("user", userTmpl, opts)
+	return renderTemplate(userTemplate, opts)
 }
 
-func renderTemplate(name, body string, data any) (string, error) {
-	tmpl := template.Must(template.New(name).Parse(body))
+func renderTemplate(tmpl *template.Template, data any) (string, error) {
 	out := bytes.Buffer{}
 	if err := tmpl.Execute(&out, data); err != nil {
 		return "", err

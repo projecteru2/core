@@ -12,11 +12,9 @@ import (
 	"sync"
 
 	"github.com/sanity-io/litter"
-
 	"golang.org/x/sync/errgroup"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
-
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resource/plugins/cpumem/schedule"
 	cpumemtypes "github.com/projecteru2/core/resource/plugins/cpumem/types"
@@ -29,16 +27,7 @@ import (
 const (
 	fieldCapacity = "capacity"
 	fieldUsage    = "usage"
-	fieldNodename = "nodename"
-	fieldPriority = "priority"
 )
-
-type nodeResourceInfos struct {
-	req       *cpumemtypes.NodeResourceRequest
-	resource  *cpumemtypes.NodeResource
-	workloads []*cpumemtypes.WorkloadResource
-	info      *cpumemtypes.NodeResourceInfo
-}
 
 func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintypes.NodeResourceRequest, info *enginetypes.Info) (*plugintypes.AddNodeResponse, error) {
 	var err error
@@ -56,30 +45,16 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintyp
 		return nil, err
 	}
 
-	if info != nil { //nolint:nestif
-		var nodeRes cpumemtypes.NodeResource
-		if b, ok := info.Resources[p.Name()]; ok {
-			if err = json.Unmarshal(b, &nodeRes); err != nil {
-				return nil, err
-			}
-			// NodeResource overrides what the engine reported
-			info.NCPU = int(nodeRes.CPU)
-			info.MemTotal = nodeRes.Memory
-		}
+	if info != nil {
 		if len(req.CPUMap) == 0 {
 			req.CPUMap = cpumemtypes.CPUMap{}
 			for i := range info.NCPU {
 				req.CPUMap[strconv.Itoa(i)] = p.config.Scheduler.ShareBase
 			}
-			req.NUMA = nodeRes.NUMA
 		}
 
 		if req.Memory == 0 {
 			req.Memory = info.MemTotal * rate / 10 // use 80% of real memory
-			req.NUMAMemory = cpumemtypes.NUMAMemory{}
-			for k, v := range nodeRes.NUMAMemory {
-				req.NUMAMemory[k] = v * rate / 10
-			}
 		}
 	}
 
@@ -162,11 +137,10 @@ func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, 
 		}
 	}
 
-	resp := &plugintypes.GetNodesDeployCapacityResponse{}
-	return resp, resourcetypes.Decode(map[string]any{
-		"nodes_deploy_capacity_map": nodesDeployCapacityMap,
-		"total":                     total,
-	}, resp)
+	return &plugintypes.GetNodesDeployCapacityResponse{
+		NodeDeployCapacityMap: nodesDeployCapacityMap,
+		Total:                 total,
+	}, nil
 }
 
 func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, resource plugintypes.NodeResource, resourceRequest plugintypes.NodeResourceRequest, delta, incr bool) (*plugintypes.SetNodeResourceCapacityResponse, error) {
@@ -277,11 +251,7 @@ func (p Plugin) GetMostIdleNode(ctx context.Context, nodenames []string) (*plugi
 		}
 	}
 
-	resp := &plugintypes.GetMostIdleNodeResponse{}
-	return resp, resourcetypes.Decode(map[string]any{
-		fieldNodename: mostIdleNode,
-		fieldPriority: priority,
-	}, resp)
+	return &plugintypes.GetMostIdleNodeResponse{Nodename: mostIdleNode, Priority: priority}, nil
 }
 
 func (p Plugin) FixNodeResource(ctx context.Context, nodename string, workloadsResource []plugintypes.WorkloadResource) (*plugintypes.GetNodeResourceInfoResponse, error) {
@@ -419,8 +389,7 @@ func (p Plugin) doGetNodeDeployCapacity(nodeResourceInfo *cpumemtypes.NodeResour
 		return capacityInfo
 	}
 
-	cpuPlans := schedule.GetCPUPlans(nodeResourceInfo, nil, p.config.Scheduler.ShareBase, p.config.Scheduler.MaxShare, req)
-	capacityInfo.Capacity = len(cpuPlans)
+	capacityInfo.Capacity = schedule.CountCPUPlans(nodeResourceInfo, nil, p.config.Scheduler.ShareBase, p.config.Scheduler.MaxShare, req)
 	capacityInfo.Usage = utils.AdvancedDivide(nodeResourceInfo.Usage.CPU, nodeResourceInfo.Capacity.CPU)
 	capacityInfo.Rate = utils.AdvancedDivide(req.CPURequest, nodeResourceInfo.Capacity.CPU)
 	capacityInfo.Weight = 100 // cpu-bind above all
@@ -470,6 +439,13 @@ func (p Plugin) calculateNodeResource(req *cpumemtypes.NodeResourceRequest, node
 		}
 	}
 	return resp
+}
+
+type nodeResourceInfos struct {
+	req       *cpumemtypes.NodeResourceRequest
+	resource  *cpumemtypes.NodeResource
+	workloads []*cpumemtypes.WorkloadResource
+	info      *cpumemtypes.NodeResourceInfo
 }
 
 func (p Plugin) parseNodeResourceInfos(ctx context.Context, nodename string, resource plugintypes.NodeResource, resourceRequest plugintypes.NodeResourceRequest, workloadsResource []plugintypes.WorkloadResource) (*nodeResourceInfos, error) {

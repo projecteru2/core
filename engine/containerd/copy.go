@@ -2,7 +2,6 @@ package containerd
 
 import (
 	"archive/tar"
-	"bytes"
 	"context"
 	"io"
 	"path/filepath"
@@ -38,10 +37,6 @@ mkdir -p "$dir/$target"
 tar -x -C "$dir/$target"
 `
 )
-
-func (e *Engine) VirtualizationCopyTo(ctx context.Context, ID, target string, content []byte, uid, gid int, mode int64) error {
-	return e.VirtualizationCopyChunkTo(ctx, ID, target, int64(len(content)), bytes.NewReader(content), uid, gid, mode)
-}
 
 func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target string, size int64, content io.Reader, uid, gid int, mode int64) error {
 	argv, err := e.writeArgv(ctx, ID, target)

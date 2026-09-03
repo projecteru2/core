@@ -90,7 +90,7 @@ func (e *Engine) ImagesPrune(ctx context.Context) error {
 }
 
 func (e *Engine) ImagePull(ctx context.Context, ref string, _ bool) (io.ReadCloser, error) {
-	if _, err := e.client.Pull(ctx, normalizeRef(ref), client.WithPullUnpack, client.WithResolver(e.resolver())); err != nil {
+	if _, err := e.client.Pull(ctx, normalizeRef(ref), client.WithPullUnpack, client.WithResolver(e.resolver)); err != nil {
 		return nil, err
 	}
 	return io.NopCloser(strings.NewReader("")), nil
@@ -106,7 +106,7 @@ func (e *Engine) ImagePush(ctx context.Context, ref string) (io.ReadCloser, erro
 		}
 		return nil, err
 	}
-	if err = e.client.Push(ctx, ref, image.Target(), client.WithResolver(e.resolver())); err != nil {
+	if err = e.client.Push(ctx, ref, image.Target(), client.WithResolver(e.resolver)); err != nil {
 		return nil, err
 	}
 	return io.NopCloser(strings.NewReader("")), nil
@@ -127,7 +127,7 @@ func (e *Engine) ImageLocalDigests(ctx context.Context, image string) ([]string,
 
 func (e *Engine) ImageRemoteDigest(ctx context.Context, image string) (string, error) {
 	image = normalizeRef(image)
-	_, desc, err := e.resolver().Resolve(ctx, image)
+	_, desc, err := e.resolver.Resolve(ctx, image)
 	if err != nil {
 		return "", err
 	}
@@ -234,10 +234,10 @@ func (e *Engine) imageConfig(ctx context.Context, image client.Image) (*ocispec.
 	return &config.Config, nil
 }
 
-// resolver authenticates every registry request against the configured credentials.
-func (e *Engine) resolver() remotes.Resolver {
-	auths := e.config.Registry.Auths
-	plainHTTP := e.config.Registry.PlainHTTP
+// newResolver authenticates every registry request against the configured credentials.
+func newResolver(registry coretypes.RegistryConfig) remotes.Resolver {
+	auths := registry.Auths
+	plainHTTP := registry.PlainHTTP
 	return docker.NewResolver(docker.ResolverOptions{
 		Hosts: docker.ConfigureDefaultRegistries(
 			docker.WithAuthorizer(docker.NewDockerAuthorizer(docker.WithAuthCreds(func(host string) (string, string, error) {

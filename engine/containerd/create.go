@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"maps"
+	"net/url"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -57,6 +58,8 @@ esac
 done
 `
 )
+
+var logShimURL, _ = url.Parse(logShimURI)
 
 // RawArgs carries containerd-specific workload options through core untouched.
 type RawArgs struct {

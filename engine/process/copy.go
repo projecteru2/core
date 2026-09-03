@@ -1,7 +1,6 @@
 package process
 
 import (
-	"bytes"
 	"context"
 	"io"
 	"os"
@@ -17,10 +16,6 @@ const (
 	upperDir  = "upper"
 	mergedDir = "merged"
 )
-
-func (e *Engine) VirtualizationCopyTo(ctx context.Context, ID, target string, content []byte, uid, gid int, mode int64) error {
-	return e.VirtualizationCopyChunkTo(ctx, ID, target, int64(len(content)), bytes.NewReader(content), uid, gid, mode)
-}
 
 func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target string, _ int64, content io.Reader, uid, gid int, mode int64) error {
 	paths, err := e.hostPaths(ctx, ID, target)
@@ -85,8 +80,7 @@ func (e *Engine) VirtualizationCopyFrom(ctx context.Context, ID, path string) (c
 	return nil, 0, 0, 0, errors.Wrapf(coretypes.ErrWorkloadNotExists, "%s not found in workload %s", path, ID)
 }
 
-// hostPaths maps a path inside the workload onto the node's filesystem, most specific first.
-// Writing under a mounted overlay is undefined, and reading only its upper dir misses the bundle.
+// hostPaths maps a path inside the workload onto the node's filesystem, most specific first: writing under a mounted overlay is undefined and its upper dir alone misses the bundle.
 func (e *Engine) hostPaths(ctx context.Context, ID, target string) ([]string, error) {
 	record, mounted, err := e.workloadMeta(ctx, ID)
 	if err != nil {

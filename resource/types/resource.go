@@ -17,6 +17,9 @@ func (r RawParams) Float64(key string) float64 {
 	if f, ok := r[key].(float64); ok {
 		return f
 	}
+	if !r.IsSet(key) {
+		return 0
+	}
 	res, _ := strconv.ParseFloat(fmt.Sprintf("%+v", r[key]), 64)
 	return res
 }
@@ -105,6 +108,9 @@ func intHelper[T integer](r RawParams, key string) T {
 	case float64:
 		res, _ := strconv.ParseInt(fmt.Sprintf("%.0f", v), 10, 64)
 		return T(res)
+	}
+	if !r.IsSet(key) {
+		return 0
 	}
 	res, _ := strconv.ParseInt(fmt.Sprintf("%+v", r[key]), 10, 64)
 	return T(res)

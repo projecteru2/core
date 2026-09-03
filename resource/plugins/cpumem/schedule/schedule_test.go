@@ -420,6 +420,44 @@ func TestGetCPUPlansMatchTheLinearSplitScan(t *testing.T) {
 	}
 }
 
+func TestCountCPUPlansMatchesTheBuiltPlans(t *testing.T) {
+	rng := rand.New(rand.NewPCG(13, 17))
+	for range 300 {
+		cores := 1 + rng.IntN(24)
+		numaNodes := rng.IntN(3)
+		resourceInfo := &types.NodeResourceInfo{
+			Capacity: &types.NodeResource{
+				CPU:        float64(cores),
+				CPUMap:     types.CPUMap{},
+				Memory:     int64(rng.IntN(64)) * units.GiB,
+				NUMA:       types.NUMA{},
+				NUMAMemory: types.NUMAMemory{},
+			},
+		}
+		for i := range cores {
+			resourceInfo.Capacity.CPUMap[strconv.Itoa(i)] = rng.IntN(4) * 25
+			if numaNodes > 0 {
+				resourceInfo.Capacity.NUMA[strconv.Itoa(i)] = strconv.Itoa(i % numaNodes)
+			}
+		}
+		for i := range numaNodes {
+			resourceInfo.Capacity.NUMAMemory[strconv.Itoa(i)] = resourceInfo.Capacity.Memory / int64(numaNodes)
+		}
+		assert.Nil(t, resourceInfo.Validate())
+
+		maxFragment := -1 + rng.IntN(cores+2)
+		req := &types.WorkloadResourceRequest{
+			CPUBind:    true,
+			CPURequest: float64(1+rng.IntN(3)) + float64(25*rng.IntN(4))/100,
+			MemRequest: int64(rng.IntN(4)) * units.GiB,
+		}
+		want := len(GetCPUPlans(resourceInfo, nil, 100, maxFragment, req))
+		if got := CountCPUPlans(resourceInfo, nil, 100, maxFragment, req); got != want {
+			t.Fatalf("cores=%v numa=%v maxFragment=%d req=%+v: got %d, want %d", resourceInfo.Capacity.CPUMap, resourceInfo.Capacity.NUMA, maxFragment, req, got, want)
+		}
+	}
+}
+
 func BenchmarkGetCPUPlans(b *testing.B) {
 	resourceInfo := &types.NodeResourceInfo{
 		Capacity: &types.NodeResource{
@@ -448,7 +486,6 @@ func applyCPUPlans(t *testing.T, resourceInfo *types.NodeResourceInfo, cpuPlans 
 	assert.Nil(t, resourceInfo.Validate())
 }
 
-// linearSplitCPUPlans is the pre-bestSplit planner: every split built and compared in order.
 func linearSplitCPUPlans(h *host, cpuRequest float64) []types.CPUMap {
 	piecesRequest := int(cpuRequest * float64(h.shareBase))
 	full, fragment := piecesRequest/h.shareBase, piecesRequest%h.shareBase

@@ -131,6 +131,7 @@ func (e *Engine) VirtualizationInspect(ctx context.Context, ID string) (*enginet
 		return nil, err
 	}
 	if res.Code == workloadmeta.NotExistsCode {
+		e.records.Delete(ID)
 		return nil, errors.Wrapf(coretypes.ErrWorkloadNotExists, "no workload directory for %s", ID)
 	}
 	if err = sshrunner.ExitError(argv, res); err != nil {

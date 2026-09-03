@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"slices"
-	"strings"
 
 	"github.com/projecteru2/core/engine/journal"
 	"github.com/projecteru2/core/engine/sshrunner"
@@ -29,11 +28,8 @@ func (e *Engine) VirtualizationLogs(ctx context.Context, opts *enginetypes.Virtu
 		return nil, nil, err
 	}
 	if !opts.Follow {
-		res, runErr := e.run(ctx, slices.Concat([]string{"journalctl", "-u", unit}, flags)...)
-		if runErr != nil {
-			return nil, nil, runErr
-		}
-		return io.NopCloser(strings.NewReader(res.Stdout)), nil, nil
+		stdout, runErr := journal.Read(ctx, e.runner, slices.Concat([]string{"journalctl", "-u", unit}, flags)...)
+		return stdout, nil, runErr
 	}
 
 	running, err := e.runner.Start(ctx, sshrunner.Quote(sshrunner.Shell(followScript, slices.Concat([]string{unit, "-f"}, flags)...)), &sshrunner.StartOptions{})

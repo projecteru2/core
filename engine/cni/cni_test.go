@@ -31,13 +31,21 @@ func TestParseReadsConflistsAndPlainConfs(t *testing.T) {
 	}
 }
 
-func TestParseNarrowsToTheAskedNetworks(t *testing.T) {
-	networks, err := Parse(testConfList, []string{"mgmt"})
+func TestParseNarrowsToTheAskedDrivers(t *testing.T) {
+	networks, err := Parse(testConfList, []string{"macvlan"})
 	if err != nil {
 		t.Fatalf("parse: %v", err)
 	}
 	if len(networks) != 1 || networks[0].Name != "mgmt" {
-		t.Errorf("got %+v, want only mgmt", networks)
+		t.Errorf("got %+v, want the macvlan conf", networks)
+	}
+
+	networks, err = Parse(testConfList, []string{"mgmt"})
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if len(networks) != 0 {
+		t.Errorf("got %+v, want nothing: mgmt is a network name, not a driver", networks)
 	}
 }
 

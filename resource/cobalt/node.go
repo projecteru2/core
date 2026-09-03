@@ -7,7 +7,6 @@ import (
 	"slices"
 
 	"github.com/cockroachdb/errors"
-	"github.com/sanity-io/litter"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
@@ -29,7 +28,7 @@ func (m *Manager) AddNode(ctx context.Context, nodename string, opts resourcetyp
 			resps, err := call(ctx, m.plugins, func(plugin plugins.Plugin) (*plugintypes.AddNodeResponse, error) {
 				r := opts[plugin.Name()]
 				// plugins run even for a nil request: they read config from engine info and seed an empty etcd entry
-				logger.WithField("plugin", plugin.Name()).Debugf(ctx, "add node request %v", litter.Sdump(r))
+				logger.WithField("plugin", plugin.Name()).Debugf(ctx, "add node request %+v", r)
 				return plugin.AddNode(ctx, nodename, r, nodeInfo)
 			})
 			if err != nil {
@@ -123,13 +122,7 @@ func (m *Manager) GetMostIdleNode(ctx context.Context, nodenames []string) (stri
 }
 
 func (m *Manager) GetNodeResourceInfo(ctx context.Context, nodename string, workloads []*types.Workload, fix bool) (resourcetypes.Resources, resourcetypes.Resources, []string, error) {
-	ps := m.plugins
-	if m.config.ResourcePlugin.Whitelist != nil {
-		ps = slices.DeleteFunc(slices.Clone(ps), func(plugin plugins.Plugin) bool {
-			return !slices.Contains(m.config.ResourcePlugin.Whitelist, plugin.Name())
-		})
-	}
-	return m.getNodeResourceInfo(ctx, nodename, ps, workloads, fix)
+	return m.getNodeResourceInfo(ctx, nodename, m.whitelisted, workloads, fix)
 }
 
 func (m *Manager) SetNodeResourceUsage(ctx context.Context, nodename string, nodeResource, nodeResourceRequest resourcetypes.Resources, workloadsResource []resourcetypes.Resources, delta, incr bool) (resourcetypes.Resources, resourcetypes.Resources, error) {
@@ -172,8 +165,7 @@ func (m *Manager) SetNodeResourceUsage(ctx context.Context, nodename string, nod
 	)
 }
 
-// GetNodesDeployCapacity returns the nodes meeting every plugin's requirements, and their total capacity.
-// the caller must hold the node locks
+// GetNodesDeployCapacity returns, under the caller's node locks, the nodes meeting every plugin's requirements and their total capacity.
 func (m *Manager) GetNodesDeployCapacity(ctx context.Context, nodenames []string, opts resourcetypes.Resources) (map[string]*plugintypes.NodeDeployCapacity, int, error) {
 	var resp map[string]*plugintypes.NodeDeployCapacity
 
@@ -309,6 +301,6 @@ func mergeCapacity(m1, m2 map[string]*plugintypes.NodeDeployCapacity) map[string
 
 // rollbackNodeResource restores every plugin that applied a failed set of the node's resources.
 func rollbackNodeResource[T any](ctx context.Context, ps []plugins.Plugin, restore func(plugins.Plugin) (T, error)) error {
-	_, err := call(ctx, ps, func(plugin plugins.Plugin) (T, error) { return restore(plugin) })
+	_, err := call(ctx, ps, restore)
 	return err
 }

@@ -87,8 +87,7 @@ func (u *unit) staticArgv() []string {
 	return argv
 }
 
-// command makes ExecStart absolute, which systemd requires; a relative one resolves
-// against the unit's own root, or against the bundle when there is none.
+// command makes ExecStart absolute, which systemd requires; a relative one resolves against the unit's own root, or against the bundle when there is none.
 func (u *unit) command() []string {
 	if len(u.Opts.Cmd) == 0 || filepath.IsAbs(u.Opts.Cmd[0]) {
 		return u.Opts.Cmd
