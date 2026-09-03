@@ -43,6 +43,12 @@ end
 if KEYS[1] ~= "" then redis.call("decr", KEYS[1]) end
 for i = 2, #KEYS do redis.call("set", KEYS[i], ARGV[i-1]) end
 return "ok"`)
+	updateScript = redis.NewScript(`
+for i = 1, #KEYS do
+    if redis.call("exists", KEYS[i]) == 0 then return "missing" end
+end
+for i = 1, #KEYS do redis.call("set", KEYS[i], ARGV[i]) end
+return "ok"`)
 	bindStatusScript = redis.NewScript(`
 local ttl = tonumber(ARGV[2])
 if redis.call("exists", KEYS[1]) == 0 then
@@ -205,18 +211,20 @@ func (r *Rediaron) GetMulti(ctx context.Context, keys []string) (map[string]stri
 }
 
 func (r *Rediaron) Update(ctx context.Context, data map[string]string) error {
-	keys := slices.Collect(maps.Keys(data))
-
-	// the existence check is not part of the transaction below
-	e, err := r.cli.Exists(ctx, keys...).Result()
+	keys := make([]string, 0, len(data))
+	values := make([]any, 0, len(data))
+	for _, key := range slices.Sorted(maps.Keys(data)) {
+		keys = append(keys, key)
+		values = append(values, data[key])
+	}
+	updated, err := updateScript.Run(ctx, r.cli, keys, values...).Text()
 	if err != nil {
 		return err
 	}
-	if int(e) != len(keys) {
+	if updated == replyMissing {
 		return types.ErrKeyNotExists
 	}
-
-	return r.Put(ctx, data)
+	return nil
 }
 
 func (r *Rediaron) Create(ctx context.Context, data map[string]string) error {

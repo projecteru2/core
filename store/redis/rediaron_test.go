@@ -138,6 +138,20 @@ func (s *RediaronTestSuite) TestCreateWritesNothingOnAConflict() {
 	s.Equal("old", value)
 }
 
+func (s *RediaronTestSuite) TestUpdateWritesNothingWhenAKeyIsMissing() {
+	ctx := s.T().Context()
+	s.NoError(s.rediaron.cli.Set(ctx, "a", "old", 0).Err())
+
+	s.ErrorIs(s.rediaron.Update(ctx, map[string]string{"a": "new", "b": "new"}), types.ErrKeyNotExists)
+	s.Equal("old", s.get("a"))
+	s.False(s.exists("b"))
+
+	s.NoError(s.rediaron.cli.Set(ctx, "b", "old", 0).Err())
+	s.NoError(s.rediaron.Update(ctx, map[string]string{"a": "new", "b": "new"}))
+	s.Equal("new", s.get("a"))
+	s.Equal("new", s.get("b"))
+}
+
 func (s *RediaronTestSuite) TestCreateAndDecrNeedsTheCounter() {
 	ctx := s.T().Context()
 	s.ErrorIs(s.rediaron.CreateAndDecr(ctx, map[string]string{"a": "1"}, "counter"), types.ErrKeyNotExists)
