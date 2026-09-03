@@ -74,7 +74,6 @@ type Cluster interface {
 	LogStream(ctx context.Context, opts *types.LogStreamOptions) (chan *types.LogStreamMessage, error)
 	RunAndWait(ctx context.Context, opts *types.DeployOptions, inCh <-chan []byte) ([]string, <-chan *types.AttachWorkloadMessage, error)
 	RawEngine(ctx context.Context, opts *types.RawEngineOptions) (*types.RawEngineMessage, error)
-	Finalizer()
 
 	// GetIdentifier returns the identifier used to label workloads owned by this cluster.
 	GetIdentifier() string
