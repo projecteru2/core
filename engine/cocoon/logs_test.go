@@ -14,7 +14,7 @@ import (
 )
 
 func TestVirtualizationLogsReadsTheJournalWhenNotFollowing(t *testing.T) {
-	runner := &sshrunnertest.Fake{Started: []*sshrunnertest.Session{{Out: "hello\n"}}}
+	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: "hello\n"} }}
 	e := testEngine(t, runner)
 
 	stdout, stderr, err := e.VirtualizationLogs(t.Context(), &enginetypes.VirtualizationLogStreamOptions{ID: "w1", Tail: "10", Since: "1700000000"})

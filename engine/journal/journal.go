@@ -2,14 +2,11 @@
 package journal
 
 import (
-	"context"
-	"io"
 	"strconv"
 	"time"
 
 	"github.com/cockroachdb/errors"
 
-	"github.com/projecteru2/core/engine/sshrunner"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	coretypes "github.com/projecteru2/core/types"
 )
@@ -38,14 +35,6 @@ func Flags(opts *enginetypes.VirtualizationLogStreamOptions) ([]string, error) {
 		flags = append(flags, "--until", stamp)
 	}
 	return flags, nil
-}
-
-func Read(ctx context.Context, runner sshrunner.Runner, argv ...string) (io.ReadCloser, error) {
-	running, err := runner.Start(ctx, sshrunner.Quote(argv), &sshrunner.StartOptions{})
-	if err != nil {
-		return nil, err
-	}
-	return sshrunner.Reader(running), nil
 }
 
 // timestamp renders core's RFC3339 or unix-seconds timestamp the way journalctl reads one.

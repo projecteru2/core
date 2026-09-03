@@ -92,8 +92,11 @@ func (e *Engine) VirtualizationLogs(ctx context.Context, opts *enginetypes.Virtu
 		task, taskErr = found.Task(ctx, nil)
 	}
 	if !opts.Follow || taskErr != nil {
-		stdout, runErr := journal.Read(ctx, e.runner, argv...)
-		return stdout, nil, runErr
+		res, runErr := e.run(ctx, argv...)
+		if runErr != nil {
+			return nil, nil, runErr
+		}
+		return io.NopCloser(strings.NewReader(res.Stdout)), nil, nil
 	}
 
 	running, err := e.runner.Start(ctx, sshrunner.Quote(append(argv, "-f")), &sshrunner.StartOptions{})
