@@ -363,7 +363,7 @@ func TestHandleCreateLambda(t *testing.T) {
 		store := c.store.(*storemocks.Store)
 		store.On("GetWorkload", mock.Anything, mock.Anything).
 			Return(wrk, nil).
-			Once()
+			Twice()
 		store.On("GetNode", mock.Anything, wrk.Nodename).
 			Return(node, nil)
 		eng := wrk.Engine.(*enginemocks.API)
@@ -373,7 +373,7 @@ func TestHandleCreateLambda(t *testing.T) {
 			Once()
 		store.On("GetWorkloads", mock.Anything, []string{wrk.ID}).
 			Return([]*types.Workload{wrk}, nil).
-			Twice()
+			Once()
 		store.On("RemoveWorkload", mock.Anything, wrk).
 			Return(nil).
 			Once()

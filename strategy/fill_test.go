@@ -65,5 +65,5 @@ func TestFillPlan(t *testing.T) {
 	assert.EqualValues(t, 1, r["2"])
 
 	_, err = FillPlan(t.Context(), nodes, 5, 1000, 0)
-	assert.Contains(t, err.Error(), "not enough nodes that can fill up to 5 instances, require 1 nodes")
+	assert.Contains(t, err.Error(), "not enough nodes that can fill up to 5 instances, require 5 nodes")
 }

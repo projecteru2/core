@@ -234,7 +234,11 @@ func (e *ETCD) BatchCreateAndDecr(ctx context.Context, data map[string]string, d
 		if txnResp.Succeeded {
 			break
 		}
-		decrKv = txnResp.Responses[0].GetResponseRange().Kvs[0]
+		kvs := txnResp.Responses[0].GetResponseRange().Kvs
+		if len(kvs) == 0 {
+			return errors.Wrap(types.ErrKeyNotExists, decrKey)
+		}
+		decrKv = kvs[0]
 	}
 
 	return nil

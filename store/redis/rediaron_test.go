@@ -18,7 +18,6 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-// realRedisEnv names a running redis the tests use instead of miniredis; the CI redis job sets it.
 const realRedisEnv = "ERU_TEST_REDIS_ADDR"
 
 func TestRediaron(t *testing.T) {
@@ -137,6 +136,20 @@ func (s *RediaronTestSuite) TestCreateWritesNothingOnAConflict() {
 	s.False(s.exists("a"))
 	value := s.get("b")
 	s.Equal("old", value)
+}
+
+func (s *RediaronTestSuite) TestUpdateWritesNothingWhenAKeyIsMissing() {
+	ctx := s.T().Context()
+	s.NoError(s.rediaron.cli.Set(ctx, "a", "old", 0).Err())
+
+	s.ErrorIs(s.rediaron.Update(ctx, map[string]string{"a": "new", "b": "new"}), types.ErrKeyNotExists)
+	s.Equal("old", s.get("a"))
+	s.False(s.exists("b"))
+
+	s.NoError(s.rediaron.cli.Set(ctx, "b", "old", 0).Err())
+	s.NoError(s.rediaron.Update(ctx, map[string]string{"a": "new", "b": "new"}))
+	s.Equal("new", s.get("a"))
+	s.Equal("new", s.get("b"))
 }
 
 func (s *RediaronTestSuite) TestCreateAndDecrNeedsTheCounter() {

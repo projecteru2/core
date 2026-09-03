@@ -1,6 +1,9 @@
 package calcium
 
 import (
+	"crypto/ed25519"
+	"crypto/rand"
+	"encoding/pem"
 	"os"
 	"path/filepath"
 	"testing"
@@ -8,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"golang.org/x/crypto/ssh"
 
 	resourcemocks "github.com/projecteru2/core/resource/mocks"
 	sourcemocks "github.com/projecteru2/core/source/mocks"
@@ -33,7 +37,11 @@ func TestNewCluster(t *testing.T) {
 
 	c.Finalizer()
 	privFile := filepath.Join(t.TempDir(), "priv")
-	assert.NoError(t, os.WriteFile(privFile, []byte("privkey"), 0o600))
+	_, priv, err := ed25519.GenerateKey(rand.Reader)
+	assert.NoError(t, err)
+	block, err := ssh.MarshalPrivateKey(priv, "")
+	assert.NoError(t, err)
+	assert.NoError(t, os.WriteFile(privFile, pem.EncodeToMemory(block), 0o600))
 
 	for _, scmtype := range []string{"gitlab", "github"} {
 		scm, err := New(ctx, types.Config{

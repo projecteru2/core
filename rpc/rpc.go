@@ -393,7 +393,7 @@ func (v *Vibranium) GetWorkloads(ctx context.Context, cids *pb.WorkloadIDs) (*pb
 		return nil, grpcstatus.Error(GetWorkloads, err.Error())
 	}
 
-	return toRPCWorkloads(task.context, workloads, nil), nil
+	return toRPCWorkloads(task.context, workloads), nil
 }
 
 func (v *Vibranium) ListWorkloads(opts *pb.ListWorkloadsOptions, stream pb.CoreRPC_ListWorkloadsServer) error {
@@ -411,7 +411,7 @@ func (v *Vibranium) ListWorkloads(opts *pb.ListWorkloadsOptions, stream pb.CoreR
 		return grpcstatus.Error(ListWorkloads, err.Error())
 	}
 
-	for _, c := range toRPCWorkloads(task.context, workloads, opts.Labels).Workloads {
+	for _, c := range toRPCWorkloads(task.context, workloads).Workloads {
 		if err = stream.Send(c); err != nil {
 			logUnsentMessages(task.context, "ListWorkloads", err, c)
 			return grpcstatus.Error(ListWorkloads, err.Error())
@@ -427,7 +427,7 @@ func (v *Vibranium) ListNodeWorkloads(ctx context.Context, opts *pb.GetNodeOptio
 	if err != nil {
 		return nil, grpcstatus.Error(ListNodeWorkloads, err.Error())
 	}
-	return toRPCWorkloads(task.context, workloads, nil), nil
+	return toRPCWorkloads(task.context, workloads), nil
 }
 
 func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) error {

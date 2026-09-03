@@ -4,22 +4,16 @@ import (
 	"bytes"
 	"context"
 
-	"github.com/projecteru2/core/engine"
+	"github.com/projecteru2/core/types"
 )
 
-func (c *Calcium) doHook(
-	ctx context.Context,
-	ID, user string,
-	cmds, env []string,
-	cmdForce, privileged, force bool,
-	engine engine.API,
-) ([]*bytes.Buffer, error) {
+func (c *Calcium) doHook(ctx context.Context, workload *types.Workload, cmds []string, force bool) ([]*bytes.Buffer, error) {
 	outputs := []*bytes.Buffer{}
 	for _, cmd := range cmds {
-		output, err := c.executeInside(ctx, engine, ID, cmd, user, env, privileged)
+		output, err := c.executeInside(ctx, workload.Engine, workload.ID, cmd, workload.User, workload.Env, workload.Privileged)
 		if err != nil {
 			outputs = append(outputs, bytes.NewBufferString(err.Error()))
-			if cmdForce && !force {
+			if workload.Hook.Force && !force {
 				return outputs, err
 			}
 			continue

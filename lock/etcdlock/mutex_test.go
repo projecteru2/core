@@ -2,10 +2,13 @@ package etcdlock
 
 import (
 	"context"
+	"path"
+	"runtime"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	clientv3 "go.etcd.io/etcd/client/v3"
 
 	"github.com/projecteru2/core/store/etcdv3/embedded"
 )
@@ -27,7 +30,7 @@ func TestMutex(t *testing.T) {
 	assert.NoError(t, err)
 	err = mutex.Unlock(ctx)
 	assert.NoError(t, err)
-	assert.NoError(t, ctx.Err())
+	assert.ErrorIs(t, ctx.Err(), context.Canceled)
 
 	m2, err := New(pool, "test", time.Second)
 	assert.NoError(t, err)
@@ -52,6 +55,27 @@ func TestMutex(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = m5.Lock(t.Context())
 	assert.NoError(t, err)
+}
+
+func TestUnlockStopsTheSessionWatchdog(t *testing.T) {
+	cluster, err := embedded.New(t.TempDir())
+	assert.NoError(t, err)
+	t.Cleanup(cluster.Close)
+	pool := NewPool(cluster.Client("/test"), time.Second)
+
+	parent, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	before := runtime.NumGoroutine()
+	for range 32 {
+		mutex, err := New(pool, "watchdog", time.Second)
+		assert.NoError(t, err)
+		_, err = mutex.Lock(parent)
+		assert.NoError(t, err)
+		assert.NoError(t, mutex.Unlock(parent))
+	}
+	assert.Eventually(t, func() bool {
+		return runtime.NumGoroutine() < before+32
+	}, time.Second, 10*time.Millisecond)
 }
 
 func TestPoolReusesTheSessionOfAnUnlockedMutex(t *testing.T) {
@@ -95,7 +119,7 @@ func TestMutexesOnOneKeyHoldDistinctSessions(t *testing.T) {
 	assert.NoError(t, holder.Unlock(t.Context()))
 }
 
-func TestLockFailureRevokesTheSession(t *testing.T) {
+func TestLockTimeoutLeavesTheSessionReusable(t *testing.T) {
 	cluster, err := embedded.New(t.TempDir())
 	assert.NoError(t, err)
 	t.Cleanup(cluster.Close)
@@ -109,13 +133,25 @@ func TestLockFailureRevokesTheSession(t *testing.T) {
 
 	waiter, err := New(pool, "revoke", 100*time.Millisecond)
 	assert.NoError(t, err)
+	session := waiter.session
 	_, err = waiter.Lock(t.Context())
 	assert.EqualError(t, err, "context deadline exceeded")
+	keys, err := cli.Get(t.Context(), path.Dir(holder.mutex.Key())+"/", clientv3.WithPrefix(), clientv3.WithKeysOnly())
+	assert.NoError(t, err)
+	assert.Len(t, keys.Kvs, 1)
 
 	leases, err := cli.Leases(t.Context())
 	assert.NoError(t, err)
-	assert.Len(t, leases.Leases, 1)
-	assert.Empty(t, pool.idle)
+	assert.Len(t, leases.Leases, 2)
+	assert.Len(t, pool.idle, 1)
 	assert.NoError(t, waiter.Unlock(t.Context()))
+	assert.Len(t, pool.idle, 1)
+
+	reuser, err := New(pool, "reuse-after-timeout", time.Second)
+	assert.NoError(t, err)
+	assert.Same(t, session, reuser.session)
+	_, err = reuser.Lock(t.Context())
+	assert.NoError(t, err)
+	assert.NoError(t, reuser.Unlock(t.Context()))
 	assert.NoError(t, holder.Unlock(t.Context()))
 }

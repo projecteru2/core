@@ -74,26 +74,14 @@ func (c *Calcium) doStartWorkload(ctx context.Context, workload *types.Workload,
 		return message, err
 	}
 	if workload.Hook != nil && len(workload.Hook.AfterStart) > 0 {
-		message, err = c.doHook(
-			ctx,
-			workload.ID, workload.User,
-			workload.Hook.AfterStart, workload.Env,
-			workload.Hook.Force, workload.Privileged,
-			force, workload.Engine,
-		)
+		message, err = c.doHook(ctx, workload, workload.Hook.AfterStart, force)
 	}
 	return message, err
 }
 
 func (c *Calcium) doStopWorkload(ctx context.Context, workload *types.Workload, force bool) (message []*bytes.Buffer, err error) {
 	if workload.Hook != nil && len(workload.Hook.BeforeStop) > 0 {
-		message, err = c.doHook(
-			ctx,
-			workload.ID, workload.User,
-			workload.Hook.BeforeStop, workload.Env,
-			workload.Hook.Force, workload.Privileged,
-			force, workload.Engine,
-		)
+		message, err = c.doHook(ctx, workload, workload.Hook.BeforeStop, force)
 		if err != nil {
 			return message, err
 		}
@@ -107,13 +95,7 @@ func (c *Calcium) doStopWorkload(ctx context.Context, workload *types.Workload, 
 
 func (c *Calcium) doSuspendWorkload(ctx context.Context, workload *types.Workload, force bool) (message []*bytes.Buffer, err error) {
 	if workload.Hook != nil && len(workload.Hook.BeforeSuspend) > 0 {
-		message, err = c.doHook(
-			ctx,
-			workload.ID, workload.User,
-			workload.Hook.BeforeSuspend, workload.Env,
-			workload.Hook.Force, workload.Privileged,
-			force, workload.Engine,
-		)
+		message, err = c.doHook(ctx, workload, workload.Hook.BeforeSuspend, force)
 		if err != nil {
 			return message, err
 		}
@@ -130,13 +112,7 @@ func (c *Calcium) doResumeWorkload(ctx context.Context, workload *types.Workload
 		return message, err
 	}
 	if workload.Hook != nil && len(workload.Hook.AfterResume) > 0 {
-		message, err = c.doHook(
-			ctx,
-			workload.ID, workload.User,
-			workload.Hook.AfterResume, workload.Env,
-			workload.Hook.Force, workload.Privileged,
-			force, workload.Engine,
-		)
+		message, err = c.doHook(ctx, workload, workload.Hook.AfterResume, force)
 	}
 	return message, err
 }

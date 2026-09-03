@@ -21,8 +21,8 @@ func TestStatusStreamsDoNotOccupyPool(t *testing.T) {
 		start func(context.Context, *Store) error
 	}{
 		{"service", func(ctx context.Context, store *Store) error {
-			_, err := store.ServiceStatusStream(ctx)
-			return err
+			store.ServiceStatusStream(ctx)
+			return nil
 		}},
 		{"node", func(ctx context.Context, store *Store) error {
 			store.NodeStatusStream(ctx)
@@ -70,8 +70,7 @@ func TestServiceStatusStreamRecoversAfterSnapshotFailure(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	store := New(&recoveringServiceKV{}, types.Config{ConnectionTimeout: time.Millisecond}, pool)
 
-	ch, err := store.ServiceStatusStream(ctx)
-	require.NoError(t, err)
+	ch := store.ServiceStatusStream(ctx)
 	select {
 	case endpoints, ok := <-ch:
 		require.True(t, ok)

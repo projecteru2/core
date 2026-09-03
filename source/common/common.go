@@ -25,7 +25,7 @@ type GitScm struct {
 	Config      types.GitConfig
 	AuthHeaders map[string]string
 
-	keyBytes []byte
+	signer ssh.Signer
 }
 
 // NewGitScm builds a GitScm from config.
@@ -34,10 +34,14 @@ func NewGitScm(config types.GitConfig, authHeaders map[string]string) (*GitScm, 
 	if err != nil {
 		return nil, err
 	}
+	signer, err := ssh.ParsePrivateKey(b)
+	if err != nil {
+		return nil, err
+	}
 	scm := &GitScm{
 		Config:      config,
 		AuthHeaders: authHeaders,
-		keyBytes:    b,
+		signer:      signer,
 	}
 	scm.Timeout = config.CloneTimeout
 	return scm, nil
@@ -58,10 +62,6 @@ func (g *GitScm) SourceCode(ctx context.Context, repository, path, revision stri
 	case strings.Contains(repository, "https://"):
 		repo, err = gogit.PlainCloneContext(ctx, path, false, opts)
 	case strings.Contains(repository, "git@") || strings.Contains(repository, "gitlab@"):
-		signer, signErr := ssh.ParsePrivateKey(g.keyBytes)
-		if signErr != nil {
-			return signErr
-		}
 		splitRepo := strings.Split(repository, "@")
 		user, parseErr := url.Parse(splitRepo[0])
 		if parseErr != nil {
@@ -69,7 +69,7 @@ func (g *GitScm) SourceCode(ctx context.Context, repository, path, revision stri
 		}
 		auth := &gitssh.PublicKeys{
 			User:   user.Host + user.Path,
-			Signer: signer,
+			Signer: g.signer,
 		}
 		opts.Auth = auth
 		repo, err = gogit.PlainCloneContext(ctx, path, false, opts)

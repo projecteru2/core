@@ -5,12 +5,14 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"runtime"
 	"slices"
 	"sync"
 	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/sanity-io/litter"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/projecteru2/core/cluster"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -20,6 +22,22 @@ import (
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
+
+type createEmit func(*types.CreateWorkloadMessage)
+
+type deployPlan struct {
+	deploy            map[string]int
+	engineParams      map[string][]resourcetypes.Resources
+	workloadResources map[string][]resourcetypes.Resources
+}
+
+type nodeDeploy struct {
+	nodename          string
+	deploy            int
+	seq               int
+	engineParams      []resourcetypes.Resources
+	workloadResources []resourcetypes.Resources
+}
 
 func (c *Calcium) CreateWorkload(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateWorkloadMessage, error) {
 	logger := log.WithFunc("calcium.CreateWorkload").WithField("opts", opts)
@@ -44,10 +62,11 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 	ch := make(chan *types.CreateWorkloadMessage)
 
 	var (
-		deployMap            map[string]int
-		rollbackMap          map[string][]int
-		engineParamsMap      = map[string][]resourcetypes.Resources{}
-		workloadResourcesMap = map[string][]resourcetypes.Resources{}
+		rollbackMap map[string][]int
+		plan        = deployPlan{
+			engineParams:      map[string][]resourcetypes.Resources{},
+			workloadResources: map[string][]resourcetypes.Resources{},
+		}
 	)
 
 	caller := ctx
@@ -57,7 +76,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 		defer func() {
 			cctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), c.config.GlobalTimeout)
 			defer cancel()
-			for nodename := range deployMap {
+			for nodename := range plan.deploy {
 				processing := opts.GetProcessing(nodename)
 				if err := c.store.DeleteProcessing(cctx, processing); err != nil {
 					logger.Errorf(ctx, err, "delete processing failed for %s", nodename)
@@ -91,44 +110,51 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 						return err
 					}
 
-					deployMap, err = c.doGetDeployStrategy(ctx, nodenames, opts)
+					plan.deploy, err = c.doGetDeployStrategy(ctx, nodenames, opts)
 					if err != nil {
 						return err
 					}
 
 					processingCommits = make(map[string]func())
-					for nodename, deploy := range deployMap {
-						workloadResources, engineParams, allocErr := c.rmgr.Alloc(ctx, nodename, deploy, opts.Resources)
-						if allocErr != nil {
-							return allocErr
-						}
-						workloadResourcesMap[nodename] = workloadResources
-						engineParamsMap[nodename] = engineParams
-						processing := opts.GetProcessing(nodename)
-						if processingCommits[nodename], err = c.journal(ctx, logger, eventProcessingCreated, processing); err != nil {
-							return err
-						}
-						if err = c.store.CreateProcessing(ctx, processing, deploy); err != nil {
-							return err
-						}
+					mu := sync.Mutex{}
+					allocs := errgroup.Group{}
+					allocs.SetLimit(runtime.GOMAXPROCS(0))
+					for nodename, deploy := range plan.deploy {
+						allocs.Go(func() error {
+							workloadResources, engineParams, allocErr := c.rmgr.Alloc(ctx, nodename, deploy, opts.Resources)
+							if allocErr != nil {
+								return allocErr
+							}
+							processing := opts.GetProcessing(nodename)
+							commit, journalErr := c.journal(ctx, logger, eventProcessingCreated, processing)
+							mu.Lock()
+							plan.workloadResources[nodename] = workloadResources
+							plan.engineParams[nodename] = engineParams
+							processingCommits[nodename] = commit
+							mu.Unlock()
+							if journalErr != nil {
+								return journalErr
+							}
+							return c.store.CreateProcessing(ctx, processing, deploy)
+						})
 					}
-					return nil
+					return allocs.Wait()
 				})
 			},
 
 			func(ctx context.Context) (err error) {
-				rollbackMap, err = c.doDeployWorkloads(ctx, func(msg *types.CreateWorkloadMessage) { _ = send(caller, ch, msg) }, opts, engineParamsMap, workloadResourcesMap, deployMap)
+				rollbackMap, err = c.doDeployWorkloads(ctx, func(msg *types.CreateWorkloadMessage) { _ = send(caller, ch, msg) }, opts, plan)
 				return err
 			},
 
 			func(ctx context.Context, failedOnCond bool) (err error) {
 				resourcesToRollback := map[string][]resourcetypes.Resources{}
 				if failedOnCond {
-					resourcesToRollback = workloadResourcesMap
+					resourcesToRollback = plan.workloadResources
 				} else {
 					for nodename, rollbackIndices := range rollbackMap {
 						resourcesToRollback[nodename] = utils.Map(rollbackIndices, func(idx int) resourcetypes.Resources {
-							return workloadResourcesMap[nodename][idx]
+							return plan.workloadResources[nodename][idx]
 						})
 					}
 				}
@@ -153,18 +179,12 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 	return ch
 }
 
-func (c *Calcium) doDeployWorkloads(ctx context.Context,
-	emit func(*types.CreateWorkloadMessage),
-	opts *types.DeployOptions,
-	engineParamsMap map[string][]resourcetypes.Resources,
-	workloadResourcesMap map[string][]resourcetypes.Resources,
-	deployMap map[string]int,
-) (_ map[string][]int, err error) {
+func (c *Calcium) doDeployWorkloads(ctx context.Context, emit createEmit, opts *types.DeployOptions, plan deployPlan) (_ map[string][]int, err error) {
 	wg := sync.WaitGroup{}
 	logger := log.WithFunc("calcium.doDeployWorkloads").WithField("ident", opts.ProcessIdent)
 
 	total := 0
-	for _, deploy := range deployMap {
+	for _, deploy := range plan.deploy {
 		total += deploy
 	}
 	c.invokePoolAsync(func() { metrics.Client.SendDeployCount(ctx, total) })
@@ -172,12 +192,18 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context,
 	seq := 0
 	rollbackLock := sync.Mutex{}
 	rollbackMap := make(map[string][]int)
-	for nodename, deploy := range deployMap {
-		start := seq
+	for nodename, deploy := range plan.deploy {
+		nd := nodeDeploy{
+			nodename:          nodename,
+			deploy:            deploy,
+			seq:               seq,
+			engineParams:      plan.engineParams[nodename],
+			workloadResources: plan.workloadResources[nodename],
+		}
 		seq += deploy
 		wg.Go(func() {
 			defer log.SentryDefer()
-			if indices, deployErr := c.doDeployWorkloadsOnNode(ctx, emit, nodename, opts, deploy, engineParamsMap[nodename], workloadResourcesMap[nodename], start); deployErr != nil {
+			if indices, deployErr := c.doDeployWorkloadsOnNode(ctx, emit, opts, nd); deployErr != nil {
 				rollbackLock.Lock()
 				rollbackMap[nodename] = indices
 				rollbackLock.Unlock()
@@ -193,32 +219,24 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context,
 	return rollbackMap, err
 }
 
-func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
-	emit func(*types.CreateWorkloadMessage),
-	nodename string,
-	opts *types.DeployOptions,
-	deploy int,
-	engineParams []resourcetypes.Resources,
-	workloadResources []resourcetypes.Resources,
-	seq int,
-) (indices []int, err error) {
-	logger := log.WithFunc("calcium.doDeployWorkloadsOnNode").WithField("node", nodename).WithField("ident", opts.ProcessIdent).WithField("deploy", deploy).WithField("seq", seq)
-	node, err := c.doGetAndPrepareNode(ctx, nodename, opts.Image, opts.IgnorePull)
+func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, emit createEmit, opts *types.DeployOptions, nd nodeDeploy) (indices []int, err error) {
+	logger := log.WithFunc("calcium.doDeployWorkloadsOnNode").WithField("node", nd.nodename).WithField("ident", opts.ProcessIdent).WithField("deploy", nd.deploy).WithField("seq", nd.seq)
+	node, err := c.doGetAndPrepareNode(ctx, nd.nodename, opts.Image, opts.IgnorePull)
 	if err != nil {
 		logger.Error(ctx, err)
-		for range deploy {
+		for range nd.deploy {
 			emit(&types.CreateWorkloadMessage{Error: err})
 		}
-		return utils.Range(deploy), err
+		return utils.Range(nd.deploy), err
 	}
 
 	appendLock := sync.Mutex{}
 	wg := &sync.WaitGroup{}
-	wg.Add(deploy)
-	for idx := range deploy {
+	wg.Add(nd.deploy)
+	for idx := range nd.deploy {
 		createMsg := &types.CreateWorkloadMessage{
 			Podname:  opts.Podname,
-			Nodename: nodename,
+			Nodename: nd.nodename,
 			Publish:  map[string][]string{},
 		}
 
@@ -237,10 +255,10 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
 				emit(createMsg)
 			}()
 
-			createMsg.EngineParams = engineParams[idx]
-			createMsg.Resources = workloadResources[idx]
+			createMsg.EngineParams = nd.engineParams[idx]
+			createMsg.Resources = nd.workloadResources[idx]
 
-			createOpts := c.doMakeWorkloadOptions(ctx, seq+idx, createMsg, opts, node)
+			createOpts := c.doMakeWorkloadOptions(ctx, nd.seq+idx, createMsg, opts, node)
 			e = c.doDeployOneWorkload(ctx, node, opts, createMsg, createOpts, true)
 		})
 	}
@@ -263,14 +281,7 @@ func (c *Calcium) doGetAndPrepareNode(ctx context.Context, nodename, image strin
 	return node, err
 }
 
-func (c *Calcium) doDeployOneWorkload(
-	ctx context.Context,
-	node *types.Node,
-	opts *types.DeployOptions,
-	msg *types.CreateWorkloadMessage,
-	createOpts *enginetypes.VirtualizationCreateOptions,
-	decrProcessing bool,
-) (err error) {
+func (c *Calcium) doDeployOneWorkload(ctx context.Context, node *types.Node, opts *types.DeployOptions, msg *types.CreateWorkloadMessage, createOpts *enginetypes.VirtualizationCreateOptions, decrProcessing bool) (err error) {
 	logger := log.WithFunc("calcium.doDeployOneWorkload").WithField("node", node.Name).WithField("ident", opts.ProcessIdent).WithField("msg", msg)
 	workload := &types.Workload{
 		Resources:    msg.Resources,

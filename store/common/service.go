@@ -13,6 +13,28 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
+type Endpoints map[string]struct{}
+
+func (e Endpoints) Add(endpoint string) (changed bool) {
+	if _, ok := e[endpoint]; !ok {
+		e[endpoint] = struct{}{}
+		changed = true
+	}
+	return changed
+}
+
+func (e Endpoints) Remove(endpoint string) (changed bool) {
+	if _, ok := e[endpoint]; ok {
+		delete(e, endpoint)
+		changed = true
+	}
+	return changed
+}
+
+func (e Endpoints) ToSlice() []string {
+	return slices.Collect(maps.Keys(e))
+}
+
 func (s *Store) GetServiceStatus(ctx context.Context) ([]string, error) {
 	eps, err := s.getServiceEndpoints(ctx, fmt.Sprintf(ServiceStatusKey, ""))
 	if err != nil {
@@ -21,7 +43,7 @@ func (s *Store) GetServiceStatus(ctx context.Context) ([]string, error) {
 	return eps.ToSlice(), nil
 }
 
-func (s *Store) ServiceStatusStream(ctx context.Context) (chan []string, error) {
+func (s *Store) ServiceStatusStream(ctx context.Context) chan []string {
 	ch := make(chan []string)
 	logger := log.WithFunc("store.common.ServiceStatusStream")
 	prefix := fmt.Sprintf(ServiceStatusKey, "")
@@ -39,7 +61,7 @@ func (s *Store) ServiceStatusStream(ctx context.Context) (chan []string, error) 
 			}
 		}
 	})
-	return ch, nil
+	return ch
 }
 
 func (s *Store) RegisterService(ctx context.Context, serviceAddress string, expire time.Duration) (<-chan struct{}, func(), error) {
@@ -78,28 +100,6 @@ func (s *Store) serviceStatusStream(ctx context.Context, prefix string, ch chan<
 		}
 	}
 	return types.ErrMessageChanClosed
-}
-
-type Endpoints map[string]struct{}
-
-func (e Endpoints) Add(endpoint string) (changed bool) {
-	if _, ok := e[endpoint]; !ok {
-		e[endpoint] = struct{}{}
-		changed = true
-	}
-	return changed
-}
-
-func (e Endpoints) Remove(endpoint string) (changed bool) {
-	if _, ok := e[endpoint]; ok {
-		delete(e, endpoint)
-		changed = true
-	}
-	return changed
-}
-
-func (e Endpoints) ToSlice() []string {
-	return slices.Collect(maps.Keys(e))
 }
 
 func (s *Store) getServiceEndpoints(ctx context.Context, prefix string) (Endpoints, error) {

@@ -40,6 +40,7 @@ func TestControlStartResume(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c, ctx, store := newControlTestCluster(t)
 			store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
+			store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 			ch, err := c.ControlWorkload(ctx, []string{"id1"}, "", true)
 			assert.NoError(t, err)
 			for r := range ch {
@@ -52,6 +53,7 @@ func TestControlStartResume(t *testing.T) {
 			engine := &enginemocks.API{}
 			workload.Engine = engine
 			store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
+			store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
 			ch, err = c.ControlWorkload(ctx, []string{"id1"}, "", true)
 			assert.NoError(t, err)
 			for r := range ch {
@@ -113,6 +115,7 @@ func TestControlStop(t *testing.T) {
 	engine := &enginemocks.API{}
 	workload.Engine = engine
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
 	hook := &types.Hook{
 		BeforeStop: []string{"cmd1"},
 	}
@@ -148,6 +151,7 @@ func TestControlRestart(t *testing.T) {
 		Engine:     engine,
 	}
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
 	hook := &types.Hook{
 		BeforeStop: []string{"cmd1"},
 	}
@@ -178,6 +182,7 @@ func TestControlSuspend(t *testing.T) {
 	engine := &enginemocks.API{}
 	workload.Engine = engine
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
 	hook := &types.Hook{
 		BeforeSuspend: []string{"cmd1"},
 	}

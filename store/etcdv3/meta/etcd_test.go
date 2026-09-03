@@ -429,6 +429,28 @@ func TestETCD(t *testing.T) {
 	require.True(t, txnResp.Succeeded)
 }
 
+func TestBatchCreateAndDecrWithTheCounterGoneMidRetry(t *testing.T) {
+	e := NewMockedETCD(t)
+	cli := e.cliv3.(*mocks.ETCDClientV3)
+	cli.On("Get", mock.Anything, mock.Anything).Return(&clientv3.GetResponse{
+		Count: 1,
+		Kvs:   []*mvccpb.KeyValue{{Key: []byte("process"), Value: []byte("1")}},
+	}, nil)
+	txn := &mocks.Txn{}
+	txn.On("If", mock.Anything).Return(txn)
+	txn.On("Then", mock.Anything).Return(txn)
+	txn.On("Else", mock.Anything).Return(txn)
+	txn.On("Commit").Return(&clientv3.TxnResponse{
+		Responses: []*etcdserverpb.ResponseOp{
+			{Response: &etcdserverpb.ResponseOp_ResponseRange{ResponseRange: &etcdserverpb.RangeResponse{}}},
+		},
+	}, nil)
+	cli.On("Txn", mock.Anything).Return(txn)
+
+	err := e.BatchCreateAndDecr(t.Context(), map[string]string{"k": "v"}, "process")
+	require.ErrorIs(t, err, types.ErrKeyNotExists)
+}
+
 func NewMockedETCD(t *testing.T) *ETCD {
 	e := NewEmbeddedETCD(t)
 	e.cliv3 = &mocks.ETCDClientV3{}

@@ -37,6 +37,7 @@ func TestSend(t *testing.T) {
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch, err := c.Send(ctx, opts)
 	assert.NoError(t, err)
 	for r := range ch {
@@ -46,6 +47,7 @@ func TestSend(t *testing.T) {
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(
 		[]*types.Workload{{ID: "cid", Engine: engine}}, nil,
 	)
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(&types.Workload{ID: "cid", Engine: engine}, nil)
 	engine.On("VirtualizationCopyChunkTo",
 		mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything,

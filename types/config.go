@@ -20,10 +20,10 @@ type Config struct {
 	LockTimeout         time.Duration `yaml:"lock_timeout" required:"true" default:"30s"`
 	GlobalTimeout       time.Duration `yaml:"global_timeout" required:"true" default:"300s"` // timeout for remove, run_and_wait and build
 	ConnectionTimeout   time.Duration `yaml:"connection_timeout" required:"true" default:"10s"`
-	HAKeepaliveInterval time.Duration `yaml:"ha_keepalive_interval" required:"true" default:"16s"` // interval for node status watcher
-	Statsd              string        `yaml:"statsd"`                                              // statsd host:port
-	Profile             string        `yaml:"profile"`                                             // profile ip:port
-	MaxConcurrency      int           `yaml:"max_concurrency" default:"100000"`                    // max concurrent calls to one runtime
+	HAKeepaliveInterval time.Duration `yaml:"ha_keepalive_interval" required:"true" default:"16s"`
+	Statsd              string        `yaml:"statsd"`                           // statsd host:port
+	Profile             string        `yaml:"profile"`                          // profile ip:port
+	MaxConcurrency      int           `yaml:"max_concurrency" default:"100000"` // max concurrent calls to one runtime
 	Store               string        `yaml:"store" default:"etcd"`
 	SentryDSN           string        `yaml:"sentry_dsn"`
 	ProbeTarget         string        `yaml:"probe_target" required:"false" default:"8.8.8.8:80"` // for getting outbound address
@@ -73,9 +73,9 @@ type GRPCConfig struct {
 }
 
 type GitConfig struct {
-	SCMType      string        `yaml:"scm_type"`    // source code manager type [gitlab/github]
-	PrivateKey   string        `yaml:"private_key"` // private key to clone code
-	Token        string        `yaml:"token"`       // token to call SCM API
+	SCMType      string        `yaml:"scm_type"` // source code manager type [gitlab/github]
+	PrivateKey   string        `yaml:"private_key"`
+	Token        string        `yaml:"token"`
 	CloneTimeout time.Duration `yaml:"clone_timeout" default:"300s"`
 }
 
@@ -88,7 +88,7 @@ type SSHConfig struct {
 
 type EtcdConfig struct {
 	Machines   []string   `yaml:"machines" required:"true"`
-	Prefix     string     `yaml:"prefix" required:"true" default:"/eru"` // key prefix for core data
+	Prefix     string     `yaml:"prefix" required:"true" default:"/eru"`
 	LockPrefix string     `yaml:"lock_prefix" required:"true" default:"__lock__/eru"`
 	Ca         string     `yaml:"ca"`
 	Key        string     `yaml:"key"`
@@ -140,7 +140,7 @@ type ContainerdConfig struct {
 	Socket      string        `yaml:"socket" default:"/run/containerd/containerd.sock"`
 	Namespace   string        `yaml:"namespace" default:"eru"`
 	BuildKit    string        `yaml:"buildkit" default:"/run/buildkit/buildkitd.sock"` // a tcp:// address is dialed directly
-	StopTimeout time.Duration `yaml:"stop_timeout" default:"10s"`                      // grace period before the task is killed
+	StopTimeout time.Duration `yaml:"stop_timeout" default:"10s"`
 }
 
 // ProcessConfig is the node-side layout the process engine writes into.

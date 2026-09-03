@@ -42,6 +42,7 @@ func TestDissociateWorkload(t *testing.T) {
 		}
 
 		store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{c1}, nil)
+		store.On("GetWorkload", mock.Anything, mock.Anything).Return(c1, nil)
 		rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 			nil, nil, nil, nil,
 		)

@@ -16,11 +16,10 @@ import (
 )
 
 type (
-	nodeHandler      func(context.Context, *types.Node) error
-	nodesHandler     func(context.Context, map[string]*types.Node) error
-	workloadHandler  func(context.Context, *types.Workload) error
-	workloadsHandler func(context.Context, map[string]*types.Workload) error
-	nodeLockKeys     func([]*types.Node) []string
+	nodeHandler     func(context.Context, *types.Node) error
+	nodesHandler    func(context.Context, map[string]*types.Node) error
+	workloadHandler func(context.Context, *types.Workload) error
+	nodeLockKeys    func([]*types.Node) []string
 )
 
 func (c *Calcium) doLock(ctx context.Context, name string, timeout time.Duration) (lock lock.DistributedLock, rCtx context.Context, err error) {
@@ -55,46 +54,26 @@ func (c *Calcium) doUnlockAll(ctx context.Context, locks map[string]lock.Distrib
 }
 
 func (c *Calcium) withWorkloadLocked(ctx context.Context, ID string, ignoreLock bool, f workloadHandler) error {
-	return c.withWorkloadsLocked(ctx, ignoreLock, []string{ID}, func(ctx context.Context, workloads map[string]*types.Workload) error {
-		if c, ok := workloads[ID]; ok {
-			return f(ctx, c)
-		}
-		return types.ErrWorkloadNotExists
-	})
-}
-
-func (c *Calcium) withWorkloadsLocked(ctx context.Context, ignoreLock bool, IDs []string, f workloadsHandler) error {
-	workloads := map[string]*types.Workload{}
-	locks := map[string]lock.DistributedLock{}
-	lockKeys := []string{}
-	logger := log.WithFunc("calcium.withWorkloadsLocked")
-
-	slices.Sort(IDs)
-	IDs = slices.Compact(IDs)
-
-	defer func() {
-		slices.Reverse(lockKeys)
-		c.doUnlockAll(context.WithoutCancel(ctx), locks, lockKeys)
-		logger.Debugf(ctx, "workloads %+v unlocked", lockKeys)
-	}()
-	cs, err := c.store.GetWorkloads(ctx, IDs)
+	workload, err := c.store.GetWorkload(ctx, ID)
 	if err != nil {
 		return err
 	}
-	var lock lock.DistributedLock
-	for _, workload := range cs {
-		if !ignoreLock {
-			lock, ctx, err = c.doLock(ctx, fmt.Sprintf(cluster.WorkloadLock, workload.ID), c.config.LockTimeout)
-			if err != nil {
-				return err
-			}
-			logger.Debugf(ctx, "workload %s locked", workload.ID)
-			locks[workload.ID] = lock
-			lockKeys = append(lockKeys, workload.ID)
-		}
-		workloads[workload.ID] = workload
+	if ignoreLock {
+		return f(ctx, workload)
 	}
-	return f(ctx, workloads)
+
+	logger := log.WithFunc("calcium.withWorkloadLocked")
+	lock, ctx, err := c.doLock(ctx, fmt.Sprintf(cluster.WorkloadLock, workload.ID), c.config.LockTimeout)
+	if err != nil {
+		return err
+	}
+	logger.Debugf(ctx, "workload %s locked", workload.ID)
+	defer func() {
+		if err := c.doUnlock(context.WithoutCancel(ctx), lock, workload.ID); err != nil {
+			logger.Errorf(ctx, err, "failed to unlock workload %s", workload.ID)
+		}
+	}()
+	return f(ctx, workload)
 }
 
 func (c *Calcium) withNodeOperationLocked(ctx context.Context, nodename string, f nodeHandler) error {

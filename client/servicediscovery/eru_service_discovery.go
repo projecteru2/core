@@ -35,7 +35,7 @@ func New(endpoint string, authConfig types.AuthConfig) *EruServiceDiscovery {
 
 // Watch streams the core addresses the cluster publishes; the connection it watches over follows them as well.
 func (w *EruServiceDiscovery) Watch(ctx context.Context) (<-chan []string, error) {
-	logger := log.WithFunc("servicediscovery.Watch").WithField("endpoint", w.endpoint)
+	logger := log.WithFunc("servicediscovery.EruServiceDiscovery.Watch").WithField("endpoint", w.endpoint)
 	cores := manual.NewBuilderWithScheme("lb")
 	cores.InitialState(addressState(w.endpoint))
 	cc, err := w.dial(cores)

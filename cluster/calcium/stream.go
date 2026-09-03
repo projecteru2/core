@@ -24,6 +24,8 @@ var (
 
 type prefixHandler func([]byte)
 
+type resizeHandler func(height, width uint) error
+
 type window struct {
 	Height uint `json:"Row"`
 	Width  uint `json:"Col"`
@@ -59,12 +61,7 @@ func (c *Calcium) executeInside(ctx context.Context, client engine.API, ID, cmd,
 	return b, nil
 }
 
-func (c *Calcium) processVirtualizationInStream(
-	ctx context.Context,
-	inStream io.WriteCloser,
-	inCh <-chan []byte,
-	resizeFunc func(height, width uint) error,
-) {
+func (c *Calcium) processVirtualizationInStream(ctx context.Context, inStream io.WriteCloser, inCh <-chan []byte, resize resizeHandler) {
 	logger := log.WithFunc("calcium.processVirtualizationInStream")
 	specialPrefixCallback := map[string]prefixHandler{
 		string(winchCommand): func(body []byte) {
@@ -73,7 +70,7 @@ func (c *Calcium) processVirtualizationInStream(
 				logger.Errorf(ctx, err, "invalid winch command: %q", body)
 				return
 			}
-			if err := resizeFunc(w.Height, w.Width); err != nil {
+			if err := resize(w.Height, w.Width); err != nil {
 				logger.Error(ctx, err, "resize window error")
 				return
 			}
@@ -86,12 +83,7 @@ func (c *Calcium) processVirtualizationInStream(
 	c.rawProcessVirtualizationInStream(ctx, inStream, inCh, specialPrefixCallback)
 }
 
-func (c *Calcium) rawProcessVirtualizationInStream(
-	ctx context.Context,
-	inStream io.WriteCloser,
-	inCh <-chan []byte,
-	specialPrefixCallback map[string]prefixHandler,
-) {
+func (c *Calcium) rawProcessVirtualizationInStream(ctx context.Context, inStream io.WriteCloser, inCh <-chan []byte, specialPrefixCallback map[string]prefixHandler) {
 	utils.SentryGo(func() {
 		defer func() {
 			_ = inStream.Close()
@@ -112,12 +104,7 @@ func (c *Calcium) rawProcessVirtualizationInStream(
 	})
 }
 
-func (c *Calcium) processVirtualizationOutStream(
-	ctx context.Context,
-	outStream io.ReadCloser,
-	splitFunc bufio.SplitFunc,
-	split byte,
-) <-chan []byte {
+func (c *Calcium) processVirtualizationOutStream(ctx context.Context, outStream io.ReadCloser, splitFunc bufio.SplitFunc, split byte) <-chan []byte {
 	outCh := make(chan []byte)
 	utils.SentryGo(func() {
 		defer close(outCh)

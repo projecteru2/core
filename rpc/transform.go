@@ -427,18 +427,10 @@ func toRPCWorkloadsStatus(workloadsStatus []*types.StatusMeta) *pb.WorkloadsStat
 	return &pb.WorkloadsStatus{Status: utils.Map(workloadsStatus, toRPCWorkloadStatus)}
 }
 
-func toRPCWorkloads(ctx context.Context, workloads []*types.Workload, labels map[string]string) *pb.Workloads {
-	ret := &pb.Workloads{}
-	cs := make([]*pb.Workload, 0, len(workloads))
-	for _, c := range workloads {
-		pWorkload := toRPCWorkload(ctx, c)
-		if !utils.LabelsFilter(pWorkload.Labels, labels) {
-			continue
-		}
-		cs = append(cs, pWorkload)
-	}
-	ret.Workloads = cs
-	return ret
+func toRPCWorkloads(ctx context.Context, workloads []*types.Workload) *pb.Workloads {
+	return &pb.Workloads{Workloads: utils.Map(workloads, func(c *types.Workload) *pb.Workload {
+		return toRPCWorkload(ctx, c)
+	})}
 }
 
 func toRPCWorkload(ctx context.Context, c *types.Workload) *pb.Workload {

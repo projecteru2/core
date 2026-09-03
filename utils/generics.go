@@ -9,9 +9,9 @@ func Map[T1, T2 any](slice []T1, f func(T1) T2) []T2 {
 	return result
 }
 
-// AdvancedDivide returns 0 when either operand is 0.
+// AdvancedDivide returns 0 instead of dividing by zero.
 func AdvancedDivide(a, b float64) float64 {
-	if a == 0 || b == 0 {
+	if b == 0 {
 		return 0
 	}
 	return a / b

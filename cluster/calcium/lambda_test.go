@@ -90,7 +90,7 @@ func TestLambdaWithError(t *testing.T) {
 
 	opts := lambdaOptions()
 
-	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, fmt.Errorf("error")).Twice()
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, fmt.Errorf("error")).Times(4)
 	_, ch0, err := c.RunAndWait(t.Context(), opts, make(chan []byte))
 	assert.NoError(err)
 	assert.NotNil(ch0)

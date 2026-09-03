@@ -889,39 +889,6 @@ func (_c *Cluster_ExecuteWorkload_Call) RunAndReturn(run func(ctx context.Contex
 	return _c
 }
 
-// Finalizer provides a mock function for the type Cluster
-func (_mock *Cluster) Finalizer() {
-	_mock.Called()
-	return
-}
-
-// Cluster_Finalizer_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Finalizer'
-type Cluster_Finalizer_Call struct {
-	*mock.Call
-}
-
-// Finalizer is a helper method to define mock.On call
-func (_e *Cluster_Expecter) Finalizer() *Cluster_Finalizer_Call {
-	return &Cluster_Finalizer_Call{Call: _e.mock.On("Finalizer")}
-}
-
-func (_c *Cluster_Finalizer_Call) Run(run func()) *Cluster_Finalizer_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run()
-	})
-	return _c
-}
-
-func (_c *Cluster_Finalizer_Call) Return() *Cluster_Finalizer_Call {
-	_c.Call.Return()
-	return _c
-}
-
-func (_c *Cluster_Finalizer_Call) RunAndReturn(run func()) *Cluster_Finalizer_Call {
-	_c.Run(run)
-	return _c
-}
-
 // GetIdentifier provides a mock function for the type Cluster
 func (_mock *Cluster) GetIdentifier() string {
 	ret := _mock.Called()

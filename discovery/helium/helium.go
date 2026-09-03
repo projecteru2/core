@@ -63,12 +63,7 @@ func (h *Helium) Unsubscribe(ID uint32) {
 
 func (h *Helium) start(ctx context.Context) {
 	logger := log.WithFunc("helium.start")
-	ch, err := h.store.ServiceStatusStream(ctx)
-	if err != nil {
-		logger.Error(ctx, err, "failed to start watch")
-		close(h.done)
-		return
-	}
+	ch := h.store.ServiceStatusStream(ctx)
 
 	go func() {
 		logger.Info(ctx, "service discovery start")
@@ -96,6 +91,7 @@ func (h *Helium) start(ctx context.Context) {
 				if v, ok := h.subs.LoadAndDelete(ID); ok {
 					close(v.(chan types.ServiceStatus))
 				}
+				continue
 
 			case <-ticker.C:
 			}

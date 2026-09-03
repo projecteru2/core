@@ -141,7 +141,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 
 			rmgr.On("Alloc", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 				nil, nil, types.ErrMockError,
-			).Once()
+			).Twice()
 			ch, err = c.CreateWorkload(ctx, opts)
 			assert.Nil(t, err)
 			cnt = 0
@@ -353,7 +353,8 @@ func TestDoDeployWorkloadsOnNodeErrorPerWorkload(t *testing.T) {
 	ch := make(chan *types.CreateWorkloadMessage, deploy)
 	params := make([]resourcetypes.Resources, deploy)
 
-	indices, err := c.doDeployWorkloadsOnNode(ctx, func(m *types.CreateWorkloadMessage) { ch <- m }, node.Name, opts, deploy, params, params, 0)
+	nd := nodeDeploy{nodename: node.Name, deploy: deploy, engineParams: params, workloadResources: params}
+	indices, err := c.doDeployWorkloadsOnNode(ctx, func(m *types.CreateWorkloadMessage) { ch <- m }, opts, nd)
 	close(ch)
 
 	assert.Error(t, err)
