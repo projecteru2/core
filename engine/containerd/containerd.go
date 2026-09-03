@@ -10,7 +10,6 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/containerd/containerd/v2/client"
-	"github.com/containerd/containerd/v2/core/remotes"
 	cerrdefs "github.com/containerd/errdefs"
 	"github.com/containerd/platforms"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
@@ -57,7 +56,6 @@ type Engine struct {
 	socket    string
 	host      string
 	platform  ocispec.Platform
-	resolver  remotes.Resolver
 
 	execs *sshrunner.Execs
 
@@ -115,7 +113,6 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 func newEngine(e *Engine) *Engine {
 	e.execs = sshrunner.NewExecs()
 	e.attaches = map[string]*attach{}
-	e.resolver = newResolver(e.config.Registry)
 	return e
 }
 
