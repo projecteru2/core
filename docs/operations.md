@@ -14,7 +14,7 @@ zero-padded, so replaying the keys in order replays the entries in order.
 
 | Event | Written before | Replay does |
 | --- | --- | --- |
-| `allocate-workload` | resources are allocated on a set of nodes, a workload is removed, or a realloc starts | re-derives each node's usage from its actual workloads (`NodeResource` with `fix`) |
+| `allocate-workload` | resources are allocated on a set of nodes, a workload is removed, or a realloc starts | re-derives each node's usage from its actual workloads (`NodeResource` with `fix`); a repair whose write fails keeps the entry for the next replay |
 | `create-workload` | the engine is asked to create a workload, and before one is removed | removes the workload — from the store if it is there, otherwise off the engine, found by name when the entry has no ID yet |
 | `replace-workload` | the old workload of a replace is removed | removes the old workload if the new one reached the store, releasing nothing, because the new one inherited its resources |
 | `realloc-workload` | a realloc mutates plugin usage, metadata and engine limits | re-applies the stored engine params under the node-operation lock — the same step a failed realloc runs inline as its repair, committing the entry only when the reapply holds |

@@ -18,7 +18,7 @@ plus `LICENSE` and `README.md`:
 ```shell
 # Linux amd64, a specific tag
 curl -fsSL -o core.tar.gz \
-  https://github.com/projecteru2/core/releases/download/v0.1.0/core_0.1.0_Linux_x86_64.tar.gz
+  https://github.com/projecteru2/core/releases/download/v0.1.4/core_0.1.4_Linux_x86_64.tar.gz
 
 tar -xzf core.tar.gz
 install -m 0755 eru-core /usr/bin/
@@ -46,7 +46,7 @@ Images are published on every `master` push and every `v*` tag, to both GHCR and
 for `linux/amd64` and `linux/arm64`:
 
 ```shell
-docker pull ghcr.io/projecteru2/core:v0.1.0   # or projecteru2/core:v0.1.0
+docker pull ghcr.io/projecteru2/core:v0.1.4   # or projecteru2/core:v0.1.4
 ```
 
 The image is Alpine-based, ships the binary at `/usr/bin/eru-core` and a copy of the sample

@@ -124,8 +124,8 @@ starts fails `VirtualizationStart`. A stdin relay that dies while still blocked 
 leaves nothing on the node and hangs the workload forever, which is precisely the failure that
 must not be silent.
 
-The relays are closed once that exit is consumed, or when the workload is removed, and the fifo
-directory goes with the workload directory. Until then they hold three slots on the node's stream
+The relays are closed when the task ends, or when the workload is stopped or removed, and the
+fifo directory goes with the workload directory. Until then they hold three slots on the node's stream
 connections ([core#670](https://github.com/projecteru2/core/issues/670)). Such a workload has no
 log shim and nothing in journald: its output travels the stream, exactly as it did with docker.
 Everything else keeps `NewTask` + `LogURI`.
