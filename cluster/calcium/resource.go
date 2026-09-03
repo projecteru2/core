@@ -3,7 +3,11 @@ package calcium
 import (
 	"context"
 	"fmt"
+	"maps"
+	"slices"
 	"sync"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/strategy"
@@ -12,33 +16,23 @@ import (
 
 func (c *Calcium) PodResource(ctx context.Context, podname string) (chan *types.NodeResourceInfo, error) {
 	logger := log.WithFunc("calcium.PodResource").WithField("podname", podname)
-	var ch chan *types.NodeResourceInfo
-	err := c.withNodes(ctx, &types.NodeFilter{Podname: podname}, func(ctx context.Context, nodes map[string]*types.Node) error {
-		ch = make(chan *types.NodeResourceInfo, len(nodes))
-		defer close(ch)
-		wg := &sync.WaitGroup{}
-		wg.Add(len(nodes))
-		for _, node := range nodes {
-			_ = c.pool.Invoke(func() {
-				defer wg.Done()
-				nr, err := c.doComputeNodeResource(ctx, node.Name, false)
-				if err != nil {
-					logger.Error(ctx, err)
-					nr = &types.NodeResourceInfo{
-						Name: node.Name, Diffs: []string{err.Error()},
-					}
-				}
-				ch <- nr
-			})
-		}
-		wg.Wait()
+	var nodes []*types.Node
+	err := c.withNodes(ctx, &types.NodeFilter{Podname: podname}, func(_ context.Context, nodeMap map[string]*types.Node) error {
+		nodes = slices.Collect(maps.Values(nodeMap))
 		return nil
 	})
 	if err != nil {
 		logger.Error(ctx, err)
 		return nil, err
 	}
-	return ch, nil
+	return perNode(c, nodes, func(node *types.Node, ch chan<- *types.NodeResourceInfo) {
+		nr, err := c.doComputeNodeResource(ctx, node.Name, false)
+		if err != nil {
+			logger.Error(ctx, err)
+			nr = &types.NodeResourceInfo{Name: node.Name, Diffs: []string{err.Error()}}
+		}
+		_ = send(ctx, ch, nr)
+	}), nil
 }
 
 func (c *Calcium) NodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResourceInfo, error) {
@@ -68,11 +62,22 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, inspec
 	}
 
 	if inspect {
+		mu := sync.Mutex{}
+		inspects := errgroup.Group{}
+		inspects.SetLimit(statusWriters)
 		for _, workload := range nr.Workloads {
-			if _, err := workload.Inspect(ctx); err != nil {
+			inspects.Go(func() error {
+				_, err := workload.Inspect(ctx)
+				if err == nil {
+					return nil
+				}
+				mu.Lock()
+				defer mu.Unlock()
 				nr.Diffs = append(nr.Diffs, fmt.Sprintf("workload %s inspect failed %v \n", workload.ID, err))
-			}
+				return nil
+			})
 		}
+		_ = inspects.Wait()
 	}
 	return nr, nil
 }
