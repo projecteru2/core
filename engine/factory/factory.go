@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"cmp"
 	"context"
 	"strings"
 	"sync"
@@ -89,18 +90,21 @@ func (e *EngineCache) checkAlive(ctx context.Context) {
 				defer wg.Done()
 				cacheKey := params.Endpoint
 				if _, ok := client.(*fake.EngineWithErr); ok {
-					if newClient, err := newEngine(ctx, e.config, params); err != nil {
+					newClient, err := newEngine(ctx, e.config, params)
+					if err != nil {
 						logger.Errorf(ctx, err, "engine %+v is still unavailable", cacheKey)
-						e.Set(cacheKey, &fake.EngineWithErr{DefaultErr: err, EP: params})
-					} else {
-						e.Set(cacheKey, newClient)
+						newClient = &fake.EngineWithErr{DefaultErr: err, EP: params}
+					}
+					if !e.cache.CompareAndSwap(cacheKey, client, newClient) {
+						closeEngine(newClient)
 					}
 					return
 				}
 				if err := validateEngine(ctx, client, e.config.ConnectionTimeout); err != nil {
 					logger.Errorf(ctx, err, "engine %+v is unavailable, will be replaced and removed", cacheKey)
-					closeEngine(client)
-					e.Set(cacheKey, &fake.EngineWithErr{DefaultErr: err, EP: params})
+					if e.cache.CompareAndSwap(cacheKey, client, &fake.EngineWithErr{DefaultErr: err, EP: params}) {
+						closeEngine(client)
+					}
 					return
 				}
 				logger.Debugf(ctx, "engine %+v is available", cacheKey)
@@ -182,26 +186,33 @@ func GetEngine(ctx context.Context, config types.Config, nodename, endpoint stri
 		return client, nil
 	}
 
-	dialed, err, _ := dials.Do(endpoint, func() (any, error) {
-		if client := GetEngineFromCache(ctx, endpoint); client != nil {
+	dialed := dials.DoChan(endpoint, func() (any, error) {
+		dialCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), cmp.Or(config.GlobalTimeout, config.ConnectionTimeout))
+		defer cancel()
+		if client := GetEngineFromCache(dialCtx, endpoint); client != nil {
 			return client, nil
 		}
 		logger := log.WithFunc("engine.factory.GetEngine")
 		params := enginetypes.NewParams(nodename, endpoint)
-		client, err := newEngine(ctx, config, params)
+		client, err := newEngine(dialCtx, config, params)
 		if err != nil {
 			engineCache.Set(endpoint, &fake.EngineWithErr{DefaultErr: err, EP: params})
-			logger.Infof(ctx, "store fake engine %+v in cache", endpoint)
+			logger.Infof(dialCtx, "store fake engine %+v in cache", endpoint)
 			return nil, err
 		}
 		engineCache.Set(endpoint, client)
-		logger.Infof(ctx, "store engine %+v in cache", endpoint)
+		logger.Infof(dialCtx, "store engine %+v in cache", endpoint)
 		return client, nil
 	})
-	if err != nil {
-		return nil, err
+	select {
+	case result := <-dialed:
+		if result.Err != nil {
+			return nil, result.Err
+		}
+		return result.Val.(engine.API), nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
 	}
-	return dialed.(engine.API), nil
 }
 
 // closeEngine releases the connection an engine owns; a fake engine holds none.

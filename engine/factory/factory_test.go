@@ -106,3 +106,33 @@ func TestGetEngineDialsOnceForConcurrentMisses(t *testing.T) {
 	}
 	assert.Same(t, clients[0], GetEngineFromCache(t.Context(), endpoint))
 }
+
+func TestGetEngineOutlivesTheCallerThatStartedTheDial(t *testing.T) {
+	started := make(chan struct{})
+	engines[testPrefix] = func(ctx context.Context, _ types.Config, _, _ string) (engine.API, error) {
+		close(started)
+		select {
+		case <-time.After(50 * time.Millisecond):
+			return &fake.EngineWithErr{}, nil
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}
+	defer delete(engines, testPrefix)
+	engineCache = NewEngineCache(types.Config{MaxConcurrency: 1}, nil)
+	endpoint := testPrefix + "cancelled-leader"
+	config := types.Config{ConnectionTimeout: time.Second}
+
+	leaderCtx, cancel := context.WithCancel(t.Context())
+	var leader sync.WaitGroup
+	var leaderErr error
+	leader.Go(func() { _, leaderErr = GetEngine(leaderCtx, config, "node", endpoint) })
+	<-started
+	cancel()
+	leader.Wait()
+	assert.ErrorIs(t, leaderErr, context.Canceled)
+
+	client, err := GetEngine(t.Context(), config, "node", endpoint)
+	require.NoError(t, err)
+	assert.NoError(t, client.(*fake.EngineWithErr).DefaultErr)
+}
