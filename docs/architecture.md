@@ -51,9 +51,10 @@ The package splits by concern — `create.go`, `realloc.go`, `remove.go`, `disso
 `lambda.go`, `log.go`, `network.go`, `node.go`, `pod.go`, `status.go`, `capacity.go`,
 `raw_engine.go`, `service.go`, `wal.go`, `remap.go` — over a small shared base:
 
-- `lock.go` — `withWorkloadLocked`, `withNodePodLocked`, `withNodeOperationLocked`. Locks are
-  taken in sorted order and released in reverse, and lock keys are `clock_<id>` for a workload,
-  `plock_<pod>` for a pod and `cnode_op_<pod>_<node>` for a node operation.
+- `lock.go` — `withWorkloadLocked`, `withNodesPlanLocked`, `withPodLocked`,
+  `withNodeOperationLocked`. Locks are taken in sorted order, pod locks before node locks, and
+  released in reverse; lock keys are `clock_<id>` for a workload, `plock_<pod>` for a pod and
+  `cnode_op_<pod>_<node>` for a node operation.
 - `utils.Txn` — the if/then/rollback shape used everywhere a resource change and a metadata
   change must agree. `rollback` runs on either failure and is told which stage failed;
   `utils.PCR` is the variant that skips it when the `if` failed.
