@@ -39,8 +39,7 @@ func (s *RediaronTestSuite) TestServiceStatusStream() {
 	_, unregisterService1, err := m.RegisterService(ctx, "127.0.0.1:5001", time.Second)
 	s.NoError(err)
 
-	ch, err := m.ServiceStatusStream(ctx)
-	s.NoError(err)
+	ch := m.ServiceStatusStream(ctx)
 
 	s.Equal(<-ch, []string{"127.0.0.1:5001"})
 
@@ -70,8 +69,7 @@ func (s *RediaronTestSuite) TestServiceStatusStreamResnapshotsAfterReconnect() {
 	key := fmt.Sprintf(common.ServiceStatusKey, "127.0.0.1:5001")
 	s.Require().NoError(s.rediaron.cli.Set(ctx, key, "token", 0).Err())
 
-	ch, err := s.rediaron.ServiceStatusStream(ctx)
-	s.Require().NoError(err)
+	ch := s.rediaron.ServiceStatusStream(ctx)
 	select {
 	case endpoints := <-ch:
 		s.Equal([]string{"127.0.0.1:5001"}, endpoints)

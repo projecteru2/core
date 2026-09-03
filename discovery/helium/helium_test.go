@@ -16,7 +16,7 @@ func TestHelium(t *testing.T) {
 	chAddr := make(chan []string)
 
 	store := &storemocks.Store{}
-	store.On("ServiceStatusStream", mock.Anything).Return(chAddr, nil)
+	store.On("ServiceStatusStream", mock.Anything).Return(chAddr)
 
 	grpcConfig := types.GRPCConfig{
 		ServiceDiscoveryPushInterval: time.Duration(1) * time.Second,
@@ -47,7 +47,7 @@ func TestHelium(t *testing.T) {
 func TestSubscribeGetsTheLatestStatusAtOnce(t *testing.T) {
 	chAddr := make(chan []string)
 	store := &storemocks.Store{}
-	store.On("ServiceStatusStream", mock.Anything).Return(chAddr, nil)
+	store.On("ServiceStatusStream", mock.Anything).Return(chAddr)
 	service := New(t.Context(), types.GRPCConfig{ServiceDiscoveryPushInterval: time.Hour}, store)
 
 	chAddr <- []string{"10.0.0.1"}
@@ -69,7 +69,7 @@ func TestSubscribeGetsTheLatestStatusAtOnce(t *testing.T) {
 func TestDispatchDoesNotWaitForAStuckSubscriber(t *testing.T) {
 	chAddr := make(chan []string)
 	store := &storemocks.Store{}
-	store.On("ServiceStatusStream", mock.Anything).Return(chAddr, nil)
+	store.On("ServiceStatusStream", mock.Anything).Return(chAddr)
 	service := New(t.Context(), types.GRPCConfig{ServiceDiscoveryPushInterval: time.Second}, store)
 	stuckID, _ := service.Subscribe()
 	readerID, reader := service.Subscribe()
@@ -97,7 +97,7 @@ func TestPanic(t *testing.T) {
 	chAddr := make(chan []string)
 
 	store := &storemocks.Store{}
-	store.On("ServiceStatusStream", mock.Anything).Return(chAddr, nil)
+	store.On("ServiceStatusStream", mock.Anything).Return(chAddr)
 
 	grpcConfig := types.GRPCConfig{
 		ServiceDiscoveryPushInterval: time.Duration(1) * time.Second,
@@ -125,7 +125,7 @@ func TestUnsubscribeAfterWatchClosed(t *testing.T) {
 	chAddr := make(chan []string)
 
 	store := &storemocks.Store{}
-	store.On("ServiceStatusStream", mock.Anything).Return(chAddr, nil)
+	store.On("ServiceStatusStream", mock.Anything).Return(chAddr)
 
 	grpcConfig := types.GRPCConfig{ServiceDiscoveryPushInterval: time.Second}
 	service := New(t.Context(), grpcConfig, store)

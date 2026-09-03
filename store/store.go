@@ -18,7 +18,7 @@ type Store interface {
 	ListPrefix(ctx context.Context, prefix string) ([]string, error)
 
 	GetServiceStatus(context.Context) ([]string, error)
-	ServiceStatusStream(context.Context) (chan []string, error)
+	ServiceStatusStream(context.Context) chan []string
 	RegisterService(context.Context, string, time.Duration) (<-chan struct{}, func(), error)
 
 	StartEphemeral(ctx context.Context, path string, heartbeat time.Duration) (<-chan struct{}, func(), error)

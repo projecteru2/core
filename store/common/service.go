@@ -43,7 +43,7 @@ func (s *Store) GetServiceStatus(ctx context.Context) ([]string, error) {
 	return eps.ToSlice(), nil
 }
 
-func (s *Store) ServiceStatusStream(ctx context.Context) (chan []string, error) {
+func (s *Store) ServiceStatusStream(ctx context.Context) chan []string {
 	ch := make(chan []string)
 	logger := log.WithFunc("store.common.ServiceStatusStream")
 	prefix := fmt.Sprintf(ServiceStatusKey, "")
@@ -61,7 +61,7 @@ func (s *Store) ServiceStatusStream(ctx context.Context) (chan []string, error) 
 			}
 		}
 	})
-	return ch, nil
+	return ch
 }
 
 func (s *Store) RegisterService(ctx context.Context, serviceAddress string, expire time.Duration) (<-chan struct{}, func(), error) {

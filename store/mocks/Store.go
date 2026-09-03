@@ -1967,7 +1967,7 @@ func (_c *Store_RemoveWorkload_Call) RunAndReturn(run func(ctx context.Context, 
 }
 
 // ServiceStatusStream provides a mock function for the type Store
-func (_mock *Store) ServiceStatusStream(context1 context.Context) (chan []string, error) {
+func (_mock *Store) ServiceStatusStream(context1 context.Context) chan []string {
 	ret := _mock.Called(context1)
 
 	if len(ret) == 0 {
@@ -1975,10 +1975,6 @@ func (_mock *Store) ServiceStatusStream(context1 context.Context) (chan []string
 	}
 
 	var r0 chan []string
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context) (chan []string, error)); ok {
-		return returnFunc(context1)
-	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context) chan []string); ok {
 		r0 = returnFunc(context1)
 	} else {
@@ -1986,12 +1982,7 @@ func (_mock *Store) ServiceStatusStream(context1 context.Context) (chan []string
 			r0 = ret.Get(0).(chan []string)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context) error); ok {
-		r1 = returnFunc(context1)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
+	return r0
 }
 
 // Store_ServiceStatusStream_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ServiceStatusStream'
@@ -2018,12 +2009,12 @@ func (_c *Store_ServiceStatusStream_Call) Run(run func(context1 context.Context)
 	return _c
 }
 
-func (_c *Store_ServiceStatusStream_Call) Return(stringsCh chan []string, err error) *Store_ServiceStatusStream_Call {
-	_c.Call.Return(stringsCh, err)
+func (_c *Store_ServiceStatusStream_Call) Return(stringsCh chan []string) *Store_ServiceStatusStream_Call {
+	_c.Call.Return(stringsCh)
 	return _c
 }
 
-func (_c *Store_ServiceStatusStream_Call) RunAndReturn(run func(context1 context.Context) (chan []string, error)) *Store_ServiceStatusStream_Call {
+func (_c *Store_ServiceStatusStream_Call) RunAndReturn(run func(context1 context.Context) chan []string) *Store_ServiceStatusStream_Call {
 	_c.Call.Return(run)
 	return _c
 }
