@@ -20,7 +20,7 @@ func (c *Calcium) ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorklo
 
 		defer func() {
 			if err != nil {
-				sendAttachMessage(ctx, ch, &types.AttachWorkloadMessage{WorkloadID: opts.WorkloadID, Data: []byte(err.Error())})
+				_ = send(ctx, ch, &types.AttachWorkloadMessage{WorkloadID: opts.WorkloadID, Data: []byte(err.Error())})
 			}
 			close(ch)
 		}()
@@ -56,7 +56,7 @@ func (c *Calcium) ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorklo
 		}
 
 		for m := range c.processStdStream(ctx, stdout, stderr, splitFunc, split) {
-			sendAttachMessage(ctx, ch, &types.AttachWorkloadMessage{WorkloadID: opts.WorkloadID, Data: m.Data, StdStreamType: m.StdStreamType})
+			_ = send(ctx, ch, &types.AttachWorkloadMessage{WorkloadID: opts.WorkloadID, Data: m.Data, StdStreamType: m.StdStreamType})
 		}
 
 		execCode, err := workload.Engine.ExecExitCode(ctx, opts.WorkloadID, execID)
@@ -66,16 +66,9 @@ func (c *Calcium) ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorklo
 		}
 
 		exitData := []byte(exitDataPrefix + strconv.Itoa(execCode))
-		sendAttachMessage(ctx, ch, &types.AttachWorkloadMessage{WorkloadID: opts.WorkloadID, Data: exitData})
+		_ = send(ctx, ch, &types.AttachWorkloadMessage{WorkloadID: opts.WorkloadID, Data: exitData})
 		logger.Infof(ctx, "execute %+v in workload %s complete", opts.Commands, opts.WorkloadID)
 	})
 
 	return ch
-}
-
-func sendAttachMessage(ctx context.Context, ch chan<- *types.AttachWorkloadMessage, message *types.AttachWorkloadMessage) {
-	select {
-	case ch <- message:
-	case <-ctx.Done():
-	}
 }
