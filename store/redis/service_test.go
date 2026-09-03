@@ -3,7 +3,7 @@ package redis
 import (
 	"context"
 	"fmt"
-	"sort"
+	"slices"
 	"time"
 
 	"github.com/projecteru2/core/store/common"
@@ -50,7 +50,7 @@ func (s *RediaronTestSuite) TestServiceStatusStream() {
 	triggerMockedKeyspaceNotification(s.rediaron.cli, fmt.Sprintf(common.ServiceStatusKey, "127.0.0.1:5002"), actionSet)
 
 	endpoints := <-ch
-	sort.Strings(endpoints)
+	slices.Sort(endpoints)
 	s.Equal(endpoints, []string{"127.0.0.1:5001", "127.0.0.1:5002"})
 
 	unregisterService1()
