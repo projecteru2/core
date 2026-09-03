@@ -269,7 +269,7 @@ func (p Plugin) FixNodeResource(ctx context.Context, nodename string, workloadsR
 		}
 		if err = p.doSetNodeResourceInfo(ctx, nodename, nodeResourceInfo); err != nil {
 			log.WithFunc("resource.cpumem.FixNodeResource").Error(ctx, err)
-			diffs = append(diffs, err.Error())
+			return nil, err
 		}
 	}
 
