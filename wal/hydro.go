@@ -7,7 +7,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"sync"
 	"sync/atomic"
 
 	"github.com/cockroachdb/errors"
@@ -26,7 +25,7 @@ const (
 
 // Hydro journals events into the eru store, under the prefix of this instance's service address.
 type Hydro struct {
-	handlers sync.Map
+	handlers map[string]EventHandler
 	seq      atomic.Uint64
 
 	store   Store
@@ -37,7 +36,7 @@ type Hydro struct {
 
 func NewHydro(ctx context.Context, store Store, address string, config coretypes.Config) (*Hydro, error) {
 	// the journal outlives every request that writes to it, so it keeps a context of its own
-	hydro := &Hydro{store: store, ctx: context.WithoutCancel(ctx), config: config, address: address}
+	hydro := &Hydro{handlers: map[string]EventHandler{}, store: store, ctx: context.WithoutCancel(ctx), config: config, address: address}
 	seq, err := hydro.lastSeq(ctx)
 	if err != nil {
 		return nil, err
@@ -47,7 +46,7 @@ func NewHydro(ctx context.Context, store Store, address string, config coretypes
 }
 
 func (h *Hydro) Register(handler EventHandler) {
-	h.handlers.Store(handler.Typ(), handler)
+	h.handlers[handler.Typ()] = handler
 }
 
 func (h *Hydro) Recover(ctx context.Context) {
@@ -175,11 +174,8 @@ func (h *Hydro) handle(ctx context.Context, handler EventHandler, event HydroEve
 }
 
 func (h *Hydro) handler(eventyp string) (EventHandler, bool) {
-	v, ok := h.handlers.Load(eventyp)
-	if !ok {
-		return nil, false
-	}
-	return v.(EventHandler), true
+	handler, ok := h.handlers[eventyp]
+	return handler, ok
 }
 
 func (h *Hydro) lastSeq(ctx context.Context) (uint64, error) {

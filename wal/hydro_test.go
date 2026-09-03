@@ -86,7 +86,7 @@ func TestRecoverFailedAsNoSuchHandler(t *testing.T) {
 
 	_, err := hydro.Log(eventype, struct{}{})
 	require.NoError(t, err)
-	hydro.handlers.Delete(eventype)
+	delete(hydro.handlers, eventype)
 
 	hydro.Recover(t.Context())
 	assert.True(t, encoded)
