@@ -2,11 +2,13 @@ package etcdlock
 
 import (
 	"context"
+	"path"
 	"runtime"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	clientv3 "go.etcd.io/etcd/client/v3"
 
 	"github.com/projecteru2/core/store/etcdv3/embedded"
 )
@@ -134,6 +136,9 @@ func TestLockTimeoutLeavesTheSessionReusable(t *testing.T) {
 	session := waiter.session
 	_, err = waiter.Lock(t.Context())
 	assert.EqualError(t, err, "context deadline exceeded")
+	keys, err := cli.Get(t.Context(), path.Dir(holder.mutex.Key())+"/", clientv3.WithPrefix(), clientv3.WithKeysOnly())
+	assert.NoError(t, err)
+	assert.Len(t, keys.Kvs, 1)
 
 	leases, err := cli.Leases(t.Context())
 	assert.NoError(t, err)

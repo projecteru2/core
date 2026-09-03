@@ -92,7 +92,7 @@ func (m *Mutex) Lock(ctx context.Context) (context.Context, error) {
 	defer cancel()
 
 	if err := m.mutex.Lock(lockCtx); err != nil {
-		m.release()
+		m.abandon(ctx)
 		return nil, err
 	}
 	return m.watchSession(ctx), nil
@@ -122,14 +122,21 @@ func (m *Mutex) close() {
 	m.session = nil
 }
 
-func (m *Mutex) release() {
+func (m *Mutex) abandon(ctx context.Context) {
+	unlockCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), m.timeout)
+	defer cancel()
 	select {
 	case <-m.session.Done():
 		m.close()
+		return
 	default:
-		m.pool.put(m.session)
-		m.session = nil
 	}
+	if _, err := m.session.Client().Delete(unlockCtx, m.mutex.Key()); err != nil {
+		m.close()
+		return
+	}
+	m.pool.put(m.session)
+	m.session = nil
 }
 
 func (m *Mutex) unlock(ctx context.Context) error {
