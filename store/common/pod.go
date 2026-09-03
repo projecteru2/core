@@ -26,11 +26,11 @@ func (s *Store) AddPod(ctx context.Context, name, desc string) (*types.Pod, erro
 }
 
 func (s *Store) RemovePod(ctx context.Context, podname string) error {
-	ns, err := s.GetNodesByPod(ctx, &types.NodeFilter{Podname: podname, All: true}, true)
+	keys, err := s.ListPrefix(ctx, fmt.Sprintf(NodePodKey, podname, ""))
 	if err != nil {
 		return err
 	}
-	if l := len(ns); l != 0 {
+	if l := len(keys); l != 0 {
 		return errors.Wrapf(types.ErrPodHasNodes, "pod %s still has %d nodes, delete them first", podname, l)
 	}
 
