@@ -96,6 +96,7 @@ func (h *Helium) start(ctx context.Context) {
 				if v, ok := h.subs.LoadAndDelete(ID); ok {
 					close(v.(chan types.ServiceStatus))
 				}
+				continue
 
 			case <-ticker.C:
 			}
