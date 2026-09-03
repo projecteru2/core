@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"slices"
-	"strings"
 
 	"github.com/cockroachdb/errors"
 
@@ -39,11 +38,8 @@ func (e *Engine) VirtualizationLogs(ctx context.Context, opts *enginetypes.Virtu
 	}
 	fields := []string{"SYSLOG_IDENTIFIER=" + journal.Identifier, "ERU_ID=" + opts.ID}
 	if !opts.Follow {
-		res, runErr := e.run(ctx, slices.Concat([]string{"journalctl"}, fields, flags)...)
-		if runErr != nil {
-			return nil, nil, runErr
-		}
-		return io.NopCloser(strings.NewReader(res.Stdout)), nil, nil
+		stdout, runErr := journal.Read(ctx, e.runner, slices.Concat([]string{"journalctl"}, fields, flags)...)
+		return stdout, nil, runErr
 	}
 
 	argv := sshrunner.Shell(followScript, slices.Concat([]string{e.cocoon.Binary, opts.ID}, fields, []string{"-f"}, flags)...)
