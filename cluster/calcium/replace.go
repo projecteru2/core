@@ -84,12 +84,8 @@ func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOption
 	return ch, nil
 }
 
-func (c *Calcium) doReplaceWorkload(
-	ctx context.Context,
-	workload *types.Workload,
-	opts *types.ReplaceOptions,
-	index int,
-) (*types.CreateWorkloadMessage, *types.RemoveWorkloadMessage, error) {
+func (c *Calcium) doReplaceWorkload(ctx context.Context, workload *types.Workload, opts *types.ReplaceOptions,
+	index int) (*types.CreateWorkloadMessage, *types.RemoveWorkloadMessage, error) {
 	removeMessage := &types.RemoveWorkloadMessage{
 		WorkloadID: workload.ID,
 		Success:    false,

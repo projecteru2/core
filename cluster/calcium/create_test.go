@@ -353,7 +353,8 @@ func TestDoDeployWorkloadsOnNodeErrorPerWorkload(t *testing.T) {
 	ch := make(chan *types.CreateWorkloadMessage, deploy)
 	params := make([]resourcetypes.Resources, deploy)
 
-	indices, err := c.doDeployWorkloadsOnNode(ctx, func(m *types.CreateWorkloadMessage) { ch <- m }, node.Name, opts, deploy, params, params, 0)
+	nd := nodeDeploy{nodename: node.Name, deploy: deploy, engineParams: params, workloadResources: params}
+	indices, err := c.doDeployWorkloadsOnNode(ctx, func(m *types.CreateWorkloadMessage) { ch <- m }, opts, nd)
 	close(ch)
 
 	assert.Error(t, err)
