@@ -18,7 +18,6 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-// realRedisEnv names a running redis the tests use instead of miniredis; the CI redis job sets it.
 const realRedisEnv = "ERU_TEST_REDIS_ADDR"
 
 func TestRediaron(t *testing.T) {

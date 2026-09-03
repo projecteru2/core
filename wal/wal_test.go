@@ -37,7 +37,6 @@ func (h simpleEventHandler) Handle(ctx context.Context, raw any) error {
 	return h.handle(raw)
 }
 
-// memStore is an in-memory Store whose reads and writes can be made to fail.
 type memStore struct {
 	sync.Mutex
 

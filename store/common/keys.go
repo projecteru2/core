@@ -13,18 +13,18 @@ const (
 	// OrphanStatusTTL bounds a status reported before core recorded its entity, on every backend.
 	OrphanStatusTTL = int64(time.Hour / time.Second)
 
-	PodInfoKey       = "/pod/info/%s" // /pod/info/{podname}
-	ServiceStatusKey = "/services/%s" // /service/{ipv4:port}
+	PodInfoKey       = "/pod/info/%s"
+	ServiceStatusKey = "/services/%s"
 
-	NodeInfoKey      = "/node/%s"              // /node/{nodename}
-	NodePodKey       = "/node/%s:pod/%s"       // /node/{podname}:pod/{nodename}
-	NodeStatusPrefix = "/status:node/"         // /status:node/{nodename} -> node status key
-	NodeWorkloadsKey = "/node/%s:workloads/%s" // /node/{nodename}:workloads/{workloadID}
+	NodeInfoKey      = "/node/%s"
+	NodePodKey       = "/node/%s:pod/%s"
+	NodeStatusPrefix = "/status:node/"
+	NodeWorkloadsKey = "/node/%s:workloads/%s"
 
-	WorkloadInfoKey          = "/workloads/%s" // /workloads/{workloadID}
-	WorkloadDeployPrefix     = "/deploy"       // /deploy/{appname}/{entrypoint}/{nodename}/{workloadID}
-	WorkloadStatusPrefix     = "/status"       // /status/{appname}/{entrypoint}/{nodename}/{workloadID} value -> something by agent
-	WorkloadProcessingPrefix = "/processing"   // /processing/{appname}/{entrypoint}/{nodename}/{opsIdent} value -> count
+	WorkloadInfoKey          = "/workloads/%s"
+	WorkloadDeployPrefix     = "/deploy"
+	WorkloadStatusPrefix     = "/status"
+	WorkloadProcessingPrefix = "/processing"
 )
 
 func ParseStatusKey(key string) (string, string, string, string) {
