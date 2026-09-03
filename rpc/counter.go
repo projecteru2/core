@@ -30,7 +30,9 @@ func (v *Vibranium) Wait() {
 }
 
 func (v *Vibranium) newTask(ctx context.Context, name string, verbose bool) *task {
-	ctx = context.WithValue(ctx, types.TracingID, utils.RandomString(8))
+	if v.config.SentryDSN != "" {
+		ctx = context.WithValue(ctx, types.TracingID, utils.RandomString(8))
+	}
 	ctx, cancel := context.WithCancel(ctx)
 	if verbose {
 		log.WithFunc("vibranium.newTask").WithField("name", name).Debug(ctx, "task added")
