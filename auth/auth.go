@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 
 	"github.com/projecteru2/core/auth/simple"
 	"github.com/projecteru2/core/types"
@@ -19,12 +20,6 @@ func NewAuth(auth types.AuthConfig) Auth {
 	return simple.NewBasicAuth(auth.Username, auth.Password)
 }
 
-// Credential supplies per-RPC auth metadata to clients.
-type Credential interface {
-	GetRequestMetadata(ctx context.Context, uri ...string) (map[string]string, error)
-	RequireTransportSecurity() bool
-}
-
-func NewCredential(auth types.AuthConfig) Credential {
+func NewCredential(auth types.AuthConfig) credentials.PerRPCCredentials {
 	return simple.NewBasicCredential(auth.Username, auth.Password)
 }
