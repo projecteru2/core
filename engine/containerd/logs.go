@@ -58,6 +58,7 @@ func (a *attach) close() {
 // watch reports a relay that ends on its own; its stderr is the only account of why it did.
 func (a *attach) watch(ctx context.Context, ID, stream string, sess sshrunner.Session) {
 	logger := log.WithFunc("engine.containerd.attach.watch").WithField("ID", ID)
+	defer func() { _ = sess.Close() }()
 	output, _ := io.ReadAll(sess.Stderr())
 	code, waitErr := sess.Wait()
 	reason := strings.TrimSpace(string(output))
@@ -185,11 +186,34 @@ func (e *Engine) relayFailure(ID string) error {
 func (e *Engine) releaseAttach(ID string) {
 	e.mu.Lock()
 	relay, ok := e.attaches[ID]
-	delete(e.attaches, ID)
 	e.mu.Unlock()
 	if ok {
-		relay.close()
+		e.releaseAttachIfCurrent(ID, relay)
 	}
+}
+
+func (e *Engine) releaseAttachIfCurrent(ID string, expected *attach) {
+	e.mu.Lock()
+	relay, ok := e.attaches[ID]
+	if !ok || relay != expected {
+		e.mu.Unlock()
+		return
+	}
+	delete(e.attaches, ID)
+	e.mu.Unlock()
+	relay.close()
+}
+
+func (e *Engine) releaseAttachWhenTaskEnds(ctx context.Context, ID string, relay *attach, task client.Task) {
+	exited, err := task.Wait(ctx)
+	if err != nil {
+		return
+	}
+	status, ok := <-exited
+	if !ok || status.Error() != nil {
+		return
+	}
+	e.releaseAttachIfCurrent(ID, relay)
 }
 
 func fifoSet(ID string) cio.Config {

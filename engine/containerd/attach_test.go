@@ -6,8 +6,10 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/cockroachdb/errors"
+	"github.com/containerd/containerd/v2/client"
 
 	"github.com/projecteru2/core/engine/sshrunner"
 	"github.com/projecteru2/core/engine/sshrunner/sshrunnertest"
@@ -205,18 +207,25 @@ func TestARelayDeathIsSurfacedWithTheReasonTheNodeGave(t *testing.T) {
 	default:
 		t.Fatal("a relay that dies under the workload must not die silently")
 	}
+	if !dying.Closed() {
+		t.Error("an ended relay must return its stream slot")
+	}
 }
 
 func TestARelayThatEndsCleanlyIsNotReported(t *testing.T) {
 	relay, closed := watchedAttach()
+	ended := &sshrunnertest.Session{}
 
-	relay.watch(t.Context(), "app_web_abc123", "stdout", &sshrunnertest.Session{})
+	relay.watch(t.Context(), "app_web_abc123", "stdout", ended)
 
 	if len(relay.died) != 0 {
 		t.Error("a relay ends with the task it serves, and that is not a failure")
 	}
 	if *closed {
 		t.Error("only the stdin relay ending is the end of the workload's input")
+	}
+	if !ended.Closed() {
+		t.Error("an ended relay must return its stream slot")
 	}
 }
 
@@ -277,6 +286,59 @@ func TestStartRefusesAWorkloadWhoseRelayAlreadyDied(t *testing.T) {
 	}
 }
 
+func TestTaskExitReleasesEveryRelay(t *testing.T) {
+	opened := []*sshrunnertest.Session{parked(), {}, {}}
+	relay := &attach{stdin: opened[0], stdout: opened[1], stderr: opened[2]}
+	e := newEngine(&Engine{})
+	e.attaches["app_web_abc123"] = relay
+	exited := make(chan client.ExitStatus, 1)
+	exited <- *client.NewExitStatus(0, time.Time{}, nil)
+
+	e.releaseAttachWhenTaskEnds(t.Context(), "app_web_abc123", relay, &waitingTask{exited: exited})
+
+	for i, sess := range opened {
+		if !sess.Closed() {
+			t.Errorf("relay %d outlived the task", i)
+		}
+	}
+	if _, ok := e.attaches["app_web_abc123"]; ok {
+		t.Error("a task exit leaves no attach behind")
+	}
+}
+
+func TestAnOldTaskExitKeepsTheReplacementAttach(t *testing.T) {
+	old := &attach{}
+	currentStdin := &sshrunnertest.Session{}
+	current := &attach{stdin: currentStdin}
+	e := newEngine(&Engine{})
+	e.attaches["app_web_abc123"] = current
+	exited := make(chan client.ExitStatus, 1)
+	exited <- *client.NewExitStatus(0, time.Time{}, nil)
+
+	e.releaseAttachWhenTaskEnds(t.Context(), "app_web_abc123", old, &waitingTask{exited: exited})
+
+	if e.attaches["app_web_abc123"] != current {
+		t.Error("an old task exit must not remove the restarted task's attach")
+	}
+	if currentStdin.Closed() {
+		t.Error("an old task exit must not close the restarted task's relay")
+	}
+}
+
+func TestTaskWaitFailureKeepsTheAttachForFinalCleanup(t *testing.T) {
+	relay := &attach{stdin: &sshrunnertest.Session{}}
+	e := newEngine(&Engine{})
+	e.attaches["app_web_abc123"] = relay
+	exited := make(chan client.ExitStatus, 1)
+	exited <- *client.NewExitStatus(255, time.Time{}, errors.New("wait failed"))
+
+	e.releaseAttachWhenTaskEnds(t.Context(), "app_web_abc123", relay, &waitingTask{exited: exited})
+
+	if e.attaches["app_web_abc123"] != relay {
+		t.Error("a failed wait must leave the attach for stop, remove, or restart to clean")
+	}
+}
+
 func TestVirtualizationResizeIsANoOpOnAPipe(t *testing.T) {
 	e := testEngine(t, &sshrunnertest.Fake{})
 
@@ -295,4 +357,13 @@ func watchedAttach() (*attach, *bool) {
 		died:       make(chan error, relayStreams),
 		closeStdin: func(context.Context) error { *closed = true; return nil },
 	}, closed
+}
+
+type waitingTask struct {
+	client.Task
+	exited <-chan client.ExitStatus
+}
+
+func (t *waitingTask) Wait(context.Context) (<-chan client.ExitStatus, error) {
+	return t.exited, nil
 }
