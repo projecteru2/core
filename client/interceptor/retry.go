@@ -18,7 +18,7 @@ var RPCNeedRetry = map[string]struct{}{
 func NewStreamRetry(retryOpts RetryOptions) grpc.StreamClientInterceptor {
 	return func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
 		stream, err := streamer(ctx, desc, cc, method, opts...)
-		if _, ok := RPCNeedRetry[method]; !ok {
+		if _, ok := RPCNeedRetry[method]; !ok || retryOpts.Max == 0 {
 			return stream, err
 		}
 		logger := log.WithFunc("interceptor.NewStreamRetry")
