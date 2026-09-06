@@ -60,6 +60,10 @@ type ETCD struct {
 
 	poolMux   sync.Mutex
 	lockPools map[time.Duration]*etcdlock.Pool
+
+	orphanMux   sync.Mutex
+	orphanLease clientv3.LeaseID
+	orphanUntil time.Time
 }
 
 func NewETCD(ctx context.Context, config types.EtcdConfig, embeddedETCD *embedded.Cluster) (*ETCD, error) {
@@ -335,26 +339,40 @@ func (e *ETCD) bindStatusWithoutTTL(ctx context.Context, entityKey, statusKey, s
 		return nil
 	}
 
-	lease, err := e.cliv3.Grant(ctx, common.OrphanStatusTTL)
+	leaseID, err := e.orphanLeaseID(ctx)
 	if err != nil {
 		return err
 	}
 	orphaned, err := e.cliv3.Txn(ctx).
 		If(clientv3.Compare(clientv3.Version(entityKey), "=", 0)).
-		Then(clientv3.OpPut(statusKey, statusValue, clientv3.WithLease(lease.ID))).
+		Then(clientv3.OpPut(statusKey, statusValue, clientv3.WithLease(leaseID))).
 		Else(clientv3.OpPut(statusKey, statusValue)).
 		Commit()
 	if err != nil {
-		e.revokeLease(ctx, lease.ID)
 		return err
 	}
 	if !orphaned.Succeeded {
-		e.revokeLease(ctx, lease.ID)
 		logger.Infof(ctx, "put: key %s value %s", statusKey, statusValue)
 		return nil
 	}
 	logger.Infof(ctx, "put: key %s value %s, leased %ds without %s", statusKey, statusValue, common.OrphanStatusTTL, entityKey)
 	return nil
+}
+
+// orphanLeaseID shares one lease across the orphan status writes of a half-hour window, so a burst of removals costs one Grant instead of one per key.
+func (e *ETCD) orphanLeaseID(ctx context.Context) (clientv3.LeaseID, error) {
+	e.orphanMux.Lock()
+	defer e.orphanMux.Unlock()
+	ttl := time.Duration(common.OrphanStatusTTL) * time.Second
+	if e.orphanLease != 0 && time.Until(e.orphanUntil) > ttl/2 {
+		return e.orphanLease, nil
+	}
+	lease, err := e.cliv3.Grant(ctx, common.OrphanStatusTTL)
+	if err != nil {
+		return 0, err
+	}
+	e.orphanLease, e.orphanUntil = lease.ID, time.Now().Add(ttl)
+	return lease.ID, nil
 }
 
 func (e *ETCD) lockPool(ttl time.Duration) *etcdlock.Pool {
