@@ -16,8 +16,8 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-// releaseWorkers bounds the engine removes in flight on one node.
-const releaseWorkers = 16
+// nodeWorkers bounds the engine creates and removes in flight on one node.
+const nodeWorkers = 16
 
 // withResourceReleased journals the node, runs the removal, then gives the workload's usage back under the node lock; the usage stays charged until the workload is gone, and a failed removal or release stays in the journal for repair.
 func (c *Calcium) withResourceReleased(ctx context.Context, logger *log.Fields, node *types.Node, workload *types.Workload, remove func(context.Context) error) error {
@@ -40,7 +40,7 @@ func (c *Calcium) withResourceReleased(ctx context.Context, logger *log.Fields, 
 	return nil
 }
 
-// releaseWorkloads runs release under each workload's lock, node by node with releaseWorkers in flight per node, gives the usage back, reports each outcome, remaps the node afterwards and calls done once every node is through.
+// releaseWorkloads runs release under each workload's lock, node by node with nodeWorkers in flight per node, gives the usage back, reports each outcome, remaps the node afterwards and calls done once every node is through.
 func (c *Calcium) releaseWorkloads(ctx context.Context, logger *log.Fields, IDs []string, release func(context.Context, *types.Node, *types.Workload) error, report func(workloadID string, err error) error, done func()) error {
 	nodeWorkloadGroup, err := c.groupWorkloadsByNode(ctx, IDs)
 	if err != nil {
@@ -63,7 +63,7 @@ func (c *Calcium) releaseWorkloads(ctx context.Context, logger *log.Fields, IDs 
 					return
 				}
 				var releases errgroup.Group
-				releases.SetLimit(releaseWorkers)
+				releases.SetLimit(nodeWorkers)
 				for _, workloadID := range workloadIDs {
 					releases.Go(func() error {
 						defer log.SentryDefer()
