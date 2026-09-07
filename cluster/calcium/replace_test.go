@@ -59,6 +59,7 @@ func TestReplaceWorkload(t *testing.T) {
 	store.AssertExpectations(t)
 
 	store.On("ListWorkloads", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch, err := c.ReplaceWorkload(ctx, opts)
 	assert.NoError(t, err)
@@ -68,7 +69,6 @@ func TestReplaceWorkload(t *testing.T) {
 	store.AssertExpectations(t)
 
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil).Once()
-	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	opts.Podname = "wtf"
 	ch, err = c.ReplaceWorkload(ctx, opts)
 	assert.NoError(t, err)

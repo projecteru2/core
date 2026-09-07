@@ -54,25 +54,25 @@ func (c *Calcium) doUnlockAll(ctx context.Context, locks map[string]lock.Distrib
 }
 
 func (c *Calcium) withWorkloadLocked(ctx context.Context, ID string, ignoreLock bool, f workloadHandler) error {
+	if !ignoreLock {
+		logger := log.WithFunc("calcium.withWorkloadLocked")
+		lock, lockCtx, err := c.doLock(ctx, fmt.Sprintf(cluster.WorkloadLock, ID), c.config.LockTimeout)
+		if err != nil {
+			return err
+		}
+		ctx = lockCtx
+		logger.Debugf(ctx, "workload %s locked", ID)
+		defer func() {
+			if err := c.doUnlock(context.WithoutCancel(ctx), lock, ID); err != nil {
+				logger.Errorf(ctx, err, "failed to unlock workload %s", ID)
+			}
+		}()
+	}
+
 	workload, err := c.store.GetWorkload(ctx, ID)
 	if err != nil {
 		return err
 	}
-	if ignoreLock {
-		return f(ctx, workload)
-	}
-
-	logger := log.WithFunc("calcium.withWorkloadLocked")
-	lock, ctx, err := c.doLock(ctx, fmt.Sprintf(cluster.WorkloadLock, workload.ID), c.config.LockTimeout)
-	if err != nil {
-		return err
-	}
-	logger.Debugf(ctx, "workload %s locked", workload.ID)
-	defer func() {
-		if err := c.doUnlock(context.WithoutCancel(ctx), lock, workload.ID); err != nil {
-			logger.Errorf(ctx, err, "failed to unlock workload %s", workload.ID)
-		}
-	}()
 	return f(ctx, workload)
 }
 
