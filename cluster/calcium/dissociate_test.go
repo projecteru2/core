@@ -42,7 +42,6 @@ func TestDissociateWorkload(t *testing.T) {
 		}
 
 		store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{c1}, nil)
-		store.On("GetWorkload", mock.Anything, mock.Anything).Return(c1, nil)
 		rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 			nil, nil, nil, nil,
 		)
@@ -56,6 +55,7 @@ func TestDissociateWorkload(t *testing.T) {
 		store.AssertExpectations(t)
 
 		store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+		store.On("GetWorkload", mock.Anything, mock.Anything).Return(c1, nil)
 		rmgr.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 			resourcetypes.Resources{},
 			resourcetypes.Resources{},

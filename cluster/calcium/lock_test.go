@@ -74,7 +74,6 @@ func TestWithWorkloadLocked(t *testing.T) {
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	lock.On("Lock", mock.Anything).Return(t.Context(), types.ErrMockError).Once()
-	store.On("GetWorkload", mock.Anything, mock.Anything).Return(&types.Workload{}, nil).Once()
 	err := c.withWorkloadLocked(ctx, "c1", false, func(ctx context.Context, workload *types.Workload) error { return nil })
 	assert.Error(t, err)
 	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
@@ -92,6 +91,30 @@ func TestWithWorkloadLocked(t *testing.T) {
 		return nil
 	})
 	assert.NoError(t, err)
+	store.AssertExpectations(t)
+	lock.AssertExpectations(t)
+}
+
+func TestWithWorkloadLockedReadsAfterLock(t *testing.T) {
+	c := NewTestCluster()
+	store := c.store.(*storemocks.Store)
+	lock := &lockmocks.DistributedLock{}
+
+	created := store.On("CreateLock", "clock_c1", mock.Anything).Return(lock, nil).Once()
+	locked := lock.On("Lock", mock.Anything).Return(context.Background(), nil).Once()
+	read := store.On("GetWorkload", mock.Anything, "c1").Return(nil, types.ErrWorkloadNotExists).Once()
+	lock.On("Unlock", mock.Anything).Return(nil).Once()
+	mock.InOrder(created, locked, read)
+
+	called := false
+	err := c.withWorkloadLocked(t.Context(), "c1", false, func(context.Context, *types.Workload) error {
+		called = true
+		return nil
+	})
+	assert.ErrorIs(t, err, types.ErrWorkloadNotExists)
+	assert.False(t, called)
+	store.AssertExpectations(t)
+	lock.AssertExpectations(t)
 }
 
 func TestWithWorkloadLockedSkipsTheLockWhenIgnored(t *testing.T) {
