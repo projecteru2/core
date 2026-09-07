@@ -130,6 +130,53 @@ func TestWithWorkloadLockedSkipsTheLockWhenIgnored(t *testing.T) {
 	store.AssertNotCalled(t, "CreateLock", mock.Anything, mock.Anything)
 }
 
+func TestWithNodesLockedReadsAfterLock(t *testing.T) {
+	c := NewTestCluster()
+	store := c.store.(*storemocks.Store)
+	lock := &lockmocks.DistributedLock{}
+	node := &types.Node{NodeMeta: types.NodeMeta{Name: "n1", Podname: "p"}, Available: true}
+
+	named := store.On("GetNode", mock.Anything, "n1").Return(node, nil).Once()
+	locked := lock.On("Lock", mock.Anything).Return(context.Background(), nil).Once()
+	gone := store.On("GetNode", mock.Anything, "n1").Return(nil, types.ErrNodeNotExists).Once()
+	store.On("CreateLock", "cnode_op_p_n1", mock.Anything).Return(lock, nil).Once()
+	lock.On("Unlock", mock.Anything).Return(nil).Once()
+	mock.InOrder(named, locked, gone)
+
+	called := false
+	err := c.withNodeOperationLocked(t.Context(), "n1", func(context.Context, *types.Node) error {
+		called = true
+		return nil
+	})
+	assert.ErrorIs(t, err, types.ErrNodeNotExists)
+	assert.False(t, called)
+	store.AssertExpectations(t)
+	lock.AssertExpectations(t)
+}
+
+func TestWithNodesLockedHandsOverOnlyTheNodesItNamed(t *testing.T) {
+	c := NewTestCluster()
+	store := c.store.(*storemocks.Store)
+	lock := &lockmocks.DistributedLock{}
+	n1 := &types.Node{NodeMeta: types.NodeMeta{Name: "n1", Podname: "p"}, Available: true}
+	n2 := &types.Node{NodeMeta: types.NodeMeta{Name: "n2", Podname: "p"}, Available: true}
+
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{n1}, nil).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{n1, n2}, nil).Once()
+	store.On("CreateLock", "plock_p", mock.Anything).Return(lock, nil).Once()
+	lock.On("Lock", mock.Anything).Return(context.Background(), nil).Once()
+	lock.On("Unlock", mock.Anything).Return(nil).Once()
+
+	err := c.withPodLocked(t.Context(), "p", func(_ context.Context, nodes map[string]*types.Node) error {
+		assert.Len(t, nodes, 1)
+		assert.Contains(t, nodes, "n1")
+		return nil
+	})
+	assert.NoError(t, err)
+	store.AssertExpectations(t)
+	lock.AssertExpectations(t)
+}
+
 func TestWithNodesPlanLocked(t *testing.T) {
 	c := NewTestCluster()
 	ctx := t.Context()

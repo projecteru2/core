@@ -54,7 +54,10 @@ The package splits by concern — `create.go`, `realloc.go`, `remove.go`, `disso
 - `lock.go` — `withWorkloadLocked`, `withNodesPlanLocked`, `withPodLocked`,
   `withNodeOperationLocked`. Locks are taken in sorted order, pod locks before node locks, and
   released in reverse; lock keys are `clock_<id>` for a workload, `plock_<pod>` for a pod and
-  `cnode_op_<pod>_<node>` for a node operation.
+  `cnode_op_<pod>_<node>` for a node operation. A workload or node is read again after its
+  lock is taken, so an operation that waited on the lock works on what the previous holder
+  wrote, never on the snapshot it queued with; a node that appeared meanwhile is not handed
+  over, because no lock was named after it.
 - `utils.Txn` — the if/then/rollback shape used everywhere a resource change and a metadata
   change must agree. `rollback` runs on either failure and is told which stage failed;
   `utils.PCR` is the variant that skips it when the `if` failed.
