@@ -231,8 +231,8 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, emit createEmit, 
 	}
 
 	appendLock := sync.Mutex{}
-	wg := &sync.WaitGroup{}
-	wg.Add(nd.deploy)
+	var creates errgroup.Group
+	creates.SetLimit(nodeWorkers)
 	for idx := range nd.deploy {
 		createMsg := &types.CreateWorkloadMessage{
 			Podname:  opts.Podname,
@@ -240,8 +240,8 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, emit createEmit, 
 			Publish:  map[string][]string{},
 		}
 
-		_ = c.pool.Invoke(func() {
-			defer wg.Done()
+		creates.Go(func() error {
+			defer log.SentryDefer()
 			var e error
 			defer func() {
 				if e != nil {
@@ -260,9 +260,10 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, emit createEmit, 
 
 			createOpts := c.doMakeWorkloadOptions(ctx, nd.seq+idx, createMsg, opts, node)
 			e = c.doDeployOneWorkload(ctx, node, opts, createMsg, createOpts, true)
+			return nil
 		})
 	}
-	wg.Wait()
+	_ = creates.Wait()
 
 	c.invokePoolAsync(func() { c.RemapResourceAndLog(ctx, logger, node.Name) })
 
