@@ -70,7 +70,7 @@ wBtN56wGIEOHeQAAAAN0aHkBAgMEBQY=
 )
 
 func TestSourceCode(t *testing.T) {
-	privFile, err := os.CreateTemp("", "priv")
+	privFile, err := os.CreateTemp(t.TempDir(), "priv")
 	assert.NoError(t, err)
 	_, err = privFile.WriteString(privkey)
 	assert.NoError(t, err)
@@ -83,8 +83,7 @@ func TestSourceCode(t *testing.T) {
 	assert.NoError(t, err)
 	ctx := t.Context()
 
-	dname, err := os.MkdirTemp("", "source")
-	assert.NoError(t, err)
+	dname := t.TempDir()
 	err = g.SourceCode(ctx, "file:///xxxx", dname, "MASTER", false)
 	assert.Error(t, err)
 	err = g.SourceCode(ctx, "git@xxxx", dname, "MASTER", false)
@@ -109,17 +108,13 @@ func TestSourceCode(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = os.Stat(dotGit)
 	assert.Error(t, err)
-
-	os.Remove(privFile.Name())
-	os.RemoveAll(dname)
 }
 
 func TestArtifact(t *testing.T) {
 	rawString := "test"
 	authValue := "test"
 	data := zipOf(t, map[string]string{"orig.txt": rawString})
-	savedDir, err := os.MkdirTemp("", "saved")
-	assert.NoError(t, err)
+	savedDir := t.TempDir()
 
 	g := &GitScm{}
 	testServer := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
@@ -131,7 +126,7 @@ func TestArtifact(t *testing.T) {
 		res.Write(data)
 	}))
 	defer testServer.Close()
-	err = g.Artifact(t.Context(), "invaildurl", savedDir)
+	err := g.Artifact(t.Context(), "invaildurl", savedDir)
 	assert.Error(t, err)
 	err = g.Artifact(t.Context(), testServer.URL, savedDir)
 	assert.Error(t, err)
@@ -145,8 +140,6 @@ func TestArtifact(t *testing.T) {
 	saved, err := os.ReadFile(fname)
 	assert.NoError(t, err)
 	assert.Equal(t, string(saved), rawString)
-
-	os.RemoveAll(savedDir)
 }
 
 func TestArtifactHonoursContextCancellation(t *testing.T) {

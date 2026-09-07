@@ -61,12 +61,14 @@ func (s *Store) RemoveNode(ctx context.Context, node *types.Node) error {
 		return nil
 	}
 
-	err := s.Delete(ctx, []string{
+	if err := s.Delete(ctx, []string{
 		fmt.Sprintf(NodeInfoKey, node.Name),
 		fmt.Sprintf(NodePodKey, node.Podname, node.Name),
-	})
+	}); err != nil {
+		return err
+	}
 	log.WithFunc("store.common.RemoveNode").Infof(ctx, "node (%s, %s, %s) deleted", node.Podname, node.Name, node.Endpoint)
-	return err
+	return nil
 }
 
 func (s *Store) GetNode(ctx context.Context, nodename string) (*types.Node, error) {

@@ -71,31 +71,31 @@ func NewCoreRPCClientPool(ctx context.Context, config *PoolConfig) (*Pool, error
 }
 
 // GetClient returns the first alive client, or the first client when none are alive.
-func (c *Pool) GetClient() pb.CoreRPCClient {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+func (p *Pool) GetClient() pb.CoreRPCClient {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
-	for _, rpc := range c.rpcClients {
+	for _, rpc := range p.rpcClients {
 		if rpc.alive {
 			return rpc.client
 		}
 	}
-	return c.rpcClients[0].client
+	return p.rpcClients[0].client
 }
 
-func (c *Pool) updateClientsStatus(ctx context.Context, timeout time.Duration) {
-	alive := make([]bool, len(c.rpcClients))
+func (p *Pool) updateClientsStatus(ctx context.Context, timeout time.Duration) {
+	alive := make([]bool, len(p.rpcClients))
 	var wg sync.WaitGroup
-	for i, rpc := range c.rpcClients {
+	for i, rpc := range p.rpcClients {
 		wg.Go(func() {
 			alive[i] = checkAlive(ctx, rpc, timeout)
 		})
 	}
 	wg.Wait()
 
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	for i, rpc := range c.rpcClients {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for i, rpc := range p.rpcClients {
 		rpc.alive = alive[i]
 	}
 }

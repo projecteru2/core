@@ -350,7 +350,9 @@ func openOnce[T any](ctx context.Context, r *sshRunner, f sshOp[T]) (T, error) {
 	return bounded(ctx, func() (T, error) { return f(client) })
 }
 
-func bounded[T any](ctx context.Context, open func() (T, error)) (T, error) {
+type opener[T any] func() (T, error)
+
+func bounded[T any](ctx context.Context, open opener[T]) (T, error) {
 	type opened struct {
 		v   T
 		err error
@@ -376,7 +378,7 @@ func bounded[T any](ctx context.Context, open func() (T, error)) (T, error) {
 	}
 }
 
-func retryRefused[T any](ctx context.Context, open func() (T, error)) (T, error) {
+func retryRefused[T any](ctx context.Context, open opener[T]) (T, error) {
 	interval := openRetryInterval
 	for attempt := 0; ; attempt++ {
 		res, err := open()

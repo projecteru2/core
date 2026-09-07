@@ -463,11 +463,7 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 				}()
 
 				tw := tar.NewWriter(w)
-				defer func() {
-					if closeErr := tw.Close(); err == nil {
-						err = closeErr
-					}
-				}()
+				defer func() { err = errors.Join(err, tw.Close()) }()
 				header := &tar.Header{
 					Name: filepath.Base(m.Filename),
 					Uid:  m.UID,
@@ -950,7 +946,7 @@ func recvStdin[T any](ctx context.Context, name string, open bool, recv func() (
 			msg, err := recv()
 			if err != nil {
 				if !errors.Is(err, io.EOF) {
-					log.WithFunc("vibranium."+name).Error(ctx, err, "recv command")
+					log.WithFunc("vibranium.recvStdin").WithField("stream", name).Error(ctx, err, "recv command")
 				}
 				return
 			}

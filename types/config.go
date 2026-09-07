@@ -73,7 +73,7 @@ type GRPCConfig struct {
 }
 
 type GitConfig struct {
-	SCMType      string        `yaml:"scm_type"` // source code manager type [gitlab/github]
+	SCMType      string        `yaml:"scm_type"`
 	PrivateKey   string        `yaml:"private_key"`
 	Token        string        `yaml:"token"`
 	CloneTimeout time.Duration `yaml:"clone_timeout" default:"300s"`

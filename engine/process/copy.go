@@ -80,7 +80,7 @@ func (e *Engine) VirtualizationCopyFrom(ctx context.Context, ID, path string) (c
 	return nil, 0, 0, 0, errors.Wrapf(coretypes.ErrWorkloadNotExists, "%s not found in workload %s", path, ID)
 }
 
-// hostPaths maps a path inside the workload onto the node's filesystem, most specific first: writing under a mounted overlay is undefined and its upper dir alone misses the bundle.
+// hostPaths returns the host paths of a workload path, most specific first: writing under a mounted overlay is undefined.
 func (e *Engine) hostPaths(ctx context.Context, ID, target string) ([]string, error) {
 	record, mounted, err := e.workloadMeta(ctx, ID)
 	if err != nil {

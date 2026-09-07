@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"runtime"
 	"slices"
 	"strconv"
 	"sync"
@@ -419,6 +420,7 @@ func (e *ETCD) doBatchOp(ctx context.Context, transactions []ETCDTxn) (*clientv3
 	// indexed slots keep the merged responses in request order, which GetMulti pairs with its keys
 	resps := make([]*clientv3.TxnResponse, len(spans))
 	g, ctx := errgroup.WithContext(ctx)
+	g.SetLimit(runtime.GOMAXPROCS(0))
 	for i, sp := range spans {
 		g.Go(func() error {
 			conds, thens, elses := []clientv3.Cmp{}, []clientv3.Op{}, []clientv3.Op{}

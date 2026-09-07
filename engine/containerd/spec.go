@@ -50,8 +50,7 @@ const (
 	// hookBinary runs CNI in the node's netns; core has none.
 	hookBinary  = "/usr/local/bin/eru-agent"
 	hookCommand = "oci-hook"
-	// namespaceAnnotation is how the hook learns its containerd namespace: an OCI
-	// hook is handed the runtime state, never the container's labels.
+	// namespaceAnnotation carries the containerd namespace to the hook, which sees the runtime state and not the labels.
 	namespaceAnnotation = "eru.namespace"
 
 	nofileLimit = 65535

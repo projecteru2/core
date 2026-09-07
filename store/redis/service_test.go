@@ -46,7 +46,7 @@ func (s *RediaronTestSuite) TestServiceStatusStream() {
 	_, _, err = m.RegisterService(ctx, "127.0.0.1:5002", time.Second)
 	s.NoError(err)
 	time.Sleep(500 * time.Millisecond)
-	triggerMockedKeyspaceNotification(s.rediaron.cli, fmt.Sprintf(common.ServiceStatusKey, "127.0.0.1:5002"), actionSet)
+	triggerMockedKeyspaceNotification(ctx, s.rediaron.cli, fmt.Sprintf(common.ServiceStatusKey, "127.0.0.1:5002"), actionSet)
 
 	endpoints := <-ch
 	slices.Sort(endpoints)
@@ -54,7 +54,7 @@ func (s *RediaronTestSuite) TestServiceStatusStream() {
 
 	unregisterService1()
 	time.Sleep(500 * time.Millisecond)
-	triggerMockedKeyspaceNotification(s.rediaron.cli, fmt.Sprintf(common.ServiceStatusKey, "127.0.0.1:5001"), actionDel)
+	triggerMockedKeyspaceNotification(ctx, s.rediaron.cli, fmt.Sprintf(common.ServiceStatusKey, "127.0.0.1:5001"), actionDel)
 
 	s.advance(time.Second)
 	s.Equal(<-ch, []string{"127.0.0.1:5002"})

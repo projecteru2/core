@@ -34,11 +34,11 @@ func New(endpoint string, authConfig types.AuthConfig) *EruServiceDiscovery {
 }
 
 // Watch streams the core addresses the cluster publishes; the connection it watches over follows them as well.
-func (w *EruServiceDiscovery) Watch(ctx context.Context) (<-chan []string, error) {
-	logger := log.WithFunc("servicediscovery.EruServiceDiscovery.Watch").WithField("endpoint", w.endpoint)
+func (e *EruServiceDiscovery) Watch(ctx context.Context) (<-chan []string, error) {
+	logger := log.WithFunc("servicediscovery.EruServiceDiscovery.Watch").WithField("endpoint", e.endpoint)
 	cores := manual.NewBuilderWithScheme("lb")
-	cores.InitialState(addressState(w.endpoint))
-	cc, err := w.dial(cores)
+	cores.InitialState(addressState(e.endpoint))
+	cc, err := e.dial(cores)
 	if err != nil {
 		logger.Error(ctx, err, "dial")
 		return nil, err
@@ -90,18 +90,18 @@ func (w *EruServiceDiscovery) Watch(ctx context.Context) (<-chan []string, error
 	return ch, nil
 }
 
-func (w *EruServiceDiscovery) dial(cores resolver.Builder) (*grpc.ClientConn, error) {
+func (e *EruServiceDiscovery) dial(cores resolver.Builder) (*grpc.ClientConn, error) {
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithStreamInterceptor(interceptor.NewStreamRetry(interceptor.RetryOptions{Max: 1})),
 		grpc.WithResolvers(cores),
 	}
 
-	if w.authConfig.Username != "" {
-		opts = append(opts, grpc.WithPerRPCCredentials(auth.NewCredential(w.authConfig)))
+	if e.authConfig.Username != "" {
+		opts = append(opts, grpc.WithPerRPCCredentials(auth.NewCredential(e.authConfig)))
 	}
 
-	return grpc.NewClient("lb:///"+w.endpoint, opts...)
+	return grpc.NewClient("lb:///"+e.endpoint, opts...)
 }
 
 func addressState(endpoints ...string) resolver.State {

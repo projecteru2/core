@@ -2,6 +2,7 @@ package containerd
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"fmt"
 	"io"
@@ -104,10 +105,7 @@ func preparedSource(ctx context.Context, build *enginetypes.Build, scm coresourc
 	var err error
 	reponame := ""
 	if build.Repo != "" { //nolint:nestif
-		version := build.Version
-		if version == "" {
-			version = "HEAD"
-		}
+		version := cmp.Or(build.Version, "HEAD")
 		reponame, err = utils.GetGitRepoName(build.Repo)
 		if err != nil {
 			return "", err

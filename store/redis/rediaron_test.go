@@ -83,13 +83,13 @@ func (s *RediaronTestSuite) TestKeyNotify() {
 
 	time.Sleep(time.Second)
 	s.rediaron.cli.Set(s.T().Context(), "aaa", 1, 0)
-	triggerMockedKeyspaceNotification(s.rediaron.cli, "aaa", actionSet)
+	triggerMockedKeyspaceNotification(ctx, s.rediaron.cli, "aaa", actionSet)
 	s.rediaron.cli.Set(s.T().Context(), "aab", 1, 0)
-	triggerMockedKeyspaceNotification(s.rediaron.cli, "aab", actionSet)
+	triggerMockedKeyspaceNotification(ctx, s.rediaron.cli, "aab", actionSet)
 	s.rediaron.cli.Set(s.T().Context(), "bab", 1, 0)
-	triggerMockedKeyspaceNotification(s.rediaron.cli, "bab", actionSet)
+	triggerMockedKeyspaceNotification(ctx, s.rediaron.cli, "bab", actionSet)
 	s.rediaron.cli.Del(s.T().Context(), "aaa")
-	triggerMockedKeyspaceNotification(s.rediaron.cli, "aaa", actionDel)
+	triggerMockedKeyspaceNotification(ctx, s.rediaron.cli, "aaa", actionDel)
 
 	messages := []*KNotifyMessage{}
 	for m := range ch {
@@ -112,7 +112,7 @@ func (s *RediaronTestSuite) TestKeyNotifyCancellationUnblocksPendingMessage() {
 		return err == nil && count > 0
 	}, time.Second, 10*time.Millisecond)
 
-	triggerMockedKeyspaceNotification(s.rediaron.cli, "aaa", actionSet)
+	triggerMockedKeyspaceNotification(ctx, s.rediaron.cli, "aaa", actionSet)
 	time.Sleep(50 * time.Millisecond)
 	cancel()
 	s.Require().Eventually(func() bool {
@@ -224,9 +224,9 @@ func (s *RediaronTestSuite) TestWatchSkipsTTLRefreshes() {
 		return err == nil && count > 0
 	}, time.Second, 10*time.Millisecond)
 
-	triggerMockedKeyspaceNotification(s.rediaron.cli, "aaa", "expire")
-	triggerMockedKeyspaceNotification(s.rediaron.cli, "aab", actionSet)
-	triggerMockedKeyspaceNotification(s.rediaron.cli, "aaa", actionExpired)
+	triggerMockedKeyspaceNotification(ctx, s.rediaron.cli, "aaa", "expire")
+	triggerMockedKeyspaceNotification(ctx, s.rediaron.cli, "aab", actionSet)
+	triggerMockedKeyspaceNotification(ctx, s.rediaron.cli, "aaa", actionExpired)
 	time.Sleep(50 * time.Millisecond)
 	cancel()
 	<-done
@@ -263,9 +263,9 @@ func (s *RediaronTestSuite) advance(d time.Duration) {
 	time.Sleep(d + 500*time.Millisecond)
 }
 
-func triggerMockedKeyspaceNotification(cli *redis.Client, key, action string) {
+func triggerMockedKeyspaceNotification(ctx context.Context, cli *redis.Client, key, action string) {
 	channel := fmt.Sprintf(keyNotifyPrefix, 0, key)
-	cli.Publish(context.Background(), channel, action).Result()
+	cli.Publish(ctx, channel, action).Result()
 }
 
 func testRedis(t testing.TB) (*redis.Client, *miniredis.Miniredis) {
