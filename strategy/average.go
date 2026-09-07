@@ -14,9 +14,7 @@ import (
 // AveragePlan puts need workloads on each of limit nodes; need is per node, limit 0 means every node.
 func AveragePlan(_ context.Context, infos []Info, need, _, limit int) (map[string]int, error) {
 	scheduleInfosLength := len(infos)
-	if limit == 0 {
-		limit = scheduleInfosLength
-	}
+	limit = cmp.Or(limit, scheduleInfosLength)
 	if scheduleInfosLength < limit {
 		return nil, errors.Wrapf(types.ErrInsufficientResource, "node len %d < limit, cannot alloc an average node plan", scheduleInfosLength)
 	}

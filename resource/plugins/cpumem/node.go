@@ -1,6 +1,7 @@
 package cpumem
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -53,9 +54,7 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintyp
 			}
 		}
 
-		if req.Memory == 0 {
-			req.Memory = info.MemTotal * rate / 10 // use 80% of real memory
-		}
+		req.Memory = cmp.Or(req.Memory, info.MemTotal*rate/10) // use 80% of real memory
 	}
 
 	nodeResourceInfo := &cpumemtypes.NodeResourceInfo{

@@ -1,6 +1,7 @@
 package types
 
 import (
+	"cmp"
 	"fmt"
 	"io"
 	"slices"
@@ -184,9 +185,7 @@ func (o *ReplaceOptions) Validate() error {
 
 // Normalize defaults Count to 1.
 func (o *ReplaceOptions) Normalize() {
-	if o.Count == 0 {
-		o.Count = 1
-	}
+	o.Count = cmp.Or(o.Count, 1)
 }
 
 type AddNodeOptions struct {

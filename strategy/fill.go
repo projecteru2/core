@@ -13,9 +13,7 @@ import (
 // FillPlan tops every node up to need workloads; need is a per-node ceiling, limit 0 means every node.
 func FillPlan(_ context.Context, infos []Info, need, _, limit int) (_ map[string]int, err error) {
 	scheduleInfosLength := len(infos)
-	if limit == 0 {
-		limit = scheduleInfosLength
-	}
+	limit = cmp.Or(limit, scheduleInfosLength)
 	if scheduleInfosLength < limit {
 		return nil, errors.Wrapf(types.ErrInsufficientResource, "node len %d cannot alloc a fill node plan", scheduleInfosLength)
 	}

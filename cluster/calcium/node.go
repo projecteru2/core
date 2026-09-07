@@ -311,9 +311,7 @@ func (c *Calcium) setAllWorkloadsOnNodeDown(ctx context.Context, nodename string
 				return nil
 			}
 
-			if workload.StatusMeta == nil {
-				workload.StatusMeta = &types.StatusMeta{ID: workload.ID}
-			}
+			workload.StatusMeta = cmp.Or(workload.StatusMeta, &types.StatusMeta{ID: workload.ID})
 			workload.StatusMeta.Running = false
 			workload.StatusMeta.Healthy = false
 
