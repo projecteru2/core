@@ -14,7 +14,7 @@ const (
 	Decr = false
 )
 
-// ErrVerbNotSupported marks a verb the plugin did not advertise; cobalt leaves the plugin out of that call.
+// ErrVerbNotSupported marks a verb the plugin did not advertise.
 var ErrVerbNotSupported = errors.New("verb not supported by the plugin")
 
 type Plugin interface {
@@ -36,7 +36,7 @@ type Plugin interface {
 
 	SetNodeResourceCapacity(ctx context.Context, nodename string, resource plugintypes.NodeResource, resourceRequest plugintypes.NodeResourceRequest, delta, incr bool) (*plugintypes.SetNodeResourceCapacityResponse, error)
 
-	// GetNodeResourceInfo returns total resource info and available resource info of the node, format: {"cpu": 2}
+	// GetNodeResourceInfo returns the node's total and available resources.
 	GetNodeResourceInfo(ctx context.Context, nodename string, workloadsResource []plugintypes.WorkloadResource) (*plugintypes.GetNodeResourceInfoResponse, error)
 
 	// SetNodeResourceInfo stores a node's capacity and usage as absolute values.

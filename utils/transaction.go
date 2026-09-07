@@ -37,7 +37,7 @@ func Txn(ctx context.Context, cond, then contextFunc, rollback rollbackFunc, ttl
 		defer rollBackCancel()
 		failureByCond := condErr != nil
 		if err := rollback(rollbackCtx, failureByCond); err != nil {
-			logger.Warnf(ctx, "txn failed but rollback also failed: %+v", err)
+			logger.Error(ctx, err, "txn failed, rollback also failed")
 			return
 		}
 		settled = true

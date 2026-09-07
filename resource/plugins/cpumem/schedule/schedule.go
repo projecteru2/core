@@ -187,7 +187,7 @@ func (h *host) getFullCPUPlans(cores []*cpuCore, full int) []types.CPUMap {
 	return utils.Map(plans, func(r ranked) types.CPUMap { return r.plan })
 }
 
-// eachFullCPUPlan visits every whole-core plan as the indexes of its cores; with affinity the cores go in order, otherwise the busiest first.
+// eachFullCPUPlan takes cores in order under affinity and busiest first otherwise.
 func (h *host) eachFullCPUPlan(cores []*cpuCore, full int, visit func(picked []int)) {
 	if h.affinity {
 		pieces := make([]int, len(cores))

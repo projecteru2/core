@@ -127,7 +127,7 @@ func (n *NodeStatusWatcher) replayDeadJournals(ctx context.Context) {
 
 func (n *NodeStatusWatcher) initNodeStatus(ctx context.Context) {
 	logger := log.WithFunc("selfmon.initNodeStatus")
-	logger.Debug(ctx, "init node status started")
+	logger.Info(ctx, "init node status started")
 
 	var nodes []*types.Node
 	var err error

@@ -19,67 +19,33 @@ func TestCalculateDeploy(t *testing.T) {
 	nodes := generateNodes(ctx, t, cm, 1, 2, 4*units.GB, 100, 0)
 	node := nodes[0]
 
-	req := plugintypes.WorkloadResourceRequest{
-		"cpu-bind":    true,
-		"cpu-request": -1,
+	tests := []struct {
+		name    string
+		node    string
+		count   int
+		req     plugintypes.WorkloadResourceRequest
+		wantErr error
+	}{
+		{"negative cpu", node, 100, plugintypes.WorkloadResourceRequest{"cpu-bind": true, "cpu-request": -1}, types.ErrInvalidCPU},
+		{"unknown node", "xxx", 100, plugintypes.WorkloadResourceRequest{"cpu-bind": true, "cpu-request": 1}, coretypes.ErrInvaildCount},
+		{"fractional bind fits", node, 1, plugintypes.WorkloadResourceRequest{"cpu-bind": true, "cpu-request": 1.1}, nil},
+		{"bind over the cores", node, 1, plugintypes.WorkloadResourceRequest{"cpu-bind": true, "cpu-request": 2.2}, coretypes.ErrInsufficientCapacity},
+		{"bind over the count", node, 3, plugintypes.WorkloadResourceRequest{"cpu-bind": true, "cpu-request": 1}, coretypes.ErrInsufficientCapacity},
+		{"memory only", node, 1, plugintypes.WorkloadResourceRequest{"memory-request": fmt.Sprintf("%v", units.GB)}, nil},
+		{"cpu over the node", node, 1, plugintypes.WorkloadResourceRequest{"memory-request": fmt.Sprintf("%v", units.GB), "cpu-request": 1000}, coretypes.ErrInsufficientCapacity},
+		{"memory over the node", node, 1, plugintypes.WorkloadResourceRequest{"memory-request": fmt.Sprintf("%v", 5*units.GB), "cpu-request": 1}, coretypes.ErrInsufficientCapacity},
+		{"zero memory", node, 1, plugintypes.WorkloadResourceRequest{"memory-request": "0", "cpu-request": 1}, nil},
 	}
-	_, err := cm.CalculateDeploy(ctx, node, 100, req)
-	assert.True(t, errors.Is(err, types.ErrInvalidCPU))
-
-	req = plugintypes.WorkloadResourceRequest{
-		"cpu-bind":    true,
-		"cpu-request": 1,
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := cm.CalculateDeploy(ctx, tt.node, tt.count, tt.req)
+			if tt.wantErr == nil {
+				assert.NoError(t, err)
+				return
+			}
+			assert.ErrorIs(t, err, tt.wantErr)
+		})
 	}
-	_, err = cm.CalculateDeploy(ctx, "xxx", 100, req)
-	assert.True(t, errors.Is(err, coretypes.ErrInvaildCount))
-
-	req = plugintypes.WorkloadResourceRequest{
-		"cpu-bind":    true,
-		"cpu-request": 1.1,
-	}
-	_, err = cm.CalculateDeploy(ctx, node, 1, req)
-	assert.Nil(t, err)
-
-	req = plugintypes.WorkloadResourceRequest{
-		"cpu-bind":    true,
-		"cpu-request": 2.2,
-	}
-	_, err = cm.CalculateDeploy(ctx, node, 1, req)
-	assert.True(t, errors.Is(err, coretypes.ErrInsufficientCapacity))
-
-	req = plugintypes.WorkloadResourceRequest{
-		"cpu-bind":    true,
-		"cpu-request": 1,
-	}
-	_, err = cm.CalculateDeploy(ctx, node, 3, req)
-	assert.True(t, errors.Is(err, coretypes.ErrInsufficientCapacity))
-
-	req = plugintypes.WorkloadResourceRequest{
-		"memory-request": fmt.Sprintf("%v", units.GB),
-	}
-	_, err = cm.CalculateDeploy(ctx, node, 1, req)
-	assert.Nil(t, err)
-
-	req = plugintypes.WorkloadResourceRequest{
-		"memory-request": fmt.Sprintf("%v", units.GB),
-		"cpu-request":    1000,
-	}
-	_, err = cm.CalculateDeploy(ctx, node, 1, req)
-	assert.True(t, errors.Is(err, coretypes.ErrInsufficientCapacity))
-
-	req = plugintypes.WorkloadResourceRequest{
-		"memory-request": fmt.Sprintf("%v", 5*units.GB),
-		"cpu-request":    1,
-	}
-	_, err = cm.CalculateDeploy(ctx, node, 1, req)
-	assert.True(t, errors.Is(err, coretypes.ErrInsufficientCapacity))
-
-	req = plugintypes.WorkloadResourceRequest{
-		"memory-request": "0",
-		"cpu-request":    1,
-	}
-	_, err = cm.CalculateDeploy(ctx, node, 1, req)
-	assert.Nil(t, err)
 
 	resource := plugintypes.NodeResource{
 		"cpu": 4.0,
@@ -101,17 +67,16 @@ func TestCalculateDeploy(t *testing.T) {
 			"3": "1",
 		},
 	}
+	_, err := cm.SetNodeResourceCapacity(ctx, node, resource, nil, false, true)
+	assert.NoError(t, err)
 
-	_, err = cm.SetNodeResourceCapacity(ctx, node, resource, nil, false, true)
-	assert.Nil(t, err)
-
-	req = plugintypes.WorkloadResourceRequest{
+	req := plugintypes.WorkloadResourceRequest{
 		"cpu-bind":    true,
 		"memory":      fmt.Sprintf("%v", units.GB),
 		"cpu-request": 1.3,
 	}
 	r, err := cm.CalculateDeploy(ctx, node, 1, req)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.NotNil(t, r.WorkloadsResource)
 }
 
@@ -137,17 +102,10 @@ func TestCalculateRealloc(t *testing.T) {
 			"1": "1",
 		},
 	}
-
 	_, err := cm.SetNodeResourceCapacity(ctx, node, resource, nil, false, true)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
-	origin := plugintypes.WorkloadResource{}
-	req := plugintypes.WorkloadResourceRequest{}
-
-	_, err = cm.CalculateRealloc(ctx, "xxx", origin, req)
-	assert.True(t, errors.Is(err, coretypes.ErrInvaildCount))
-
-	origin = plugintypes.WorkloadResource{
+	origin := plugintypes.WorkloadResource{
 		"cpu_request":    1,
 		"cpu_limit":      1,
 		"memory_request": units.GB,
@@ -156,38 +114,30 @@ func TestCalculateRealloc(t *testing.T) {
 		"numa_memory":    types.NUMAMemory{"0": units.GB},
 		"numa_node":      "0",
 	}
-	req = plugintypes.WorkloadResourceRequest{
-		"keep-cpu-bind": true,
-		"cpu-request":   -3,
+	tests := []struct {
+		name    string
+		node    string
+		origin  plugintypes.WorkloadResource
+		req     plugintypes.WorkloadResourceRequest
+		wantErr error
+	}{
+		{"unknown node", "xxx", plugintypes.WorkloadResource{}, plugintypes.WorkloadResourceRequest{}, coretypes.ErrInvaildCount},
+		{"cpu below zero", node, origin, plugintypes.WorkloadResourceRequest{"keep-cpu-bind": true, "cpu-request": -3}, types.ErrInvalidCPU},
+		{"cpu over the node", node, origin, plugintypes.WorkloadResourceRequest{"keep-cpu-bind": true, "cpu-request": 2}, coretypes.ErrInsufficientResource},
+		{"shrink the bind", node, origin, plugintypes.WorkloadResourceRequest{"keep-cpu-bind": true, "cpu-request": -0.5, "cpu-limit": -0.5}, nil},
+		{"no change", node, origin, plugintypes.WorkloadResourceRequest{}, nil},
+		{"memory over the node", node, origin, plugintypes.WorkloadResourceRequest{"memory-request": fmt.Sprintf("%v", units.PB), "memory-limit": fmt.Sprintf("%v", units.PB)}, coretypes.ErrInsufficientCapacity},
 	}
-	_, err = cm.CalculateRealloc(ctx, node, origin, req)
-	assert.True(t, errors.Is(err, types.ErrInvalidCPU))
-
-	req = plugintypes.WorkloadResourceRequest{
-		"keep-cpu-bind": true,
-		"cpu-request":   2,
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := cm.CalculateRealloc(ctx, tt.node, tt.origin, tt.req)
+			if tt.wantErr == nil {
+				assert.NoError(t, err)
+				return
+			}
+			assert.ErrorIs(t, err, tt.wantErr)
+		})
 	}
-	_, err = cm.CalculateRealloc(ctx, node, origin, req)
-	assert.True(t, errors.Is(err, coretypes.ErrInsufficientResource))
-
-	req = plugintypes.WorkloadResourceRequest{
-		"keep-cpu-bind": true,
-		"cpu-request":   -0.5,
-		"cpu-limit":     -0.5,
-	}
-	_, err = cm.CalculateRealloc(ctx, node, origin, req)
-	assert.Nil(t, err)
-
-	req = plugintypes.WorkloadResourceRequest{}
-	_, err = cm.CalculateRealloc(ctx, node, origin, req)
-	assert.Nil(t, err)
-
-	req = plugintypes.WorkloadResourceRequest{
-		"memory-request": fmt.Sprintf("%v", units.PB),
-		"memory-limit":   fmt.Sprintf("%v", units.PB),
-	}
-	_, err = cm.CalculateRealloc(ctx, node, origin, req)
-	assert.True(t, errors.Is(err, coretypes.ErrInsufficientCapacity))
 }
 
 func TestCalculateRemap(t *testing.T) {

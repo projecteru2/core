@@ -98,7 +98,6 @@ func (s *RediaronTestSuite) TestSetNodeStatus() {
 
 	_, err := s.rediaron.GetOne(s.T().Context(), key)
 	s.NoError(err)
-	time.Sleep(2 * time.Second)
 	s.advance(2 * time.Second)
 	_, err = s.rediaron.GetOne(s.T().Context(), key)
 	s.Error(err)
@@ -123,7 +122,6 @@ func (s *RediaronTestSuite) TestGetNodeStatus() {
 	s.NoError(err)
 	s.Equal(ns.Nodename, node.Name)
 	s.True(ns.Alive)
-	time.Sleep(2 * time.Second)
 	s.advance(2 * time.Second)
 	ns1, err := s.rediaron.GetNodeStatus(s.T().Context(), node.Name)
 	s.Error(err)
@@ -144,7 +142,7 @@ func (s *RediaronTestSuite) TestNodeStatusStream() {
 			}
 			time.Sleep(500 * time.Millisecond)
 			s.NoError(s.rediaron.SetNodeStatus(s.T().Context(), node, 1))
-			triggerMockedKeyspaceNotification(s.rediaron.cli, filepath.Join(common.NodeStatusPrefix, node.Name), actionSet)
+			triggerMockedKeyspaceNotification(ctx, s.rediaron.cli, filepath.Join(common.NodeStatusPrefix, node.Name), actionSet)
 		}
 	}()
 
@@ -152,7 +150,7 @@ func (s *RediaronTestSuite) TestNodeStatusStream() {
 	ch := s.rediaron.NodeStatusStream(ctx)
 	go func() {
 		time.Sleep(1500 * time.Millisecond)
-		triggerMockedKeyspaceNotification(s.rediaron.cli, filepath.Join(common.NodeStatusPrefix, node.Name), actionExpired)
+		triggerMockedKeyspaceNotification(ctx, s.rediaron.cli, filepath.Join(common.NodeStatusPrefix, node.Name), actionExpired)
 		time.Sleep(500 * time.Millisecond)
 		cancel()
 	}()

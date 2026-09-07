@@ -10,7 +10,9 @@ import (
 	"github.com/projecteru2/core/resource/plugins"
 )
 
-func call[T any](ctx context.Context, ps []plugins.Plugin, f func(plugins.Plugin) (T, error)) (map[plugins.Plugin]T, error) {
+type pluginCall[T any] func(plugins.Plugin) (T, error)
+
+func call[T any](ctx context.Context, ps []plugins.Plugin, f pluginCall[T]) (map[plugins.Plugin]T, error) {
 	var wg sync.WaitGroup
 	results := make([]T, len(ps))
 	errs := make([]error, len(ps))

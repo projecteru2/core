@@ -134,7 +134,6 @@ func (m *Manager) SetNodeResourceUsage(ctx context.Context, nodename string, nod
 
 	return before, after, utils.PCR(ctx,
 		func(_ context.Context) error {
-			// [{"cpu-plugin": {"cpu": 1}}, {"cpu-plugin": {"cpu": 1}}] -> {"cpu-plugin": [{"cpu": 1}, {"cpu": 1}]}
 			for _, workloadResource := range workloadsResource {
 				for plugin, params := range workloadResource {
 					wrksResource[plugin] = append(wrksResource[plugin], params)
@@ -300,7 +299,7 @@ func mergeCapacity(m1, m2 map[string]*plugintypes.NodeDeployCapacity) map[string
 }
 
 // rollbackNodeResource restores every plugin that applied a failed set of the node's resources.
-func rollbackNodeResource[T any](ctx context.Context, ps []plugins.Plugin, restore func(plugins.Plugin) (T, error)) error {
+func rollbackNodeResource[T any](ctx context.Context, ps []plugins.Plugin, restore pluginCall[T]) error {
 	_, err := call(ctx, ps, restore)
 	return err
 }

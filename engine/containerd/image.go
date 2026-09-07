@@ -234,7 +234,7 @@ func (e *Engine) imageConfig(ctx context.Context, image client.Image) (*ocispec.
 	return &config.Config, nil
 }
 
-// resolver authenticates every registry request against the configured credentials; its push tracker remembers blobs per digest, not per repository, so it must not outlive one call.
+// resolver is built per call: the docker pusher's tracker remembers blobs per digest, not per repository.
 func (e *Engine) resolver() remotes.Resolver {
 	auths := e.config.Registry.Auths
 	plainHTTP := e.config.Registry.PlainHTTP
