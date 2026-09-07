@@ -203,8 +203,25 @@ func TestBindStatusOrphanPutYieldsToAnEntityThatAppeared(t *testing.T) {
 
 	etcd.On("Txn", mock.Anything).Return(txn)
 	etcd.On("Grant", mock.Anything, mock.Anything).Return(&clientv3.LeaseGrantResponse{ID: 7}, nil)
-	etcd.On("Revoke", mock.Anything, clientv3.LeaseID(7)).Return(&clientv3.LeaseRevokeResponse{}, nil)
 	require.NoError(t, e.BindStatus(t.Context(), "/entity", "/status", "status", 0))
+}
+
+func TestBindStatusSharesOneLeaseAcrossOrphans(t *testing.T) {
+	e := NewEmbeddedETCD(t)
+	ctx := t.Context()
+
+	require.NoError(t, e.BindStatus(ctx, "/entity/a", "/status/a", "gone", 0))
+	require.NoError(t, e.BindStatus(ctx, "/entity/b", "/status/b", "gone", 0))
+	a, err := e.GetOne(ctx, "/status/a")
+	require.NoError(t, err)
+	b, err := e.GetOne(ctx, "/status/b")
+	require.NoError(t, err)
+	require.NotZero(t, a.Lease)
+	require.Equal(t, a.Lease, b.Lease)
+
+	leases, err := e.cliv3.Leases(ctx)
+	require.NoError(t, err)
+	require.Len(t, leases.Leases, 1)
 }
 
 func TestBindStatusWithZeroTTL(t *testing.T) {
