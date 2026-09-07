@@ -110,15 +110,15 @@ func (c *Calcium) withNodesLocked(ctx context.Context, nodeFilter *types.NodeFil
 		logger.Debugf(ctx, "keys %+v unlocked", lockKeys)
 	}()
 
-	ns, err := c.filterNodes(ctx, nodeFilter)
+	named, err := c.filterNodes(ctx, nodeFilter)
 	if err != nil {
 		return err
 	}
-	for _, n := range ns {
-		nodes[n.Name] = n
+	if len(named) == 0 {
+		return f(ctx, nodes)
 	}
 
-	keys := keysOf(ns)
+	keys := keysOf(named)
 	slices.SortFunc(keys, byLockOrder)
 	var lock lock.DistributedLock
 	for _, key := range slices.Compact(keys) {
@@ -129,6 +129,16 @@ func (c *Calcium) withNodesLocked(ctx context.Context, nodeFilter *types.NodeFil
 		logger.Debugf(ctx, "key %s locked", key)
 		locks[key] = lock
 		lockKeys = append(lockKeys, key)
+	}
+
+	ns, err := c.filterNodes(ctx, nodeFilter)
+	if err != nil {
+		return err
+	}
+	for _, n := range ns {
+		if slices.ContainsFunc(named, func(m *types.Node) bool { return m.Name == n.Name }) {
+			nodes[n.Name] = n
+		}
 	}
 	return f(ctx, nodes)
 }
