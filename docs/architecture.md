@@ -101,7 +101,8 @@ bookkeeping; core owns node and workload metadata. See [Resource plugins](resour
    - call `rmgr.Alloc` per node for the workload resources and engine params,
    - journal a `create-processing` entry and write the processing counter, so a concurrent deploy
      of the same app/entrypoint sees these workloads before they exist.
-4. **Deploy** (`then`): per node, pull the image unless `ignore_pull`, then create the workloads
+4. **Deploy** (`then`): per node, pull the image unless `ignore_pull` (the registry's digest for a
+   ref is reused for 30 s across nodes and calls, so a burst of deploys asks once), then create the workloads
    with at most 16 in flight per node, the same bound removes use. For each one: `VirtualizationCreate`, journal `create-workload` with the new ID,
    write the workload metadata (decrementing the processing counter in the same transaction),
    copy in any files, run the after-create hooks, start it, inspect it back, and send the message.

@@ -36,6 +36,7 @@ type Calcium struct {
 	// serviceAddress is both the key RegisterService publishes and the journal's own prefix
 	serviceAddress string
 	remapped       sync.Map
+	remoteDigests  sync.Map
 }
 
 // New returns a Calcium cluster.

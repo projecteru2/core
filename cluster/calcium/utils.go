@@ -4,6 +4,7 @@ import (
 	"context"
 	"slices"
 	"sync"
+	"time"
 
 	"github.com/cockroachdb/errors"
 
@@ -16,8 +17,17 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-// nodeWorkers bounds the engine creates and removes in flight on one node.
-const nodeWorkers = 16
+const (
+	// nodeWorkers bounds the engine creates and removes in flight on one node.
+	nodeWorkers = 16
+	// remoteDigestTTL is how long a registry's answer for a ref serves every node and call before core asks again.
+	remoteDigestTTL = 30 * time.Second
+)
+
+type remoteDigest struct {
+	digest string
+	until  time.Time
+}
 
 // withResourceReleased journals the node, runs the removal, then gives the workload's usage back under the node lock; the usage stays charged until the workload is gone, and a failed removal or release stays in the journal for repair.
 func (c *Calcium) withResourceReleased(ctx context.Context, logger *log.Fields, node *types.Node, workload *types.Workload, remove func(context.Context) error) error {
@@ -85,6 +95,59 @@ func (c *Calcium) invokePoolAsync(f func()) {
 	utils.SentryGo(func() { _ = c.pool.Invoke(f) })
 }
 
+func (c *Calcium) inspectDistribution(ctx context.Context, node *types.Node, image string, digests []string) bool {
+	logger := log.WithFunc("calcium.inspectDistribution")
+	remote, err := c.remoteDigest(ctx, node, image)
+	if err != nil {
+		logger.Error(ctx, err, "get manifest failed")
+		return false
+	}
+
+	if slices.Contains(digests, remote) {
+		logger.Debugf(ctx, "digest matched %s", remote)
+		return true
+	}
+	return false
+}
+
+func (c *Calcium) remoteDigest(ctx context.Context, node *types.Node, image string) (string, error) {
+	if cached, ok := c.remoteDigests.Load(image); ok && time.Now().Before(cached.(remoteDigest).until) {
+		return cached.(remoteDigest).digest, nil
+	}
+	digest, err := node.Engine.ImageRemoteDigest(ctx, image)
+	if err != nil {
+		return "", err
+	}
+	c.remoteDigests.Store(image, remoteDigest{digest: digest, until: time.Now().Add(remoteDigestTTL)})
+	return digest, nil
+}
+
+func (c *Calcium) pullImage(ctx context.Context, node *types.Node, image string) error {
+	logger := log.WithFunc("calcium.pullImage").WithField("node", node.Name).WithField("image", image)
+	if image == "" {
+		return types.ErrNoImage
+	}
+
+	digests, err := node.Engine.ImageLocalDigests(ctx, image)
+	switch {
+	case err != nil:
+		logger.Warnf(ctx, "check image failed: %+v", err)
+	case c.inspectDistribution(ctx, node, image, digests):
+		logger.Debug(ctx, "image cached, skip pulling")
+		return nil
+	}
+
+	logger.Info(ctx, "image not cached, pulling")
+	rc, err := node.Engine.ImagePull(ctx, image, false)
+	defer utils.EnsureReaderClosed(ctx, rc)
+	if err != nil {
+		logger.Errorf(ctx, err, "failed to pull image %s", image)
+		return err
+	}
+	logger.Infof(ctx, "done pulling image %s", image)
+	return nil
+}
+
 func perNode[T any](c *Calcium, nodes []*types.Node, work func(*types.Node, chan<- T)) chan T {
 	ch := make(chan T)
 	utils.SentryGo(func() {
@@ -114,47 +177,6 @@ func removeWorkloadByName(ctx context.Context, node *types.Node, name string) er
 	if err = node.Engine.VirtualizationRemove(ctx, info.ID, true, true); err != nil && !errors.Is(err, types.ErrWorkloadNotExists) {
 		return err
 	}
-	return nil
-}
-
-func inspectDistribution(ctx context.Context, node *types.Node, image string, digests []string) bool {
-	logger := log.WithFunc("calcium.inspectDistribution")
-	remoteDigest, err := node.Engine.ImageRemoteDigest(ctx, image)
-	if err != nil {
-		logger.Error(ctx, err, "get manifest failed")
-		return false
-	}
-
-	if slices.Contains(digests, remoteDigest) {
-		logger.Debugf(ctx, "digest matched %s", remoteDigest)
-		return true
-	}
-	return false
-}
-
-func pullImage(ctx context.Context, node *types.Node, image string) error {
-	logger := log.WithFunc("calcium.pullImage").WithField("node", node.Name).WithField("image", image)
-	if image == "" {
-		return types.ErrNoImage
-	}
-
-	digests, err := node.Engine.ImageLocalDigests(ctx, image)
-	switch {
-	case err != nil:
-		logger.Warnf(ctx, "check image failed: %+v", err)
-	case inspectDistribution(ctx, node, image, digests):
-		logger.Debug(ctx, "image cached, skip pulling")
-		return nil
-	}
-
-	logger.Info(ctx, "image not cached, pulling")
-	rc, err := node.Engine.ImagePull(ctx, image, false)
-	defer utils.EnsureReaderClosed(ctx, rc)
-	if err != nil {
-		logger.Errorf(ctx, err, "failed to pull image %s", image)
-		return err
-	}
-	logger.Infof(ctx, "done pulling image %s", image)
 	return nil
 }
 

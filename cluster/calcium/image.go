@@ -23,7 +23,7 @@ func (c *Calcium) CacheImage(ctx context.Context, opts *types.ImageOptions) (cha
 				Nodename: node.Name,
 				Message:  "",
 			}
-			if err := pullImage(ctx, node, image); err != nil {
+			if err := c.pullImage(ctx, node, image); err != nil {
 				logger.Error(ctx, err)
 				m.Success = false
 				m.Message = err.Error()

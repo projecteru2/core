@@ -276,7 +276,7 @@ func (c *Calcium) doGetAndPrepareNode(ctx context.Context, nodename, image strin
 		return nil, err
 	}
 	if !ignorePull {
-		err = pullImage(ctx, node, image)
+		err = c.pullImage(ctx, node, image)
 	}
 
 	return node, err
