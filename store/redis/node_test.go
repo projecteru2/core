@@ -130,39 +130,32 @@ func (s *RediaronTestSuite) TestGetNodeStatus() {
 
 func (s *RediaronTestSuite) TestNodeStatusStream() {
 	node := s.addStatusNode()
-
-	go func() {
-		ctx, cancel := context.WithTimeout(s.T().Context(), 1000*time.Millisecond)
-		defer cancel()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
-			time.Sleep(500 * time.Millisecond)
-			s.NoError(s.rediaron.SetNodeStatus(s.T().Context(), node, 1))
-			triggerMockedKeyspaceNotification(ctx, s.rediaron.cli, filepath.Join(common.NodeStatusPrefix, node.Name), actionSet)
-		}
-	}()
-
+	key := filepath.Join(common.NodeStatusPrefix, node.Name)
 	ctx, cancel := context.WithCancel(s.T().Context())
-	ch := s.rediaron.NodeStatusStream(ctx)
-	go func() {
-		time.Sleep(1500 * time.Millisecond)
-		triggerMockedKeyspaceNotification(ctx, s.rediaron.cli, filepath.Join(common.NodeStatusPrefix, node.Name), actionExpired)
-		time.Sleep(500 * time.Millisecond)
-		cancel()
-	}()
+	defer cancel()
 
-	statuses := []*types.NodeStatus{}
-	for m := range ch {
-		statuses = append(statuses, m)
+	ch := s.rediaron.NodeStatusStream(ctx)
+	s.NoError(s.rediaron.SetNodeStatus(ctx, node, 1))
+	statuses := []*types.NodeStatus{s.awaitSubscribedStatus(ctx, ch, key)}
+
+	s.NoError(s.rediaron.SetNodeStatus(ctx, node, 1))
+	triggerMockedKeyspaceNotification(ctx, s.rediaron.cli, key, actionSet)
+	triggerMockedKeyspaceNotification(ctx, s.rediaron.cli, key, actionExpired)
+	for statuses[len(statuses)-1].Alive {
+		statuses = append(statuses, s.nextStatus(ch))
 	}
+	cancel()
+
 	for _, m := range statuses[:len(statuses)-1] {
 		s.True(m.Alive)
 	}
 	s.False(statuses[len(statuses)-1].Alive)
+	select {
+	case _, ok := <-ch:
+		s.False(ok)
+	case <-time.After(5 * time.Second):
+		s.FailNow("node status stream did not close")
+	}
 }
 
 func (s *RediaronTestSuite) addStatusNode() *types.Node {
@@ -172,4 +165,29 @@ func (s *RediaronTestSuite) addStatusNode() *types.Node {
 	node, err := s.rediaron.AddNode(ctx, &types.AddNodeOptions{Nodename: "testname", Endpoint: "mock://", Podname: "testpod"})
 	s.NoError(err)
 	return node
+}
+
+func (s *RediaronTestSuite) awaitSubscribedStatus(ctx context.Context, ch <-chan *types.NodeStatus, key string) *types.NodeStatus {
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		triggerMockedKeyspaceNotification(ctx, s.rediaron.cli, key, actionSet)
+		select {
+		case status, ok := <-ch:
+			s.Require().True(ok)
+			return status
+		case <-time.After(5 * time.Millisecond):
+			s.Require().True(time.Now().Before(deadline), "node status stream never subscribed")
+		}
+	}
+}
+
+func (s *RediaronTestSuite) nextStatus(ch <-chan *types.NodeStatus) *types.NodeStatus {
+	select {
+	case status, ok := <-ch:
+		s.Require().True(ok)
+		return status
+	case <-time.After(5 * time.Second):
+		s.Require().FailNow("node status stream delivered no status")
+		return nil
+	}
 }
