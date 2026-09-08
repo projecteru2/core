@@ -64,6 +64,8 @@ func MakeCommandLineArgs(s string) []string {
 	for part := range strings.SplitSeq(s, " ") {
 		if inquote == "" {
 			switch {
+			case len(part) > 1 && (part[0] == '\'' || part[0] == '"') && part[len(part)-1] == part[0]:
+				result = append(result, part[1:len(part)-1])
 			case strings.HasPrefix(part, "'") || strings.HasPrefix(part, "\""):
 				inquote = string(part[0])
 				block = strings.TrimPrefix(part, inquote) + " "
