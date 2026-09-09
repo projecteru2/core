@@ -73,12 +73,9 @@ func (e *Engine) VirtualizationCopyFrom(ctx context.Context, ID, path string) (c
 	if readErr == nil {
 		content, readErr = io.ReadAll(reader)
 	}
-	res, err := exited(running)
+	res, err := sshrunner.Exited(argv, running)
 	if err != nil {
-		return nil, 0, 0, 0, err
-	}
-	if err = sshrunner.ExitError(argv, res); err != nil {
-		if missingPath(res) {
+		if res != nil && missingPath(res) {
 			return nil, 0, 0, 0, errors.Wrapf(coretypes.ErrWorkloadNotExists, "%s not found in workload %s", path, ID)
 		}
 		return nil, 0, 0, 0, err
@@ -124,18 +121,6 @@ func (e *Engine) snapshotArgv(ID, snapshotKey, target string) []string {
 		ctrBinary, e.socket, e.namespace, snapshotKey,
 		filepath.Join(workloadDir(ID), snapshotMount), filepath.Dir(target),
 	)
-}
-
-func exited(running sshrunner.Session) (*sshrunner.Result, error) {
-	stderr, err := io.ReadAll(running.Stderr())
-	if err != nil {
-		return nil, err
-	}
-	code, err := running.Wait()
-	if err != nil {
-		return nil, err
-	}
-	return &sshrunner.Result{Stderr: string(stderr), Code: code}, nil
 }
 
 func missingPath(res *sshrunner.Result) bool {

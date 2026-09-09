@@ -4,7 +4,6 @@ import (
 	"archive/tar"
 	"context"
 	"io"
-	"strings"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -38,7 +37,8 @@ func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target strin
 	if err = running.Stdin().Close(); err != nil {
 		return err
 	}
-	return exited(argv, running)
+	_, err = sshrunner.Exited(argv, running)
+	return err
 }
 
 func (e *Engine) VirtualizationCopyFrom(ctx context.Context, ID, path string) (content []byte, uid, gid int, mode int64, err error) {
@@ -57,14 +57,4 @@ func (e *Engine) VirtualizationCopyFrom(ctx context.Context, ID, path string) (c
 	}
 	content, err = io.ReadAll(archive)
 	return content, header.Uid, header.Gid, header.Mode, err
-}
-
-// exited reports a non-zero guest exit with what the command said on stderr.
-func exited(argv []string, running sshrunner.Session) error {
-	stderr, _ := io.ReadAll(running.Stderr())
-	code, err := running.Wait()
-	if err != nil {
-		return err
-	}
-	return sshrunner.ExitError(argv, &sshrunner.Result{Stderr: strings.TrimSpace(string(stderr)), Code: code})
 }

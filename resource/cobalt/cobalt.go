@@ -44,7 +44,8 @@ func (m *Manager) LoadPlugins(ctx context.Context, store store.Store) error {
 		return err
 	}
 	for _, file := range pluginFiles {
-		if _, ok := cache[filepath.Base(file)]; ok {
+		name := filepath.Base(file)
+		if _, ok := cache[name]; ok {
 			continue
 		}
 		logger.Infof(ctx, "load binary plugin: %+v", file)
@@ -52,7 +53,7 @@ func (m *Manager) LoadPlugins(ctx context.Context, store store.Store) error {
 		if err != nil {
 			return err
 		}
-		cache[b.Name()] = struct{}{}
+		cache[name] = struct{}{}
 		m.AddPlugins(b)
 	}
 	return nil

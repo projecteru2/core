@@ -112,28 +112,24 @@ func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, 
 	}
 
 	nodesDeployCapacityMap := make(map[string]*plugintypes.NodeDeployCapacity, len(nodenames))
-	if !req.CPUBind {
-		for nodename, nodeResourceInfo := range nodesResourceInfos {
-			if nodeDeployCapacity := p.doGetNodeDeployCapacity(nodeResourceInfo, req); nodeDeployCapacity.Capacity > 0 {
-				nodesDeployCapacityMap[nodename] = nodeDeployCapacity
-			}
-		}
-	} else {
-		var mu sync.Mutex
-		var planners errgroup.Group
-		planners.SetLimit(runtime.GOMAXPROCS(0))
-		for nodename, nodeResourceInfo := range nodesResourceInfos {
-			planners.Go(func() error {
-				if nodeDeployCapacity := p.doGetNodeDeployCapacity(nodeResourceInfo, req); nodeDeployCapacity.Capacity > 0 {
-					mu.Lock()
-					nodesDeployCapacityMap[nodename] = nodeDeployCapacity
-					mu.Unlock()
-				}
-				return nil
-			})
-		}
-		_ = planners.Wait()
+	planners := 1
+	if req.CPUBind {
+		planners = runtime.GOMAXPROCS(0)
 	}
+	var mu sync.Mutex
+	var g errgroup.Group
+	g.SetLimit(planners)
+	for nodename, nodeResourceInfo := range nodesResourceInfos {
+		g.Go(func() error {
+			if nodeDeployCapacity := p.doGetNodeDeployCapacity(nodeResourceInfo, req); nodeDeployCapacity.Capacity > 0 {
+				mu.Lock()
+				nodesDeployCapacityMap[nodename] = nodeDeployCapacity
+				mu.Unlock()
+			}
+			return nil
+		})
+	}
+	_ = g.Wait()
 
 	total := 0
 	for _, nodeDeployCapacity := range nodesDeployCapacityMap {

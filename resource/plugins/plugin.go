@@ -39,7 +39,7 @@ type Plugin interface {
 	// GetNodeResourceInfo returns the node's total and available resources.
 	GetNodeResourceInfo(ctx context.Context, nodename string, workloadsResource []plugintypes.WorkloadResource) (*plugintypes.GetNodeResourceInfoResponse, error)
 
-	// GetNodesResourceInfo returns the capacity and usage of many nodes in one call; a node the plugin never saw is left out.
+	// GetNodesResourceInfo returns the capacity and usage of many nodes in one call; a node the plugin never saw is left out or empty.
 	GetNodesResourceInfo(ctx context.Context, nodenames []string) (*plugintypes.GetNodesResourceInfoResponse, error)
 
 	// SetNodeResourceInfo stores a node's capacity and usage as absolute values.

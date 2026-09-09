@@ -187,7 +187,6 @@ func (m *Manager) SetNodeResourceUsage(ctx context.Context, nodename string, nod
 	)
 }
 
-// GetNodesDeployCapacity returns, under the caller's node locks, the nodes meeting every plugin's requirements and their total capacity.
 func (m *Manager) GetNodesDeployCapacity(ctx context.Context, nodenames []string, opts resourcetypes.Resources) (map[string]*plugintypes.NodeDeployCapacity, int, error) {
 	var resp map[string]*plugintypes.NodeDeployCapacity
 
@@ -216,7 +215,6 @@ func (m *Manager) GetNodesDeployCapacity(ctx context.Context, nodenames []string
 	return resp, total, nil
 }
 
-// SetNodeResourceCapacity updates node capacity from resource options rather than resource args.
 func (m *Manager) SetNodeResourceCapacity(ctx context.Context, nodename string, nodeResource, nodeResourceRequest resourcetypes.Resources, delta, incr bool) (resourcetypes.Resources, resourcetypes.Resources, error) {
 	logger := log.WithFunc("resource.cobalt.SetNodeResourceCapacity").WithField("node", nodename)
 
@@ -321,7 +319,6 @@ func mergeCapacity(m1, m2 map[string]*plugintypes.NodeDeployCapacity) map[string
 	return m1
 }
 
-// rollbackNodeResource restores every plugin that applied a failed set of the node's resources.
 func rollbackNodeResource[T any](ctx context.Context, ps []plugins.Plugin, restore pluginCall[T]) error {
 	_, err := call(ctx, ps, restore)
 	return err

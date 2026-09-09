@@ -19,9 +19,9 @@ type NodeDeployCapacity struct {
 	Capacity int `json:"capacity"`
 	// Usage is the used fraction of the node's total, 0..1
 	Usage float64 `json:"usage"`
-	// Rate proportion of requested resources to total
+	// Rate is the proportion of requested resources to the total
 	Rate float64 `json:"rate"`
-	// Weight used for weighted average
+	// Weight is the share of this plugin in the weighted average
 	Weight float64 `json:"weight"`
 }
 

@@ -2,11 +2,12 @@ package binary
 
 import (
 	"context"
-	"slices"
 
+	"github.com/cockroachdb/errors"
 	"golang.org/x/sync/errgroup"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/resource/plugins"
 	binarytypes "github.com/projecteru2/core/resource/plugins/binary/types"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 )
@@ -59,8 +60,9 @@ func (p Plugin) GetNodeResourceInfo(ctx context.Context, nodename string, worklo
 
 func (p Plugin) GetNodesResourceInfo(ctx context.Context, nodenames []string) (*plugintypes.GetNodesResourceInfoResponse, error) {
 	resp := &plugintypes.GetNodesResourceInfoResponse{}
-	if slices.Contains(p.verbs, GetNodesResourceInfoCommand) {
-		return resp, p.call(ctx, GetNodesResourceInfoCommand, &binarytypes.GetNodesResourceInfoRequest{Nodenames: nodenames}, resp)
+	err := p.call(ctx, GetNodesResourceInfoCommand, &binarytypes.GetNodesResourceInfoRequest{Nodenames: nodenames}, resp)
+	if !errors.Is(err, plugins.ErrVerbNotSupported) {
+		return resp, err
 	}
 
 	infos := make([]*plugintypes.GetNodeResourceInfoResponse, len(nodenames))
