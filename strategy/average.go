@@ -20,10 +20,7 @@ func AveragePlan(_ context.Context, infos []Info, need, _, limit int) (map[strin
 	}
 	slices.SortFunc(infos, func(a, b Info) int { return cmp.Compare(b.Capacity, a.Capacity) })
 	p := sort.Search(scheduleInfosLength, func(i int) bool { return infos[i].Capacity < need })
-	if p == 0 {
-		return nil, errors.Wrap(types.ErrInsufficientCapacity, "insufficient nodes, at least 1 needed")
-	}
-	if p < limit {
+	if p < max(limit, 1) {
 		return nil, errors.Wrapf(types.ErrInsufficientResource, "not enough nodes with capacity of %d, require %d nodes", need, limit)
 	}
 	deployMap := map[string]int{}

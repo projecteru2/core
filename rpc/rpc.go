@@ -528,18 +528,7 @@ func (v *Vibranium) Send(opts *pb.SendOptions, stream pb.CoreRPC_SendServer) err
 			}
 		})
 
-		for m := range ch {
-			msg := &pb.SendMessage{
-				Id:   m.ID,
-				Path: m.Path,
-			}
-			if m.Error != nil {
-				msg.Error = m.Error.Error()
-			}
-			if err := stream.Send(msg); err != nil {
-				logUnsentMessages(task.context, "Send", err, m)
-			}
-		}
+		drain(task, "Send", ch, stream.Send, toRPCSendMessage)
 	}
 	return nil
 }
@@ -574,18 +563,7 @@ func (v *Vibranium) SendLargeFile(stream pb.CoreRPC_SendLargeFileServer) error {
 		}
 	})
 
-	for m := range resp {
-		msg := &pb.SendMessage{
-			Id:   m.ID,
-			Path: m.Path,
-		}
-		if m.Error != nil {
-			msg.Error = m.Error.Error()
-		}
-		if err := stream.Send(msg); err != nil {
-			logUnsentMessages(task.context, "SendLargeFile", err, m)
-		}
-	}
+	drain(task, "SendLargeFile", resp, stream.Send, toRPCSendMessage)
 	if recvErr != nil {
 		return grpcstatus.Error(SendLargeFile, recvErr.Error())
 	}
@@ -661,8 +639,9 @@ func (v *Vibranium) CreateWorkload(opts *pb.DeployOptions, stream pb.CoreRPC_Cre
 	if err != nil {
 		return grpcstatus.Error(CreateWorkload, err.Error())
 	}
+	logger := log.WithFunc("vibranium.CreateWorkload")
 	drain(task, "CreateWorkload", ch, stream.Send, func(m *types.CreateWorkloadMessage) *pb.CreateWorkloadMessage {
-		log.WithFunc("vibranium.CreateWorkload").Debugf(task.context, "create workload message: %+v", m)
+		logger.Debugf(task.context, "create workload message: %+v", m)
 		return toRPCCreateWorkloadMessage(m)
 	})
 	return nil

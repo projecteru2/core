@@ -98,7 +98,7 @@ func (e *Engine) VirtualizationStart(ctx context.Context, ID string) error {
 	if err != nil {
 		return err
 	}
-	before, after, err := parseVMs(res.Stdout)
+	before, after, err := decodePair[vmRecord, vmRecord](res.Stdout)
 	if err != nil {
 		return err
 	}
@@ -220,7 +220,7 @@ func (e *Engine) inspectVM(ctx context.Context, ID string) (*meta, *vmRecord, er
 	if err != nil {
 		return nil, nil, err
 	}
-	return parseInspect(res.Stdout)
+	return decodePair[meta, vmRecord](res.Stdout)
 }
 
 // runRecorded runs a script that exits 64 when the workload has no record on the node.

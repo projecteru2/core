@@ -47,11 +47,7 @@ func (n *Node) Info(ctx context.Context) (err error) {
 		n.NodeInfo = err.Error()
 		return err
 	}
-	bs, err := json.Marshal(info)
-	if err != nil {
-		n.NodeInfo = err.Error()
-		return err
-	}
+	bs, _ := json.Marshal(info)
 	n.NodeInfo = string(bs)
 	return nil
 }

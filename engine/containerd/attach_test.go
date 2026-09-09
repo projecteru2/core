@@ -21,7 +21,7 @@ func TestRelayFifosParksASessionOnEveryNodeFifo(t *testing.T) {
 	runner := &sshrunnertest.Fake{Started: []*sshrunnertest.Session{parked(), {}, {}}}
 	e := testEngine(t, runner)
 
-	creator, err := e.relayFifos(t.Context(), "app_web_abc123")
+	creator, _, err := e.relayFifos(t.Context(), "app_web_abc123")
 	if err != nil {
 		t.Fatalf("relay: %v", err)
 	}
@@ -61,7 +61,7 @@ func TestRelayFifosClosesWhatItOpenedWhenASessionIsRefused(t *testing.T) {
 	opened := []*sshrunnertest.Session{{}, {}}
 	e := testEngine(t, &sshrunnertest.Fake{Started: opened, StartErr: errors.New("no more sessions")})
 
-	if _, err := e.relayFifos(t.Context(), "app_web_abc123"); err == nil {
+	if _, _, err := e.relayFifos(t.Context(), "app_web_abc123"); err == nil {
 		t.Fatal("a relay core could not open must not report a started workload")
 	}
 
@@ -81,7 +81,7 @@ func TestAttachHandsBackTheRelayedFifos(t *testing.T) {
 		stdin, {Out: "hello\n"}, {Out: "oops\n"},
 	}})
 
-	if _, err := e.relayFifos(t.Context(), "app_web_abc123"); err != nil {
+	if _, _, err := e.relayFifos(t.Context(), "app_web_abc123"); err != nil {
 		t.Fatalf("relay: %v", err)
 	}
 	stdout, stderr, in, err := e.VirtualizationAttach(t.Context(), "app_web_abc123", true, true)
@@ -123,7 +123,7 @@ func TestReleaseAttachEndsEveryRelay(t *testing.T) {
 	opened := []*sshrunnertest.Session{parked(), {}, {}}
 	e := testEngine(t, &sshrunnertest.Fake{Started: opened})
 
-	if _, err := e.relayFifos(t.Context(), "app_web_abc123"); err != nil {
+	if _, _, err := e.relayFifos(t.Context(), "app_web_abc123"); err != nil {
 		t.Fatalf("relay: %v", err)
 	}
 	e.releaseAttach("app_web_abc123")
@@ -143,10 +143,10 @@ func TestRelayFifosReplacesTheRelaysOfAnEarlierStart(t *testing.T) {
 	runner := &sshrunnertest.Fake{Started: slices.Concat(first, []*sshrunnertest.Session{parked(), {}, {}})}
 	e := testEngine(t, runner)
 
-	if _, err := e.relayFifos(t.Context(), "app_web_abc123"); err != nil {
+	if _, _, err := e.relayFifos(t.Context(), "app_web_abc123"); err != nil {
 		t.Fatalf("relay: %v", err)
 	}
-	if _, err := e.relayFifos(t.Context(), "app_web_abc123"); err != nil {
+	if _, _, err := e.relayFifos(t.Context(), "app_web_abc123"); err != nil {
 		t.Fatalf("restart: %v", err)
 	}
 
@@ -163,7 +163,7 @@ func TestTheRelaysOutliveTheDeployRequestThatStartedThem(t *testing.T) {
 	e := testEngine(t, runner)
 
 	ctx, cancel := context.WithCancel(t.Context())
-	if _, err := e.relayFifos(ctx, "app_web_abc123"); err != nil {
+	if _, _, err := e.relayFifos(ctx, "app_web_abc123"); err != nil {
 		t.Fatalf("relay: %v", err)
 	}
 	cancel()
@@ -272,17 +272,14 @@ func TestAStdinRelayThatDiedDoesNotCloseTheTasksInput(t *testing.T) {
 func TestStartRefusesAWorkloadWhoseRelayAlreadyDied(t *testing.T) {
 	e := testEngine(t, &sshrunnertest.Fake{Started: []*sshrunnertest.Session{parked(), {}, {}}})
 
-	if _, err := e.relayFifos(t.Context(), "app_web_abc123"); err != nil {
+	_, relay, err := e.relayFifos(t.Context(), "app_web_abc123")
+	if err != nil {
 		t.Fatalf("relay: %v", err)
 	}
-	relay := e.attaches["app_web_abc123"]
 	relay.watch(t.Context(), "app_web_abc123", stdinStream, &sshrunnertest.Session{Code: 1, Err: "cannot create fifo\n"})
 
-	if err := e.relayFailure("app_web_abc123"); err == nil {
+	if relay.failure() == nil {
 		t.Error("a workload whose stdin relay is gone would hang forever, so the start must fail")
-	}
-	if err := e.relayFailure("app_web_other"); err != nil {
-		t.Errorf("got %v, want nothing for a workload with no relays", err)
 	}
 }
 

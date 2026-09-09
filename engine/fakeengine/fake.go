@@ -2,7 +2,6 @@
 package fakeengine
 
 import (
-	"bufio"
 	"context"
 	"io"
 	"strings"
@@ -169,7 +168,7 @@ func (e *Engine) RawEngine(context.Context, *enginetypes.RawEngineOptions) (*eng
 func (e *Engine) VerifyNode(context.Context) error { return nil }
 
 type writeCloser struct {
-	*bufio.Writer
+	io.Writer
 }
 
 func (wc *writeCloser) Close() error {
@@ -181,5 +180,5 @@ func stream(content string) io.ReadCloser {
 }
 
 func sink() io.WriteCloser {
-	return &writeCloser{bufio.NewWriter(io.Discard)}
+	return &writeCloser{io.Discard}
 }

@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 
@@ -35,8 +36,6 @@ var (
 
 // Metrics ships core metrics to Prometheus and statsd.
 type Metrics struct {
-	Config types.Config
-
 	StatsdAddr   string
 	Hostname     string
 	statsdMu     sync.Mutex
@@ -44,7 +43,8 @@ type Metrics struct {
 
 	Collectors map[string]prometheus.Collector
 
-	rmgr resource.Manager
+	refreshTimeout time.Duration
+	rmgr           resource.Manager
 }
 
 func (m *Metrics) SendDeployCount(ctx context.Context, n int) {
@@ -176,11 +176,11 @@ func InitMetrics(config types.Config, rmgr resource.Manager, metricsDescriptions
 
 	once.Do(func() {
 		Client = Metrics{
-			Config:     config,
-			StatsdAddr: config.Statsd,
-			Hostname:   utils.CleanStatsdMetrics(hostname),
-			Collectors: map[string]prometheus.Collector{},
-			rmgr:       rmgr,
+			StatsdAddr:     config.Statsd,
+			Hostname:       utils.CleanStatsdMetrics(hostname),
+			Collectors:     map[string]prometheus.Collector{},
+			refreshTimeout: config.GlobalTimeout,
+			rmgr:           rmgr,
 		}
 
 		for _, desc := range metricsDescriptions {

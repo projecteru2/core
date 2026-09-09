@@ -21,10 +21,10 @@ import (
 
 // GitScm is the GitHub/GitLab source code manager.
 type GitScm struct {
-	http.Client
 	Config      types.GitConfig
 	AuthHeaders map[string]string
 
+	client http.Client
 	signer ssh.Signer
 }
 
@@ -43,7 +43,7 @@ func NewGitScm(config types.GitConfig, authHeaders map[string]string) (*GitScm, 
 		AuthHeaders: authHeaders,
 		signer:      signer,
 	}
-	scm.Timeout = config.CloneTimeout
+	scm.client.Timeout = config.CloneTimeout
 	return scm, nil
 }
 
@@ -117,7 +117,7 @@ func (g *GitScm) Artifact(ctx context.Context, artifact, path string) error {
 	}
 
 	log.WithFunc("source.common.Artifact").Infof(ctx, "downloading artifacts from %q", artifact)
-	resp, err := g.Do(req)
+	resp, err := g.client.Do(req)
 	if err != nil {
 		return err
 	}

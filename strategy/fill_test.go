@@ -21,6 +21,7 @@ func TestFillPlan(t *testing.T) {
 	r, err = FillPlan(t.Context(), nodes, n, 0, 0)
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, []int{5, 5, 5, 7}, getFinalStatus(r, nodes))
+	assert.Equal(t, map[string]int{"n1": 3, "n2": 2}, r)
 
 	n = 15
 	nodes = deployedNodes()
@@ -29,9 +30,10 @@ func TestFillPlan(t *testing.T) {
 
 	n = 1
 	nodes = deployedNodes()
-	_, err = FillPlan(t.Context(), nodes, n, 0, 0)
+	r, err = FillPlan(t.Context(), nodes, n, 0, 0)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "each node has enough workloads")
+	assert.Empty(t, r)
 
 	n = 10
 	nodes = deployedNodes()

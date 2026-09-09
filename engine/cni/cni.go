@@ -19,16 +19,16 @@ const (
 	ListScript = `cat "$1"/*.conflist "$1"/*.conf 2>/dev/null || true`
 )
 
-// Conf is the subset of a CNI network configuration core reports.
-type Conf struct {
+// conf is the subset of a CNI network configuration core reports.
+type conf struct {
 	Name    string `json:"name"`
 	Type    string `json:"type"`
 	IPAM    ipam   `json:"ipam"`
-	Plugins []Conf `json:"plugins"`
+	Plugins []conf `json:"plugins"`
 }
 
-// Subnets lists what the conf and its plugins hand addresses out of.
-func (c Conf) Subnets() []string {
+// subnets lists what the conf and its plugins hand addresses out of.
+func (c conf) subnets() []string {
 	subnets := c.IPAM.subnets()
 	for _, plugin := range c.Plugins {
 		subnets = slices.Concat(subnets, plugin.IPAM.subnets())
@@ -63,7 +63,7 @@ func Parse(confs string, drivers []string) ([]*enginetypes.Network, error) {
 	networks := []*enginetypes.Network{}
 	decoder := json.NewDecoder(strings.NewReader(confs))
 	for {
-		c := Conf{}
+		c := conf{}
 		if err := decoder.Decode(&c); err != nil {
 			if errors.Is(err, io.EOF) {
 				return networks, nil
@@ -73,19 +73,19 @@ func Parse(confs string, drivers []string) ([]*enginetypes.Network, error) {
 		if c.Name == "" || !drives(c, drivers) {
 			continue
 		}
-		networks = append(networks, &enginetypes.Network{Name: c.Name, Subnets: c.Subnets()})
+		networks = append(networks, &enginetypes.Network{Name: c.Name, Subnets: c.subnets()})
 	}
 }
 
 // drives reports whether one of the named plugin types implements the conf.
-func drives(c Conf, drivers []string) bool {
+func drives(c conf, drivers []string) bool {
 	if len(drivers) == 0 {
 		return true
 	}
 	if slices.Contains(drivers, c.Type) {
 		return true
 	}
-	return slices.ContainsFunc(c.Plugins, func(plugin Conf) bool {
+	return slices.ContainsFunc(c.Plugins, func(plugin conf) bool {
 		return slices.Contains(drivers, plugin.Type)
 	})
 }

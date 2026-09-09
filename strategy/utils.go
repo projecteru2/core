@@ -47,3 +47,19 @@ func (h *infoHeap) Pop() any {
 	h.infos = h.infos[:length-1]
 	return x
 }
+
+func (h *infoHeap) place(need int, advance func(*Info)) (map[string]int, int) {
+	deploy := map[string]int{}
+	for placed := range need {
+		if h.Len() == 0 {
+			return deploy, placed
+		}
+		info := heap.Pop(h).(Info)
+		deploy[info.Nodename]++
+		advance(&info)
+		if h.admit(info) {
+			heap.Push(h, info)
+		}
+	}
+	return deploy, need
+}

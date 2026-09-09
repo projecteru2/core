@@ -82,7 +82,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		logger.Errorf(ctx, err, "failed to parse engine args %+v", opts.EngineParams)
 		return nil, coretypes.ErrInvalidEngineArgs
 	}
-	if resource.Memory > 0 && resource.Memory < minMemory || resource.Memory < 0 {
+	if resource.Memory < 0 || (resource.Memory > 0 && resource.Memory < minMemory) {
 		return nil, coretypes.ErrInvaildMemory
 	}
 	rArgs := &RawArgs{}
@@ -102,7 +102,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	}
 	dir := workloadDir(ID)
 	mounts := volumeMounts(resource.Volumes, opts.Env)
-	throttled, devices, err := e.prepareNode(ctx, opts, mounts, resource, rArgs, dir)
+	throttled, devices, err := e.prepareNode(ctx, opts, mounts, resource, rArgs, ID, dir)
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +152,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 }
 
 // prepareNode asks the node for what containerd's API cannot answer about a create.
-func (e *Engine) prepareNode(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions, mounts []specs.Mount, resource *engine.VirtualizationResource, rArgs *RawArgs, dir string) ([]blockDevice, []nodeDevice, error) {
+func (e *Engine) prepareNode(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions, mounts []specs.Mount, resource *engine.VirtualizationResource, rArgs *RawArgs, ID, dir string) ([]blockDevice, []nodeDevice, error) {
 	paths := make([]string, 0, len(mounts))
 	for _, mount := range mounts {
 		paths = append(paths, mountMark+mount.Source)
@@ -161,15 +161,11 @@ func (e *Engine) prepareNode(ctx context.Context, opts *enginetypes.Virtualizati
 	devices, deviceMarks := requestedDevices(rArgs.Devices)
 	paths = slices.Concat(paths, throttleMarks, deviceMarks)
 
-	resolv, hosts := resolverFiles(opts, filepath.Base(dir))
+	resolv, hosts := resolverFiles(opts, ID)
 	if len(paths) == 0 && resolv == "" && hosts == "" {
 		return nil, nil, nil
 	}
-	res, err := e.run(ctx, sshrunner.Shell(prepareScript, slices.Concat([]string{dir, resolv, hosts}, paths)...)...)
-	if err != nil {
-		return nil, nil, err
-	}
-	stats, err := parseDeviceStats(res.Stdout, len(throttled)+len(devices))
+	stats, err := e.statDevices(ctx, slices.Concat([]string{dir, resolv, hosts}, paths), len(throttled)+len(devices))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -207,11 +203,7 @@ func (e *Engine) resolveThrottles(ctx context.Context, options map[string]string
 	if len(devices) == 0 {
 		return nil, nil
 	}
-	res, err := e.run(ctx, sshrunner.Shell(prepareScript, slices.Concat([]string{"", "", ""}, marks)...)...)
-	if err != nil {
-		return nil, err
-	}
-	stats, err := parseDeviceStats(res.Stdout, len(devices))
+	stats, err := e.statDevices(ctx, slices.Concat([]string{"", "", ""}, marks), len(devices))
 	if err != nil {
 		return nil, err
 	}
@@ -219,6 +211,14 @@ func (e *Engine) resolveThrottles(ctx context.Context, options map[string]string
 		devices[i].Major, devices[i].Minor = stats[i].Major, stats[i].Minor
 	}
 	return devices, nil
+}
+
+func (e *Engine) statDevices(ctx context.Context, marks []string, want int) ([]deviceStat, error) {
+	res, err := e.run(ctx, sshrunner.Shell(prepareScript, marks...)...)
+	if err != nil {
+		return nil, err
+	}
+	return parseDeviceStats(res.Stdout, want)
 }
 
 // discard drops the node state a failed create left behind.

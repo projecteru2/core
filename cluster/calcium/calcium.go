@@ -95,7 +95,8 @@ func New(ctx context.Context, config types.Config, embeddedETCD *embedded.Cluste
 		return nil, err
 	}
 
-	return cal, pool.Invoke(func() { cal.InitMetrics(ctx) })
+	cal.InitMetrics(ctx)
+	return cal, nil
 }
 
 // DisasterRecover replays the WAL to finish interrupted writes.

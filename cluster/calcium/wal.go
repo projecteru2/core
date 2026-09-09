@@ -298,7 +298,7 @@ func (h *WorkloadResourceAllocatedHandler) Handle(ctx context.Context, raw any) 
 	wg := &sync.WaitGroup{}
 	for i, node := range nodes {
 		wg.Go(func() {
-			if _, e := h.calcium.NodeResource(ctx, node.Name, true); e != nil {
+			if _, e := h.calcium.doGetNodeResource(ctx, node.Name, false, true); e != nil {
 				logger.Errorf(ctx, e, "failed to fix node resource: %s", node.Name)
 				errs[i] = e
 				return

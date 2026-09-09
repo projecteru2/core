@@ -32,7 +32,3 @@ func newMeta(ctx context.Context, ID string, opts *enginetypes.VirtualizationCre
 	m.Iface = vm.tap()
 	return m
 }
-
-func parseInspect(out string) (*meta, *vmRecord, error) {
-	return decodePair[meta, vmRecord](out)
-}

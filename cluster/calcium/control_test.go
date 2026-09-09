@@ -39,9 +39,13 @@ func TestControlStartResume(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c, ctx, store := newControlTestCluster(t)
+			ch, err := c.ControlWorkload(ctx, []string{"id1"}, "", true)
+			assert.Nil(t, ch)
+			assert.ErrorIs(t, err, types.ErrInvaildControlType)
+
 			store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 			store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
-			ch, err := c.ControlWorkload(ctx, []string{"id1"}, "", true)
+			ch, err = c.ControlWorkload(ctx, []string{"id1"}, tt.controlTyp, true)
 			assert.NoError(t, err)
 			for r := range ch {
 				assert.Error(t, r.Error)
@@ -54,11 +58,6 @@ func TestControlStartResume(t *testing.T) {
 			workload.Engine = engine
 			store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
 			store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
-			ch, err = c.ControlWorkload(ctx, []string{"id1"}, "", true)
-			assert.NoError(t, err)
-			for r := range ch {
-				assert.Error(t, r.Error)
-			}
 			engine.On(tt.engineOp, mock.Anything, mock.Anything).Return(types.ErrNilEngine).Once()
 			ch, err = c.ControlWorkload(ctx, []string{"id1"}, tt.controlTyp, false)
 			assert.NoError(t, err)

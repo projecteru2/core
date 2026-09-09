@@ -66,6 +66,28 @@ func TestSubscribeGetsTheLatestStatusAtOnce(t *testing.T) {
 	close(chAddr)
 }
 
+func TestTickDoesNotDispatchBeforeTheFirstPush(t *testing.T) {
+	chAddr := make(chan []string)
+	store := &storemocks.Store{}
+	store.On("ServiceStatusStream", mock.Anything).Return(chAddr)
+	service := New(t.Context(), types.GRPCConfig{ServiceDiscoveryPushInterval: time.Second}, store)
+
+	ID, chStatus := service.Subscribe()
+	select {
+	case status := <-chStatus:
+		t.Fatalf("a subscriber was handed %+v before the first store push", status)
+	case <-time.After(3 * time.Second):
+	}
+
+	chAddr <- []string{"10.0.0.1"}
+	status := <-chStatus
+	assert.Equal(t, []string{"10.0.0.1"}, status.Addresses)
+	assert.Equal(t, 2*time.Second, status.Interval)
+
+	service.Unsubscribe(ID)
+	close(chAddr)
+}
+
 func TestDispatchDoesNotWaitForAStuckSubscriber(t *testing.T) {
 	chAddr := make(chan []string)
 	store := &storemocks.Store{}

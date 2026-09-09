@@ -59,21 +59,26 @@ func (e *Engine) BuildContent(ctx context.Context, scm coresource.Source, opts *
 }
 
 // ImageBuild solves the context on the node's buildkitd and exports straight to the registry.
-func (e *Engine) ImageBuild(ctx context.Context, input io.Reader, refs []string, platform string) (io.ReadCloser, error) {
+func (e *Engine) ImageBuild(ctx context.Context, input io.Reader, refs []string, platform string) (_ io.ReadCloser, err error) {
 	dir, err := os.MkdirTemp(os.TempDir(), "erusolve-")
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if err != nil {
+			err = errors.Join(err, os.RemoveAll(dir))
+		}
+	}()
 	if err = unpackContext(input, dir); err != nil {
-		return nil, errors.Join(err, os.RemoveAll(dir))
+		return nil, err
 	}
 	contextFS, err := fsutil.NewFS(dir)
 	if err != nil {
-		return nil, errors.Join(err, os.RemoveAll(dir))
+		return nil, err
 	}
 	buildkit, err := e.buildkit(ctx)
 	if err != nil {
-		return nil, errors.Join(err, os.RemoveAll(dir))
+		return nil, err
 	}
 
 	opt := bkclient.SolveOpt{

@@ -29,8 +29,6 @@ type VirtualizationCreateOptions struct {
 
 	RawArgs []byte
 	Lambda  bool
-
-	AncestorWorkloadID string
 }
 
 // VirtualizationCreated identifies a freshly created workload.
@@ -45,8 +43,6 @@ type VirtualizationInfo struct {
 	User     string
 	Image    string
 	Running  bool
-	Env      []string
-	Labels   map[string]string
 	Networks map[string]string
 }
 

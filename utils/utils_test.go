@@ -49,10 +49,22 @@ func TestGetGitRepoName(t *testing.T) {
 }
 
 func TestMakeCommandLine(t *testing.T) {
-	r1 := MakeCommandLineArgs("/bin/bash -l -c 'echo \"foo bar bah bin\"'")
-	assert.Equal(t, r1, []string{"/bin/bash", "-l", "-c", "echo \"foo bar bah bin\""})
-	r2 := MakeCommandLineArgs(" test -a   -b   -d")
-	assert.Equal(t, r2, []string{"test", "-a", "-b", "-d"})
+	tests := []struct {
+		line string
+		want []string
+	}{
+		{"/bin/bash -l -c 'echo \"foo bar bah bin\"'", []string{"/bin/bash", "-l", "-c", "echo \"foo bar bah bin\""}},
+		{" test -a   -b   -d", []string{"test", "-a", "-b", "-d"}},
+		{"echo 'hello'", []string{"echo", "hello"}},
+		{"a \"b\" c", []string{"a", "b", "c"}},
+		{"a 'b c' \"d\"", []string{"a", "b c", "d"}},
+		{"''", []string{""}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.line, func(t *testing.T) {
+			assert.Equal(t, tt.want, MakeCommandLineArgs(tt.line))
+		})
+	}
 }
 
 func TestMakeWorkloadName(t *testing.T) {

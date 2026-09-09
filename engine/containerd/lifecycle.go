@@ -42,12 +42,9 @@ func (e *Engine) VirtualizationStart(ctx context.Context, ID string) (err error)
 	creator := cio.LogURI(logShimURL)
 	var relay *attach
 	if _, stdin := info.Labels[stdinLabel]; stdin {
-		if creator, err = e.relayFifos(ctx, ID); err != nil {
+		if creator, relay, err = e.relayFifos(ctx, ID); err != nil {
 			return err
 		}
-		e.mu.Lock()
-		relay = e.attaches[ID]
-		e.mu.Unlock()
 		defer func() {
 			if err != nil {
 				e.releaseAttach(ID)
@@ -67,8 +64,10 @@ func (e *Engine) VirtualizationStart(ctx context.Context, ID string) (err error)
 	if err = task.Start(ctx); err != nil && !cerrdefs.IsFailedPrecondition(err) {
 		return err
 	}
-	if err = e.relayFailure(ID); err != nil {
-		return err
+	if relay != nil {
+		if err = relay.failure(); err != nil {
+			return err
+		}
 	}
 	if err = e.setDesiredStatus(ctx, found, info.Labels, client.Running); err != nil {
 		return err
@@ -170,12 +169,10 @@ func (e *Engine) VirtualizationInspect(ctx context.Context, ID string) (*enginet
 	r := &enginetypes.VirtualizationInfo{
 		ID:       found.ID(),
 		Image:    info.Image,
-		Labels:   info.Labels,
 		Networks: workloadNetworks(info.Labels, e.host),
 	}
 	if spec, specErr := containerSpec(info); specErr == nil && spec.Process != nil {
 		r.User = userString(spec.Process.User)
-		r.Env = spec.Process.Env
 	}
 	resp, err := e.client.TaskService().Get(ctx, &tasks.GetRequest{ContainerID: found.ID()})
 	if err != nil {
@@ -221,7 +218,7 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, en
 		logger.Errorf(ctx, err, "failed to parse engine args %+v", engineParams)
 		return err
 	}
-	if resource.Memory > 0 && resource.Memory < minMemory || resource.Memory < 0 {
+	if resource.Memory < 0 || (resource.Memory > 0 && resource.Memory < minMemory) {
 		return coretypes.ErrInvaildMemory
 	}
 
@@ -313,8 +310,8 @@ func withSpecUser(user specs.User) client.UpdateContainerOpts {
 
 func withSpecUpdate(apply func(*oci.Spec)) client.UpdateContainerOpts {
 	return func(_ context.Context, _ *client.Client, c *containers.Container) error {
-		spec := &oci.Spec{}
-		if err := json.Unmarshal(c.Spec.GetValue(), spec); err != nil {
+		spec, err := containerSpec(*c)
+		if err != nil {
 			return err
 		}
 		apply(spec)

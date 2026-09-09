@@ -117,9 +117,6 @@ func (n *NodeStatusWatcher) replayDeadJournals(ctx context.Context) {
 			logger.Error(ctx, err, "failed to read service status")
 			return nil
 		}
-		if len(live) == 0 {
-			return nil
-		}
 		n.wal.Takeover(ctx, live)
 		return nil
 	})
@@ -142,7 +139,10 @@ func (n *NodeStatusWatcher) initNodeStatus(ctx context.Context) {
 	var handlers errgroup.Group
 	handlers.SetLimit(nodeStatusHandlers)
 	for _, node := range nodes {
-		status := &types.NodeStatus{Nodename: node.Name, Podname: node.Podname, Alive: node.Available || node.Test}
+		if node.Available || node.Test {
+			continue
+		}
+		status := &types.NodeStatus{Nodename: node.Name, Podname: node.Podname}
 		handlers.Go(func() error {
 			n.dealNodeStatusMessage(ctx, status)
 			return nil

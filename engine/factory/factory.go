@@ -148,7 +148,8 @@ func (e *EngineCache) checkNodeStatus(ctx context.Context) {
 				e.cache.Range(func(_, v any) bool {
 					ep := v.(engine.API).GetParams()
 					if ep.Nodename == ns.Nodename {
-						RemoveEngineFromCache(ctx, ep.Endpoint)
+						logger.Infof(ctx, "remove engine %+v from cache", ep.Endpoint)
+						e.Delete(ep.Endpoint)
 					}
 					return true
 				})
@@ -161,9 +162,10 @@ func (e *EngineCache) checkNodeStatus(ctx context.Context) {
 func InitEngineCache(ctx context.Context, config types.Config, stor store.Store) {
 	engineCache = NewEngineCache(config, stor)
 	if stor != nil {
-		_, _ = engineCache.stor.GetNodesByPod(ctx, &types.NodeFilter{
-			All: true,
-		}, false)
+		go func() {
+			_, err := engineCache.stor.GetNodesByPod(ctx, &types.NodeFilter{All: true}, false)
+			log.WithFunc("engine.factory.InitEngineCache").Error(ctx, err)
+		}()
 	}
 	go engineCache.checkAlive(ctx)
 	go engineCache.checkNodeStatus(ctx)
@@ -193,7 +195,7 @@ func GetEngine(ctx context.Context, config types.Config, nodename, endpoint stri
 			return client, nil
 		}
 		logger := log.WithFunc("engine.factory.GetEngine")
-		params := enginetypes.NewParams(nodename, endpoint)
+		params := &enginetypes.Params{Nodename: nodename, Endpoint: endpoint}
 		client, err := newEngine(dialCtx, config, params)
 		if err != nil {
 			engineCache.Set(endpoint, &fake.EngineWithErr{DefaultErr: err, EP: params})

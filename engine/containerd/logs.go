@@ -55,6 +55,15 @@ func (a *attach) close() {
 	}
 }
 
+func (a *attach) failure() error {
+	select {
+	case err := <-a.died:
+		return err
+	default:
+		return nil
+	}
+}
+
 // watch reports a relay that ends on its own; its stderr is the only account of why it did.
 func (a *attach) watch(ctx context.Context, ID, stream string, sess sshrunner.Session) {
 	logger := log.WithFunc("engine.containerd.attach.watch").WithField("ID", ID)
@@ -123,11 +132,11 @@ func (e *Engine) VirtualizationAttach(ctx context.Context, ID string, _, stdin b
 }
 
 // relayFifos parks a session on each fifo before the task exists; the shim's own open blocks on them.
-func (e *Engine) relayFifos(ctx context.Context, ID string) (_ cio.Creator, err error) {
+func (e *Engine) relayFifos(ctx context.Context, ID string) (_ cio.Creator, _ *attach, err error) {
 	e.releaseAttach(ID)
 	set := fifoSet(ID)
 	if _, err = e.run(ctx, sshrunner.Shell(fifoMakeScript, filepath.Dir(set.Stdin), set.Stdin, set.Stdout, set.Stderr)...); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// a relay lives as long as the workload, and the deploy request that starts it does not
@@ -143,13 +152,13 @@ func (e *Engine) relayFifos(ctx context.Context, ID string) (_ cio.Creator, err 
 		}
 	}()
 	if relay.stdin, err = e.runner.Start(held, sshrunner.Quote(sshrunner.Shell(fifoWriteScript, set.Stdin)), &sshrunner.StartOptions{Stdin: true}); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if relay.stdout, err = e.runner.Start(held, sshrunner.Quote([]string{"cat", set.Stdout}), &sshrunner.StartOptions{}); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if relay.stderr, err = e.runner.Start(held, sshrunner.Quote([]string{"cat", set.Stderr}), &sshrunner.StartOptions{}); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	e.mu.Lock()
 	e.attaches[ID] = relay
@@ -157,7 +166,7 @@ func (e *Engine) relayFifos(ctx context.Context, ID string) (_ cio.Creator, err 
 	go relay.watch(held, ID, stdinStream, relay.stdin)
 	go relay.watch(held, ID, "stdout", relay.stdout)
 	go relay.watch(held, ID, "stderr", relay.stderr)
-	return func(string) (cio.IO, error) { return cio.Load(cio.NewFIFOSet(set, nil)) }, nil
+	return func(string) (cio.IO, error) { return cio.Load(cio.NewFIFOSet(set, nil)) }, relay, nil
 }
 
 func (e *Engine) closeTaskStdin(ctx context.Context, ID string) error {
@@ -166,21 +175,6 @@ func (e *Engine) closeTaskStdin(ctx context.Context, ID string) error {
 		return err
 	}
 	return task.CloseIO(ctx, client.WithStdinCloser)
-}
-
-func (e *Engine) relayFailure(ID string) error {
-	e.mu.Lock()
-	relay, ok := e.attaches[ID]
-	e.mu.Unlock()
-	if !ok {
-		return nil
-	}
-	select {
-	case err := <-relay.died:
-		return err
-	default:
-		return nil
-	}
 }
 
 func (e *Engine) releaseAttach(ID string) {

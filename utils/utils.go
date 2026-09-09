@@ -6,9 +6,9 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"io"
 	"math"
+	"net"
 	"os"
 	"strings"
 	"time"
@@ -64,6 +64,8 @@ func MakeCommandLineArgs(s string) []string {
 	for part := range strings.SplitSeq(s, " ") {
 		if inquote == "" {
 			switch {
+			case len(part) > 1 && (part[0] == '\'' || part[0] == '"') && part[len(part)-1] == part[0]:
+				result = append(result, part[1:len(part)-1])
 			case strings.HasPrefix(part, "'") || strings.HasPrefix(part, "\""):
 				inquote = string(part[0])
 				block = strings.TrimPrefix(part, inquote) + " "
@@ -106,10 +108,7 @@ func ParseWorkloadName(workloadName string) (string, string, string, error) {
 func MakePublishInfo(networks map[string]string, ports []string) map[string][]string {
 	result := map[string][]string{}
 	for networkName, ip := range networks {
-		data := make([]string, 0, len(ports))
-		for _, port := range ports {
-			data = append(data, fmt.Sprintf("%s:%s", ip, port))
-		}
+		data := Map(ports, func(port string) string { return net.JoinHostPort(ip, port) })
 		if len(data) > 0 {
 			result[networkName] = data
 		}

@@ -24,7 +24,7 @@ func TestResourceMiddlewareRefreshesEveryNodeInOneCall(t *testing.T) {
 	rmgr := &resourcemocks.Manager{}
 	rmgr.On("GetNodesMetrics", mock.Anything, mock.MatchedBy(func(nodes []*types.Node) bool { return len(nodes) == 2 })).Return(nil, nil).Once()
 
-	m := &Metrics{Config: types.Config{GlobalTimeout: time.Second}, rmgr: rmgr}
+	m := &Metrics{refreshTimeout: time.Second, rmgr: rmgr}
 	served := false
 	handler := m.ResourceMiddleware(t.Context(), cluster)(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
 		served = true
@@ -43,7 +43,7 @@ func TestResourceMiddlewareSharesOneRefreshBetweenOverlappingScrapes(t *testing.
 		release := make(chan struct{})
 		rmgr.On("GetNodesMetrics", mock.Anything, mock.Anything).Run(func(mock.Arguments) { <-release }).Return(nil, nil).Once()
 
-		m := &Metrics{Config: types.Config{GlobalTimeout: time.Second}, rmgr: rmgr}
+		m := &Metrics{refreshTimeout: time.Second, rmgr: rmgr}
 		served := make(chan struct{}, 2)
 		handler := m.ResourceMiddleware(t.Context(), cluster)(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
 			served <- struct{}{}
@@ -75,7 +75,7 @@ func TestResourceMiddlewareRefreshOutlivesTheScrapeThatStartedIt(t *testing.T) {
 			}
 		}).Return(nil, nil).Once()
 
-		m := &Metrics{Config: types.Config{GlobalTimeout: time.Second}, rmgr: rmgr}
+		m := &Metrics{refreshTimeout: time.Second, rmgr: rmgr}
 		served := make(chan struct{}, 2)
 		handler := m.ResourceMiddleware(t.Context(), cluster)(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
 			served <- struct{}{}
@@ -102,7 +102,7 @@ func TestResourceMiddlewareListNodesFailed(t *testing.T) {
 	cluster := &clustermocks.Cluster{}
 	cluster.On("ListPodNodes", mock.Anything, mock.Anything).Return(nil, errors.New("etcd unavailable"))
 
-	m := &Metrics{Config: types.Config{GlobalTimeout: time.Second}}
+	m := &Metrics{refreshTimeout: time.Second}
 	served := make(chan struct{})
 	handler := m.ResourceMiddleware(t.Context(), cluster)(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
 		close(served)

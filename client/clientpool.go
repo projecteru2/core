@@ -35,11 +35,7 @@ func NewCoreRPCClientPool(ctx context.Context, config *PoolConfig) (*Pool, error
 	}
 	c := &Pool{rpcClients: []*clientWithStatus{}}
 	for _, addr := range config.EruAddrs {
-		var rpc *Client
-		var err error
-		utils.WithTimeout(ctx, config.ConnectionTimeout, func(ctx context.Context) {
-			rpc, err = NewClient(ctx, addr, config.Auth)
-		})
+		rpc, err := NewClient(ctx, addr, config.Auth)
 		if err != nil {
 			log.WithFunc("client.NewCoreRPCClientPool").Errorf(ctx, err, "connect to %s failed", addr)
 			continue

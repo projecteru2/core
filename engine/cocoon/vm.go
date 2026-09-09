@@ -58,10 +58,6 @@ func parseVM(out string) (*vmRecord, error) {
 	return vm, nil
 }
 
-func parseVMs(out string) (*vmRecord, *vmRecord, error) {
-	return decodePair[vmRecord, vmRecord](out)
-}
-
 func (v *vmRecord) running() bool {
 	return v.State == stateRunning
 }

@@ -19,32 +19,30 @@ var opts = &redislock.Options{
 
 // RedisLock is a redis SET NX based lock
 type RedisLock struct {
-	key     string
-	timeout time.Duration
-	ttl     time.Duration
-	lc      *redislock.Client
-	l       *redislock.Lock
-	cancel  context.CancelFunc
-	wg      sync.WaitGroup
+	key    string
+	ttl    time.Duration
+	lc     *redislock.Client
+	l      *redislock.Lock
+	cancel context.CancelFunc
+	wg     sync.WaitGroup
 }
 
-// New creates a lock on key, waiting at most waitTimeout to acquire it and holding it for lockTTL.
-func New(cli redislock.RedisClient, key string, waitTimeout, lockTTL time.Duration) (*RedisLock, error) {
+// New creates a lock on key, waiting at most ttl to acquire it and holding it for ttl.
+func New(cli redislock.RedisClient, key string, ttl time.Duration) (*RedisLock, error) {
 	key, err := lock.Key(key)
 	if err != nil {
 		return nil, err
 	}
 
 	return &RedisLock{
-		key:     key,
-		timeout: waitTimeout,
-		ttl:     lockTTL,
-		lc:      redislock.New(cli),
+		key: key,
+		ttl: ttl,
+		lc:  redislock.New(cli),
 	}, nil
 }
 
 func (r *RedisLock) Lock(ctx context.Context) (context.Context, error) {
-	lockCtx, cancel := context.WithTimeout(ctx, r.timeout)
+	lockCtx, cancel := context.WithTimeout(ctx, r.ttl)
 	defer cancel()
 	l, err := r.lc.Obtain(lockCtx, r.key, r.ttl, opts)
 	if err != nil {

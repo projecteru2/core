@@ -130,7 +130,6 @@ func (c *Calcium) doReplaceWorkload(ctx context.Context, workload *types.Workloa
 				ctx,
 				func(ctx context.Context) error {
 					vco := c.doMakeWorkloadOptions(ctx, index, createMessage, &opts.DeployOptions, node)
-					vco.AncestorWorkloadID = workload.ID
 					return c.doDeployOneWorkload(ctx, node, &opts.DeployOptions, createMessage, vco, false)
 				},
 				func(ctx context.Context) (err error) {

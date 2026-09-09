@@ -53,9 +53,9 @@ func (h *Hydro) Recover(ctx context.Context) {
 	h.recoverAddress(ctx, h.address)
 }
 
-// Takeover replays the journals of instances no longer registered as live; a nil live set means nothing is known yet.
+// Takeover replays the journals of instances no longer registered as live; an empty live set means nothing is known yet.
 func (h *Hydro) Takeover(ctx context.Context, live []string) {
-	if live == nil {
+	if len(live) == 0 {
 		return
 	}
 
@@ -75,7 +75,7 @@ func (h *Hydro) Takeover(ctx context.Context, live []string) {
 }
 
 func (h *Hydro) Log(eventyp string, item any) (Commit, error) {
-	handler, ok := h.handler(eventyp)
+	handler, ok := h.handlers[eventyp]
 	if !ok {
 		return nil, errors.Wrap(coretypes.ErrInvaildWALEventType, eventyp)
 	}
@@ -149,7 +149,7 @@ func (h *Hydro) recoverAddress(ctx context.Context, address string) {
 			continue
 		}
 
-		handler, ok := h.handler(event.Type)
+		handler, ok := h.handlers[event.Type]
 		if !ok {
 			logger.Warnf(ctx, "no such event handler for %s", event.Type)
 			continue
@@ -171,11 +171,6 @@ func (h *Hydro) handle(ctx context.Context, handler EventHandler, event HydroEve
 		return err
 	}
 	return h.store.Delete(ctx, []string{key})
-}
-
-func (h *Hydro) handler(eventyp string) (EventHandler, bool) {
-	handler, ok := h.handlers[eventyp]
-	return handler, ok
 }
 
 func (h *Hydro) lastSeq(ctx context.Context) (uint64, error) {

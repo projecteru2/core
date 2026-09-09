@@ -2,8 +2,7 @@
 
 `github.com/projecteru2/core/client` is the Go client other services use to talk to core. It is
 a thin wrapper around the generated `pb.CoreRPCClient` plus the pieces that make a multi-instance
-deployment usable: address resolution, load balancing, retry of the watch streams, and
-authentication.
+deployment usable: address resolution, load balancing, and authentication.
 
 ## A single connection
 
@@ -91,14 +90,12 @@ a silent connection.
 
 ## Retries
 
-The client installs a stream retry interceptor; unary calls are never retried, because a
-resource operation is not safe to replay blindly. The interceptor defaults to `Max: 0` — no
-retries — and a stream the server ends cleanly is not retried at any setting.
+The client does not retry. Unary calls are never replayed, because a resource operation is not
+safe to replay blindly, and a broken stream surfaces to its caller as an error.
 
-The stream interceptor only wraps two methods, which are pure watches and therefore replayable:
+The two watch streams are the only replayable calls, and each is re-established by its consumer
+rather than by the connection:
 
-- `/pb.CoreRPC/WatchServiceStatus`
-- `/pb.CoreRPC/WorkloadStatusStream`
-
-For those, a broken stream is re-established with exponential backoff and the last sent message is
-replayed. The service-discovery client raises the limit to 1 for its own watch.
+- `/pb.CoreRPC/WatchServiceStatus` — `servicediscovery.Watch` opens a new stream as soon as the
+  current one breaks, and a watchdog cancels one that has gone silent.
+- `/pb.CoreRPC/WorkloadStatusStream` — the agent resubscribes.

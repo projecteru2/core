@@ -22,10 +22,9 @@ func TestExecuteRunsAScopeInTheWorkloadSlice(t *testing.T) {
 	e := testEngine(t, runner)
 
 	execID, _, _, _, err := e.Execute(t.Context(), "w1", &enginetypes.ExecConfig{
-		User:         "app",
-		Cmd:          []string{"ls", "-l"},
-		Env:          []string{"FOO=bar"},
-		AttachStdout: true,
+		User: "app",
+		Cmd:  []string{"ls", "-l"},
+		Env:  []string{"FOO=bar"},
 	})
 	if err != nil {
 		t.Fatalf("execute: %v", err)

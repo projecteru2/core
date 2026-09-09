@@ -259,7 +259,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 
 func (c *Calcium) filterNodes(ctx context.Context, nodeFilter *types.NodeFilter) (ns []*types.Node, err error) {
 	defer func() {
-		ns = slices.SortedFunc(slices.Values(ns), func(a, b *types.Node) int { return cmp.Compare(a.Name, b.Name) })
+		slices.SortFunc(ns, func(a, b *types.Node) int { return cmp.Compare(a.Name, b.Name) })
 		ns = slices.CompactFunc(ns, func(a, b *types.Node) bool { return a.Name == b.Name })
 	}()
 

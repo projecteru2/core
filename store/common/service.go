@@ -13,9 +13,9 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-type Endpoints map[string]struct{}
+type endpoints map[string]struct{}
 
-func (e Endpoints) Add(endpoint string) (changed bool) {
+func (e endpoints) Add(endpoint string) (changed bool) {
 	if _, ok := e[endpoint]; !ok {
 		e[endpoint] = struct{}{}
 		changed = true
@@ -23,7 +23,7 @@ func (e Endpoints) Add(endpoint string) (changed bool) {
 	return changed
 }
 
-func (e Endpoints) Remove(endpoint string) (changed bool) {
+func (e endpoints) Remove(endpoint string) (changed bool) {
 	if _, ok := e[endpoint]; ok {
 		delete(e, endpoint)
 		changed = true
@@ -31,7 +31,7 @@ func (e Endpoints) Remove(endpoint string) (changed bool) {
 	return changed
 }
 
-func (e Endpoints) ToSlice() []string {
+func (e endpoints) ToSlice() []string {
 	return slices.Collect(maps.Keys(e))
 }
 
@@ -102,12 +102,12 @@ func (s *Store) serviceStatusStream(ctx context.Context, prefix string, ch chan<
 	return types.ErrMessageChanClosed
 }
 
-func (s *Store) getServiceEndpoints(ctx context.Context, prefix string) (Endpoints, error) {
+func (s *Store) getServiceEndpoints(ctx context.Context, prefix string) (endpoints, error) {
 	data, err := s.GetPrefix(ctx, prefix, 0)
 	if err != nil {
 		return nil, err
 	}
-	eps := Endpoints{}
+	eps := endpoints{}
 	for key := range data {
 		eps.Add(utils.Tail(key))
 	}

@@ -112,7 +112,7 @@ type RegistryConfig struct {
 
 func (c RegistryConfig) BuildRefs(appname string, tags []string) []string {
 	if len(tags) == 0 {
-		return []string{c.ImageTag(appname, defaultVersion)}
+		tags = []string{defaultVersion}
 	}
 	refs := make([]string, 0, len(tags))
 	for _, tag := range tags {

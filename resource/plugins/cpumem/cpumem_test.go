@@ -16,8 +16,7 @@ import (
 )
 
 func TestName(t *testing.T) {
-	cm := initCPUMEM(t)
-	assert.Equal(t, cm.name, cm.Name())
+	assert.Equal(t, "cpumem", initCPUMEM(t).Name())
 }
 
 func initCPUMEM(t testing.TB) *Plugin {
