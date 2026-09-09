@@ -34,10 +34,11 @@ type ListWorkloadsOptions struct {
 }
 
 type ListNodesOptions struct {
-	Podname  string
-	Labels   map[string]string
-	All      bool
-	CallInfo bool
+	Podname             string
+	Labels              map[string]string
+	All                 bool
+	CallInfo            bool
+	WithoutResourceInfo bool
 }
 
 type TriOptions int

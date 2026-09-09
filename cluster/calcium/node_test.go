@@ -174,6 +174,13 @@ func TestListPodNodes(t *testing.T) {
 	}
 	assert.Equal(t, map[string]any{name1: 8, name2: nil}, listed)
 	rmgr.AssertExpectations(t)
+
+	opts.WithoutResourceInfo = true
+	ns, err = c.ListPodNodes(ctx, opts)
+	assert.NoError(t, err)
+	for range ns {
+	}
+	rmgr.AssertNumberOfCalls(t, "GetNodesResourceInfo", 2)
 	store.AssertExpectations(t)
 }
 
