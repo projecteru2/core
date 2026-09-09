@@ -2,11 +2,16 @@ package binary
 
 import (
 	"context"
+	"slices"
+
+	"golang.org/x/sync/errgroup"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	binarytypes "github.com/projecteru2/core/resource/plugins/binary/types"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 )
+
+const fallbackFanout = 16
 
 func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintypes.NodeResourceRequest, info *enginetypes.Info) (*plugintypes.AddNodeResponse, error) {
 	req := &binarytypes.AddNodeRequest{
@@ -50,6 +55,32 @@ func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, re
 
 func (p Plugin) GetNodeResourceInfo(ctx context.Context, nodename string, workloadsResource []plugintypes.WorkloadResource) (*plugintypes.GetNodeResourceInfoResponse, error) {
 	return p.doGetNodeResourceInfo(ctx, nodename, workloadsResource, GetNodeResourceInfoCommand)
+}
+
+func (p Plugin) GetNodesResourceInfo(ctx context.Context, nodenames []string) (*plugintypes.GetNodesResourceInfoResponse, error) {
+	resp := &plugintypes.GetNodesResourceInfoResponse{}
+	if slices.Contains(p.verbs, GetNodesResourceInfoCommand) {
+		return resp, p.call(ctx, GetNodesResourceInfoCommand, &binarytypes.GetNodesResourceInfoRequest{Nodenames: nodenames}, resp)
+	}
+
+	infos := make([]*plugintypes.GetNodeResourceInfoResponse, len(nodenames))
+	var g errgroup.Group
+	g.SetLimit(fallbackFanout)
+	for i, nodename := range nodenames {
+		g.Go(func() error {
+			var err error
+			infos[i], err = p.GetNodeResourceInfo(ctx, nodename, nil)
+			return err
+		})
+	}
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+	resp.NodeResourceInfoMap = make(map[string]*plugintypes.NodeResourceInfo, len(nodenames))
+	for i, nodename := range nodenames {
+		resp.NodeResourceInfoMap[nodename] = &plugintypes.NodeResourceInfo{Capacity: infos[i].Capacity, Usage: infos[i].Usage}
+	}
+	return resp, nil
 }
 
 func (p Plugin) SetNodeResourceInfo(ctx context.Context, nodename string, capacity, usage plugintypes.NodeResource) (*plugintypes.SetNodeResourceInfoResponse, error) {

@@ -773,6 +773,74 @@ func (_c *Plugin_GetNodesDeployCapacity_Call) RunAndReturn(run func(ctx context.
 	return _c
 }
 
+// GetNodesResourceInfo provides a mock function for the type Plugin
+func (_mock *Plugin) GetNodesResourceInfo(ctx context.Context, nodenames []string) (*types.GetNodesResourceInfoResponse, error) {
+	ret := _mock.Called(ctx, nodenames)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetNodesResourceInfo")
+	}
+
+	var r0 *types.GetNodesResourceInfoResponse
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []string) (*types.GetNodesResourceInfoResponse, error)); ok {
+		return returnFunc(ctx, nodenames)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []string) *types.GetNodesResourceInfoResponse); ok {
+		r0 = returnFunc(ctx, nodenames)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.GetNodesResourceInfoResponse)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, []string) error); ok {
+		r1 = returnFunc(ctx, nodenames)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// Plugin_GetNodesResourceInfo_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetNodesResourceInfo'
+type Plugin_GetNodesResourceInfo_Call struct {
+	*mock.Call
+}
+
+// GetNodesResourceInfo is a helper method to define mock.On call
+//   - ctx context.Context
+//   - nodenames []string
+func (_e *Plugin_Expecter) GetNodesResourceInfo(ctx any, nodenames any) *Plugin_GetNodesResourceInfo_Call {
+	return &Plugin_GetNodesResourceInfo_Call{Call: _e.mock.On("GetNodesResourceInfo", ctx, nodenames)}
+}
+
+func (_c *Plugin_GetNodesResourceInfo_Call) Run(run func(ctx context.Context, nodenames []string)) *Plugin_GetNodesResourceInfo_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 []string
+		if args[1] != nil {
+			arg1 = args[1].([]string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *Plugin_GetNodesResourceInfo_Call) Return(getNodesResourceInfoResponse *types.GetNodesResourceInfoResponse, err error) *Plugin_GetNodesResourceInfo_Call {
+	_c.Call.Return(getNodesResourceInfoResponse, err)
+	return _c
+}
+
+func (_c *Plugin_GetNodesResourceInfo_Call) RunAndReturn(run func(ctx context.Context, nodenames []string) (*types.GetNodesResourceInfoResponse, error)) *Plugin_GetNodesResourceInfo_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Name provides a mock function for the type Plugin
 func (_mock *Plugin) Name() string {
 	ret := _mock.Called()

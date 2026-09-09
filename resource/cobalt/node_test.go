@@ -107,10 +107,53 @@ func TestSetNodeResourceCapacityReturnsSuccessfulChange(t *testing.T) {
 	assert.Equal(t, afterResource, after["cpumem"])
 }
 
+func TestGetNodesResourceInfoMergesEveryPlugin(t *testing.T) {
+	m := New(coretypes.Config{})
+	m.AddPlugins(
+		newResourceInfoPlugin(t, "cpumem", map[string]*plugintypes.NodeResourceInfo{
+			"n1": {Capacity: plugintypes.NodeResource{"cpu": 8}, Usage: plugintypes.NodeResource{"cpu": 1}},
+			"n2": {Capacity: plugintypes.NodeResource{"cpu": 4}, Usage: plugintypes.NodeResource{"cpu": 0}},
+		}),
+		newResourceInfoPlugin(t, "storage", map[string]*plugintypes.NodeResourceInfo{
+			"n1": {Capacity: plugintypes.NodeResource{"storage": 100}, Usage: plugintypes.NodeResource{"storage": 10}},
+		}),
+	)
+
+	infos, err := m.GetNodesResourceInfo(t.Context(), []string{"n1", "n2"})
+	assert.NoError(t, err)
+	assert.Equal(t, plugintypes.NodeResource{"cpu": 8}, infos["n1"].Capacity["cpumem"])
+	assert.Equal(t, plugintypes.NodeResource{"storage": 10}, infos["n1"].Usage["storage"])
+	assert.Equal(t, plugintypes.NodeResource{"cpu": 4}, infos["n2"].Capacity["cpumem"])
+	assert.NotContains(t, infos["n2"].Capacity, "storage")
+}
+
+func TestGetNodesResourceInfoKeepsTheHealthyPlugins(t *testing.T) {
+	m := New(coretypes.Config{})
+	broken := pluginmocks.NewPlugin(t)
+	broken.On("Name").Return("gpu").Maybe()
+	broken.On("GetNodesResourceInfo", mock.Anything, mock.Anything).Return(nil, coretypes.ErrMockError)
+	m.AddPlugins(
+		newResourceInfoPlugin(t, "cpumem", map[string]*plugintypes.NodeResourceInfo{"n1": {Capacity: plugintypes.NodeResource{"cpu": 8}}}),
+		broken,
+	)
+
+	infos, err := m.GetNodesResourceInfo(t.Context(), []string{"n1"})
+	assert.ErrorIs(t, err, coretypes.ErrMockError)
+	assert.Equal(t, plugintypes.NodeResource{"cpu": 8}, infos["n1"].Capacity["cpumem"])
+}
+
 func newCapacityPlugin(t *testing.T, name string, capacities map[string]*plugintypes.NodeDeployCapacity) *pluginmocks.Plugin {
 	p := pluginmocks.NewPlugin(t)
 	p.On("Name").Return(name).Maybe()
 	resp := &plugintypes.GetNodesDeployCapacityResponse{NodeDeployCapacityMap: capacities}
 	p.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(resp, nil)
+	return p
+}
+
+func newResourceInfoPlugin(t *testing.T, name string, infos map[string]*plugintypes.NodeResourceInfo) *pluginmocks.Plugin {
+	p := pluginmocks.NewPlugin(t)
+	p.On("Name").Return(name).Maybe()
+	resp := &plugintypes.GetNodesResourceInfoResponse{NodeResourceInfoMap: infos}
+	p.On("GetNodesResourceInfo", mock.Anything, mock.Anything).Return(resp, nil)
 	return p
 }

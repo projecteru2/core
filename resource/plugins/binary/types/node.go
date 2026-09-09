@@ -33,6 +33,10 @@ type GetNodeResourceInfoRequest struct {
 	WorkloadsResource []plugintypes.WorkloadResource `json:"workloads_resource"`
 }
 
+type GetNodesResourceInfoRequest struct {
+	Nodenames []string `json:"nodenames"`
+}
+
 type SetNodeResourceInfoRequest struct {
 	Nodename string                   `json:"nodename"`
 	Capacity plugintypes.NodeResource `json:"capacity"`

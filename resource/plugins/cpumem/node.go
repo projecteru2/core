@@ -198,6 +198,23 @@ func (p Plugin) GetNodeResourceInfo(ctx context.Context, nodename string, worklo
 	}, resp)
 }
 
+func (p Plugin) GetNodesResourceInfo(ctx context.Context, nodenames []string) (*plugintypes.GetNodesResourceInfoResponse, error) {
+	infos, err := p.doGetNodesResourceInfo(ctx, nodenames)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &plugintypes.GetNodesResourceInfoResponse{NodeResourceInfoMap: make(map[string]*plugintypes.NodeResourceInfo, len(infos))}
+	for nodename, info := range infos {
+		nodeInfo := &plugintypes.NodeResourceInfo{}
+		if err := resourcetypes.Decode(map[string]any{fieldCapacity: info.Capacity, fieldUsage: info.Usage}, nodeInfo); err != nil {
+			return nil, err
+		}
+		resp.NodeResourceInfoMap[nodename] = nodeInfo
+	}
+	return resp, nil
+}
+
 func (p Plugin) SetNodeResourceInfo(ctx context.Context, nodename string, capacity, usage plugintypes.NodeResource) (*plugintypes.SetNodeResourceInfoResponse, error) {
 	capacityResource := &cpumemtypes.NodeResource{}
 	usageResource := &cpumemtypes.NodeResource{}
