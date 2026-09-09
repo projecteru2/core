@@ -69,7 +69,6 @@ func (h *Helium) start(ctx context.Context) {
 		logger.Info(ctx, "service discovery start")
 		defer close(h.done)
 		defer logger.Warn(ctx, "service discovery exited")
-		var latestStatus types.ServiceStatus
 		ticker := time.NewTicker(h.interval)
 		defer ticker.Stop()
 		for {
@@ -80,12 +79,10 @@ func (h *Helium) start(ctx context.Context) {
 					return
 				}
 
-				latestStatus = types.ServiceStatus{
+				h.latest.Store(&types.ServiceStatus{
 					Addresses: addresses,
 					Interval:  h.interval * 2,
-				}
-				published := latestStatus
-				h.latest.Store(&published)
+				})
 
 			case ID := <-h.unsubChan:
 				if v, ok := h.subs.LoadAndDelete(ID); ok {
@@ -96,7 +93,9 @@ func (h *Helium) start(ctx context.Context) {
 			case <-ticker.C:
 			}
 
-			h.dispatch(latestStatus)
+			if latest := h.latest.Load(); latest != nil {
+				h.dispatch(*latest)
+			}
 		}
 	}()
 }
