@@ -10,7 +10,7 @@ import (
 func (c *Calcium) doHook(ctx context.Context, workload *types.Workload, cmds []string, force bool) ([]*bytes.Buffer, error) {
 	outputs := []*bytes.Buffer{}
 	for _, cmd := range cmds {
-		output, err := c.executeInside(ctx, workload.Engine, workload.ID, cmd, workload.User, workload.Env, workload.Privileged)
+		output, err := c.executeInside(ctx, workload.Engine, workload.ID, cmd, workload.User, workload.Env)
 		if err != nil {
 			outputs = append(outputs, bytes.NewBufferString(err.Error()))
 			if workload.Hook.Force && !force {
