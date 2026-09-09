@@ -20,7 +20,7 @@ import (
 
 func TestResourceMiddlewareRefreshesEveryNodeInOneCall(t *testing.T) {
 	cluster := &clustermocks.Cluster{}
-	cluster.On("ListPodNodes", mock.Anything, mock.Anything).Return(twoNodes(), nil).Once()
+	cluster.On("ListPodNodes", mock.Anything, mock.MatchedBy(func(opts *types.ListNodesOptions) bool { return opts.All && opts.WithoutResourceInfo })).Return(twoNodes(), nil).Once()
 	rmgr := &resourcemocks.Manager{}
 	rmgr.On("GetNodesMetrics", mock.Anything, mock.MatchedBy(func(nodes []*types.Node) bool { return len(nodes) == 2 })).Return(nil, nil).Once()
 

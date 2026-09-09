@@ -20,7 +20,7 @@ func (m *Metrics) ResourceMiddleware(ctx context.Context, cluster cluster.Cluste
 			refreshed := scrapes.DoChan("refresh", func() (any, error) {
 				refreshCtx, cancel := context.WithTimeout(ctx, m.refreshTimeout)
 				defer cancel()
-				nodeCh, err := cluster.ListPodNodes(refreshCtx, &types.ListNodesOptions{All: true})
+				nodeCh, err := cluster.ListPodNodes(refreshCtx, &types.ListNodesOptions{All: true, WithoutResourceInfo: true})
 				if err != nil {
 					logger.Error(refreshCtx, err, "failed to list nodes")
 					return nil, err
