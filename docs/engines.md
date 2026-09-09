@@ -69,13 +69,13 @@ streams through the SSH session rather than through the containerd API:
 ctr --address <containerd.socket> --namespace <containerd.namespace> tasks exec --exec-id <id> [--tty] [--user U] [--cwd D] <workload> [env K=V …] <cmd…>
 ```
 
-`ctr tasks exec` in containerd 2.3.4 takes only `--cwd`, `--tty`, `--detach`, `--exec-id`,
+`ctr tasks exec` in containerd 2.3.5 takes only `--cwd`, `--tty`, `--detach`, `--exec-id`,
 `--fifo-dir`, `--log-uri` and `--user` — there is no env flag — so the deploy's environment rides
 as an `env K=V …` prefix inside the container. That makes `/usr/bin/env` an image requirement for
 `exec` with an environment, and `tar` one for `copy` into or out of a *running* workload; a
 workload with no task is copied into through its snapshot instead and needs neither. `ctr` builds
-the exec's process from the container's own spec, so `ExecConfig.Privileged` has nothing to add:
-an exec always runs with the capabilities the workload itself was created with. `ExecResize` is
+the exec's process from the container's own spec, so an exec always runs with the capabilities the
+workload itself was created with; there is no per-exec privilege switch. `ExecResize` is
 the SSH session's own window change — `ctr` forwards its console geometry to the exec on
 `SIGWINCH`, so setting the process's size behind it would only be overwritten again.
 
