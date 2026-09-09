@@ -142,9 +142,13 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 		logger.Error(ctx, err)
 		return nil, err
 	}
+	infos, err := c.rmgr.GetNodesResourceInfo(ctx, utils.Map(nodes, func(node *types.Node) string { return node.Name }))
+	if err != nil {
+		logger.Error(ctx, err, "failed to get nodes resource info")
+	}
 	return perNode(c, nodes, func(node *types.Node, ch chan<- *types.Node) {
-		if err := c.refreshResourceInfo(ctx, node); err != nil {
-			logger.Errorf(ctx, err, "failed to get node %s resource info", node.Name)
+		if info, ok := infos[node.Name]; ok {
+			node.ResourceInfo = *info
 		}
 		if opts.CallInfo {
 			if err := node.Info(ctx); err != nil {

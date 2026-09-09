@@ -17,6 +17,7 @@ type Manager interface {
 	SetNodeResourceCapacity(context.Context, string, resourcetypes.Resources, resourcetypes.Resources, bool, bool) (resourcetypes.Resources, resourcetypes.Resources, error)
 	SetNodeResourceUsage(context.Context, string, resourcetypes.Resources, resourcetypes.Resources, []resourcetypes.Resources, bool, bool) (resourcetypes.Resources, resourcetypes.Resources, error)
 	GetNodeResourceInfo(context.Context, string, []*types.Workload, bool) (resourcetypes.Resources, resourcetypes.Resources, []string, error)
+	GetNodesResourceInfo(context.Context, []string) (map[string]*types.NodeResourceInfo, error)
 	GetMostIdleNode(context.Context, []string) (string, error)
 
 	Alloc(context.Context, string, int, resourcetypes.Resources) ([]resourcetypes.Resources, []resourcetypes.Resources, error)

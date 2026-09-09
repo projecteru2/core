@@ -152,7 +152,7 @@ func TestListPodNodes(t *testing.T) {
 	}
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
-	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, types.ErrMockError)
+	rmgr.On("GetNodesResourceInfo", mock.Anything, []string{name1, name2}).Return(nil, types.ErrMockError).Once()
 	opts.CallInfo = true
 
 	ns, err := c.ListPodNodes(ctx, opts)
@@ -162,6 +162,17 @@ func TestListPodNodes(t *testing.T) {
 		cnt++
 	}
 	assert.Equal(t, cnt, 2)
+
+	rmgr.On("GetNodesResourceInfo", mock.Anything, []string{name1, name2}).Return(map[string]*types.NodeResourceInfo{
+		name1: {Capacity: resourcetypes.Resources{"cpumem": resourcetypes.RawParams{"cpu": 8}}},
+	}, nil).Once()
+	ns, err = c.ListPodNodes(ctx, opts)
+	assert.NoError(t, err)
+	listed := map[string]any{}
+	for node := range ns {
+		listed[node.Name] = node.ResourceInfo.Capacity["cpumem"]["cpu"]
+	}
+	assert.Equal(t, map[string]any{name1: 8, name2: nil}, listed)
 	rmgr.AssertExpectations(t)
 	store.AssertExpectations(t)
 }

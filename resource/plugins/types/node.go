@@ -41,6 +41,15 @@ type GetNodeResourceInfoResponse struct {
 	Diffs    []string     `json:"diffs"`
 }
 
+type NodeResourceInfo struct {
+	Capacity NodeResource `json:"capacity"`
+	Usage    NodeResource `json:"usage"`
+}
+
+type GetNodesResourceInfoResponse struct {
+	NodeResourceInfoMap map[string]*NodeResourceInfo `json:"node_resource_info_map"`
+}
+
 type SetNodeResourceInfoResponse struct{}
 
 type SetNodeResourceUsageResponse struct {

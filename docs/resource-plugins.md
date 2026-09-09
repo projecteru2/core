@@ -111,6 +111,7 @@ The contract is a subcommand plus JSON:
 | `get-nodes-deploy-capacity` | `GetNodesDeployCapacity` |
 | `set-node-resource-capacity` | `SetNodeResourceCapacity` |
 | `get-node-resource-info` | `GetNodeResourceInfo` |
+| `get-nodes-resource-info` | `GetNodesResourceInfo` |
 | `set-node-resource-info` | `SetNodeResourceInfo` |
 | `set-node-resource-usage` | `SetNodeResourceUsage` |
 | `get-most-idle-node` | `GetMostIdleNode` |
@@ -121,6 +122,10 @@ The contract is a subcommand plus JSON:
 Response shapes are the JSON encodings of the types in `resource/plugins/types/`, e.g.
 `calculate-deploy` returns `{"engines_params": [...], "workloads_resource": [...]}` and
 `get-nodes-deploy-capacity` returns `{"nodes_deploy_capacity_map": {...}, "total": n}`.
+`get-nodes-resource-info` takes `{"nodenames": [...]}` and returns
+`{"node_resource_info_map": {"<node>": {"capacity": {...}, "usage": {...}}, ...}}`; core lists nodes
+through it and falls back to one `get-node-resource-info` call per node for a plugin that does not
+advertise it.
 `get-metrics` takes every node in one call, `{"nodes": [{"podname": ..., "nodename": ...}, ...]}`,
 and returns the metrics of all of them.
 
