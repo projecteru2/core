@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"golang.org/x/crypto/ssh"
 
+	"github.com/projecteru2/core/metrics"
 	resourcemocks "github.com/projecteru2/core/resource/mocks"
 	sourcemocks "github.com/projecteru2/core/source/mocks"
 	"github.com/projecteru2/core/store/etcdv3/embedded"
@@ -22,6 +23,20 @@ import (
 	"github.com/projecteru2/core/wal"
 	walmocks "github.com/projecteru2/core/wal/mocks"
 )
+
+func TestNewInitsMetricsBeforeReturning(t *testing.T) {
+	embeddedETCD, err := embedded.New(t.TempDir())
+	assert.NoError(t, err)
+	t.Cleanup(embeddedETCD.Close)
+
+	config := types.Config{Bind: ":5001", ProbeTarget: "8.8.8.8:80", HAKeepaliveInterval: 16 * time.Second}
+	c, err := New(t.Context(), config, embeddedETCD)
+	assert.NoError(t, err)
+	t.Cleanup(c.Finalizer)
+
+	assert.NotEmpty(t, metrics.Client.Hostname)
+	assert.NotEmpty(t, metrics.Client.Collectors)
+}
 
 func TestNewCluster(t *testing.T) {
 	ctx := t.Context()
