@@ -93,6 +93,37 @@ func TestAddNodeRedoesTheStalePluginMetadata(t *testing.T) {
 	store.AssertExpectations(t)
 }
 
+func TestAddNodeEvictsTheCachedEngineOnFailure(t *testing.T) {
+	c := NewTestCluster()
+	c.config.ConnectionTimeout = time.Second
+	ctx := t.Context()
+	factory.InitEngineCache(ctx, c.config, nil)
+
+	nodename := "nodename"
+	opts := &types.AddNodeOptions{
+		Nodename: nodename,
+		Podname:  "podname",
+		Endpoint: fmt.Sprintf("mock://%s", nodename),
+	}
+
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("AddNode", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
+	_, err := c.AddNode(ctx, opts)
+	assert.Error(t, err)
+	assert.Nil(t, factory.GetEngineFromCache(ctx, opts.Endpoint), "a failed AddNode must not leave the endpoint cached")
+
+	rmgr.On("AddNode", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(resourcetypes.Resources{}, nil).Once()
+	rmgr.On("GetNodesMetrics", mock.Anything, mock.Anything).Return(nil, nil).Maybe()
+	store := c.store.(*storemocks.Store)
+	store.On("AddNode", mock.Anything, mock.Anything).Return(&types.Node{NodeMeta: types.NodeMeta{Name: nodename}}, nil).Once()
+
+	_, err = c.AddNode(ctx, opts)
+	assert.NoError(t, err)
+	assert.NotNil(t, factory.GetEngineFromCache(ctx, opts.Endpoint), "an added node keeps its engine cached")
+	rmgr.AssertExpectations(t)
+	store.AssertExpectations(t)
+}
+
 func TestRemoveNode(t *testing.T) {
 	c := NewTestCluster()
 	ctx := t.Context()
