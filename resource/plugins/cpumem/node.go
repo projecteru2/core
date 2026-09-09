@@ -81,10 +81,7 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintyp
 	}
 
 	resp := &plugintypes.AddNodeResponse{}
-	return resp, resourcetypes.Decode(map[string]any{
-		fieldCapacity: nodeResourceInfo.Capacity,
-		fieldUsage:    nodeResourceInfo.Usage,
-	}, resp)
+	return resp, resourcetypes.Decode(map[string]any{fieldCapacity: nodeResourceInfo.Capacity}, resp)
 }
 
 func (p Plugin) RemoveNode(ctx context.Context, nodename string) (*plugintypes.RemoveNodeResponse, error) {

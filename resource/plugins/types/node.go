@@ -10,7 +10,6 @@ type NodeResource = resourcetypes.RawParams
 
 type AddNodeResponse struct {
 	Capacity NodeResource `json:"capacity"`
-	Usage    NodeResource `json:"usage"`
 }
 
 type RemoveNodeResponse struct{}
