@@ -72,7 +72,7 @@ func TestGetNodesResourceInfo(t *testing.T) {
 	cm := initCPUMEM(t)
 	nodes := generateNodes(ctx, t, cm, 2, 2, 4*units.GB, 100, 0)
 
-	resp, err := cm.GetNodesResourceInfo(ctx, nodes)
+	resp, err := cm.GetNodesResourceInfo(ctx, append(nodes, "never-added"))
 	assert.NoError(t, err)
 	assert.Len(t, resp.NodeResourceInfoMap, 2)
 	for _, node := range nodes {

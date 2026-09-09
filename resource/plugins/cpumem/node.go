@@ -199,18 +199,22 @@ func (p Plugin) GetNodeResourceInfo(ctx context.Context, nodename string, worklo
 }
 
 func (p Plugin) GetNodesResourceInfo(ctx context.Context, nodenames []string) (*plugintypes.GetNodesResourceInfoResponse, error) {
-	infos, err := p.doGetNodesResourceInfo(ctx, nodenames)
+	keys := utils.Map(nodenames, func(nodename string) string { return fmt.Sprintf(nodeResourceInfoKey, nodename) })
+	data, err := p.store.GetMulti(ctx, keys)
+	if p.store.NotFound(err) {
+		data, err = p.getKnown(ctx, keys)
+	}
 	if err != nil {
 		return nil, err
 	}
 
-	resp := &plugintypes.GetNodesResourceInfoResponse{NodeResourceInfoMap: make(map[string]*plugintypes.NodeResourceInfo, len(infos))}
-	for nodename, info := range infos {
-		nodeInfo := &plugintypes.NodeResourceInfo{}
-		if err := resourcetypes.Decode(map[string]any{fieldCapacity: info.Capacity, fieldUsage: info.Usage}, nodeInfo); err != nil {
+	resp := &plugintypes.GetNodesResourceInfoResponse{NodeResourceInfoMap: make(map[string]*plugintypes.NodeResourceInfo, len(data))}
+	for key, value := range data {
+		info := &plugintypes.NodeResourceInfo{}
+		if err := json.Unmarshal([]byte(value), info); err != nil {
 			return nil, err
 		}
-		resp.NodeResourceInfoMap[nodename] = nodeInfo
+		resp.NodeResourceInfoMap[utils.Tail(key)] = info
 	}
 	return resp, nil
 }
@@ -356,6 +360,18 @@ func (p Plugin) doGetNodeResourceInfo(ctx context.Context, nodename string) (*cp
 		return nil, err
 	}
 	return resp[nodename], nil
+}
+
+func (p Plugin) getKnown(ctx context.Context, keys []string) (map[string]string, error) {
+	data := make(map[string]string, len(keys))
+	for _, key := range keys {
+		one, err := p.store.GetMulti(ctx, []string{key})
+		if err != nil && !p.store.NotFound(err) {
+			return nil, err
+		}
+		maps.Copy(data, one)
+	}
+	return data, nil
 }
 
 func (p Plugin) doGetNodesResourceInfo(ctx context.Context, nodenames []string) (map[string]*cpumemtypes.NodeResourceInfo, error) {
