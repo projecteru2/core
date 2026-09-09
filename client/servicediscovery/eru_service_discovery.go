@@ -11,7 +11,6 @@ import (
 	"google.golang.org/grpc/resolver/manual"
 
 	"github.com/projecteru2/core/auth"
-	"github.com/projecteru2/core/client/interceptor"
 	"github.com/projecteru2/core/log"
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
@@ -93,7 +92,6 @@ func (e *EruServiceDiscovery) Watch(ctx context.Context) (<-chan []string, error
 func (e *EruServiceDiscovery) dial(cores resolver.Builder) (*grpc.ClientConn, error) {
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithStreamInterceptor(interceptor.NewStreamRetry(interceptor.RetryOptions{Max: 1})),
 		grpc.WithResolvers(cores),
 	}
 
