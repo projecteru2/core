@@ -18,7 +18,7 @@ func (m *Metrics) ResourceMiddleware(ctx context.Context, cluster cluster.Cluste
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			refreshed := scrapes.DoChan("refresh", func() (any, error) {
-				refreshCtx, cancel := context.WithTimeout(ctx, m.Config.GlobalTimeout)
+				refreshCtx, cancel := context.WithTimeout(ctx, m.refreshTimeout)
 				defer cancel()
 				nodeCh, err := cluster.ListPodNodes(refreshCtx, &types.ListNodesOptions{All: true})
 				if err != nil {

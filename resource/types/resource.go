@@ -3,6 +3,7 @@ package types
 import (
 	"fmt"
 	"maps"
+	"math"
 	"strconv"
 )
 
@@ -87,7 +88,7 @@ func sliceHelper[T any](r RawParams, key string) []T {
 	}
 	var res []T
 	if s, ok := r[key].([]any); ok {
-		res = []T{}
+		res = make([]T, 0, len(s))
 		for _, v := range s {
 			if item, ok := v.(T); ok {
 				res = append(res, item)
@@ -106,8 +107,7 @@ func intHelper[T integer](r RawParams, key string) T {
 	case int64:
 		return T(v)
 	case float64:
-		res, _ := strconv.ParseInt(fmt.Sprintf("%.0f", v), 10, 64)
-		return T(res)
+		return T(math.RoundToEven(v))
 	}
 	if !r.IsSet(key) {
 		return 0

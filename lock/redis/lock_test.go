@@ -43,9 +43,9 @@ func (s *RedisLockTestSuite) TearDownTest() {
 }
 
 func (s *RedisLockTestSuite) TestMutex() {
-	_, err := New(s.cli, "", time.Second, time.Second)
+	_, err := New(s.cli, "", time.Second)
 	s.Error(err)
-	l, err := New(s.cli, "test", time.Second, time.Second)
+	l, err := New(s.cli, "test", time.Second)
 	s.NoError(err)
 
 	ctx := s.T().Context()
@@ -58,7 +58,7 @@ func (s *RedisLockTestSuite) TestMutex() {
 }
 
 func (s *RedisLockTestSuite) TestLostLeaseCancelsContext() {
-	l, err := New(s.cli, "test", time.Second, 90*time.Millisecond)
+	l, err := New(s.cli, "test", 90*time.Millisecond)
 	s.Require().NoError(err)
 
 	ctx, err := l.Lock(s.T().Context())
@@ -74,7 +74,7 @@ func (s *RedisLockTestSuite) TestLostLeaseCancelsContext() {
 }
 
 func (s *RedisLockTestSuite) TestTransientRefreshErrorKeepsContext() {
-	l, err := New(s.cli, "test", time.Second, 900*time.Millisecond)
+	l, err := New(s.cli, "test", 900*time.Millisecond)
 	s.Require().NoError(err)
 
 	ctx, err := l.Lock(s.T().Context())
@@ -91,7 +91,7 @@ func (s *RedisLockTestSuite) TestTransientRefreshErrorKeepsContext() {
 }
 
 func (s *RedisLockTestSuite) TestUnrefreshedLockCancelsAfterTTL() {
-	l, err := New(s.cli, "test", time.Second, 90*time.Millisecond)
+	l, err := New(s.cli, "test", 90*time.Millisecond)
 	s.Require().NoError(err)
 
 	ctx, err := l.Lock(s.T().Context())

@@ -3,6 +3,8 @@ package calcium
 import (
 	"context"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -58,8 +60,8 @@ func (c *Calcium) SetWorkloadsStatus(ctx context.Context, statusMetas []*types.S
 		}
 	}
 
-	r := []*types.StatusMeta{}
-	for _, statusMeta := range statusMetas {
+	r := make([]*types.StatusMeta, len(statusMetas))
+	for idx, statusMeta := range statusMetas {
 		if workload, ok := workloads[statusMeta.ID]; ok {
 			appname, entrypoint, _, err := utils.ParseWorkloadName(workload.Name)
 			if err != nil {
@@ -70,13 +72,17 @@ func (c *Calcium) SetWorkloadsStatus(ctx context.Context, statusMetas []*types.S
 			statusMeta.Nodename = workload.Nodename
 			statusMeta.Entrypoint = entrypoint
 		}
+		r[idx] = statusMeta
+	}
 
-		ttl := ttls[statusMeta.ID]
-		if err := c.store.SetWorkloadStatus(ctx, statusMeta, ttl); err != nil {
-			logger.Error(ctx, err)
-			return nil, err
-		}
-		r = append(r, statusMeta)
+	var writes errgroup.Group
+	writes.SetLimit(statusWriters)
+	for _, statusMeta := range statusMetas {
+		writes.Go(func() error { return c.store.SetWorkloadStatus(ctx, statusMeta, ttls[statusMeta.ID]) })
+	}
+	if err := writes.Wait(); err != nil {
+		logger.Error(ctx, err)
+		return nil, err
 	}
 	return r, nil
 }

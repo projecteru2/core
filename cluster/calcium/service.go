@@ -25,17 +25,24 @@ func (c *Calcium) RegisterService(ctx context.Context) (unregister func(), err e
 		expiry            <-chan struct{}
 		unregisterService func()
 	)
-	for {
+	for attempt := 0; ; attempt++ {
 		if expiry, unregisterService, err = c.store.RegisterService(ctx, c.serviceAddress, c.config.GRPCConfig.ServiceHeartbeatInterval); err == nil {
 			break
 		}
-		if errors.Is(err, types.ErrKeyExists) {
-			logger.Debugf(ctx, "service key exists: %+v", err)
-			time.Sleep(time.Second)
-			continue
+		if !errors.Is(err, types.ErrKeyExists) {
+			logger.Error(ctx, err, "failed to first register service")
+			return nil, err
 		}
-		logger.Error(ctx, err, "failed to first register service")
-		return nil, err
+		if attempt == 0 {
+			logger.Debugf(ctx, "service key exists: %+v", err)
+		} else {
+			logger.Warnf(ctx, "service key %s still taken after %d attempts: %+v", c.serviceAddress, attempt+1, err)
+		}
+		select {
+		case <-time.After(time.Second):
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
 	}
 
 	var wg sync.WaitGroup
@@ -49,12 +56,17 @@ func (c *Calcium) RegisterService(ctx context.Context) (unregister func(), err e
 		for {
 			select {
 			case <-expiry:
-				if ne, us, err := c.store.RegisterService(ctx, c.serviceAddress, c.config.GRPCConfig.ServiceHeartbeatInterval); err != nil {
-					logger.Error(ctx, err, "failed to re-register service")
-					time.Sleep(c.config.GRPCConfig.ServiceHeartbeatInterval)
-				} else {
+				ne, us, err := c.store.RegisterService(ctx, c.serviceAddress, c.config.GRPCConfig.ServiceHeartbeatInterval)
+				if err == nil {
 					expiry = ne
 					unregisterService = us
+					continue
+				}
+				logger.Error(ctx, err, "failed to re-register service")
+				select {
+				case <-time.After(c.config.GRPCConfig.ServiceHeartbeatInterval):
+				case <-ctx.Done():
+					return
 				}
 
 			case <-ctx.Done():

@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"maps"
-	"runtime"
 	"slices"
 	"sync"
 	"time"
@@ -118,7 +117,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 					processingCommits = make(map[string]func())
 					mu := sync.Mutex{}
 					allocs := errgroup.Group{}
-					allocs.SetLimit(runtime.GOMAXPROCS(0))
+					allocs.SetLimit(nodeWorkers)
 					for nodename, deploy := range plan.deploy {
 						allocs.Go(func() error {
 							workloadResources, engineParams, allocErr := c.rmgr.Alloc(ctx, nodename, deploy, opts.Resources)

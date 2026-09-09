@@ -32,9 +32,6 @@ const (
 )
 
 var (
-	// ErrAlreadyExists indicates a create found one of its keys already set.
-	ErrAlreadyExists = errors.New("key already exists")
-
 	createScript = redis.NewScript(`
 if KEYS[1] ~= "" and redis.call("exists", KEYS[1]) == 0 then return "missing" end
 for i = 2, #KEYS do
@@ -158,7 +155,7 @@ func (r *Rediaron) GetPrefix(ctx context.Context, prefix string, limit int64) (m
 	if err != nil {
 		return nil, err
 	}
-	return r.GetMulti(ctx, keys)
+	return r.getMulti(ctx, keys, false)
 }
 
 func (r *Rediaron) ListPrefix(ctx context.Context, prefix string) ([]string, error) {
@@ -192,22 +189,7 @@ func (r *Rediaron) Watch(ctx context.Context, prefix string) iter.Seq[common.Eve
 }
 
 func (r *Rediaron) GetMulti(ctx context.Context, keys []string) (map[string]string, error) {
-	data := make(map[string]string, len(keys))
-	if len(keys) == 0 {
-		return data, nil
-	}
-	vals, err := r.cli.MGet(ctx, keys...).Result()
-	if err != nil {
-		return nil, err
-	}
-	for i, val := range vals {
-		value, ok := val.(string)
-		if !ok {
-			return nil, errors.Wrapf(redis.Nil, "key not found: %s", keys[i])
-		}
-		data[keys[i]] = value
-	}
-	return data, nil
+	return r.getMulti(ctx, keys, true)
 }
 
 func (r *Rediaron) Update(ctx context.Context, data map[string]string) error {
@@ -266,6 +248,28 @@ func (r *Rediaron) BindStatus(ctx context.Context, entityKey, statusKey, statusV
 	return nil
 }
 
+func (r *Rediaron) getMulti(ctx context.Context, keys []string, strict bool) (map[string]string, error) {
+	data := make(map[string]string, len(keys))
+	if len(keys) == 0 {
+		return data, nil
+	}
+	vals, err := r.cli.MGet(ctx, keys...).Result()
+	if err != nil {
+		return nil, err
+	}
+	for i, val := range vals {
+		value, ok := val.(string)
+		if !ok {
+			if strict {
+				return nil, errors.Wrapf(redis.Nil, "key not found: %s", keys[i])
+			}
+			continue
+		}
+		data[keys[i]] = value
+	}
+	return data, nil
+}
+
 func (r *Rediaron) create(ctx context.Context, data map[string]string, decrKey string) error {
 	keys := []string{decrKey}
 	values := make([]any, 0, len(data))
@@ -279,7 +283,7 @@ func (r *Rediaron) create(ctx context.Context, data map[string]string, decrKey s
 	}
 	switch created {
 	case replyExists:
-		return ErrAlreadyExists
+		return types.ErrKeyExists
 	case replyMissing:
 		return errors.Wrap(types.ErrKeyNotExists, decrKey)
 	}
@@ -290,7 +294,6 @@ func globPrefix(prefix string) string {
 	return globMeta.Replace(prefix) + "*"
 }
 
-// go-redis does not export proto.Error, so the message is the only signal.
 func isRedisNoKeyError(e error) bool {
-	return e != nil && strings.Contains(e.Error(), "redis: nil")
+	return errors.Is(e, redis.Nil)
 }

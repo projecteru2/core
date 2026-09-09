@@ -2,7 +2,6 @@ package binary
 
 import (
 	"context"
-	ppath "path"
 	"path/filepath"
 
 	"github.com/projecteru2/core/log"
@@ -23,7 +22,7 @@ func NewPlugin(ctx context.Context, path string, config coretypes.Config) (*Plug
 	if err != nil {
 		return nil, err
 	}
-	plugin := &Plugin{name: ppath.Base(path), path: p, config: config, verbs: []string{VerbsCommand}}
+	plugin := &Plugin{name: filepath.Base(p), path: p, config: config, verbs: []string{VerbsCommand}}
 	if err := plugin.call(ctx, VerbsCommand, struct{}{}, &plugin.verbs); err != nil {
 		return nil, err
 	}

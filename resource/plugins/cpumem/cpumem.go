@@ -23,15 +23,14 @@ type Store interface {
 
 // Plugin is the built-in cpu and memory resource plugin.
 type Plugin struct {
-	name   string
 	config coretypes.Config
 	store  Store
 }
 
 func NewPlugin(config coretypes.Config, store Store) *Plugin {
-	return &Plugin{name: name, config: config, store: store}
+	return &Plugin{config: config, store: store}
 }
 
 func (p Plugin) Name() string {
-	return p.name
+	return name
 }

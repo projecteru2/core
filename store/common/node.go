@@ -4,9 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/projecteru2/core/engine"
 	enginefactory "github.com/projecteru2/core/engine/factory"
@@ -94,30 +97,41 @@ func (s *Store) GetNodes(ctx context.Context, nodenames []string) ([]*types.Node
 
 func (s *Store) GetNodesByPod(ctx context.Context, nodeFilter *types.NodeFilter, withoutEngine bool) ([]*types.Node, error) {
 	q := nodeQuery{labels: nodeFilter.Labels, all: nodeFilter.All, withoutEngine: withoutEngine}
-	do := func(podname string) ([]*types.Node, error) {
-		kvs, err := s.GetPrefix(ctx, fmt.Sprintf(NodePodKey, podname, ""), 0)
+	podNodes := func(podname string) (map[string]string, error) {
+		return s.GetPrefix(ctx, fmt.Sprintf(NodePodKey, podname, ""), 0)
+	}
+	if nodeFilter.Podname != "" {
+		kvs, err := podNodes(nodeFilter.Podname)
 		if err != nil {
 			return nil, err
 		}
 		return s.doGetNodes(ctx, kvs, q)
-	}
-	if nodeFilter.Podname != "" {
-		return do(nodeFilter.Podname)
 	}
 	pods, err := s.GetAllPods(ctx)
 	if err != nil {
 		return nil, err
 	}
 	q.statuses = s.nodeStatusKeys(ctx, log.WithFunc("store.common.GetNodesByPod"))
-	result := []*types.Node{}
+
+	kvs := map[string]string{}
+	mu := sync.Mutex{}
+	reads := errgroup.Group{}
 	for _, pod := range pods {
-		ns, err := do(pod.Name)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, ns...)
+		reads.Go(func() error {
+			podKVs, err := podNodes(pod.Name)
+			if err != nil {
+				return err
+			}
+			mu.Lock()
+			defer mu.Unlock()
+			maps.Copy(kvs, podKVs)
+			return nil
+		})
 	}
-	return result, nil
+	if err := reads.Wait(); err != nil {
+		return nil, err
+	}
+	return s.doGetNodes(ctx, kvs, q)
 }
 
 func (s *Store) UpdateNodes(ctx context.Context, nodes ...*types.Node) error {
@@ -264,7 +278,7 @@ func (s *Store) doGetNodes(ctx context.Context, kvs map[string]string, q nodeQue
 		case statuses != nil:
 			_, node.Available = statuses[filepath.Join(NodeStatusPrefix, node.Name)]
 		default:
-			if _, err := s.GetNodeStatus(ctx, node.Name); err != nil && !s.NotFound(err) {
+			if _, err := s.GetOne(ctx, filepath.Join(NodeStatusPrefix, node.Name)); err != nil && !s.NotFound(err) {
 				logger.Errorf(ctx, err, "failed to get node status of %+v", node.Name)
 			} else {
 				node.Available = err == nil
@@ -275,7 +289,7 @@ func (s *Store) doGetNodes(ctx context.Context, kvs map[string]string, q nodeQue
 			return false
 		}
 
-		node.Engine = &fake.EngineWithErr{DefaultErr: types.ErrNilEngine, EP: enginetypes.NewParams(node.Name, node.Endpoint)}
+		node.Engine = &fake.EngineWithErr{DefaultErr: types.ErrNilEngine, EP: &enginetypes.Params{Nodename: node.Name, Endpoint: node.Endpoint}}
 		if !q.withoutEngine {
 			if client, err := s.MakeClient(ctx, node); err != nil {
 				logger.Errorf(ctx, err, "failed to make client for %+v", node.Name)

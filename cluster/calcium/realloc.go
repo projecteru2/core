@@ -17,16 +17,12 @@ type reallocRepair func()
 func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOptions) (err error) {
 	logger := log.WithFunc("calcium.ReallocResource").WithField("opts", opts)
 	logger.Infof(ctx, "realloc workload %+v with options %+v", opts.ID, opts.Resources)
-	workload, err := c.GetWorkload(ctx, opts.ID)
-	if err != nil {
-		return err
-	}
-	node, err := c.store.GetNode(ctx, workload.Nodename)
-	if err != nil {
-		return err
-	}
 	var repair reallocRepair
 	err = c.withWorkloadLocked(ctx, opts.ID, false, func(ctx context.Context, workload *types.Workload) error {
+		node, nodeErr := c.store.GetNode(ctx, workload.Nodename)
+		if nodeErr != nil {
+			return nodeErr
+		}
 		repair, err = c.doReallocOnNode(ctx, node, workload, opts)
 		logger.Error(ctx, err)
 		return err

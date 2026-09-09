@@ -1,7 +1,6 @@
 package strategy
 
 import (
-	"container/heap"
 	"context"
 
 	"github.com/cockroachdb/errors"
@@ -15,7 +14,6 @@ func CommunismPlan(_ context.Context, infos []Info, need, total, limit int) (map
 		return nil, errors.Wrapf(types.ErrInsufficientResource, "need: %d, available: %d", need, total)
 	}
 
-	deploy := map[string]int{}
 	iHeap := newInfoHeap(
 		infos,
 		func(a, b Info) bool {
@@ -25,20 +23,12 @@ func CommunismPlan(_ context.Context, infos []Info, need, total, limit int) (map
 			return info.Capacity != 0 && (limit <= 0 || info.Count < limit)
 		},
 	)
-	for {
-		if iHeap.Len() == 0 {
-			return nil, errors.Wrapf(types.ErrInsufficientResource, "reached nodelimit, a node can host at most %d instances", limit)
-		}
-		info := heap.Pop(iHeap).(Info)
-		deploy[info.Nodename]++
-		need--
-		if need == 0 {
-			return deploy, nil
-		}
+	deploy, placed := iHeap.place(need, func(info *Info) {
 		info.Count++
 		info.Capacity--
-		if iHeap.admit(info) {
-			heap.Push(iHeap, info)
-		}
+	})
+	if placed < need {
+		return nil, errors.Wrapf(types.ErrInsufficientResource, "reached nodelimit, a node can host at most %d instances", limit)
 	}
+	return deploy, nil
 }

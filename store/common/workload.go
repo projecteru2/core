@@ -39,38 +39,11 @@ func (s *Store) RemoveWorkload(ctx context.Context, workload *types.Workload) er
 }
 
 func (s *Store) GetWorkload(ctx context.Context, ID string) (*types.Workload, error) {
-	workloads, err := s.GetWorkloads(ctx, []string{ID})
-	if err != nil {
-		return nil, err
-	}
-	return workloads[0], nil
+	return s.getWorkload(ctx, ID, true)
 }
 
 func (s *Store) GetWorkloads(ctx context.Context, IDs []string) ([]*types.Workload, error) {
-	keys := make([]string, 0, len(IDs))
-	for _, ID := range IDs {
-		keys = append(keys, fmt.Sprintf(WorkloadInfoKey, ID))
-	}
-
-	data, err := s.GetMulti(ctx, keys)
-	if err != nil {
-		if s.NotFound(err) {
-			return nil, errors.Join(types.ErrWorkloadNotExists, err)
-		}
-		return nil, err
-	}
-
-	workloads := []*types.Workload{}
-	for _, key := range keys {
-		workload := &types.Workload{}
-		if err := json.Unmarshal([]byte(data[key]), workload); err != nil {
-			log.WithFunc("store.common.GetWorkloads").Errorf(ctx, err, "failed to unmarshal %+v", key)
-			return nil, err
-		}
-		workloads = append(workloads, workload)
-	}
-
-	return s.bindWorkloadsAdditions(ctx, workloads)
+	return s.getWorkloads(ctx, IDs, true)
 }
 
 func (s *Store) SetWorkloadStatus(ctx context.Context, status *types.StatusMeta, ttl int64) error {
@@ -136,12 +109,47 @@ func (s *Store) WorkloadStatusStream(ctx context.Context, appname, entrypoint, n
 	return ch
 }
 
+func (s *Store) getWorkload(ctx context.Context, ID string, withEngine bool) (*types.Workload, error) {
+	workloads, err := s.getWorkloads(ctx, []string{ID}, withEngine)
+	if err != nil {
+		return nil, err
+	}
+	return workloads[0], nil
+}
+
+func (s *Store) getWorkloads(ctx context.Context, IDs []string, withEngine bool) ([]*types.Workload, error) {
+	keys := make([]string, 0, len(IDs))
+	for _, ID := range IDs {
+		keys = append(keys, fmt.Sprintf(WorkloadInfoKey, ID))
+	}
+
+	data, err := s.GetMulti(ctx, keys)
+	if err != nil {
+		if s.NotFound(err) {
+			return nil, errors.Join(types.ErrWorkloadNotExists, err)
+		}
+		return nil, err
+	}
+
+	workloads := []*types.Workload{}
+	for _, key := range keys {
+		workload := &types.Workload{}
+		if err := json.Unmarshal([]byte(data[key]), workload); err != nil {
+			log.WithFunc("store.common.getWorkloads").Errorf(ctx, err, "failed to unmarshal %+v", key)
+			return nil, err
+		}
+		workloads = append(workloads, workload)
+	}
+
+	return s.bindWorkloadsAdditions(ctx, workloads, withEngine)
+}
+
 func (s *Store) workloadStatusStream(ctx context.Context, logger *log.Fields, statusKey string, labels map[string]string, ch chan<- *types.WorkloadStatus) error {
 	logger.Infof(ctx, "watch on %s", statusKey)
 	for event := range s.Watch(ctx, statusKey) {
 		_, _, _, ID := ParseStatusKey(event.Key)
 		msg := &types.WorkloadStatus{ID: ID, Delete: event.Type != EventPut}
-		workload, err := s.GetWorkload(ctx, ID)
+		workload, err := s.getWorkload(ctx, ID, false)
 		switch {
 		case err != nil:
 			msg.Error = err
@@ -172,10 +180,10 @@ func (s *Store) filterWorkloads(ctx context.Context, data, labels map[string]str
 		}
 	}
 
-	return s.bindWorkloadsAdditions(ctx, workloads)
+	return s.bindWorkloadsAdditions(ctx, workloads, true)
 }
 
-func (s *Store) bindWorkloadsAdditions(ctx context.Context, workloads []*types.Workload) ([]*types.Workload, error) {
+func (s *Store) bindWorkloadsAdditions(ctx context.Context, workloads []*types.Workload, withEngine bool) ([]*types.Workload, error) {
 	nodenames := map[string]struct{}{}
 	statusKeys := map[string]string{}
 	logger := log.WithFunc("store.common.bindWorkloadsAdditions")
@@ -187,20 +195,22 @@ func (s *Store) bindWorkloadsAdditions(ctx context.Context, workloads []*types.W
 		statusKeys[workload.ID] = filepath.Join(WorkloadStatusPrefix, appname, entrypoint, workload.Nodename, workload.ID)
 		nodenames[workload.Nodename] = struct{}{}
 	}
-	ns, err := s.GetNodes(ctx, slices.Collect(maps.Keys(nodenames)))
-	if err != nil {
-		return nil, err
-	}
-	nodes := map[string]*types.Node{}
-	for _, node := range ns {
-		nodes[node.Name] = node
-	}
-	for _, workload := range workloads {
-		node, ok := nodes[workload.Nodename]
-		if !ok {
-			return nil, types.ErrInvaildWorkloadMeta
+	if withEngine {
+		ns, err := s.GetNodes(ctx, slices.Collect(maps.Keys(nodenames)))
+		if err != nil {
+			return nil, err
 		}
-		workload.Engine = node.Engine
+		nodes := map[string]*types.Node{}
+		for _, node := range ns {
+			nodes[node.Name] = node
+		}
+		for _, workload := range workloads {
+			node, ok := nodes[workload.Nodename]
+			if !ok {
+				return nil, types.ErrInvaildWorkloadMeta
+			}
+			workload.Engine = node.Engine
+		}
 	}
 
 	wg := &sync.WaitGroup{}

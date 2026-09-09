@@ -39,13 +39,7 @@ func (e *ETCD) StartEphemeral(ctx context.Context, path string, heartbeat time.D
 	wg.Go(func() {
 		defer close(expiry)
 
-		defer func() {
-			revokeCtx, revokeCancel := context.WithTimeout(context.WithoutCancel(ctx), time.Minute)
-			defer revokeCancel()
-			if _, err := e.cliv3.Revoke(revokeCtx, lease.ID); err != nil {
-				logger.Errorf(revokeCtx, err, "revoke %d with %s failed", lease.ID, path)
-			}
-		}()
+		defer e.revokeLease(ctx, lease.ID)
 
 		_ = utils.KeepAlive(ctx, heartbeat/3, func(ctx context.Context) error {
 			if _, err := e.cliv3.KeepAliveOnce(ctx, lease.ID); err != nil {

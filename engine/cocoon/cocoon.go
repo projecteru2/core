@@ -58,7 +58,7 @@ func MakeClient(_ context.Context, config coretypes.Config, nodename, endpoint s
 			RunDir:       cmp.Or(config.Cocoon.RunDir, defaultRunDir),
 			CgroupParent: cmp.Or(config.Cocoon.CgroupParent, defaultCgroupParent),
 		},
-		ep:     enginetypes.NewParams(nodename, endpoint),
+		ep:     &enginetypes.Params{Nodename: nodename, Endpoint: endpoint},
 		runner: sshrunner.New(addr, clientConfig),
 		execs:  sshrunner.NewExecs(),
 	}, nil

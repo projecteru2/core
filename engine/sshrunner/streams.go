@@ -85,9 +85,13 @@ func (p *streamPool) evict(c *streamClient) {
 func (p *streamPool) close() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	for _, c := range slices.Clone(p.conns) {
-		p.forget(c)
+	for _, c := range p.conns {
+		if c.idle != nil {
+			c.idle.Stop()
+		}
+		_ = c.conn.Close()
 	}
+	p.conns = nil
 }
 
 func (p *streamPool) forget(c *streamClient) {

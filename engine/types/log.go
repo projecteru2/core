@@ -6,6 +6,4 @@ type VirtualizationLogStreamOptions struct {
 	Since  string
 	Until  string
 	Follow bool
-	Stdout bool
-	Stderr bool
 }

@@ -143,7 +143,16 @@ func (h *host) bestSplit(full, fragment, maxMoved int) (int, int) {
 	for moved := 1; moved <= maxMoved; moved++ {
 		fragmentCapacity[moved] = fragmentCapacity[moved-1] + h.fullCores[moved-1].pieces/fragment
 	}
-	fullCapacity := func(moved int) int { return h.countFullCPUPlans(h.fullCores[moved:], full) }
+	fullCapacities := make([]int, maxMoved+1)
+	for i := range fullCapacities {
+		fullCapacities[i] = -1
+	}
+	fullCapacity := func(moved int) int {
+		if fullCapacities[moved] < 0 {
+			fullCapacities[moved] = h.countFullCPUPlans(h.fullCores[moved:], full)
+		}
+		return fullCapacities[moved]
+	}
 	firstReaching := func(capacity int) int {
 		at, _ := slices.BinarySearch(fragmentCapacity, capacity)
 		return at
@@ -304,14 +313,7 @@ func CountCPUPlans(resourceInfo *types.NodeResourceInfo, originCPUMap types.CPUM
 }
 
 func doGetCPUPlans(originCPUMap, availableCPUMap types.CPUMap, availableMemory int64, shareBase, maxFragmentCores int, cpuRequest float64, memoryRequest int64) []types.CPUMap {
-	h := newHost(availableCPUMap, shareBase, maxFragmentCores)
-
-	if len(originCPUMap) > 0 {
-		originH := newHost(originCPUMap, shareBase, maxFragmentCores)
-		reorderByAffinity(originH, h)
-	}
-
-	cpuPlans := h.getCPUPlans(cpuRequest)
+	cpuPlans := planHost(originCPUMap, availableCPUMap, shareBase, maxFragmentCores).getCPUPlans(cpuRequest)
 	if memoryRequest > 0 {
 		memoryCapacity := int(availableMemory / memoryRequest)
 		if memoryCapacity < len(cpuPlans) {
@@ -322,18 +324,19 @@ func doGetCPUPlans(originCPUMap, availableCPUMap types.CPUMap, availableMemory i
 }
 
 func doCountCPUPlans(originCPUMap, availableCPUMap types.CPUMap, availableMemory int64, shareBase, maxFragmentCores int, cpuRequest float64, memoryRequest int64) int {
-	h := newHost(availableCPUMap, shareBase, maxFragmentCores)
-
-	if len(originCPUMap) > 0 {
-		originH := newHost(originCPUMap, shareBase, maxFragmentCores)
-		reorderByAffinity(originH, h)
-	}
-
-	count := h.countCPUPlans(cpuRequest)
+	count := planHost(originCPUMap, availableCPUMap, shareBase, maxFragmentCores).countCPUPlans(cpuRequest)
 	if memoryRequest > 0 {
 		return min(count, int(availableMemory/memoryRequest))
 	}
 	return count
+}
+
+func planHost(originCPUMap, availableCPUMap types.CPUMap, shareBase, maxFragmentCores int) *host {
+	h := newHost(availableCPUMap, shareBase, maxFragmentCores)
+	if len(originCPUMap) > 0 {
+		reorderByAffinity(newHost(originCPUMap, shareBase, maxFragmentCores), h)
+	}
+	return h
 }
 
 // reorderByAffinity keeps the cores the workload already holds at the front of newH.

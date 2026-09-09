@@ -2,6 +2,7 @@ package cobalt
 
 import (
 	"context"
+	"path/filepath"
 	"slices"
 
 	"github.com/projecteru2/core/log"
@@ -43,13 +44,13 @@ func (m *Manager) LoadPlugins(ctx context.Context, store store.Store) error {
 		return err
 	}
 	for _, file := range pluginFiles {
+		if _, ok := cache[filepath.Base(file)]; ok {
+			continue
+		}
 		logger.Infof(ctx, "load binary plugin: %+v", file)
 		b, err := binary.NewPlugin(ctx, file, m.config)
 		if err != nil {
 			return err
-		}
-		if _, ok := cache[b.Name()]; ok {
-			continue
 		}
 		cache[b.Name()] = struct{}{}
 		m.AddPlugins(b)

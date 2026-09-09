@@ -111,21 +111,29 @@ func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, 
 		return nil, err
 	}
 
-	var mu sync.Mutex
 	nodesDeployCapacityMap := make(map[string]*plugintypes.NodeDeployCapacity, len(nodenames))
-	var planners errgroup.Group
-	planners.SetLimit(runtime.GOMAXPROCS(0))
-	for nodename, nodeResourceInfo := range nodesResourceInfos {
-		planners.Go(func() error {
+	if !req.CPUBind {
+		for nodename, nodeResourceInfo := range nodesResourceInfos {
 			if nodeDeployCapacity := p.doGetNodeDeployCapacity(nodeResourceInfo, req); nodeDeployCapacity.Capacity > 0 {
-				mu.Lock()
 				nodesDeployCapacityMap[nodename] = nodeDeployCapacity
-				mu.Unlock()
 			}
-			return nil
-		})
+		}
+	} else {
+		var mu sync.Mutex
+		var planners errgroup.Group
+		planners.SetLimit(runtime.GOMAXPROCS(0))
+		for nodename, nodeResourceInfo := range nodesResourceInfos {
+			planners.Go(func() error {
+				if nodeDeployCapacity := p.doGetNodeDeployCapacity(nodeResourceInfo, req); nodeDeployCapacity.Capacity > 0 {
+					mu.Lock()
+					nodesDeployCapacityMap[nodename] = nodeDeployCapacity
+					mu.Unlock()
+				}
+				return nil
+			})
+		}
+		_ = planners.Wait()
 	}
-	_ = planners.Wait()
 
 	total := 0
 	for _, nodeDeployCapacity := range nodesDeployCapacityMap {
@@ -241,8 +249,8 @@ func (p Plugin) GetMostIdleNode(ctx context.Context, nodenames []string) (*plugi
 	}
 
 	for nodename, nodeResourceInfo := range nodesResourceInfo {
-		idle := float64(nodeResourceInfo.Usage.CPUMap.TotalPieces()) / float64(nodeResourceInfo.Capacity.CPUMap.TotalPieces())
-		idle += float64(nodeResourceInfo.Usage.Memory) / float64(nodeResourceInfo.Capacity.Memory)
+		idle := utils.AdvancedDivide(float64(nodeResourceInfo.Usage.CPUMap.TotalPieces()), float64(nodeResourceInfo.Capacity.CPUMap.TotalPieces()))
+		idle += utils.AdvancedDivide(float64(nodeResourceInfo.Usage.Memory), float64(nodeResourceInfo.Capacity.Memory))
 
 		if idle < minIdle {
 			mostIdleNode = nodename
@@ -415,27 +423,26 @@ func (p Plugin) calculateNodeResource(req *cpumemtypes.NodeResourceRequest, node
 		}
 	}
 
-	if nodeResource != nil {
+	apply := func(r *cpumemtypes.NodeResource) {
 		if incr {
-			resp.Add(nodeResource)
+			resp.Add(r)
 		} else {
-			resp.Sub(nodeResource)
+			resp.Sub(r)
 		}
+	}
+
+	if nodeResource != nil {
+		apply(nodeResource)
 		return resp
 	}
 
 	for _, workloadResource := range workloadsResource {
-		nodeResource = &cpumemtypes.NodeResource{
+		apply(&cpumemtypes.NodeResource{
 			CPU:        workloadResource.CPURequest,
 			CPUMap:     workloadResource.CPUMap,
 			NUMAMemory: workloadResource.NUMAMemory,
 			Memory:     workloadResource.MemoryRequest,
-		}
-		if incr {
-			resp.Add(nodeResource)
-		} else {
-			resp.Sub(nodeResource)
-		}
+		})
 	}
 	return resp
 }

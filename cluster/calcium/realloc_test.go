@@ -60,17 +60,16 @@ func TestRealloc(t *testing.T) {
 		Resources: resourcetypes.Resources{},
 	}
 
-	store.On("GetNode", mock.Anything, "node1").Return(nil, types.ErrMockError).Once()
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	err := c.ReallocResource(ctx, opts)
 	assert.True(t, errors.Is(err, types.ErrMockError))
-	store.AssertExpectations(t)
-	store.On("GetNode", mock.Anything, "node1").Return(node1, nil)
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 
-	store.On("CreateLock", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
+	store.On("GetNode", mock.Anything, "node1").Return(nil, types.ErrMockError).Once()
 	err = c.ReallocResource(ctx, opts)
 	assert.True(t, errors.Is(err, types.ErrMockError))
 	store.AssertExpectations(t)
-	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	store.On("GetNode", mock.Anything, "node1").Return(node1, nil)
 
 	rmgr.On("Realloc", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		resourcetypes.Resources{}, nil, nil, types.ErrMockError,

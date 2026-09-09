@@ -28,8 +28,6 @@ func (c *Calcium) LogStream(ctx context.Context, opts *types.LogStreamOptions) (
 			Since:  opts.Since,
 			Until:  opts.Until,
 			Follow: opts.Follow,
-			Stdout: true,
-			Stderr: true,
 		})
 		logger.Error(ctx, err)
 		if err != nil {

@@ -13,7 +13,7 @@ func (s *RediaronTestSuite) TestPod() {
 	s.Equal(pod.Name, podname)
 
 	_, err = s.rediaron.AddPod(ctx, podname, "CPU")
-	s.ErrorIs(err, ErrAlreadyExists)
+	s.ErrorIs(err, types.ErrKeyExists)
 
 	pod2, err := s.rediaron.GetPod(ctx, podname)
 	s.NoError(err)

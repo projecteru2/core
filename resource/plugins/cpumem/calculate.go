@@ -27,7 +27,7 @@ func (p Plugin) CalculateDeploy(ctx context.Context, nodename string, deployCoun
 
 	nodeResourceInfo, err := p.doGetNodeResourceInfo(ctx, nodename)
 	if err != nil {
-		logger.WithField("node", nodename).Error(ctx, err)
+		logger.Error(ctx, err)
 		return nil, err
 	}
 
@@ -90,42 +90,18 @@ func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource 
 		return nil, err
 	}
 
-	var cpuMap cpumemtypes.CPUMap
-	var numaNodeID string
-	var numaMemory cpumemtypes.NUMAMemory
-
+	var cpuPlan *cpumemtypes.CPUPlan
 	if req.CPUBind {
 		cpuPlans := schedule.GetCPUPlans(nodeResourceInfo, originResource.CPUMap, p.config.Scheduler.ShareBase, p.config.Scheduler.MaxShare, newReq)
 		if len(cpuPlans) == 0 {
 			return nil, coretypes.ErrInsufficientResource
 		}
-
-		cpuPlan := cpuPlans[0]
-		cpuMap = cpuPlan.CPUMap
-		numaNodeID = cpuPlan.NUMANode
-		if len(numaNodeID) > 0 {
-			numaMemory = cpumemtypes.NUMAMemory{numaNodeID: newReq.MemRequest}
-		}
+		cpuPlan = cpuPlans[0]
 	} else if err = checkResourceCapacity(nodeResourceInfo, 1, newReq); err != nil {
 		return nil, err
 	}
 
-	engineParams := &cpumemtypes.EngineParams{
-		CPU:      newReq.CPULimit,
-		CPUMap:   cpuMap,
-		NUMANode: numaNodeID,
-		Memory:   newReq.MemLimit,
-	}
-
-	newResource := &cpumemtypes.WorkloadResource{
-		CPURequest:    newReq.CPURequest,
-		CPULimit:      newReq.CPULimit,
-		MemoryRequest: newReq.MemRequest,
-		MemoryLimit:   newReq.MemLimit,
-		CPUMap:        cpuMap,
-		NUMAMemory:    numaMemory,
-		NUMANode:      numaNodeID,
-	}
+	engineParams, newResource := buildParams(newReq, cpuPlan)
 
 	deltaWorkloadResource := newResource.DeepCopy()
 	deltaWorkloadResource.Sub(originResource)
@@ -194,17 +170,7 @@ func (p Plugin) doAllocByMemory(resourceInfo *cpumemtypes.NodeResourceInfo, depl
 		return nil, nil, err
 	}
 
-	engineParams := &cpumemtypes.EngineParams{
-		CPU:    req.CPULimit,
-		Memory: req.MemLimit,
-	}
-	workloadResource := &cpumemtypes.WorkloadResource{
-		CPURequest:    req.CPURequest,
-		CPULimit:      req.CPULimit,
-		MemoryRequest: req.MemRequest,
-		MemoryLimit:   req.MemLimit,
-	}
-
+	engineParams, workloadResource := buildParams(req, nil)
 	return slices.Repeat([]*cpumemtypes.EngineParams{engineParams}, deployCount),
 		slices.Repeat([]*cpumemtypes.WorkloadResource{workloadResource}, deployCount), nil
 }
@@ -220,29 +186,37 @@ func (p Plugin) doAllocByCPU(resourceInfo *cpumemtypes.NodeResourceInfo, deployC
 	workloadsResource := []*cpumemtypes.WorkloadResource{}
 
 	for _, cpuPlan := range cpuPlans {
-		enginesParams = append(enginesParams, &cpumemtypes.EngineParams{
-			CPU:      req.CPULimit,
-			CPUMap:   cpuPlan.CPUMap,
-			NUMANode: cpuPlan.NUMANode,
-			Memory:   req.MemLimit,
-		})
-
-		workloadResource := &cpumemtypes.WorkloadResource{
-			CPURequest:    req.CPURequest,
-			CPULimit:      req.CPULimit,
-			MemoryRequest: req.MemRequest,
-			MemoryLimit:   req.MemLimit,
-			CPUMap:        cpuPlan.CPUMap,
-			NUMANode:      cpuPlan.NUMANode,
-		}
-		if len(workloadResource.NUMANode) > 0 {
-			workloadResource.NUMAMemory = cpumemtypes.NUMAMemory{workloadResource.NUMANode: workloadResource.MemoryRequest}
-		}
-
+		engineParams, workloadResource := buildParams(req, cpuPlan)
+		enginesParams = append(enginesParams, engineParams)
 		workloadsResource = append(workloadsResource, workloadResource)
 	}
 
 	return enginesParams, workloadsResource, nil
+}
+
+func buildParams(req *cpumemtypes.WorkloadResourceRequest, cpuPlan *cpumemtypes.CPUPlan) (*cpumemtypes.EngineParams, *cpumemtypes.WorkloadResource) {
+	engineParams := &cpumemtypes.EngineParams{
+		CPU:    req.CPULimit,
+		Memory: req.MemLimit,
+	}
+	workloadResource := &cpumemtypes.WorkloadResource{
+		CPURequest:    req.CPURequest,
+		CPULimit:      req.CPULimit,
+		MemoryRequest: req.MemRequest,
+		MemoryLimit:   req.MemLimit,
+	}
+	if cpuPlan == nil {
+		return engineParams, workloadResource
+	}
+
+	engineParams.CPUMap = cpuPlan.CPUMap
+	engineParams.NUMANode = cpuPlan.NUMANode
+	workloadResource.CPUMap = cpuPlan.CPUMap
+	workloadResource.NUMANode = cpuPlan.NUMANode
+	if len(cpuPlan.NUMANode) > 0 {
+		workloadResource.NUMAMemory = cpumemtypes.NUMAMemory{cpuPlan.NUMANode: req.MemRequest}
+	}
+	return engineParams, workloadResource
 }
 
 func checkResourceCapacity(resourceInfo *cpumemtypes.NodeResourceInfo, deployCount int, req *cpumemtypes.WorkloadResourceRequest) error {

@@ -34,12 +34,10 @@ type window struct {
 func (c *Calcium) executeInside(ctx context.Context, client engine.API, ID, cmd, user string, env []string, privileged bool) ([]byte, error) {
 	cmds := utils.MakeCommandLineArgs(cmd)
 	execConfig := &enginetypes.ExecConfig{
-		User:         user,
-		Cmd:          cmds,
-		Privileged:   privileged,
-		Env:          env,
-		AttachStderr: true,
-		AttachStdout: true,
+		User:       user,
+		Cmd:        cmds,
+		Privileged: privileged,
+		Env:        env,
 	}
 	b := []byte{}
 	execID, stdout, stderr, _, err := client.Execute(ctx, ID, execConfig)
@@ -80,10 +78,6 @@ func (c *Calcium) processVirtualizationInStream(ctx context.Context, inStream io
 			_ = inStream.Close()
 		},
 	}
-	c.rawProcessVirtualizationInStream(ctx, inStream, inCh, specialPrefixCallback)
-}
-
-func (c *Calcium) rawProcessVirtualizationInStream(ctx context.Context, inStream io.WriteCloser, inCh <-chan []byte, specialPrefixCallback map[string]prefixHandler) {
 	utils.SentryGo(func() {
 		defer func() {
 			_ = inStream.Close()
@@ -98,7 +92,7 @@ func (c *Calcium) rawProcessVirtualizationInStream(ctx context.Context, inStream
 				continue
 			}
 			if _, err := inStream.Write(cmd); err != nil {
-				log.WithFunc("calcium.rawProcessVirtualizationInStream").Error(ctx, err, "failed to write virtual input stream")
+				logger.Error(ctx, err, "failed to write virtual input stream")
 			}
 		}
 	})

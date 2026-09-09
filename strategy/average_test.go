@@ -21,7 +21,7 @@ func TestAveragePlan(t *testing.T) {
 	nodes = deployedNodes()
 	_, err = AveragePlan(t.Context(), nodes, 100, 0, 0)
 	assert.Error(t, err)
-	assert.True(t, errors.Is(err, types.ErrInsufficientCapacity))
+	assert.True(t, errors.Is(err, types.ErrInsufficientResource))
 	nodes = deployedNodes()
 	_, err = AveragePlan(t.Context(), nodes, 1, 1, 1)
 	assert.NoError(t, err)

@@ -15,6 +15,8 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
+var podLockPrefix = fmt.Sprintf(cluster.PodLock, "")
+
 type (
 	nodeHandler     func(context.Context, *types.Node) error
 	nodesHandler    func(context.Context, map[string]*types.Node) error
@@ -136,7 +138,7 @@ func (c *Calcium) withNodesLocked(ctx context.Context, nodeFilter *types.NodeFil
 		return err
 	}
 	for _, n := range ns {
-		if slices.ContainsFunc(named, func(m *types.Node) bool { return m.Name == n.Name }) {
+		if _, found := slices.BinarySearchFunc(named, n.Name, func(m *types.Node, name string) int { return strings.Compare(m.Name, name) }); found {
 			nodes[n.Name] = n
 		}
 	}
@@ -202,7 +204,7 @@ func withNodeLocked(ctx context.Context, nodename string, withNodes func(context
 // byLockOrder puts pod locks before node locks, so a plan blocks a node only for as long as it plans on it.
 func byLockOrder(a, b string) int {
 	rank := func(key string) int {
-		if strings.HasPrefix(key, "plock_") {
+		if strings.HasPrefix(key, podLockPrefix) {
 			return 0
 		}
 		return 1

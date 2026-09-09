@@ -88,8 +88,6 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		} else if stdout, stderr, err = workload.Engine.VirtualizationLogs(ctx, &enginetypes.VirtualizationLogStreamOptions{
 			ID:     message.WorkloadID,
 			Follow: true,
-			Stdout: true,
-			Stderr: true,
 		}); err != nil {
 			logger.Errorf(ctx, err, "cannot fetch log of workload %s", message.WorkloadID)
 			return newEruErrMsg(message.WorkloadID, "Fetch log for workload %s failed %v", message.WorkloadID, err)
@@ -124,7 +122,9 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 	}
 
 	for message := range createChan {
-		workloadIDs = append(workloadIDs, message.WorkloadID)
+		if message.WorkloadID != "" {
+			workloadIDs = append(workloadIDs, message.WorkloadID)
+		}
 		wg.Go(func() {
 			defer log.SentryDefer()
 			lambda(message)

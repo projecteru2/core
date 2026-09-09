@@ -132,7 +132,7 @@ func (s *RediaronTestSuite) TestCreateWritesNothingOnAConflict() {
 	ctx := s.T().Context()
 	s.NoError(s.rediaron.cli.Set(ctx, "b", "old", 0).Err())
 
-	s.ErrorIs(s.rediaron.Create(ctx, map[string]string{"a": "1", "b": "2"}), ErrAlreadyExists)
+	s.ErrorIs(s.rediaron.Create(ctx, map[string]string{"a": "1", "b": "2"}), types.ErrKeyExists)
 	s.False(s.exists("a"))
 	value := s.get("b")
 	s.Equal("old", value)
@@ -162,7 +162,7 @@ func (s *RediaronTestSuite) TestCreateAndDecrNeedsTheCounter() {
 	counter := s.get("counter")
 	s.Equal("1", counter)
 
-	s.ErrorIs(s.rediaron.CreateAndDecr(ctx, map[string]string{"a": "1", "c": "3"}, "counter"), ErrAlreadyExists)
+	s.ErrorIs(s.rediaron.CreateAndDecr(ctx, map[string]string{"a": "1", "c": "3"}, "counter"), types.ErrKeyExists)
 	counter = s.get("counter")
 	s.Equal("1", counter)
 	s.False(s.exists("c"))

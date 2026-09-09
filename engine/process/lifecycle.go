@@ -27,7 +27,7 @@ const (
 	loadedFunc = `loaded() { [ "$(systemctl show "$1" -p LoadState --value 2>/dev/null)" = loaded ]; }
 `
 
-	showProperties  = "LoadState,ActiveState,SubState,ExecMainPID,ExecMainStatus,MemoryCurrent,CPUUsageNSec,User"
+	showProperties  = "SubState,User"
 	subStateRunning = "running"
 
 	waitScript = `unit=$1

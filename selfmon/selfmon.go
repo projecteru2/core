@@ -139,7 +139,10 @@ func (n *NodeStatusWatcher) initNodeStatus(ctx context.Context) {
 	var handlers errgroup.Group
 	handlers.SetLimit(nodeStatusHandlers)
 	for _, node := range nodes {
-		status := &types.NodeStatus{Nodename: node.Name, Podname: node.Podname, Alive: node.Available || node.Test}
+		if node.Available || node.Test {
+			continue
+		}
+		status := &types.NodeStatus{Nodename: node.Name, Podname: node.Podname}
 		handlers.Go(func() error {
 			n.dealNodeStatusMessage(ctx, status)
 			return nil

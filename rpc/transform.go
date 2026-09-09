@@ -234,7 +234,6 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 	entrypoint := d.Entrypoint
 	entry := &types.Entrypoint{
 		Name:       entrypoint.Name,
-		Commands:   utils.MakeCommandLineArgs(fmt.Sprintf("%s %s", d.Entrypoint.Command, d.ExtraArgs)),
 		Privileged: entrypoint.Privileged,
 		Dir:        entrypoint.Dir,
 		Publish:    entrypoint.Publish,
@@ -242,8 +241,10 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		Sysctls:    entrypoint.Sysctls,
 	}
 
-	if len(d.Entrypoint.Commands) > 0 {
-		entry.Commands = d.Entrypoint.Commands
+	if len(entrypoint.Commands) > 0 {
+		entry.Commands = entrypoint.Commands
+	} else {
+		entry.Commands = utils.MakeCommandLineArgs(fmt.Sprintf("%s %s", entrypoint.Command, d.ExtraArgs))
 	}
 
 	if entrypoint.Healthcheck != nil {
@@ -537,12 +538,9 @@ func toRPCListImageMessage(msg *types.ListImageMessage) *pb.ListImageMessage {
 	}
 
 	m.Nodename = msg.Nodename
-	for _, image := range msg.Images {
-		m.Images = append(m.Images, &pb.ImageItem{
-			Id:   image.ID,
-			Tags: image.Tags,
-		})
-	}
+	m.Images = utils.Map(msg.Images, func(image *types.Image) *pb.ImageItem {
+		return &pb.ImageItem{Id: image.ID, Tags: image.Tags}
+	})
 
 	return m
 }
@@ -553,6 +551,17 @@ func toCoreListImageOptions(opts *pb.ListImageOptions) *types.ImageOptions {
 		Nodenames: opts.Nodenames,
 		Filter:    opts.Filter,
 	}
+}
+
+func toRPCSendMessage(m *types.SendMessage) *pb.SendMessage {
+	msg := &pb.SendMessage{
+		Id:   m.ID,
+		Path: m.Path,
+	}
+	if m.Error != nil {
+		msg.Error = m.Error.Error()
+	}
+	return msg
 }
 
 func toSendLargeFileOptions(opts *pb.FileOptions) (*types.SendLargeFileOptions, error) {

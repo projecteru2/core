@@ -32,13 +32,11 @@ func (c *Calcium) ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorklo
 		}
 
 		execConfig := &enginetypes.ExecConfig{
-			Env:          opts.Envs,
-			WorkingDir:   opts.Workdir,
-			Cmd:          opts.Commands,
-			AttachStderr: true,
-			AttachStdout: true,
-			AttachStdin:  opts.OpenStdin,
-			Tty:          opts.OpenStdin,
+			Env:         opts.Envs,
+			WorkingDir:  opts.Workdir,
+			Cmd:         opts.Commands,
+			AttachStdin: opts.OpenStdin,
+			Tty:         opts.OpenStdin,
 		}
 
 		execID, stdout, stderr, inStream, err := workload.Engine.Execute(ctx, opts.WorkloadID, execConfig)

@@ -2,7 +2,6 @@ package cobalt
 
 import (
 	"context"
-	"maps"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resource/plugins"
@@ -39,7 +38,7 @@ func (m *Manager) Alloc(ctx context.Context, nodename string, deployCount int, o
 					workloadsParams[index][name] = params
 				}
 				for index, params := range resp.EnginesParams {
-					engineParams[index][name] = maps.Clone(params)
+					engineParams[index][name] = params
 				}
 			}
 			return nil

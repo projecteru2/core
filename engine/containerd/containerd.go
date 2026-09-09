@@ -102,7 +102,7 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 		client:    cli,
 		runner:    runner,
 		config:    config,
-		ep:        enginetypes.NewParams(nodename, endpoint),
+		ep:        &enginetypes.Params{Nodename: nodename, Endpoint: endpoint},
 		namespace: namespace,
 		socket:    socket,
 		host:      host,

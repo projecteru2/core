@@ -2,7 +2,6 @@ package cobalt
 
 import (
 	"context"
-	"maps"
 
 	"github.com/projecteru2/core/resource/plugins"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
@@ -31,7 +30,7 @@ func (m *Manager) Remap(ctx context.Context, nodename string, workloads []*types
 			if _, ok := enginesParams[workloadID]; !ok {
 				enginesParams[workloadID] = resourcetypes.Resources{}
 			}
-			enginesParams[workloadID][name] = maps.Clone(engineParams)
+			enginesParams[workloadID][name] = engineParams
 		}
 	}
 

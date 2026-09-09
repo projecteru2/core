@@ -59,7 +59,7 @@ func MakeClient(_ context.Context, config coretypes.Config, nodename, endpoint s
 	}
 	return &Engine{
 		config:      config,
-		ep:          enginetypes.NewParams(nodename, endpoint),
+		ep:          &enginetypes.Params{Nodename: nodename, Endpoint: endpoint},
 		runner:      sshrunner.New(addr, clientConfig),
 		root:        cmp.Or(config.Process.Root, defaultRoot),
 		host:        host,

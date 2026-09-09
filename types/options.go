@@ -160,9 +160,7 @@ func (o *SendOptions) Validate() error {
 		return ErrNoFilesToSend
 	}
 	for i, file := range o.Files {
-		if file.UID == 0 && file.GID == 0 && file.Mode == 0 {
-			o.Files[i].Mode = 0o755
-		}
+		o.Files[i].Mode = fileMode(file.UID, file.GID, file.Mode)
 	}
 	return nil
 }
@@ -272,9 +270,7 @@ func (o *SendLargeFileOptions) Validate() error {
 	if o.Dst == "" {
 		return ErrEmptyFileDst
 	}
-	if o.UID == 0 && o.GID == 0 && o.Mode == 0 {
-		o.Mode = 0o755
-	}
+	o.Mode = fileMode(o.UID, o.GID, o.Mode)
 	return nil
 }
 
@@ -293,4 +289,11 @@ func (o *RawEngineOptions) Validate() error {
 		return ErrEmptyRawEngineOp
 	}
 	return nil
+}
+
+func fileMode(uid, gid int, mode int64) int64 {
+	if uid == 0 && gid == 0 && mode == 0 {
+		return 0o755
+	}
+	return mode
 }

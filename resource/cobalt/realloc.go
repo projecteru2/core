@@ -2,7 +2,6 @@ package cobalt
 
 import (
 	"context"
-	"maps"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resource/plugins"
@@ -29,7 +28,7 @@ func (m *Manager) Realloc(ctx context.Context, nodename string, nodeResource, op
 
 			for plugin, resp := range resps {
 				name := plugin.Name()
-				engineParams[name] = maps.Clone(resp.EngineParams)
+				engineParams[name] = resp.EngineParams
 				deltaResources[name] = resp.DeltaResource
 				workloadResource[name] = resp.WorkloadResource
 			}
