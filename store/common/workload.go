@@ -7,14 +7,16 @@ import (
 	"maps"
 	"path/filepath"
 	"slices"
-	"sync"
 
 	"github.com/cockroachdb/errors"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
+
+const statusReaders = 32
 
 func (s *Store) AddWorkload(ctx context.Context, workload *types.Workload, processing *types.Processing) error {
 	return s.doOpsWorkload(ctx, workload, processing, true)
@@ -185,14 +187,16 @@ func (s *Store) filterWorkloads(ctx context.Context, data, labels map[string]str
 
 func (s *Store) bindWorkloadsAdditions(ctx context.Context, workloads []*types.Workload, withEngine bool) ([]*types.Workload, error) {
 	nodenames := map[string]struct{}{}
-	statusKeys := map[string]string{}
+	groups := map[string][]*types.Workload{}
 	logger := log.WithFunc("store.common.bindWorkloadsAdditions")
 	for _, workload := range workloads {
 		appname, entrypoint, _, err := utils.ParseWorkloadName(workload.Name)
 		if err != nil {
 			return nil, err
 		}
-		statusKeys[workload.ID] = filepath.Join(WorkloadStatusPrefix, appname, entrypoint, workload.Nodename, workload.ID)
+		// trailing slash keeps the prefix from matching a longer nodename
+		prefix := filepath.Join(WorkloadStatusPrefix, appname, entrypoint, workload.Nodename) + "/"
+		groups[prefix] = append(groups[prefix], workload)
 		nodenames[workload.Nodename] = struct{}{}
 	}
 	if withEngine {
@@ -213,24 +217,34 @@ func (s *Store) bindWorkloadsAdditions(ctx context.Context, workloads []*types.W
 		}
 	}
 
-	wg := &sync.WaitGroup{}
-	wg.Add(len(workloads))
-	for _, workload := range workloads {
-		_ = s.Pool.Invoke(func() {
-			defer wg.Done()
-			value, err := s.GetOne(ctx, statusKeys[workload.ID])
-			if err != nil {
-				return
+	bind := func(prefix string, group []*types.Workload) error {
+		data, err := s.GetPrefix(ctx, prefix, 0)
+		if err != nil {
+			return err
+		}
+		for _, workload := range group {
+			value, ok := data[prefix+workload.ID]
+			if !ok {
+				continue
 			}
 			status := &types.StatusMeta{}
-			if err := json.Unmarshal([]byte(value), &status); err != nil {
+			if err := json.Unmarshal([]byte(value), status); err != nil {
 				logger.Errorf(ctx, err, "unmarshal status of %s, raw: %s", workload.ID, value)
-				return
+				continue
 			}
 			workload.StatusMeta = status
-		})
+		}
+		return nil
 	}
-	wg.Wait()
+
+	reads := errgroup.Group{}
+	reads.SetLimit(statusReaders)
+	for prefix, group := range groups {
+		reads.Go(func() error { return bind(prefix, group) })
+	}
+	if err := reads.Wait(); err != nil {
+		return nil, err
+	}
 	return workloads, nil
 }
 
