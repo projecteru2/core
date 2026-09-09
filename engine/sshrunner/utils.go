@@ -84,16 +84,21 @@ func Stream(ctx context.Context, runner Runner, argv ...string) (*Result, error)
 	defer func() {
 		_ = running.Close()
 	}()
+	return Exited(argv, running)
+}
+
+// Exited drains a started session and reports a non-zero exit as an error.
+func Exited(argv []string, running Session) (*Result, error) {
 	var out, errOut []byte
 	var readers errgroup.Group
 	readers.Go(func() (err error) { out, err = io.ReadAll(running.Stdout()); return err })
 	readers.Go(func() (err error) { errOut, err = io.ReadAll(running.Stderr()); return err })
-	if readErr := readers.Wait(); readErr != nil {
-		return nil, readErr
+	if err := readers.Wait(); err != nil {
+		return nil, err
 	}
-	code, waitErr := running.Wait()
-	if waitErr != nil {
-		return nil, waitErr
+	code, err := running.Wait()
+	if err != nil {
+		return nil, err
 	}
 	res := &Result{Stdout: string(out), Stderr: string(errOut), Code: code}
 	return res, ExitError(argv, res)

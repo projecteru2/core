@@ -60,8 +60,7 @@ func (c *Calcium) SetWorkloadsStatus(ctx context.Context, statusMetas []*types.S
 		}
 	}
 
-	r := make([]*types.StatusMeta, len(statusMetas))
-	for idx, statusMeta := range statusMetas {
+	for _, statusMeta := range statusMetas {
 		if workload, ok := workloads[statusMeta.ID]; ok {
 			appname, entrypoint, _, err := utils.ParseWorkloadName(workload.Name)
 			if err != nil {
@@ -72,7 +71,6 @@ func (c *Calcium) SetWorkloadsStatus(ctx context.Context, statusMetas []*types.S
 			statusMeta.Nodename = workload.Nodename
 			statusMeta.Entrypoint = entrypoint
 		}
-		r[idx] = statusMeta
 	}
 
 	var writes errgroup.Group
@@ -84,7 +82,7 @@ func (c *Calcium) SetWorkloadsStatus(ctx context.Context, statusMetas []*types.S
 		logger.Error(ctx, err)
 		return nil, err
 	}
-	return r, nil
+	return statusMetas, nil
 }
 
 func (c *Calcium) WorkloadStatusStream(ctx context.Context, appname, entrypoint, nodename string, labels map[string]string) chan *types.WorkloadStatus {

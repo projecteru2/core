@@ -72,7 +72,7 @@ func TestGetNodesResourceInfo(t *testing.T) {
 	cm := initCPUMEM(t)
 	nodes := generateNodes(ctx, t, cm, 2, 2, 4*units.GB, 100, 0)
 
-	resp, err := cm.GetNodesResourceInfo(ctx, nodes)
+	resp, err := cm.GetNodesResourceInfo(ctx, append(nodes, "never-added"))
 	assert.NoError(t, err)
 	assert.Len(t, resp.NodeResourceInfoMap, 2)
 	for _, node := range nodes {
@@ -95,36 +95,28 @@ func TestGetNodesDeployCapacityWithCPUBind(t *testing.T) {
 	_, err := cm.GetNodesDeployCapacity(ctx, []string{"xxx"}, req)
 	assert.True(t, errors.Is(err, coretypes.ErrInvaildCount))
 
-	r, err := cm.GetNodesDeployCapacity(ctx, nodes, req)
-	assert.Nil(t, err)
-	assert.True(t, r.Total >= 1)
-
-	req = plugintypes.WorkloadResourceRequest{
-		"cpu-bind":       true,
-		"cpu-request":    2,
-		"memory-request": "1",
+	tests := []struct {
+		name       string
+		cpuRequest any
+		check      func(t *testing.T, total int)
+	}{
+		{"half core request", 0.5, func(t *testing.T, total int) { assert.True(t, total >= 1) }},
+		{"two core request", 2, func(t *testing.T, total int) { assert.True(t, total < 3) }},
+		{"three core request", 3, func(t *testing.T, total int) { assert.True(t, total < 2) }},
+		{"one core request", 1, func(t *testing.T, total int) { assert.True(t, total < 5) }},
 	}
-	r, err = cm.GetNodesDeployCapacity(ctx, nodes, req)
-	assert.Nil(t, err)
-	assert.True(t, r.Total < 3)
-
-	req = plugintypes.WorkloadResourceRequest{
-		"cpu-bind":       true,
-		"cpu-request":    3,
-		"memory-request": "1",
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := plugintypes.WorkloadResourceRequest{
+				"cpu-bind":       true,
+				"cpu-request":    tt.cpuRequest,
+				"memory-request": "1",
+			}
+			r, err := cm.GetNodesDeployCapacity(ctx, nodes, req)
+			assert.Nil(t, err)
+			tt.check(t, r.Total)
+		})
 	}
-	r, err = cm.GetNodesDeployCapacity(ctx, nodes, req)
-	assert.Nil(t, err)
-	assert.True(t, r.Total < 2)
-
-	req = plugintypes.WorkloadResourceRequest{
-		"cpu-bind":       true,
-		"cpu-request":    1,
-		"memory-request": "1",
-	}
-	r, err = cm.GetNodesDeployCapacity(ctx, nodes, req)
-	assert.Nil(t, err)
-	assert.True(t, r.Total < 5)
 
 	nodes = generateNodes(ctx, t, cm, 1, 4, 12*units.GB, 100, 10)
 	nodes = append(nodes, generateNodes(ctx, t, cm, 1, 14, 12*units.GB, 100, 11)...)
@@ -137,7 +129,7 @@ func TestGetNodesDeployCapacityWithCPUBind(t *testing.T) {
 		"cpu-request":    1.7,
 		"memory-request": "1",
 	}
-	r, err = cm.GetNodesDeployCapacity(ctx, nodes, req)
+	r, err := cm.GetNodesDeployCapacity(ctx, nodes, req)
 	assert.Nil(t, err)
 	assert.Equal(t, r.Total, 28)
 }
@@ -212,36 +204,23 @@ func TestGetNodesDeployCapacityWithMemory(t *testing.T) {
 	_, err := cm.GetNodesDeployCapacity(ctx, nodes, req)
 	assert.True(t, errors.Is(err, types.ErrInvalidMemory))
 
-	req = plugintypes.WorkloadResourceRequest{
-		"cpu-request":    1,
-		"memory-request": fmt.Sprintf("%v", 512*units.MB),
+	tests := []struct {
+		name string
+		req  plugintypes.WorkloadResourceRequest
+		want int
+	}{
+		{"cpu and memory request", plugintypes.WorkloadResourceRequest{"cpu-request": 1, "memory-request": fmt.Sprintf("%v", 512*units.MB)}, 16},
+		{"memory request only", plugintypes.WorkloadResourceRequest{"memory-request": fmt.Sprintf("%v", 512*units.MB)}, 16},
+		{"cpu request exceeds capacity", plugintypes.WorkloadResourceRequest{"cpu-request": 3, "memory-request": fmt.Sprintf("%v", 512*units.MB)}, 0},
+		{"cpu request only", plugintypes.WorkloadResourceRequest{"cpu-request": 1}, math.MaxInt},
 	}
-
-	r, err := cm.GetNodesDeployCapacity(ctx, nodes, req)
-	assert.Nil(t, err)
-	assert.Equal(t, r.Total, 16)
-
-	req = plugintypes.WorkloadResourceRequest{
-		"memory-request": fmt.Sprintf("%v", 512*units.MB),
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r, err := cm.GetNodesDeployCapacity(ctx, nodes, tt.req)
+			assert.Nil(t, err)
+			assert.Equal(t, r.Total, tt.want)
+		})
 	}
-	r, err = cm.GetNodesDeployCapacity(ctx, nodes, req)
-	assert.Nil(t, err)
-	assert.Equal(t, r.Total, 16)
-
-	req = plugintypes.WorkloadResourceRequest{
-		"cpu-request":    3,
-		"memory-request": fmt.Sprintf("%v", 512*units.MB),
-	}
-	r, err = cm.GetNodesDeployCapacity(ctx, nodes, req)
-	assert.Nil(t, err)
-	assert.Equal(t, r.Total, 0)
-
-	req = plugintypes.WorkloadResourceRequest{
-		"cpu-request": 1,
-	}
-	r, err = cm.GetNodesDeployCapacity(ctx, nodes, req)
-	assert.Nil(t, err)
-	assert.Equal(t, r.Total, math.MaxInt)
 }
 
 func TestSetNodeResourceCapacity(t *testing.T) {
@@ -291,36 +270,78 @@ func TestSetNodeResourceCapacity(t *testing.T) {
 		"memory": fmt.Sprintf("%v", 2*units.GB),
 	}
 
-	r, err := cm.SetNodeResourceCapacity(ctx, node, nodeResource, nil, true, true)
-	assert.Nil(t, err)
-	assert.Len(t, r.After["cpu_map"], 4)
-
-	r, err = cm.SetNodeResourceCapacity(ctx, node, nodeResource, nil, true, false)
-	assert.Nil(t, err)
-	assert.Len(t, r.After["cpu_map"], 2)
-	assert.Len(t, r.After["numa_memory"], 2)
-	assert.Len(t, r.After["numa"], 4)
-
-	r, err = cm.SetNodeResourceCapacity(ctx, node, nil, nodeResourceRequest, true, true)
-	assert.Nil(t, err)
-	assert.Len(t, r.After["cpu_map"], 4)
-	assert.Len(t, r.After["numa_memory"], 2)
-	assert.Len(t, r.After["numa"], 4)
-
-	r, err = cm.SetNodeResourceCapacity(ctx, node, nil, nodeResourceRequest, true, false)
-	assert.Nil(t, err)
-	assert.Len(t, r.After["cpu_map"], 2)
-	assert.Len(t, r.After["numa_memory"], 2)
-	assert.Len(t, r.After["numa"], 4)
-
-	r, err = cm.SetNodeResourceCapacity(ctx, node, nil, noChangeRequest, false, true)
-	assert.Nil(t, err)
-	assert.Len(t, r.After["cpu_map"], 4)
-
-	r, err = cm.SetNodeResourceCapacity(ctx, node, newNodeResource, nil, false, false)
-	assert.Nil(t, err)
-	assert.Len(t, r.After["cpu_map"], 2)
-	assert.Len(t, r.After["numa"], 0)
+	tests := []struct {
+		name     string
+		resource plugintypes.NodeResource
+		request  plugintypes.NodeResourceRequest
+		delta    bool
+		incr     bool
+		check    func(t *testing.T, after plugintypes.NodeResource)
+	}{
+		{
+			name:     "resource delta incr",
+			resource: nodeResource,
+			delta:    true,
+			incr:     true,
+			check: func(t *testing.T, after plugintypes.NodeResource) {
+				assert.Len(t, after["cpu_map"], 4)
+			},
+		},
+		{
+			name:     "resource delta decr",
+			resource: nodeResource,
+			delta:    true,
+			check: func(t *testing.T, after plugintypes.NodeResource) {
+				assert.Len(t, after["cpu_map"], 2)
+				assert.Len(t, after["numa_memory"], 2)
+				assert.Len(t, after["numa"], 4)
+			},
+		},
+		{
+			name:    "request delta incr",
+			request: nodeResourceRequest,
+			delta:   true,
+			incr:    true,
+			check: func(t *testing.T, after plugintypes.NodeResource) {
+				assert.Len(t, after["cpu_map"], 4)
+				assert.Len(t, after["numa_memory"], 2)
+				assert.Len(t, after["numa"], 4)
+			},
+		},
+		{
+			name:    "request delta decr",
+			request: nodeResourceRequest,
+			delta:   true,
+			check: func(t *testing.T, after plugintypes.NodeResource) {
+				assert.Len(t, after["cpu_map"], 2)
+				assert.Len(t, after["numa_memory"], 2)
+				assert.Len(t, after["numa"], 4)
+			},
+		},
+		{
+			name:    "request no delta incr",
+			request: noChangeRequest,
+			incr:    true,
+			check: func(t *testing.T, after plugintypes.NodeResource) {
+				assert.Len(t, after["cpu_map"], 4)
+			},
+		},
+		{
+			name:     "resource no delta decr",
+			resource: newNodeResource,
+			check: func(t *testing.T, after plugintypes.NodeResource) {
+				assert.Len(t, after["cpu_map"], 2)
+				assert.Len(t, after["numa"], 0)
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r, err := cm.SetNodeResourceCapacity(ctx, node, tt.resource, tt.request, tt.delta, tt.incr)
+			assert.Nil(t, err)
+			tt.check(t, r.After)
+		})
+	}
 }
 
 func TestGetAndFixNodeResourceInfo(t *testing.T) {
@@ -416,47 +437,98 @@ func TestSetNodeResourceUsage(t *testing.T) {
 		},
 	}
 
-	r, err := cm.SetNodeResourceUsage(ctx, node, nodeResource, nil, nil, true, true)
-	assert.Nil(t, err)
-	assert.Len(t, r.After["cpu_map"], 2)
-
-	r, err = cm.SetNodeResourceUsage(ctx, node, nodeResource, nil, nil, true, false)
-	assert.Nil(t, err)
-	assert.Len(t, r.After["cpu_map"], 2)
-	assert.Equal(t, r.After["cpu"], 0.0)
-	assert.Equal(t, r.After["memory"], 0.0)
-
-	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nodeResourceRequest, nil, true, true)
-	assert.Nil(t, err)
-	assert.Len(t, r.After["cpu_map"], 2)
-
-	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nodeResourceRequest, nil, true, false)
-	assert.Nil(t, err)
-	assert.Len(t, r.After["cpu_map"], 2)
-	assert.Equal(t, r.After["cpu"], 0.0)
-	assert.Equal(t, r.After["memory"], 0.0)
-
-	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nil, workloadsResource, true, true)
-	assert.Nil(t, err)
-	assert.Len(t, r.After["cpu_map"], 2)
-
-	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nil, workloadsResource, true, false)
-	assert.Nil(t, err)
-	assert.Len(t, r.After["cpu_map"], 2)
-	assert.Equal(t, r.After["cpu"], 0.0)
-	assert.Equal(t, r.After["memory"], 0.0)
-
-	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nil, nil, true, false)
-	assert.Nil(t, err)
-	assert.Len(t, r.After["cpu_map"], 2)
-	assert.Equal(t, r.After["cpu"], 0.0)
-	assert.Equal(t, r.After["memory"], 0.0)
-
-	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nodeResourceRequest, nil, false, false)
-	assert.Nil(t, err)
-	assert.Len(t, r.After["cpu_map"], 2)
-	assert.Equal(t, r.After["cpu"], 2.0)
-	assert.Equal(t, r.After["memory"], float64(2*units.GB))
+	tests := []struct {
+		name              string
+		resource          plugintypes.NodeResource
+		resourceRequest   plugintypes.NodeResourceRequest
+		workloadsResource []plugintypes.WorkloadResource
+		delta             bool
+		incr              bool
+		check             func(t *testing.T, after plugintypes.NodeResource)
+	}{
+		{
+			name:     "resource delta incr",
+			resource: nodeResource,
+			delta:    true,
+			incr:     true,
+			check: func(t *testing.T, after plugintypes.NodeResource) {
+				assert.Len(t, after["cpu_map"], 2)
+			},
+		},
+		{
+			name:     "resource delta decr",
+			resource: nodeResource,
+			delta:    true,
+			check: func(t *testing.T, after plugintypes.NodeResource) {
+				assert.Len(t, after["cpu_map"], 2)
+				assert.Equal(t, after["cpu"], 0.0)
+				assert.Equal(t, after["memory"], 0.0)
+			},
+		},
+		{
+			name:            "request delta incr",
+			resourceRequest: nodeResourceRequest,
+			delta:           true,
+			incr:            true,
+			check: func(t *testing.T, after plugintypes.NodeResource) {
+				assert.Len(t, after["cpu_map"], 2)
+			},
+		},
+		{
+			name:            "request delta decr",
+			resourceRequest: nodeResourceRequest,
+			delta:           true,
+			check: func(t *testing.T, after plugintypes.NodeResource) {
+				assert.Len(t, after["cpu_map"], 2)
+				assert.Equal(t, after["cpu"], 0.0)
+				assert.Equal(t, after["memory"], 0.0)
+			},
+		},
+		{
+			name:              "workloads delta incr",
+			workloadsResource: workloadsResource,
+			delta:             true,
+			incr:              true,
+			check: func(t *testing.T, after plugintypes.NodeResource) {
+				assert.Len(t, after["cpu_map"], 2)
+			},
+		},
+		{
+			name:              "workloads delta decr",
+			workloadsResource: workloadsResource,
+			delta:             true,
+			check: func(t *testing.T, after plugintypes.NodeResource) {
+				assert.Len(t, after["cpu_map"], 2)
+				assert.Equal(t, after["cpu"], 0.0)
+				assert.Equal(t, after["memory"], 0.0)
+			},
+		},
+		{
+			name:  "no input delta decr",
+			delta: true,
+			check: func(t *testing.T, after plugintypes.NodeResource) {
+				assert.Len(t, after["cpu_map"], 2)
+				assert.Equal(t, after["cpu"], 0.0)
+				assert.Equal(t, after["memory"], 0.0)
+			},
+		},
+		{
+			name:            "request no delta",
+			resourceRequest: nodeResourceRequest,
+			check: func(t *testing.T, after plugintypes.NodeResource) {
+				assert.Len(t, after["cpu_map"], 2)
+				assert.Equal(t, after["cpu"], 2.0)
+				assert.Equal(t, after["memory"], float64(2*units.GB))
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r, err := cm.SetNodeResourceUsage(ctx, node, tt.resource, tt.resourceRequest, tt.workloadsResource, tt.delta, tt.incr)
+			assert.Nil(t, err)
+			tt.check(t, r.After)
+		})
+	}
 }
 
 func TestGetMostIdleNode(t *testing.T) {

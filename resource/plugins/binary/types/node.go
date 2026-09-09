@@ -21,11 +21,11 @@ type GetNodesDeployCapacityRequest struct {
 }
 
 type SetNodeResourceCapacityRequest struct {
-	Nodename        string                   `json:"nodename"`
-	Resource        plugintypes.NodeResource `json:"resource"`
-	ResourceRequest plugintypes.NodeResource `json:"resource_request"`
-	Delta           bool                     `json:"delta"`
-	Incr            bool                     `json:"incr"`
+	Nodename        string                          `json:"nodename"`
+	Resource        plugintypes.NodeResource        `json:"resource"`
+	ResourceRequest plugintypes.NodeResourceRequest `json:"resource_request"`
+	Delta           bool                            `json:"delta"`
+	Incr            bool                            `json:"incr"`
 }
 
 type GetNodeResourceInfoRequest struct {
