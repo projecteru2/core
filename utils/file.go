@@ -2,6 +2,7 @@ package utils
 
 import (
 	"io/fs"
+	"os"
 	"path/filepath"
 )
 
@@ -9,27 +10,24 @@ const executablePerm = 0o111
 
 // ListAllExecutableFiles returns the executable files directly under basedir, not recursing.
 func ListAllExecutableFiles(basedir string) ([]string, error) {
+	entries, err := os.ReadDir(basedir)
+	if err != nil {
+		return nil, err
+	}
 	files := []string{}
-	err := filepath.WalkDir(basedir, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
 		}
-		if d.IsDir() {
-			if path != basedir {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		info, err := d.Info()
+		info, err := entry.Info()
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if isExecutable(info.Mode().Perm()) {
-			files = append(files, path)
+			files = append(files, filepath.Join(basedir, entry.Name()))
 		}
-		return nil
-	})
-	return files, err
+	}
+	return files, nil
 }
 
 func isExecutable(perm fs.FileMode) bool {

@@ -2,6 +2,7 @@ package containerd
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -118,11 +119,11 @@ func TestMakeMainPartRendersOneStage(t *testing.T) {
 		Commands: []string{"make"},
 	}
 
-	got, err := makeMainPart(build, "FROM alpine:3.20 as build", []string{"RUN make"}, []string{"COPY --from=deps /a /b"})
+	got, err := makeMainPart(build, fmt.Sprintf(fromAsTmpl, build.Base, "build"), []string{"RUN make"}, []string{"COPY --from=deps /a /b"})
 	if err != nil {
 		t.Fatalf("render: %v", err)
 	}
-	for _, want := range []string{"FROM alpine:3.20 as build", `ENV MODE "prod"`, "WORKDIR /srv", "COPY --from=deps /a /b", "RUN make"} {
+	for _, want := range []string{"FROM alpine:3.20 AS build", `ENV MODE "prod"`, "WORKDIR /srv", "COPY --from=deps /a /b", "RUN make"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("got %q, want it to contain %q", got, want)
 		}

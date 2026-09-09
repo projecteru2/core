@@ -12,6 +12,12 @@ import (
 )
 
 func (c *Calcium) ControlWorkload(ctx context.Context, IDs []string, typ string, force bool) (chan *types.ControlWorkloadMessage, error) {
+	switch typ {
+	case cluster.WorkloadStop, cluster.WorkloadStart, cluster.WorkloadRestart, cluster.WorkloadSuspend, cluster.WorkloadResume:
+	default:
+		return nil, types.ErrInvaildControlType
+	}
+
 	logger := log.WithFunc("calcium.ControlWorkload").WithField("IDs", IDs).WithField("typ", typ).WithField("force", force)
 	ch := make(chan *types.ControlWorkloadMessage)
 

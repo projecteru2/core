@@ -10,7 +10,10 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-type fieldWalker func(reflect.Value) error
+type (
+	fieldWalker  func(reflect.Value) error
+	fieldVisitor func(reflect.Value, reflect.StructField) error
+)
 
 // LoadConfig loads the config from the YAML file at configPath.
 func LoadConfig(configPath string) (types.Config, error) {
@@ -32,34 +35,32 @@ func LoadConfig(configPath string) (types.Config, error) {
 
 // defaults land before the file is read so an explicit zero in the file still wins
 func applyDefaults(value reflect.Value) error {
-	for i := range value.NumField() {
-		field := value.Field(i)
-		if !field.CanSet() {
-			continue
-		}
-		structField := value.Type().Field(i)
+	return walkFields(value, func(field reflect.Value, structField reflect.StructField) error {
 		if tag := structField.Tag.Get("default"); tag != "" && field.IsZero() {
 			if err := yaml.Unmarshal([]byte(tag), field.Addr().Interface()); err != nil {
 				return errors.Wrapf(err, "bad default for %s", structField.Name)
 			}
 		}
-		if err := walkNested(field, applyDefaults); err != nil {
-			return err
-		}
-	}
-	return nil
+		return walkNested(field, applyDefaults)
+	})
 }
 
 func checkRequired(value reflect.Value) error {
+	return walkFields(value, func(field reflect.Value, structField reflect.StructField) error {
+		if structField.Tag.Get("required") == "true" && field.IsZero() {
+			return errors.Newf("%s is required, but blank", structField.Name)
+		}
+		return walkNested(field, checkRequired)
+	})
+}
+
+func walkFields(value reflect.Value, visit fieldVisitor) error {
 	for i := range value.NumField() {
 		field := value.Field(i)
 		if !field.CanSet() {
 			continue
 		}
-		if structField := value.Type().Field(i); structField.Tag.Get("required") == "true" && field.IsZero() {
-			return errors.Newf("%s is required, but blank", structField.Name)
-		}
-		if err := walkNested(field, checkRequired); err != nil {
+		if err := visit(field, value.Type().Field(i)); err != nil {
 			return err
 		}
 	}

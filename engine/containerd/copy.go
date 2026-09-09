@@ -60,7 +60,20 @@ func (e *Engine) VirtualizationCopyFrom(ctx context.Context, ID, path string) (c
 	if err != nil {
 		return nil, 0, 0, 0, err
 	}
-	res, err := e.runner.Run(ctx, sshrunner.Quote(argv), nil)
+	running, err := e.runner.Start(ctx, sshrunner.Quote(argv), &sshrunner.StartOptions{})
+	if err != nil {
+		return nil, 0, 0, 0, err
+	}
+	defer func() {
+		_ = running.Close()
+	}()
+
+	reader := tar.NewReader(running.Stdout())
+	header, readErr := reader.Next()
+	if readErr == nil {
+		content, readErr = io.ReadAll(reader)
+	}
+	res, err := exited(running)
 	if err != nil {
 		return nil, 0, 0, 0, err
 	}
@@ -70,13 +83,10 @@ func (e *Engine) VirtualizationCopyFrom(ctx context.Context, ID, path string) (c
 		}
 		return nil, 0, 0, 0, err
 	}
-	reader := tar.NewReader(strings.NewReader(res.Stdout))
-	header, err := reader.Next()
-	if err != nil {
-		return nil, 0, 0, 0, err
+	if readErr != nil {
+		return nil, 0, 0, 0, readErr
 	}
-	content, err = io.ReadAll(reader)
-	return content, header.Uid, header.Gid, header.Mode, err
+	return content, header.Uid, header.Gid, header.Mode, nil
 }
 
 // tarArgv runs tar inside the workload; copy is a stream, and only an exec carries one.
@@ -114,6 +124,18 @@ func (e *Engine) snapshotArgv(ID, snapshotKey, target string) []string {
 		ctrBinary, e.socket, e.namespace, snapshotKey,
 		filepath.Join(workloadDir(ID), snapshotMount), filepath.Dir(target),
 	)
+}
+
+func exited(running sshrunner.Session) (*sshrunner.Result, error) {
+	stderr, err := io.ReadAll(running.Stderr())
+	if err != nil {
+		return nil, err
+	}
+	code, err := running.Wait()
+	if err != nil {
+		return nil, err
+	}
+	return &sshrunner.Result{Stderr: string(stderr), Code: code}, nil
 }
 
 func missingPath(res *sshrunner.Result) bool {

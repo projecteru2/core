@@ -23,7 +23,7 @@ import (
 const (
 	dockerfileName = "Dockerfile"
 
-	fromAsTmpl = "FROM %s as %s"
+	fromAsTmpl = "FROM %s AS %s"
 	commonTmpl = `{{ range $k, $v:= .Args -}}
 {{ printf "ARG %s=%q" $k $v }}
 {{ end -}}

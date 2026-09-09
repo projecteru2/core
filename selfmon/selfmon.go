@@ -117,9 +117,6 @@ func (n *NodeStatusWatcher) replayDeadJournals(ctx context.Context) {
 			logger.Error(ctx, err, "failed to read service status")
 			return nil
 		}
-		if len(live) == 0 {
-			return nil
-		}
 		n.wal.Takeover(ctx, live)
 		return nil
 	})
