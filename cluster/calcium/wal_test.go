@@ -2,24 +2,36 @@ package calcium
 
 import (
 	"context"
+	"fmt"
 	"maps"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
 	"testing/synctest"
+	"time"
 
 	"github.com/cockroachdb/errors"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
+	"github.com/projecteru2/core/log"
 	resourcemocks "github.com/projecteru2/core/resource/mocks"
 	resourcetypes "github.com/projecteru2/core/resource/types"
+	"github.com/projecteru2/core/store"
+	storecommon "github.com/projecteru2/core/store/common"
+	"github.com/projecteru2/core/store/etcdv3/embedded"
+	storefactory "github.com/projecteru2/core/store/factory"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
+
+const addressPrefix = "/wal/%s/"
 
 func TestHandleWorkloadResourceAllocatedMultipleNodes(t *testing.T) {
 	c := NewTestCluster()
@@ -413,6 +425,53 @@ func TestHandleCreateLambdaKeepsEntryUntilRemoved(t *testing.T) {
 	})
 }
 
+func TestProcessingCreatedHandlerDropsTheAbandonedRecordOnly(t *testing.T) {
+	const appname, entryname, nodename = "app", "entry", "node"
+
+	ctx := t.Context()
+	config := types.Config{
+		GlobalTimeout:  30 * time.Second,
+		MaxConcurrency: 100,
+		Etcd:           types.EtcdConfig{Prefix: "/eru-test", LockPrefix: "/eru-test-lock"},
+	}
+	stor := newEmbeddedStore(t, config)
+	recovering := newJournaledCluster(t, config, stor, "10.22.12.34:5001")
+	peer := newJournaledCluster(t, config, stor, "10.22.12.35:5001")
+	logger := log.WithFunc("calcium.wal_test")
+
+	abandoned := newRequestProcessing(appname, entryname, nodename)
+	_, err := recovering.journal(ctx, logger, eventProcessingCreated, abandoned)
+	require.NoError(t, err)
+	require.NoError(t, stor.CreateProcessing(ctx, abandoned, 3))
+
+	finished := newRequestProcessing(appname, entryname, nodename)
+	commit, err := recovering.journal(ctx, logger, eventProcessingCreated, finished)
+	require.NoError(t, err)
+	require.NoError(t, stor.CreateProcessing(ctx, finished, 2))
+	require.NoError(t, stor.DeleteProcessing(ctx, finished))
+	commit()
+
+	inflight := newRequestProcessing(appname, entryname, nodename)
+	_, err = peer.journal(ctx, logger, eventProcessingCreated, inflight)
+	require.NoError(t, err)
+	require.NoError(t, stor.CreateProcessing(ctx, inflight, 5))
+
+	require.Len(t, journalEntries(t, stor, recovering.serviceAddress), 1, "the finished request commits its entry away, the crashed one leaves it behind")
+	require.Equal(t, map[string]int{nodename: 8}, deployStatus(t, stor, appname, entryname), "the crashed request still counts against the node")
+
+	recovering.DisasterRecover(ctx)
+
+	keys, err := stor.ListPrefix(ctx, filepath.Join(storecommon.WorkloadProcessingPrefix, appname, entryname)+"/")
+	require.NoError(t, err)
+	assert.Equal(t, []string{storecommon.ProcessingKey(inflight)}, keys, "only the abandoned ident is released")
+	assert.Equal(t, map[string]int{nodename: 5}, deployStatus(t, stor, appname, entryname), "the live request keeps its count")
+	assert.Empty(t, journalEntries(t, stor, recovering.serviceAddress), "a replayed entry is dropped")
+	assert.Len(t, journalEntries(t, stor, peer.serviceAddress), 1, "another instance's journal is not replayed")
+
+	recovering.DisasterRecover(ctx)
+	assert.Equal(t, map[string]int{nodename: 5}, deployStatus(t, stor, appname, entryname), "a second recovery has nothing left to replay")
+}
+
 func enableTestWAL(t *testing.T, c *Calcium) {
 	mockWALStore(c.store.(*storemocks.Store))
 	journal, err := enableWAL(t.Context(), c.config, c, c.store)
@@ -460,4 +519,43 @@ func mockWALStore(store *storemocks.Store) {
 		}
 		return keys, nil
 	}).Maybe()
+}
+
+func newEmbeddedStore(t *testing.T, config types.Config) store.Store {
+	etcd, err := embedded.New(t.TempDir())
+	require.NoError(t, err)
+	t.Cleanup(etcd.Close)
+
+	stor, err := storefactory.NewStore(t.Context(), config, etcd)
+	require.NoError(t, err)
+	return stor
+}
+
+func newJournaledCluster(t *testing.T, config types.Config, stor store.Store, address string) *Calcium {
+	c := &Calcium{config: config, store: stor, serviceAddress: address}
+	journal, err := enableWAL(t.Context(), config, c, stor)
+	require.NoError(t, err)
+	c.wal = journal
+	return c
+}
+
+func newRequestProcessing(appname, entryname, nodename string) *types.Processing {
+	opts := &types.DeployOptions{
+		Name:         appname,
+		Entrypoint:   &types.Entrypoint{Name: entryname},
+		ProcessIdent: utils.RandomString(16),
+	}
+	return opts.GetProcessing(nodename)
+}
+
+func journalEntries(t *testing.T, stor store.Store, address string) []string {
+	keys, err := stor.ListPrefix(t.Context(), fmt.Sprintf(addressPrefix, address))
+	require.NoError(t, err)
+	return keys
+}
+
+func deployStatus(t *testing.T, stor store.Store, appname, entryname string) map[string]int {
+	status, err := stor.GetDeployStatus(t.Context(), appname, entryname)
+	require.NoError(t, err)
+	return status
 }
