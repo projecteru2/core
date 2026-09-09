@@ -67,6 +67,20 @@ func TestRemoveNode(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestGetNodesResourceInfo(t *testing.T) {
+	ctx := t.Context()
+	cm := initCPUMEM(t)
+	nodes := generateNodes(ctx, t, cm, 2, 2, 4*units.GB, 100, 0)
+
+	resp, err := cm.GetNodesResourceInfo(ctx, nodes)
+	assert.NoError(t, err)
+	assert.Len(t, resp.NodeResourceInfoMap, 2)
+	for _, node := range nodes {
+		assert.EqualValues(t, 2, resp.NodeResourceInfoMap[node].Capacity["cpu"])
+		assert.EqualValues(t, 0, resp.NodeResourceInfoMap[node].Usage["cpu"])
+	}
+}
+
 func TestGetNodesDeployCapacityWithCPUBind(t *testing.T) {
 	ctx := t.Context()
 	cm := initCPUMEM(t)

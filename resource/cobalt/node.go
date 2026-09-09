@@ -125,6 +125,26 @@ func (m *Manager) GetNodeResourceInfo(ctx context.Context, nodename string, work
 	return m.getNodeResourceInfo(ctx, nodename, m.whitelisted, workloads, fix)
 }
 
+func (m *Manager) GetNodesResourceInfo(ctx context.Context, nodenames []string) (map[string]*types.NodeResourceInfo, error) {
+	resps, err := call(ctx, m.whitelisted, func(plugin plugins.Plugin) (*plugintypes.GetNodesResourceInfoResponse, error) {
+		return plugin.GetNodesResourceInfo(ctx, nodenames)
+	})
+
+	infos := make(map[string]*types.NodeResourceInfo, len(nodenames))
+	for _, nodename := range nodenames {
+		infos[nodename] = &types.NodeResourceInfo{Capacity: resourcetypes.Resources{}, Usage: resourcetypes.Resources{}}
+	}
+	for plugin, resp := range resps {
+		for nodename, info := range resp.NodeResourceInfoMap {
+			if node, ok := infos[nodename]; ok {
+				node.Capacity[plugin.Name()] = info.Capacity
+				node.Usage[plugin.Name()] = info.Usage
+			}
+		}
+	}
+	return infos, err
+}
+
 func (m *Manager) SetNodeResourceUsage(ctx context.Context, nodename string, nodeResource, nodeResourceRequest resourcetypes.Resources, workloadsResource []resourcetypes.Resources, delta, incr bool) (resourcetypes.Resources, resourcetypes.Resources, error) {
 	logger := log.WithFunc("resource.cobalt.SetNodeResourceUsage").WithField("node", nodename)
 	wrksResource := map[string][]resourcetypes.RawParams{}
