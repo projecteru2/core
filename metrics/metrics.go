@@ -51,7 +51,7 @@ func (m *Metrics) SendDeployCount(ctx context.Context, n int) {
 	metrics := &plugintypes.Metrics{
 		Name:   deployCountName,
 		Labels: []string{m.Hostname},
-		Key:    deployCountKey,
+		Key:    fmt.Sprintf(deployCountKey, m.Hostname),
 		Value:  strconv.Itoa(n),
 	}
 

@@ -1,11 +1,14 @@
 package metrics
 
 import (
+	"net"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 )
@@ -42,6 +45,28 @@ func TestSendMetricsConcurrentStatsd(t *testing.T) {
 	wg.Wait()
 
 	assert.Equal(t, 1, collected(gauge))
+}
+
+func TestSendDeployCountNamesTheHost(t *testing.T) {
+	conn, err := net.ListenPacket("udp", "127.0.0.1:0")
+	require.NoError(t, err)
+	defer func() { _ = conn.Close() }()
+	m := &Metrics{
+		Hostname:   "host1",
+		StatsdAddr: conn.LocalAddr().String(),
+		Collectors: map[string]prometheus.Collector{
+			deployCountName: prometheus.NewCounterVec(prometheus.CounterOpts{Name: deployCountName}, []string{"hostname"}),
+		},
+	}
+
+	m.SendDeployCount(t.Context(), 3)
+	require.NoError(t, m.statsdClient.Close())
+
+	buf := make([]byte, 512)
+	require.NoError(t, conn.SetReadDeadline(time.Now().Add(time.Second)))
+	n, _, err := conn.ReadFrom(buf)
+	require.NoError(t, err)
+	assert.Equal(t, "core.host1.deploy.count:3|c", string(buf[:n]))
 }
 
 func collected(c prometheus.Collector) int {
