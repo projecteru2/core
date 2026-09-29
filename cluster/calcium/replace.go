@@ -14,7 +14,7 @@ import (
 )
 
 func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOptions) (chan *types.ReplaceWorkloadMessage, error) {
-	logger := log.WithFunc("calcium.ReplaceWorkload").WithField("opts", opts)
+	logger := log.WithFunc("calcium.ReplaceWorkload").WithField("app", opts.Name)
 	if err := opts.Validate(); err != nil {
 		logger.Error(ctx, err)
 		return nil, err

@@ -12,7 +12,7 @@ import (
 )
 
 func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *types.SendMessage, error) {
-	logger := log.WithFunc("calcium.Send").WithField("opts", opts)
+	logger := log.WithFunc("calcium.Send").WithField("IDs", opts.IDs)
 	if err := opts.Validate(); err != nil {
 		logger.Error(ctx, err)
 		return nil, err
