@@ -35,11 +35,7 @@ func TestAddNode(t *testing.T) {
 	v := newVibranium()
 	opts := &pb.AddNodeOptions{}
 	cluster := v.cluster.(*clustermock.Cluster)
-	cluster.On("AddNode", mock.Anything, mock.Anything,
-		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
-	).Return(nil, types.ErrMockError).Once()
+	cluster.On("AddNode", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	_, err := v.AddNode(t.Context(), opts)
 	assert.Error(t, err)
 	engine := &enginemock.API{}
@@ -50,16 +46,12 @@ func TestAddNode(t *testing.T) {
 		Engine: engine,
 	}
 	engine.On("Info", mock.Anything).Return(&enginetypes.Info{}, nil)
-	cluster.On("AddNode", mock.Anything, mock.Anything,
-		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
-	).Return(node, nil)
+	cluster.On("AddNode", mock.Anything, mock.Anything).Return(node, nil)
 	_, err = v.AddNode(t.Context(), opts)
 	assert.NoError(t, err)
 }
 
-func TestSetNodeTranform(t *testing.T) {
+func TestSetNodeTransform(t *testing.T) {
 	b := &pb.SetNodeOptions{
 		Nodename: "a",
 	}
@@ -68,7 +60,7 @@ func TestSetNodeTranform(t *testing.T) {
 	assert.Equal(t, "a", opts.Nodename)
 }
 
-func TestSetNodeTranformRejectsAMalformedResource(t *testing.T) {
+func TestSetNodeTransformRejectsAMalformedResource(t *testing.T) {
 	b := &pb.SetNodeOptions{
 		Nodename:  "a",
 		Resources: map[string][]byte{"cpumem": []byte("not json")},
@@ -209,9 +201,9 @@ func TestGetWorkloadReportsAMissingWorkloadAsNotFound(t *testing.T) {
 	cluster.On("GetWorkload", mock.Anything, "broken").
 		Return(nil, types.ErrMockError).Once()
 
-	_, err := v.GetWorkload(context.Background(), &pb.WorkloadID{Id: "gone"})
+	_, err := v.GetWorkload(t.Context(), &pb.WorkloadID{Id: "gone"})
 	assert.Equal(t, codes.NotFound, grpcstatus.Code(err))
-	_, err = v.GetWorkload(context.Background(), &pb.WorkloadID{Id: "broken"})
+	_, err = v.GetWorkload(t.Context(), &pb.WorkloadID{Id: "broken"})
 	assert.Equal(t, GetWorkload, grpcstatus.Code(err))
 }
 

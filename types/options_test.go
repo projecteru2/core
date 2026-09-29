@@ -2,10 +2,10 @@ package types
 
 import (
 	"bufio"
+	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap/buffer"
 
 	resourcetypes "github.com/projecteru2/core/resource/types"
 )
@@ -26,7 +26,7 @@ func TestDeployOptions(t *testing.T) {
 	o := &DeployOptions{Entrypoint: &Entrypoint{}}
 	assert.Equal(ErrEmptyAppName, o.Validate())
 
-	assert.NotNil(t, o.GetProcessing("t"))
+	assert.NotNil(o.GetProcessing("t"))
 
 	o.Name = "testname"
 	assert.Equal(ErrEmptyPodName, o.Validate())
@@ -75,7 +75,7 @@ func TestLinuxFile(t *testing.T) {
 	nlf := lf.Clone()
 	assert.Equal(t, lf.Filename, nlf.Filename)
 	assert.NotEmpty(t, lf.String())
-	b := bufio.NewWriter(&buffer.Buffer{})
+	b := bufio.NewWriter(&bytes.Buffer{})
 	lf.LitterDump(b)
 	assert.NoError(t, b.Flush())
 }
@@ -168,10 +168,10 @@ func TestImageOptions(t *testing.T) {
 	assert.NoError(o.Validate())
 }
 
-func TestRawArges(t *testing.T) {
+func TestRawArgs(t *testing.T) {
 	ra := RawArgs([]byte("abc"))
 	assert.Equal(t, ra.String(), "abc")
-	b := bufio.NewWriter(&buffer.Buffer{})
+	b := bufio.NewWriter(&bytes.Buffer{})
 	ra.LitterDump(b)
 	assert.NoError(t, b.Flush())
 }
