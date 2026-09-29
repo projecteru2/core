@@ -144,7 +144,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 func newEruErrMsg(workloadID, format string, args ...any) *types.AttachWorkloadMessage {
 	return &types.AttachWorkloadMessage{
 		WorkloadID:    workloadID,
-		Data:          []byte(fmt.Sprintf(format, args...)),
+		Data:          fmt.Appendf(nil, format, args...),
 		StdStreamType: types.EruError,
 	}
 }

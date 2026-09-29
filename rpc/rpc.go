@@ -3,6 +3,7 @@ package rpc
 import (
 	"archive/tar"
 	"bufio"
+	"cmp"
 	"context"
 	"fmt"
 	"io"
@@ -458,32 +459,30 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 		}
 
 		r, w := io.Pipe()
-		utils.SentryGo(func(m *types.CopyMessage) func() {
-			return func() {
-				var err error
-				defer func() {
-					w.CloseWithError(err) //nolint:errcheck
-				}()
+		utils.SentryGo(func() {
+			var err error
+			defer func() {
+				w.CloseWithError(err) //nolint:errcheck
+			}()
 
-				tw := tar.NewWriter(w)
-				defer func() { err = errors.Join(err, tw.Close()) }()
-				header := &tar.Header{
-					Name: filepath.Base(m.Filename),
-					Uid:  m.UID,
-					Gid:  m.GID,
-					Mode: m.Mode,
-					Size: int64(len(m.Content)),
-				}
-				if err = tw.WriteHeader(header); err != nil {
-					logger.Error(task.context, err, "write tarball header")
-					return
-				}
-				if _, err = tw.Write(m.Content); err != nil {
-					logger.Error(task.context, err, "write tarball content")
-					return
-				}
+			tw := tar.NewWriter(w)
+			defer func() { err = errors.Join(err, tw.Close()) }()
+			header := &tar.Header{
+				Name: filepath.Base(m.Filename),
+				Uid:  m.UID,
+				Gid:  m.GID,
+				Mode: m.Mode,
+				Size: int64(len(m.Content)),
 			}
-		}(m))
+			if err = tw.WriteHeader(header); err != nil {
+				logger.Error(task.context, err, "write tarball header")
+				return
+			}
+			if _, err = tw.Write(m.Content); err != nil {
+				logger.Error(task.context, err, "write tarball content")
+				return
+			}
+		})
 
 		for {
 			n, err := r.Read(p)
@@ -800,23 +799,20 @@ func (v *Vibranium) LogStream(opts *pb.LogStreamOptions, stream pb.CoreRPC_LogSt
 
 func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	task := v.newTask(stream.Context(), "RunAndWait", true)
-	RunAndWaitOptions, deployOpts, err := runAndWaitOptions(stream)
+	runOpts, deployOpts, err := runAndWaitOptions(stream)
 	if err != nil {
 		task.done()
 		return grpcstatus.Error(RunAndWait, err.Error())
 	}
 	logger := log.WithFunc("vibranium.RunAndWait")
-	opts := RunAndWaitOptions.DeployOptions
+	opts := runOpts.DeployOptions
 
 	var (
 		ctx    context.Context
 		cancel context.CancelFunc
 	)
-	if RunAndWaitOptions.Async {
-		timeout := v.config.GlobalTimeout
-		if RunAndWaitOptions.AsyncTimeout != 0 {
-			timeout = time.Second * time.Duration(RunAndWaitOptions.AsyncTimeout)
-		}
+	if runOpts.Async {
+		timeout := cmp.Or(time.Duration(runOpts.AsyncTimeout)*time.Second, v.config.GlobalTimeout)
 		ctx, cancel = context.WithTimeout(context.WithoutCancel(task.context), timeout) // task.done cancels task.context
 	} else {
 		ctx, cancel = context.WithCancel(task.context)
@@ -846,7 +842,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 		f(ch)
 	}
 
-	if !RunAndWaitOptions.Async {
+	if !runOpts.Async {
 		runAndWait(func(ch <-chan *types.AttachWorkloadMessage) {
 			for m := range ch {
 				if err = stream.Send(toRPCAttachWorkloadMessage(m)); err != nil {
@@ -970,19 +966,19 @@ func drainUntilStop[T, R any](t *task, name string, code codes.Code, stop <-chan
 }
 
 func runAndWaitOptions(stream pb.CoreRPC_RunAndWaitServer) (*pb.RunAndWaitOptions, *types.DeployOptions, error) {
-	RunAndWaitOptions, err := stream.Recv()
+	runOpts, err := stream.Recv()
 	if err != nil {
 		return nil, nil, err
 	}
-	if RunAndWaitOptions.DeployOptions == nil {
+	if runOpts.DeployOptions == nil {
 		return nil, nil, types.ErrNoDeployOpts
 	}
-	opts := RunAndWaitOptions.DeployOptions
-	if RunAndWaitOptions.Async {
+	opts := runOpts.DeployOptions
+	if runOpts.Async {
 		opts.OpenStdin = false
 	}
 	deployOpts, err := toCoreDeployOptions(opts)
-	return RunAndWaitOptions, deployOpts, err
+	return runOpts, deployOpts, err
 }
 
 func reallocResult(err error) (*pb.ReallocResourceMessage, error) {

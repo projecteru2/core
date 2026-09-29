@@ -330,11 +330,9 @@ func (c *Calcium) doDeployOneWorkload(ctx context.Context, node *types.Node, opt
 			}
 			logger.Infof(ctx, "workload %s metadata created", workload.ID)
 
-			if len(opts.Files) > 0 {
-				for _, file := range opts.Files {
-					if err = c.doSendFileToWorkload(ctx, node.Engine, workload.ID, file); err != nil {
-						return err
-					}
+			for _, file := range opts.Files {
+				if err = c.doSendFileToWorkload(ctx, node.Engine, workload.ID, file); err != nil {
+					return err
 				}
 			}
 
