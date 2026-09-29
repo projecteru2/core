@@ -39,14 +39,14 @@ type nodeDeploy struct {
 }
 
 func (c *Calcium) CreateWorkload(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateWorkloadMessage, error) {
-	logger := log.WithFunc("calcium.CreateWorkload").WithField("opts", opts)
+	logger := log.WithFunc("calcium.CreateWorkload").WithField("app", opts.Name)
 	if err := opts.Validate(); err != nil {
 		logger.Error(ctx, err)
 		return nil, err
 	}
 	opts.ProcessIdent = utils.RandomString(16)
 	logger = logger.WithField("ident", opts.ProcessIdent)
-	logger.Infof(ctx, "creating workload ident %s with options:\n%s", opts.ProcessIdent, litter.Options{Compact: true}.Sdump(opts))
+	logger.Infof(ctx, "creating workload ident %s with options:\n%s", opts.ProcessIdent, litter.Options{Compact: true}.Sdump(opts.Redacted()))
 	if opts.Count <= 0 {
 		err := errors.Wrapf(types.ErrInvaildDeployCount, "count: %d", opts.Count)
 		logger.Error(ctx, err)

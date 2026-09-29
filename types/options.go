@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"slices"
+	"strings"
 
 	resourcetypes "github.com/projecteru2/core/resource/types"
 )
@@ -107,6 +108,15 @@ func (o *DeployOptions) Validate() error {
 		return ErrEmptyCount
 	}
 	return o.Entrypoint.Validate()
+}
+
+func (o *DeployOptions) Redacted() *DeployOptions {
+	r := *o
+	r.Env = make([]string, len(o.Env))
+	for i, env := range o.Env {
+		r.Env[i], _, _ = strings.Cut(env, "=")
+	}
+	return &r
 }
 
 type CopyOptions struct {
