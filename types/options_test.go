@@ -47,6 +47,14 @@ func TestDeployOptions(t *testing.T) {
 	assert.NoError(o.Validate())
 }
 
+func TestDeployOptionsRedactedKeepsOnlyEnvKeys(t *testing.T) {
+	o := &DeployOptions{Name: "app", Env: []string{"TOKEN=secret", "EMPTY=", "BARE"}}
+	r := o.Redacted()
+	assert.Equal(t, []string{"TOKEN", "EMPTY", "BARE"}, r.Env)
+	assert.Equal(t, "app", r.Name)
+	assert.Equal(t, []string{"TOKEN=secret", "EMPTY=", "BARE"}, o.Env)
+}
+
 func TestCopyOptions(t *testing.T) {
 	assert := assert.New(t)
 

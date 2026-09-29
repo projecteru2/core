@@ -19,7 +19,7 @@ import (
 )
 
 func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error) {
-	logger := log.WithFunc("calcium.BuildImage").WithField("opts", opts)
+	logger := log.WithFunc("calcium.BuildImage").WithField("name", opts.Name)
 	node, err := c.selectBuildNode(ctx, opts)
 	if err != nil {
 		logger.Error(ctx, err)

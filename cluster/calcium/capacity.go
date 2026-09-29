@@ -14,8 +14,8 @@ import (
 )
 
 func (c *Calcium) CalculateCapacity(ctx context.Context, opts *types.DeployOptions) (*types.CapacityMessage, error) {
-	logger := log.WithFunc("calcium.CalculateCapacity").WithField("opts", opts)
-	logger.Infof(ctx, "calculate capacity with options:\n%s", litter.Options{Compact: true}.Sdump(opts))
+	logger := log.WithFunc("calcium.CalculateCapacity").WithField("app", opts.Name)
+	logger.Infof(ctx, "calculate capacity with options:\n%s", litter.Options{Compact: true}.Sdump(opts.Redacted()))
 	msg := &types.CapacityMessage{
 		Total:          0,
 		NodeCapacities: map[string]int{},

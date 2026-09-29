@@ -12,7 +12,7 @@ import (
 )
 
 func (c *Calcium) ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorkloadOptions, inCh <-chan []byte) chan *types.AttachWorkloadMessage {
-	logger := log.WithFunc("calcium.ExecuteWorkload").WithField("opts", opts)
+	logger := log.WithFunc("calcium.ExecuteWorkload").WithField("ID", opts.WorkloadID)
 	ch := make(chan *types.AttachWorkloadMessage)
 
 	utils.SentryGo(func() {

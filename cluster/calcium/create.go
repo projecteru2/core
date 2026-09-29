@@ -39,14 +39,14 @@ type nodeDeploy struct {
 }
 
 func (c *Calcium) CreateWorkload(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateWorkloadMessage, error) {
-	logger := log.WithFunc("calcium.CreateWorkload").WithField("opts", opts)
+	logger := log.WithFunc("calcium.CreateWorkload").WithField("app", opts.Name)
 	if err := opts.Validate(); err != nil {
 		logger.Error(ctx, err)
 		return nil, err
 	}
 	opts.ProcessIdent = utils.RandomString(16)
 	logger = logger.WithField("ident", opts.ProcessIdent)
-	logger.Infof(ctx, "creating workload ident %s with options:\n%s", opts.ProcessIdent, litter.Options{Compact: true}.Sdump(opts))
+	logger.Infof(ctx, "creating workload ident %s with options:\n%s", opts.ProcessIdent, litter.Options{Compact: true}.Sdump(opts.Redacted()))
 	if opts.Count <= 0 {
 		err := errors.Wrapf(types.ErrInvaildDeployCount, "count: %d", opts.Count)
 		logger.Error(ctx, err)
@@ -428,10 +428,10 @@ func (c *Calcium) doMakeWorkloadOptions(ctx context.Context, no int, msg *types.
 	msg.WorkloadName = createOpts.Name
 	createOpts.Cmd = opts.Entrypoint.Commands
 	createOpts.Env = slices.Concat(opts.Env, []string{
-		fmt.Sprintf("APP_NAME=%s", opts.Name),
-		fmt.Sprintf("ERU_POD=%s", opts.Podname),
-		fmt.Sprintf("ERU_NODE_NAME=%s", node.Name),
-		fmt.Sprintf("ERU_WORKLOAD_SEQ=%d", no),
+		fmt.Sprintf("%s=%s", cluster.EnvAppName, opts.Name),
+		fmt.Sprintf("%s=%s", cluster.EnvPod, opts.Podname),
+		fmt.Sprintf("%s=%s", cluster.EnvNodeName, node.Name),
+		fmt.Sprintf("%s=%d", cluster.EnvWorkloadSeq, no),
 	})
 	createOpts.Labels = map[string]string{
 		cluster.ERUMark: "1",

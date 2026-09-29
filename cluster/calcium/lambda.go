@@ -20,7 +20,7 @@ const exitDataPrefix = "[exitcode] "
 func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inCh <-chan []byte) ([]string, <-chan *types.AttachWorkloadMessage, error) {
 	workloadIDs := []string{}
 
-	logger := log.WithFunc("calcium.RunAndWait").WithField("opts", opts)
+	logger := log.WithFunc("calcium.RunAndWait").WithField("app", opts.Name)
 	opts.Lambda = true
 	if opts.OpenStdin && (opts.Count != 1 || opts.DeployStrategy != strategy.Auto) {
 		logger.Errorf(ctx, types.ErrRunAndWaitCountOneWithStdin, "count %d method %s", opts.Count, opts.DeployStrategy)

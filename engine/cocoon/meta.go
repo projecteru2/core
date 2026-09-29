@@ -3,6 +3,7 @@ package cocoon
 import (
 	"context"
 
+	"github.com/projecteru2/core/cluster"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/engine/workloadmeta"
 	coretypes "github.com/projecteru2/core/types"
@@ -23,7 +24,7 @@ type logMeta struct {
 
 func newMeta(ctx context.Context, ID string, opts *enginetypes.VirtualizationCreateOptions, vm *vmRecord, nodename string, cocoon coretypes.CocoonConfig) *meta {
 	m := &meta{
-		Record: workloadmeta.NewRecord(ctx, ID, kindVM, opts.Name, utils.LastEnvValue(opts.Env, podEnvKey), nodename, opts.Labels),
+		Record: workloadmeta.NewRecord(ctx, ID, kindVM, opts.Name, utils.LastEnvValue(opts.Env, cluster.EnvPod), nodename, opts.Labels),
 		User:   opts.User,
 		Log:    logMeta{ConsoleSocket: vm.console(cocoon.RunDir)},
 	}
