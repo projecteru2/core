@@ -414,7 +414,7 @@ func passwdEntry(passwd, user string) ([]string, bool) {
 }
 
 func additionalGids(group, user string, primary uint32) []uint32 {
-	gids := []uint32{}
+	var gids []uint32
 	for line := range strings.Lines(group) {
 		fields := strings.Split(strings.TrimRight(line, "\n"), ":")
 		if len(fields) <= groupMembers || !slices.Contains(strings.Split(fields[groupMembers], ","), user) {
@@ -425,9 +425,6 @@ func additionalGids(group, user string, primary uint32) []uint32 {
 			continue
 		}
 		gids = append(gids, uint32(gid))
-	}
-	if len(gids) == 0 {
-		return nil
 	}
 	return gids
 }
@@ -496,12 +493,8 @@ func hostNetworking(networks map[string]string) bool {
 }
 
 func withoutNetSysctls(sysctl map[string]string) map[string]string {
-	kept := make(map[string]string, len(sysctl))
-	for key, value := range sysctl {
-		if !strings.HasPrefix(key, netSysctlPrefix) {
-			kept[key] = value
-		}
-	}
+	kept := maps.Clone(sysctl)
+	maps.DeleteFunc(kept, func(key, _ string) bool { return strings.HasPrefix(key, netSysctlPrefix) })
 	return kept
 }
 

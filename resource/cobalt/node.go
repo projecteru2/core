@@ -262,9 +262,6 @@ func (m *Manager) getNodeResourceInfo(ctx context.Context, nodename string, ps [
 	resourceDiffs := []string{}
 
 	resps, err := call(ctx, ps, func(plugin plugins.Plugin) (*plugintypes.GetNodeResourceInfoResponse, error) {
-		var resp *plugintypes.GetNodeResourceInfoResponse
-		var err error
-
 		name := plugin.Name()
 		wrks := make([]plugintypes.WorkloadResource, 0, len(workloads))
 		for _, wrk := range workloads {
@@ -272,11 +269,9 @@ func (m *Manager) getNodeResourceInfo(ctx context.Context, nodename string, ps [
 		}
 
 		if fix {
-			resp, err = plugin.FixNodeResource(ctx, nodename, wrks)
-		} else {
-			resp, err = plugin.GetNodeResourceInfo(ctx, nodename, wrks)
+			return plugin.FixNodeResource(ctx, nodename, wrks)
 		}
-		return resp, err
+		return plugin.GetNodeResourceInfo(ctx, nodename, wrks)
 	})
 	if err != nil {
 		return nil, nil, nil, err

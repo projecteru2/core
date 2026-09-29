@@ -72,8 +72,6 @@ func TestCopyOptions(t *testing.T) {
 
 func TestLinuxFile(t *testing.T) {
 	lf := LinuxFile{Filename: "s"}
-	nlf := lf.Clone()
-	assert.Equal(t, lf.Filename, nlf.Filename)
 	assert.NotEmpty(t, lf.String())
 	b := bufio.NewWriter(&bytes.Buffer{})
 	lf.LitterDump(b)

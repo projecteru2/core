@@ -143,10 +143,7 @@ func (h *host) bestSplit(full, fragment, maxMoved int) (int, int) {
 	for moved := 1; moved <= maxMoved; moved++ {
 		fragmentCapacity[moved] = fragmentCapacity[moved-1] + h.fullCores[moved-1].pieces/fragment
 	}
-	fullCapacities := make([]int, maxMoved+1)
-	for i := range fullCapacities {
-		fullCapacities[i] = -1
-	}
+	fullCapacities := slices.Repeat([]int{-1}, maxMoved+1)
 	fullCapacity := func(moved int) int {
 		if fullCapacities[moved] < 0 {
 			fullCapacities[moved] = h.countFullCPUPlans(h.fullCores[moved:], full)

@@ -408,7 +408,6 @@ func (c *Calcium) doMakeWorkloadOptions(ctx context.Context, no int, msg *types.
 	createOpts := &enginetypes.VirtualizationCreateOptions{}
 	createOpts.EngineParams = msg.EngineParams
 	createOpts.RawArgs = opts.RawArgs
-	createOpts.Lambda = opts.Lambda
 	createOpts.User = opts.User
 	createOpts.DNS = opts.DNS
 	createOpts.Image = opts.Image

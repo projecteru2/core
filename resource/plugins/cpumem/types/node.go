@@ -1,6 +1,7 @@
 package types
 
 import (
+	"cmp"
 	"maps"
 	"strconv"
 	"strings"
@@ -164,10 +165,7 @@ func (n *NodeResourceRequest) Parse(config coretypes.Config, rawParams resourcet
 	}
 
 	if cpu := rawParams.Int64("cpu"); cpu > 0 {
-		share := rawParams.Int64("share")
-		if share == 0 {
-			share = int64(config.Scheduler.ShareBase)
-		}
+		share := cmp.Or(rawParams.Int64("share"), int64(config.Scheduler.ShareBase))
 
 		for i := range cpu {
 			n.CPUMap[strconv.FormatInt(i, 10)] = int(share)

@@ -368,10 +368,7 @@ func (p Plugin) getKnown(ctx context.Context, keys []string) (map[string]string,
 }
 
 func (p Plugin) doGetNodesResourceInfo(ctx context.Context, nodenames []string) (map[string]*cpumemtypes.NodeResourceInfo, error) {
-	keys := make([]string, 0, len(nodenames))
-	for _, nodename := range nodenames {
-		keys = append(keys, fmt.Sprintf(nodeResourceInfoKey, nodename))
-	}
+	keys := utils.Map(nodenames, func(nodename string) string { return fmt.Sprintf(nodeResourceInfoKey, nodename) })
 	data, err := p.store.GetMulti(ctx, keys)
 	if err != nil {
 		return nil, err

@@ -120,10 +120,7 @@ func (s *Store) getWorkload(ctx context.Context, ID string, withEngine bool) (*t
 }
 
 func (s *Store) getWorkloads(ctx context.Context, IDs []string, withEngine bool) ([]*types.Workload, error) {
-	keys := make([]string, 0, len(IDs))
-	for _, ID := range IDs {
-		keys = append(keys, fmt.Sprintf(WorkloadInfoKey, ID))
-	}
+	keys := utils.Map(IDs, func(ID string) string { return fmt.Sprintf(WorkloadInfoKey, ID) })
 
 	data, err := s.GetMulti(ctx, keys)
 	if err != nil {
