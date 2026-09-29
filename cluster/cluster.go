@@ -26,6 +26,11 @@ const (
 	WorkloadLock      = "clock_%s"
 	PodLock           = "plock_%s"
 	NodeOperationLock = "cnode_op_%s_%s"
+
+	EnvAppName     = "APP_NAME"
+	EnvPod         = "ERU_POD"
+	EnvNodeName    = "ERU_NODE_NAME"
+	EnvWorkloadSeq = "ERU_WORKLOAD_SEQ"
 )
 
 // Cluster is the eru cluster API implemented by calcium.

@@ -12,6 +12,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 
+	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/engine/sshrunner"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -22,7 +23,6 @@ import (
 )
 
 const (
-	podEnvKey   = "ERU_POD"
 	osWindows   = "windows"
 	formatJSON  = "json"
 	volumeParts = 4
@@ -41,6 +41,8 @@ printf '%s\n' "$body" > "$durable.tmp"
 mv "$durable.tmp" "$durable"
 ` + publishRecord
 )
+
+var coreEnvKeys = []string{cluster.EnvAppName, cluster.EnvPod, cluster.EnvNodeName, cluster.EnvWorkloadSeq}
 
 // RawArgs carries vm-specific workload options through core untouched.
 type RawArgs struct {
@@ -68,6 +70,9 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	argv, err := createArgv(e.cocoon.Binary, ID, opts, resource, rArgs.OS == osWindows, network)
 	if err != nil {
 		return nil, err
+	}
+	if unapplied := unappliedOptions(opts); len(unapplied) > 0 {
+		logger.Warnf(ctx, "cocoon does not apply %s to vm %s", strings.Join(unapplied, ", "), opts.Name)
 	}
 
 	res, err := e.run(ctx, argv...)
@@ -151,6 +156,31 @@ func dataDisks(volumes []string, windows bool) ([]string, error) {
 		disks = append(disks, spec)
 	}
 	return disks, nil
+}
+
+func unappliedOptions(opts *enginetypes.VirtualizationCreateOptions) []string {
+	var unapplied []string
+	if slices.ContainsFunc(opts.Env, isDeployEnv) {
+		unapplied = append(unapplied, "env")
+	}
+	if len(opts.DNS) > 0 {
+		unapplied = append(unapplied, "dns")
+	}
+	if len(opts.Hosts) > 0 {
+		unapplied = append(unapplied, "extra_hosts")
+	}
+	if len(opts.Cmd) > 0 {
+		unapplied = append(unapplied, "entrypoint commands")
+	}
+	if opts.WorkingDir != "" {
+		unapplied = append(unapplied, "entrypoint dir")
+	}
+	return unapplied
+}
+
+func isDeployEnv(env string) bool {
+	key, _, _ := strings.Cut(env, "=")
+	return !slices.Contains(coreEnvKeys, key)
 }
 
 // requestedNetwork picks the conflist a deploy names; cocoon's IPAM assigns the address.

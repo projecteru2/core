@@ -182,3 +182,27 @@ func TestRequestedNetwork(t *testing.T) {
 		})
 	}
 }
+
+func TestUnappliedOptions(t *testing.T) {
+	coreEnv := []string{"APP_NAME=app", "ERU_POD=vms", "ERU_NODE_NAME=n1", "ERU_WORKLOAD_SEQ=0"}
+	tests := []struct {
+		name string
+		opts *enginetypes.VirtualizationCreateOptions
+		want []string
+	}{
+		{"core env alone", &enginetypes.VirtualizationCreateOptions{Env: coreEnv}, nil},
+		{"deploy env", &enginetypes.VirtualizationCreateOptions{Env: append(coreEnv, "TOKEN=x")}, []string{"env"}},
+		{
+			"every unapplied field",
+			&enginetypes.VirtualizationCreateOptions{DNS: []string{"1.1.1.1"}, Hosts: []string{"h:1.2.3.4"}, Cmd: []string{"run"}, WorkingDir: "/srv"},
+			[]string{"dns", "extra_hosts", "entrypoint commands", "entrypoint dir"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := unappliedOptions(tt.opts); !slices.Equal(got, tt.want) {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}

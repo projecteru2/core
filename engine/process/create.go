@@ -11,6 +11,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 
+	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/engine/sshrunner"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -21,8 +22,7 @@ import (
 )
 
 const (
-	podEnvKey = "ERU_POD"
-	rootUser  = "root"
+	rootUser = "root"
 
 	createScript = "set -e\n" + unpackFunc + `dir=$1; ref=$2; cache=$3; launcher=$4; record=$5; overlay=$6; metadata=$7; binds=$8; props=$9; shift 9
 trap 'rm -rf "$dir"' EXIT
@@ -68,7 +68,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		}
 	}
 
-	podname := utils.LastEnvValue(opts.Env, podEnvKey)
+	podname := utils.LastEnvValue(opts.Env, cluster.EnvPod)
 	if !validPodname(podname) {
 		return nil, errors.Wrapf(coretypes.ErrInvalidEngineArgs, "pod %q cannot name a systemd slice", podname)
 	}
