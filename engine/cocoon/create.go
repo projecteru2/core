@@ -33,6 +33,8 @@ const (
 	reseedScript = `bin=$1; vm=$2; shift 2
 guest='rm -f /etc/systemd/network/10-*.network
 hostnamectl set-hostname "$1" 2>/dev/null || hostname "$1"
+sed -i "/^127\.0\.1\.1[[:space:]]/d" /etc/hosts
+printf "127.0.1.1 %s\n" "$(hostname)" >> /etc/hosts
 shift
 while [ $# -ge 3 ]; do
 f="/etc/systemd/network/10-$(printf %s "$1" | tr -d :).network"
