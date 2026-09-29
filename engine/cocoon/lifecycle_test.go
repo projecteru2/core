@@ -81,6 +81,22 @@ func TestVirtualizationStartLeavesABootedWindowsGuestAlone(t *testing.T) {
 	}
 }
 
+func TestVirtualizationStartRefreshesAClonedGuestThatAlreadyRuns(t *testing.T) {
+	runner := &sshrunnertest.Fake{
+		Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: clonedVM + "\n" + clonedVM} },
+	}
+	e := testEngine(t, runner)
+
+	if err := e.VirtualizationStart(t.Context(), "w1"); err != nil {
+		t.Fatalf("cocoon answers a start of a running vm with success: %v", err)
+	}
+	want := sshrunner.Quote(sshrunner.Shell(refreshScript, testRoot+"/w1.json", "/run/eru/workloads/w1.json",
+		testRunDir+"/cloudhypervisor/"+testVMID+"/console.sock", "4242"))
+	if lines := runner.Lines(); len(lines) != 2 || lines[1] != want {
+		t.Errorf("got %q, want the record refreshed with the clone's pid", lines)
+	}
+}
+
 func TestVirtualizationStartRecordsTheSerialSocketWhenCocoonReportsNoConsole(t *testing.T) {
 	runner := &sshrunnertest.Fake{
 		Respond: func(string) *sshrunner.Result { return &sshrunner.Result{Stdout: linuxVM + "\n" + runningVM} },

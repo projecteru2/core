@@ -114,6 +114,80 @@ func TestOrasProbeIsAskedOnlyOnceOnceItAnswered(t *testing.T) {
 	}
 }
 
+func TestImagePullOnlyLooksUpASnapshot(t *testing.T) {
+	tests := []struct {
+		name    string
+		res     *sshrunner.Result
+		wantErr bool
+	}{
+		{"a snapshot on the node", &sshrunner.Result{Stdout: `{"id":"s1","name":"` + testSnap + `"}`}, false},
+		{"a snapshot the node lacks", &sshrunner.Result{Code: 1, Stderr: "not found"}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return tt.res }}
+			e := testEngine(t, runner)
+
+			if _, err := e.ImagePull(t.Context(), snapshotScheme+testSnap, false); (err != nil) != tt.wantErr {
+				t.Fatalf("got error %v, wantErr %v", err, tt.wantErr)
+			}
+			want := []string{sshrunner.Quote([]string{testBinary, "snapshot", "inspect", testSnap})}
+			if !slices.Equal(runner.Lines(), want) {
+				t.Errorf("got %q, want %q and no registry", runner.Lines(), want)
+			}
+		})
+	}
+}
+
+func TestImageDigestsOfASnapshot(t *testing.T) {
+	ref := snapshotScheme + testSnap
+	tests := []struct {
+		name string
+		res  *sshrunner.Result
+		want []string
+	}{
+		{"a snapshot on the node", &sshrunner.Result{Stdout: `{"id":"s1"}`}, []string{ref}},
+		{"a snapshot the node lacks", &sshrunner.Result{Code: 1}, nil},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result { return tt.res }}
+			e := testEngine(t, runner)
+
+			got, err := e.ImageLocalDigests(t.Context(), ref)
+			if err != nil {
+				t.Fatalf("digests: %v", err)
+			}
+			if !slices.Equal(got, tt.want) {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+			remote, err := e.ImageRemoteDigest(t.Context(), ref)
+			if err != nil || remote != ref {
+				t.Errorf("got %q %v, want the ref itself", remote, err)
+			}
+			if lines := runner.Lines(); len(lines) != 1 {
+				t.Errorf("got %q, want one lookup and no oras", lines)
+			}
+		})
+	}
+}
+
+func TestImageVerbsRefuseABadSnapshotName(t *testing.T) {
+	runner := &sshrunnertest.Fake{}
+	e := testEngine(t, runner)
+	ref := snapshotScheme + "a;b"
+
+	if _, err := e.ImagePull(t.Context(), ref, false); !errors.Is(err, coretypes.ErrInvalidEngineArgs) {
+		t.Errorf("pull: got %v, want ErrInvalidEngineArgs", err)
+	}
+	if _, err := e.ImageLocalDigests(t.Context(), ref); !errors.Is(err, coretypes.ErrInvalidEngineArgs) {
+		t.Errorf("digests: got %v, want ErrInvalidEngineArgs", err)
+	}
+	if lines := runner.Lines(); len(lines) != 0 {
+		t.Errorf("got %q, want no round trip", lines)
+	}
+}
+
 func TestImageListFiltersByName(t *testing.T) {
 	runner := &sshrunnertest.Fake{Respond: func(string) *sshrunner.Result {
 		return &sshrunner.Result{Stdout: `[{"id":"sha256:a","name":"` + testImage + `","type":"oci"},{"id":"sha256:b","name":"win11","type":"cloudimg"}]`}
