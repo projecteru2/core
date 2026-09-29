@@ -136,8 +136,16 @@ func TestVirtualizationCreateClonesASnapshotImage(t *testing.T) {
 		t.Fatalf("clone: %v", err)
 	}
 	lines := runner.Lines()
-	if len(lines) != 2 {
-		t.Fatalf("got %d commands, want the clone and the record", len(lines))
+	if len(lines) != 3 {
+		t.Fatalf("got %d commands, want the clone, the record and the reseed", len(lines))
+	}
+	if reseed := sshrunner.Quote(reseedArgv(testBinary, created.ID, "app_web_xyz", mustParseVM(t, clonedVM))); lines[2] != reseed {
+		t.Errorf("got %q, want the reseed %q", lines[2], reseed)
+	}
+	for _, arg := range []string{"'app_web_xyz'", "'02:00:00:00:00:07'", "'10.22.0.7/16'", "'10.22.0.1'"} {
+		if !strings.Contains(lines[2], arg) {
+			t.Errorf("the reseed does not carry %s", arg)
+		}
 	}
 	want := sshrunner.Quote([]string{
 		testBinary, "vm", "clone", "--output", "json", "--name", created.ID,
@@ -177,6 +185,27 @@ func TestVirtualizationCreateDiscardsACloneWhoseRecordFailed(t *testing.T) {
 	lines := runner.Lines()
 	if len(lines) != 3 || !strings.Contains(lines[2], "'rm' '--force'") {
 		t.Errorf("got %q, want a forced rm after the failed record", lines)
+	}
+}
+
+func TestVirtualizationCreateDiscardsACloneThatWouldNotReseed(t *testing.T) {
+	runner := &sshrunnertest.Fake{Respond: func(line string) *sshrunner.Result {
+		switch {
+		case strings.Contains(line, "'clone'"):
+			return &sshrunner.Result{Stdout: clonedVM}
+		case strings.Contains(line, "systemd-networkd"):
+			return &sshrunner.Result{Code: 1, Stderr: "agent did not answer"}
+		}
+		return &sshrunner.Result{}
+	}}
+	e := testEngine(t, runner)
+
+	if _, err := e.VirtualizationCreate(t.Context(), &enginetypes.VirtualizationCreateOptions{Name: "app_web_xyz", Image: snapshotScheme + testSnap}); err == nil {
+		t.Fatal("a clone whose network was not rewritten must fail")
+	}
+	lines := runner.Lines()
+	if len(lines) != 4 || !strings.Contains(lines[3], "'rm' '--force'") {
+		t.Errorf("got %q, want a forced rm after the failed reseed", lines)
 	}
 }
 

@@ -29,6 +29,26 @@ const (
 
 	discardTimeout = 30 * time.Second
 
+	// reseedScript rewrites a clone's static NICs by MAC and its hostname; the guest still carries the source's.
+	reseedScript = `bin=$1; vm=$2; shift 2
+guest='rm -f /etc/systemd/network/10-*.network
+hostnamectl set-hostname "$1" 2>/dev/null || hostname "$1"
+shift
+while [ $# -ge 3 ]; do
+f="/etc/systemd/network/10-$(printf %s "$1" | tr -d :).network"
+printf "[Match]\nMACAddress=%s\n\n[Network]\nAddress=%s\n" "$1" "$2" > "$f"
+if [ -n "$3" ]; then printf "Gateway=%s\n" "$3" >> "$f"; fi
+shift 3
+done
+systemctl restart systemd-networkd'
+tries=0
+until "$bin" vm exec "$vm" -- sh -c "$guest" sh "$@"; do
+tries=$((tries+1))
+[ "$tries" -lt 30 ] || exit 1
+sleep 1
+done
+`
+
 	publishRecord = `mkdir -p "$(dirname "$record")"
 cp -f "$durable" "$record.tmp"
 mv "$record.tmp" "$record"
@@ -88,6 +108,9 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	vm, err := parseVM(res.Stdout)
 	if err == nil {
 		err = e.record(ctx, ID, opts, vm)
+	}
+	if err == nil && strings.HasPrefix(opts.Image, snapshotScheme) {
+		_, err = e.run(ctx, reseedArgv(e.cocoon.Binary, ID, opts.Name, vm)...)
 	}
 	if err != nil {
 		e.discard(ctx, ID)
@@ -168,6 +191,16 @@ func cloneArgv(binary, ID, snapshot string, volumes []string, windows bool, netw
 }
 
 // dataDisks turns the storage plugin's `src:dst:mode:size` volumes into cocoon data disks.
+func reseedArgv(binary, ID, hostname string, vm *vmRecord) []string {
+	args := []string{binary, ID, hostname}
+	for _, n := range vm.NICs {
+		if n.MAC != "" && n.Network != nil && n.Network.IP != "" {
+			args = append(args, n.MAC, n.Network.IP+"/"+strconv.Itoa(n.Network.Prefix), n.Network.Gateway)
+		}
+	}
+	return sshrunner.Shell(reseedScript, args...)
+}
+
 func dataDisks(volumes []string, windows bool) ([]string, error) {
 	disks := make([]string, 0, len(volumes))
 	for _, volume := range volumes {

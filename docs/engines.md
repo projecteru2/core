@@ -347,7 +347,10 @@ instead of booting an image:
 
 The clone takes its CPU, memory, storage, guest OS and login from the snapshot, so the deploy's
 cpumem and storage quotas are not applied (logged at debug) and `user` reaches only the meta record,
-where exec reads it. No network in the deploy keeps the snapshot's conflist. The meta record is
+where exec reads it. No network in the deploy keeps the snapshot's conflist. The guest resumes with the source VM's NIC files and hostname, so after the
+record the engine rewrites them through `vm exec`: one systemd-networkd file per static NIC, matched
+by the clone's new MAC, the workload name as hostname, then `systemctl restart systemd-networkd`,
+retried for 30 s until cocoon-agent answers. A clone that will not take its address is removed. The meta record is
 written from the clone's JSON exactly as after a create, and a failure after the clone removes the
 VM again. The clone is already running when `VirtualizationStart` runs: cocoon answers `vm start`
 on a running VM with success, so the start only refreshes the record. The volumes become data disks
