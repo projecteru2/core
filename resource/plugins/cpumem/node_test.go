@@ -93,7 +93,7 @@ func TestGetNodesDeployCapacityWithCPUBind(t *testing.T) {
 	}
 
 	_, err := cm.GetNodesDeployCapacity(ctx, []string{"xxx"}, req)
-	assert.True(t, errors.Is(err, coretypes.ErrInvaildCount))
+	assert.True(t, errors.Is(err, coretypes.ErrKeyNotFound))
 
 	tests := []struct {
 		name       string
@@ -351,7 +351,7 @@ func TestGetAndFixNodeResourceInfo(t *testing.T) {
 	node := nodes[0]
 
 	_, err := cm.GetNodeResourceInfo(ctx, "xxx", nil)
-	assert.True(t, errors.Is(err, coretypes.ErrInvaildCount))
+	assert.True(t, errors.Is(err, coretypes.ErrKeyNotFound))
 
 	r, err := cm.GetNodeResourceInfo(ctx, node, nil)
 	assert.Nil(t, err)

@@ -152,7 +152,7 @@ func TestHandleCreateWorkloadHandled(t *testing.T) {
 
 	store := c.store.(*storemocks.Store)
 
-	err = errors.Wrapf(types.ErrInvaildCount, "keys: [%s]", wrkid)
+	err = errors.Wrapf(types.ErrKeyNotFound, "key: %s", wrkid)
 	store.On("GetWorkload", mock.Anything, wrkid).Return(nil, err).Once()
 	store.On("NotFound", err).Return(true).Once()
 	store.On("GetNode", mock.Anything, wrk.Nodename).Return(node, nil)

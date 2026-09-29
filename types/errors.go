@@ -75,6 +75,7 @@ var (
 	ErrEmptyRawEngineOp            = errors.New("raw engine op is empty")
 
 	ErrKeyNotExists = errors.New("key not exists")
+	ErrKeyNotFound  = errors.New("key not found")
 	ErrKeyExists    = errors.New("key exists")
 	ErrNoOps        = errors.New("no txn ops")
 	ErrInvaildCount = errors.New("bad `Count` value, entity count invalid")

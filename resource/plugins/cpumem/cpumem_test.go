@@ -65,7 +65,7 @@ type memStore struct {
 }
 
 func (s *memStore) NotFound(err error) bool {
-	return errors.Is(err, coretypes.ErrInvaildCount)
+	return errors.Is(err, coretypes.ErrKeyNotFound)
 }
 
 func (s *memStore) GetMulti(_ context.Context, keys []string) (map[string]string, error) {
@@ -75,7 +75,7 @@ func (s *memStore) GetMulti(_ context.Context, keys []string) (map[string]string
 	for _, key := range keys {
 		value, ok := s.data[key]
 		if !ok {
-			return nil, coretypes.ErrInvaildCount
+			return nil, coretypes.ErrKeyNotFound
 		}
 		data[key] = value
 	}
