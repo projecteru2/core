@@ -5,7 +5,6 @@ go 1.27.0
 require (
 	github.com/alicebob/miniredis/v2 v2.39.0
 	github.com/bsm/redislock v0.10.0
-	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/cockroachdb/errors v1.14.0
 	github.com/containerd/containerd/api v1.11.1
 	github.com/containerd/containerd/v2 v2.3.5
