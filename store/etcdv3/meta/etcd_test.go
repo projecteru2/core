@@ -7,6 +7,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/cockroachdb/errors"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
@@ -32,7 +33,16 @@ func TestGetOneFailedAsRespondMore(t *testing.T) {
 	expResp := &clientv3.GetResponse{Count: 2}
 	e.cliv3.(*mocks.ETCDClientV3).On("Get", mock.Anything, mock.Anything).Return(expResp, nil)
 	kv, err := e.GetOne(t.Context(), "foo")
-	require.Error(t, err)
+	require.ErrorIs(t, err, types.ErrInvaildCount)
+	require.Nil(t, kv)
+}
+
+func TestGetOneMissingKeyIsNotFound(t *testing.T) {
+	e := NewEmbeddedETCD(t)
+	kv, err := e.GetOne(t.Context(), "/absent")
+	require.ErrorIs(t, err, types.ErrKeyNotFound)
+	require.True(t, errors.Is(err, types.ErrInvaildCount))
+	require.EqualError(t, err, "key: /absent: key not found")
 	require.Nil(t, kv)
 }
 
@@ -54,6 +64,16 @@ func TestGetMultiFailedAsBatchGetError(t *testing.T) {
 	e.cliv3.(*mocks.ETCDClientV3).On("Txn", mock.Anything).Return(expTxn)
 	kvs, err := e.GetMulti(t.Context(), []string{"foo"})
 	require.Equal(t, expErr, err)
+	require.Nil(t, kvs)
+}
+
+func TestGetMultiMissingKeyIsNotFound(t *testing.T) {
+	e := NewEmbeddedETCD(t)
+	_, err := e.cliv3.Put(t.Context(), "/present", "v")
+	require.NoError(t, err)
+	kvs, err := e.GetMulti(t.Context(), []string{"/present", "/absent"})
+	require.ErrorIs(t, err, types.ErrKeyNotFound)
+	require.EqualError(t, err, "key: /absent: key not found")
 	require.Nil(t, kvs)
 }
 
@@ -410,7 +430,7 @@ func TestETCD(t *testing.T) {
 	require.EqualValues(t, 0, len(txnResp.Responses))
 
 	_, err = m.GetMulti(t.Context(), []string{"a", "b"})
-	require.EqualError(t, err, "key: a: bad `Count` value, entity count invalid")
+	require.EqualError(t, err, "key: a: key not found")
 
 	m.Put(t.Context(), "a", "b")
 	m.Put(t.Context(), "b", "c")

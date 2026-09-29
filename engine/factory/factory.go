@@ -138,7 +138,7 @@ func (e *EngineCache) checkNodeStatus(ctx context.Context) {
 
 		// alive nodes are re-cached by NodeStatusStream's own GetNode call
 		for ns := range ch {
-			if errors.Is(ns.Error, types.ErrInvaildCount) {
+			if errors.Is(ns.Error, types.ErrKeyNotFound) {
 				logger.Infof(ctx, "remove metrics for invalid node %s", ns.Nodename)
 				metrics.Client.RemoveInvalidNodes(ns.Nodename)
 			}

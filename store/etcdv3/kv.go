@@ -59,7 +59,7 @@ func (e *etcdKV) ListPrefix(ctx context.Context, prefix string) ([]string, error
 }
 
 func (e *etcdKV) NotFound(err error) bool {
-	return errors.Is(err, types.ErrInvaildCount)
+	return errors.Is(err, types.ErrKeyNotFound)
 }
 
 func (e *etcdKV) Create(ctx context.Context, data map[string]string) error {

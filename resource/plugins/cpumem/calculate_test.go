@@ -27,7 +27,7 @@ func TestCalculateDeploy(t *testing.T) {
 		wantErr error
 	}{
 		{"negative cpu", node, 100, plugintypes.WorkloadResourceRequest{"cpu-bind": true, "cpu-request": -1}, types.ErrInvalidCPU},
-		{"unknown node", "xxx", 100, plugintypes.WorkloadResourceRequest{"cpu-bind": true, "cpu-request": 1}, coretypes.ErrInvaildCount},
+		{"unknown node", "xxx", 100, plugintypes.WorkloadResourceRequest{"cpu-bind": true, "cpu-request": 1}, coretypes.ErrKeyNotFound},
 		{"fractional bind fits", node, 1, plugintypes.WorkloadResourceRequest{"cpu-bind": true, "cpu-request": 1.1}, nil},
 		{"bind over the cores", node, 1, plugintypes.WorkloadResourceRequest{"cpu-bind": true, "cpu-request": 2.2}, coretypes.ErrInsufficientCapacity},
 		{"bind over the count", node, 3, plugintypes.WorkloadResourceRequest{"cpu-bind": true, "cpu-request": 1}, coretypes.ErrInsufficientCapacity},
@@ -121,7 +121,7 @@ func TestCalculateRealloc(t *testing.T) {
 		req     plugintypes.WorkloadResourceRequest
 		wantErr error
 	}{
-		{"unknown node", "xxx", plugintypes.WorkloadResource{}, plugintypes.WorkloadResourceRequest{}, coretypes.ErrInvaildCount},
+		{"unknown node", "xxx", plugintypes.WorkloadResource{}, plugintypes.WorkloadResourceRequest{}, coretypes.ErrKeyNotFound},
 		{"cpu below zero", node, origin, plugintypes.WorkloadResourceRequest{"keep-cpu-bind": true, "cpu-request": -3}, types.ErrInvalidCPU},
 		{"cpu over the node", node, origin, plugintypes.WorkloadResourceRequest{"keep-cpu-bind": true, "cpu-request": 2}, coretypes.ErrInsufficientResource},
 		{"shrink the bind", node, origin, plugintypes.WorkloadResourceRequest{"keep-cpu-bind": true, "cpu-request": -0.5, "cpu-limit": -0.5}, nil},
@@ -178,7 +178,7 @@ func TestCalculateRemap(t *testing.T) {
 	}
 
 	_, err = cm.CalculateRemap(ctx, "xxx", workloadsResource)
-	assert.True(t, errors.Is(err, coretypes.ErrInvaildCount))
+	assert.True(t, errors.Is(err, coretypes.ErrKeyNotFound))
 
 	r, err := cm.CalculateRemap(ctx, node, workloadsResource)
 	assert.Nil(t, err)
