@@ -1,14 +1,12 @@
 package calcium
 
 import (
-	"context"
 	"testing"
 	"testing/synctest"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	lockmocks "github.com/projecteru2/core/lock/mocks"
 	resourcemocks "github.com/projecteru2/core/resource/mocks"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	storemocks "github.com/projecteru2/core/store/mocks"
@@ -23,9 +21,7 @@ func TestDissociateWorkload(t *testing.T) {
 		store := c.store.(*storemocks.Store)
 		rmgr := c.rmgr.(*resourcemocks.Manager)
 
-		lock := &lockmocks.DistributedLock{}
-		lock.On("Lock", mock.Anything).Return(context.Background(), nil)
-		lock.On("Unlock", mock.Anything).Return(nil)
+		lock := heldLock(t)
 
 		c1 := &types.Workload{
 			Resources: resourcetypes.Resources{},

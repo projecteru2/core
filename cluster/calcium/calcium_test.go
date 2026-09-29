@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"golang.org/x/crypto/ssh"
 
+	lockmocks "github.com/projecteru2/core/lock/mocks"
 	"github.com/projecteru2/core/metrics"
 	resourcemocks "github.com/projecteru2/core/resource/mocks"
 	sourcemocks "github.com/projecteru2/core/source/mocks"
@@ -109,4 +110,19 @@ func NewTestCluster() *Calcium {
 	c.wal = mwal
 
 	return c
+}
+
+func heldLock(t *testing.T) *lockmocks.DistributedLock {
+	t.Helper()
+	lock := &lockmocks.DistributedLock{}
+	lock.On("Lock", mock.Anything).Return(t.Context(), nil)
+	lock.On("Unlock", mock.Anything).Return(nil)
+	return lock
+}
+
+func mockLocks(t *testing.T, store *storemocks.Store) *lockmocks.DistributedLock {
+	t.Helper()
+	lock := heldLock(t)
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	return lock
 }

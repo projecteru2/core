@@ -25,9 +25,7 @@ func TestRemoveWorkload(t *testing.T) {
 		c := NewTestCluster()
 		defer c.pool.Release()
 		ctx := t.Context()
-		lock := &lockmocks.DistributedLock{}
-		lock.On("Lock", mock.Anything).Return(context.Background(), nil)
-		lock.On("Unlock", mock.Anything).Return(nil)
+		lock := heldLock(t)
 		store := c.store.(*storemocks.Store)
 		rmgr := c.rmgr.(*resourcemocks.Manager)
 		rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
@@ -143,9 +141,7 @@ func TestRemoveWorkloadJournalsRepairEntries(t *testing.T) {
 	})
 	c.wal = mwal
 
-	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
-	lock.On("Unlock", mock.Anything).Return(nil)
+	lock := heldLock(t)
 	engine := &enginemocks.API{}
 	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	workload := &types.Workload{ID: "xx", Name: "test", Nodename: "test", Engine: engine}
@@ -182,9 +178,7 @@ func TestRemoveWorkloadKeepsTheNodeEntryWhenTheReleaseFails(t *testing.T) {
 	})
 	c.wal = mwal
 
-	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
-	lock.On("Unlock", mock.Anything).Return(nil)
+	lock := heldLock(t)
 	engine := &enginemocks.API{}
 	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	workload := &types.Workload{ID: "xx", Name: "test", Nodename: "test", Engine: engine}
@@ -221,9 +215,7 @@ func TestRemoveWorkloadKeepsTheNodeEntryWhenTheRemovalFails(t *testing.T) {
 	})
 	c.wal = mwal
 
-	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
-	lock.On("Unlock", mock.Anything).Return(nil)
+	lock := heldLock(t)
 	engine := &enginemocks.API{}
 	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(types.ErrMockError)
 	workload := &types.Workload{ID: "xx", Name: "test", Nodename: "test", Engine: engine}
@@ -267,9 +259,7 @@ func TestRemoveWorkloadLocksTheWorkloadThenItsNode(t *testing.T) {
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)
 	rmgr.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(resourcetypes.Resources{}, resourcetypes.Resources{}, nil)
 	rmgr.On("Remap", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)
-	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
-	lock.On("Unlock", mock.Anything).Return(nil)
+	lock := heldLock(t)
 	var mu sync.Mutex
 	keys := []string{}
 	store.On("CreateLock", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {

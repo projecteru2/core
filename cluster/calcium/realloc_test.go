@@ -10,7 +10,6 @@ import (
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
-	lockmocks "github.com/projecteru2/core/lock/mocks"
 	resourcemocks "github.com/projecteru2/core/resource/mocks"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	storemocks "github.com/projecteru2/core/store/mocks"
@@ -27,9 +26,7 @@ func TestRealloc(t *testing.T) {
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 	c.config.Scheduler.ShareBase = 100
 
-	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
-	lock.On("Unlock", mock.Anything).Return(nil)
+	lock := heldLock(t)
 
 	engine := &enginemocks.API{}
 	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{}, nil)
@@ -118,9 +115,7 @@ func TestReallocJournalsRepairEntries(t *testing.T) {
 	})
 	c.wal = mwal
 
-	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
-	lock.On("Unlock", mock.Anything).Return(nil)
+	lock := heldLock(t)
 	engine := &enginemocks.API{}
 	engine.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	node := &types.Node{NodeMeta: types.NodeMeta{Name: "node1"}, Engine: engine}
@@ -161,9 +156,7 @@ func TestReallocRepairsRuntimeBeforeCommittingItsJournal(t *testing.T) {
 	node := &types.Node{NodeMeta: types.NodeMeta{Name: "node1"}, Engine: engine}
 	workload := &types.Workload{ID: "c1", Nodename: node.Name, Engine: engine, EngineParams: oldParams}
 
-	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
-	lock.On("Unlock", mock.Anything).Return(nil)
+	lock := heldLock(t)
 	store := c.store.(*storemocks.Store)
 	store.On("UpdateWorkload", mock.Anything, mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
@@ -218,10 +211,7 @@ func TestReallocKeepsRepairEntriesUntilRollbackCompletes(t *testing.T) {
 			workload := &types.Workload{ID: "c1", Nodename: node.Name, Engine: engine, Resources: resourcetypes.Resources{}}
 
 			store := c.store.(*storemocks.Store)
-			lock := &lockmocks.DistributedLock{}
-			lock.On("Lock", mock.Anything).Return(context.Background(), nil)
-			lock.On("Unlock", mock.Anything).Return(nil)
-			store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+			mockLocks(t, store)
 			store.On("UpdateWorkload", mock.Anything, workload).Return(types.ErrMockError).Once()
 			store.On("UpdateWorkload", mock.Anything, mock.Anything).Return(nil).Once()
 			rmgr := c.rmgr.(*resourcemocks.Manager)

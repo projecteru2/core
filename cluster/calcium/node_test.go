@@ -13,7 +13,6 @@ import (
 	"github.com/projecteru2/core/engine/factory"
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
-	lockmocks "github.com/projecteru2/core/lock/mocks"
 	resourcemocks "github.com/projecteru2/core/resource/mocks"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	storemocks "github.com/projecteru2/core/store/mocks"
@@ -129,10 +128,7 @@ func TestRemoveNode(t *testing.T) {
 	ctx := t.Context()
 	store := c.store.(*storemocks.Store)
 
-	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
-	lock.On("Unlock", mock.Anything).Return(nil)
-	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	mockLocks(t, store)
 	name := "test"
 	node := &types.Node{NodeMeta: types.NodeMeta{Name: name}}
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
@@ -290,10 +286,7 @@ func TestSetNode(t *testing.T) {
 		assert.Error(t, err)
 
 		store := c.store.(*storemocks.Store)
-		lock := &lockmocks.DistributedLock{}
-		lock.On("Lock", mock.Anything).Return(context.Background(), nil)
-		lock.On("Unlock", mock.Anything).Return(nil)
-		store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+		mockLocks(t, store)
 		name := "test"
 		opts.Nodename = name
 		node := &types.Node{NodeMeta: types.NodeMeta{Name: name}}

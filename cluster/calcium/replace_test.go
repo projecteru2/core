@@ -1,7 +1,6 @@
 package calcium
 
 import (
-	"context"
 	"sync/atomic"
 	"testing"
 
@@ -10,7 +9,6 @@ import (
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
-	lockmocks "github.com/projecteru2/core/lock/mocks"
 	resourcemocks "github.com/projecteru2/core/resource/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
@@ -21,9 +19,7 @@ import (
 func TestReplaceWorkload(t *testing.T) {
 	c := NewTestCluster()
 	ctx := t.Context()
-	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
-	lock.On("Unlock", mock.Anything).Return(nil)
+	lock := heldLock(t)
 	store := c.store.(*storemocks.Store)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)

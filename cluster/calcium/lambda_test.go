@@ -13,7 +13,6 @@ import (
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
-	lockmocks "github.com/projecteru2/core/lock/mocks"
 	resourcemocks "github.com/projecteru2/core/resource/mocks"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	resourcetypes "github.com/projecteru2/core/resource/types"
@@ -289,10 +288,7 @@ func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {
 	store.On("UpdateProcessing", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("DeleteProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
-	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
-	lock.On("Unlock", mock.Anything).Return(nil)
-	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	mockLocks(t, store)
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil)
 	store.On("GetNode",
 		mock.Anything,

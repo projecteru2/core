@@ -237,9 +237,7 @@ func TestWithNodesPlanLockedTakesPodAndNodeLocksInKeyOrder(t *testing.T) {
 		{NodeMeta: types.NodeMeta{Name: "c1", Podname: "podb"}, Available: true},
 	}
 	store.On("GetNodes", mock.Anything, mock.Anything).Return(nodes, nil)
-	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
-	lock.On("Unlock", mock.Anything).Return(nil)
+	lock := heldLock(t)
 	keys := []string{}
 	store.On("CreateLock", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 		keys = append(keys, args.String(0))
@@ -257,9 +255,7 @@ func TestWithNodesPlanLockedTakesOnlyTheNodeLockForOneCandidate(t *testing.T) {
 	c := NewTestCluster()
 	store := c.store.(*storemocks.Store)
 	store.On("GetNode", mock.Anything, "a1").Return(&types.Node{NodeMeta: types.NodeMeta{Name: "a1", Podname: "poda"}, Available: true}, nil)
-	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
-	lock.On("Unlock", mock.Anything).Return(nil)
+	lock := heldLock(t)
 	keys := []string{}
 	store.On("CreateLock", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 		keys = append(keys, args.String(0))
@@ -339,10 +335,7 @@ func TestWithNodeOperationLocked(t *testing.T) {
 		},
 		Available: true,
 	}
-	lock := &lockmocks.DistributedLock{}
-	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	lock.On("Unlock", mock.Anything).Return(nil)
-	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
+	mockLocks(t, store)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	err := c.withNodeOperationLocked(ctx, "test", func(ctx context.Context, node *types.Node) error { return nil })
 	assert.Error(t, err)

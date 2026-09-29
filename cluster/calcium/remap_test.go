@@ -1,7 +1,6 @@
 package calcium
 
 import (
-	"context"
 	"strconv"
 	"sync/atomic"
 	"testing"
@@ -11,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
-	lockmocks "github.com/projecteru2/core/lock/mocks"
 	"github.com/projecteru2/core/log"
 	resourcemocks "github.com/projecteru2/core/resource/mocks"
 	resourcetypes "github.com/projecteru2/core/resource/types"
@@ -45,10 +43,7 @@ func TestRemapResource(t *testing.T) {
 	assert.Nil(t, c.doRemapResource(t.Context(), log.WithField("test", "zc"), node))
 
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
-	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
-	lock.On("Unlock", mock.Anything).Return(nil)
-	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	mockLocks(t, store)
 	c.RemapResourceAndLog(t.Context(), log.WithField("test", "zc"), node.Name)
 }
 
@@ -131,10 +126,7 @@ func TestRemapReplayRecomputesFromLiveState(t *testing.T) {
 	workload := &types.Workload{ID: "workload1", Nodename: node.Name, Engine: engine}
 
 	store := c.store.(*storemocks.Store)
-	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
-	lock.On("Unlock", mock.Anything).Return(nil)
-	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	mockLocks(t, store)
 	store.On("GetNode", mock.Anything, node.Name).Return(node, nil)
 	store.On("NotFound", mock.Anything).Return(false)
 	store.On("ListNodeWorkloads", mock.Anything, node.Name, mock.Anything).Return([]*types.Workload{workload}, nil).Twice()
