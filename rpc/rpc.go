@@ -378,6 +378,9 @@ func (v *Vibranium) GetWorkload(ctx context.Context, ID *pb.WorkloadID) (*pb.Wor
 	task := v.newTask(ctx, "GetWorkload", false)
 	defer task.done()
 	workload, err := v.cluster.GetWorkload(task.context, ID.Id)
+	if errors.Is(err, types.ErrWorkloadNotExists) {
+		return nil, grpcstatus.Error(codes.NotFound, err.Error())
+	}
 	if err != nil {
 		return nil, grpcstatus.Error(GetWorkload, err.Error())
 	}

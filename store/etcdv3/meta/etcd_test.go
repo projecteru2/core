@@ -7,7 +7,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/cockroachdb/errors"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
@@ -41,7 +40,7 @@ func TestGetOneMissingKeyIsNotFound(t *testing.T) {
 	e := NewEmbeddedETCD(t)
 	kv, err := e.GetOne(t.Context(), "/absent")
 	require.ErrorIs(t, err, types.ErrKeyNotFound)
-	require.True(t, errors.Is(err, types.ErrInvaildCount))
+	require.NotErrorIs(t, err, types.ErrInvaildCount)
 	require.EqualError(t, err, "key: /absent: key not found")
 	require.Nil(t, kv)
 }

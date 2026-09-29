@@ -2,11 +2,13 @@ package rpc
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
 
 	grpcmocks "github.com/projecteru2/core/3rdmocks"
@@ -196,6 +198,21 @@ func TestRemoveWorkloadReportsItsOwnStatusCode(t *testing.T) {
 	err := v.RemoveWorkload(&pb.RemoveWorkloadOptions{IDs: []string{"id"}}, &removeWorkloadStream{})
 	assert.Error(t, err)
 	assert.Equal(t, RemoveWorkload, grpcstatus.Code(err))
+}
+
+func TestGetWorkloadReportsAMissingWorkloadAsNotFound(t *testing.T) {
+	v := newVibranium()
+
+	cluster := v.cluster.(*clustermock.Cluster)
+	cluster.On("GetWorkload", mock.Anything, "gone").
+		Return(nil, errors.Join(types.ErrWorkloadNotExists, types.ErrKeyNotFound)).Once()
+	cluster.On("GetWorkload", mock.Anything, "broken").
+		Return(nil, types.ErrMockError).Once()
+
+	_, err := v.GetWorkload(context.Background(), &pb.WorkloadID{Id: "gone"})
+	assert.Equal(t, codes.NotFound, grpcstatus.Code(err))
+	_, err = v.GetWorkload(context.Background(), &pb.WorkloadID{Id: "broken"})
+	assert.Equal(t, GetWorkload, grpcstatus.Code(err))
 }
 
 func TestSendLargeFileReportsItsOwnStatusCode(t *testing.T) {
