@@ -139,9 +139,9 @@ func (e *Engine) relayFifos(ctx context.Context, ID string) (_ cio.Creator, _ *a
 		return nil, nil, err
 	}
 
-	// a relay lives as long as the workload, and the deploy request that starts it does not
+	// A relay lives as long as the workload, and the deploy request that starts it does not
 	held := context.WithoutCancel(ctx)
-	// the shim holds the stdin fifo open read-write, so only CloseIO ends the workload's input
+	// The shim holds the stdin fifo open read-write, so only CloseIO ends the workload's input
 	relay := &attach{
 		died:       make(chan error, relayStreams),
 		closeStdin: func(ctx context.Context) error { return e.closeTaskStdin(ctx, ID) },

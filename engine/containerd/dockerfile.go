@@ -124,7 +124,7 @@ func preparedSource(ctx context.Context, build *enginetypes.Build, scm coresourc
 		}
 	}
 
-	// artifacts replace the cloned tree so no source ships in the image
+	// Artifacts replace the cloned tree so no source ships in the image
 	if len(build.Artifacts) > 0 {
 		artifactsDir := buildDir
 		if cloneDir != "" {

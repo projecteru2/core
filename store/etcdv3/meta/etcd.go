@@ -423,7 +423,7 @@ func (e *ETCD) doBatchOp(ctx context.Context, transactions []ETCDTxn) (*clientv3
 	}
 	spans = append(spans, span{lastIdx, len(txnes)})
 
-	// indexed slots keep the merged responses in request order, which GetMulti pairs with its keys
+	// Indexed slots keep the merged responses in request order, which GetMulti pairs with its keys
 	resps := make([]*clientv3.TxnResponse, len(spans))
 	g, ctx := errgroup.WithContext(ctx)
 	g.SetLimit(runtime.GOMAXPROCS(0))

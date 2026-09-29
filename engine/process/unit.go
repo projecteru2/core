@@ -181,7 +181,7 @@ func cpuWeight(quota float64, remap bool) int {
 	return max(1, int(math.Round(defaultCPUWeight*fraction)))
 }
 
-// a bind needs no RootDirectory, so raw workloads carry them too
+// A bind needs no RootDirectory, so raw workloads carry them too
 func bindPaths(binds []utils.VolumeBind) []string {
 	props := make([]string, 0, len(binds))
 	for _, bind := range binds {

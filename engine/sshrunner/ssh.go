@@ -141,12 +141,12 @@ func (r *sshRunner) Files(ctx context.Context) (Files, error) {
 }
 
 func (r *sshRunner) Dial(ctx context.Context, network, addr string) (net.Conn, error) {
-	// a forward is not a session, so MaxSessions does not bound it
+	// A forward is not a session, so MaxSessions does not bound it
 	return retry(ctx, r, func(client *ssh.Client) (net.Conn, error) { return client.Dial(network, addr) })
 }
 
 func (r *sshRunner) Ping(ctx context.Context) error {
-	// a global request on the connection answers even when every session is held
+	// A global request on the connection answers even when every session is held
 	_, err := retry(ctx, r, func(client *ssh.Client) (struct{}, error) {
 		_, _, err := client.SendRequest(keepaliveRequest, true, nil)
 		return struct{}{}, err

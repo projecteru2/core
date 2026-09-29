@@ -126,7 +126,7 @@ func (n *NodeResourceInfo) Validate() error {
 		}
 	}
 
-	// the stored record always carries objects, never nulls
+	// The stored record always carries objects, never nulls
 	for _, r := range []*NodeResource{n.Capacity, n.Usage} {
 		if r.CPUMap == nil {
 			r.CPUMap = CPUMap{}

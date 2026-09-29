@@ -66,7 +66,7 @@ func newHost(cpuMap types.CPUMap, shareBase, maxFragmentCores int) *host {
 		}
 	}
 
-	// busier cores go first so idle cores stay whole
+	// Busier cores go first so idle cores stay whole
 	slices.SortStableFunc(h.fullCores, byLoad)
 	slices.SortStableFunc(h.fragmentCores, byLoad)
 
@@ -187,7 +187,7 @@ func (h *host) getFullCPUPlans(cores []*cpuCore, full int) []types.CPUMap {
 		plans = append(plans, ranked{plan, rank})
 	})
 	if !h.affinity {
-		// restore the pre-heap core priority across the produced plans
+		// Restore the pre-heap core priority across the produced plans
 		slices.SortFunc(plans, func(a, b ranked) int { return cmp.Compare(a.rank, b.rank) })
 	}
 	return utils.Map(plans, func(r ranked) types.CPUMap { return r.plan })

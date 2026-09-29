@@ -19,7 +19,7 @@ func (s *Store) DeleteProcessing(ctx context.Context, processing *types.Processi
 
 func (s *Store) doLoadProcessing(ctx context.Context, appname, entryname string) (map[string]int, error) {
 	nodesCount := map[string]int{}
-	// trailing slash keeps the prefix from matching a longer entrypoint
+	// Trailing slash keeps the prefix from matching a longer entrypoint
 	data, err := s.GetPrefix(ctx, filepath.Join(WorkloadProcessingPrefix, appname, entryname)+"/", 0)
 	if err != nil {
 		return nil, err

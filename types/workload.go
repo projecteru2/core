@@ -19,7 +19,7 @@ type StatusMeta struct {
 	Healthy   bool              `json:"healthy,omitempty"`
 	Extension []byte            `json:"extension,omitempty"`
 
-	// set only when writing workload status
+	// Set only when writing workload status
 	Appname    string `json:"-"`
 	Nodename   string `json:"-"`
 	Entrypoint string `json:"-"`

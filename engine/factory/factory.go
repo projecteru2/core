@@ -144,7 +144,7 @@ func (e *EngineCache) checkNodeStatus(ctx context.Context) {
 			}
 
 			if !ns.Alive {
-				// one node may back several engines
+				// One node may back several engines
 				e.cache.Range(func(_, v any) bool {
 					ep := v.(engine.API).GetParams()
 					if ep.Nodename == ns.Nodename {

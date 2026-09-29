@@ -241,7 +241,7 @@ func (r *Rediaron) BindStatus(ctx context.Context, entityKey, statusKey, statusV
 	if err != nil {
 		return err
 	}
-	// mirrors etcd: a missing entity key is an error for a status that carries a ttl
+	// Mirrors etcd: a missing entity key is an error for a status that carries a ttl
 	if bound == replyMissing {
 		return types.ErrInvaildCount
 	}

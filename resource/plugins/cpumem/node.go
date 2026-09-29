@@ -430,7 +430,7 @@ func (p Plugin) calculateNodeResource(req *cpumemtypes.NodeResourceRequest, node
 	var resp *cpumemtypes.NodeResource
 	if origin == nil || !delta { // no delta means node resource rewrite with whole new data
 		resp = &cpumemtypes.NodeResource{CPUMap: cpumemtypes.CPUMap{}, NUMAMemory: cpumemtypes.NUMAMemory{}, NUMA: cpumemtypes.NUMA{}}
-		// a full rewrite must add onto the zero value; subtracting would store negative amounts
+		// A full rewrite must add onto the zero value; subtracting would store negative amounts
 		incr = true
 	} else {
 		resp = origin.DeepCopy()
