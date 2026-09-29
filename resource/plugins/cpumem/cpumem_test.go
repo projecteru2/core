@@ -38,11 +38,6 @@ func generateNodes(ctx context.Context, t testing.TB, cm *Plugin, nums, cores in
 		assert.NoError(t, err)
 		names = append(names, name)
 	}
-	t.Cleanup(func() {
-		for name := range reqs {
-			cm.RemoveNode(ctx, name)
-		}
-	})
 	return names
 }
 

@@ -8,7 +8,7 @@ import (
 )
 
 func TestEphemeralDeregister(t *testing.T) {
-	m := NewEmbeddedETCD(t)
+	m := newEmbeddedETCD(t)
 
 	ctx := t.Context()
 	path := "/ident"
@@ -34,7 +34,7 @@ func TestEphemeralDeregister(t *testing.T) {
 }
 
 func TestEphemeral(t *testing.T) {
-	m := NewEmbeddedETCD(t)
+	m := newEmbeddedETCD(t)
 
 	ctx := t.Context()
 	path := "/ident"
@@ -73,7 +73,7 @@ func TestEphemeral(t *testing.T) {
 }
 
 func TestEphemeralFailedAsPutAlready(t *testing.T) {
-	m := NewEmbeddedETCD(t)
+	m := newEmbeddedETCD(t)
 
 	ctx := t.Context()
 	path := "/ident"

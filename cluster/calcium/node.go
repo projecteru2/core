@@ -106,7 +106,7 @@ func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 
 		_, txnErr := utils.Txn(ctx,
 			func(ctx context.Context) error {
-				// a down node has no status key, so peers miss the removal unless one is written first
+				// A down node has no status key, so peers miss the removal unless one is written first
 				if err = c.store.SetNodeStatus(ctx, node, 90); err != nil {
 					logger.Warnf(ctx, "failed to set node status: %s", err)
 				}
@@ -239,7 +239,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 				if updateErr := c.store.UpdateNodes(ctx, node); updateErr != nil {
 					return updateErr
 				}
-				// capacity refresh is best effort; the store write already succeeded
+				// Capacity refresh is best effort; the store write already succeeded
 				if len(opts.Resources) != 0 {
 					_ = c.refreshResourceInfo(ctx, node)
 				}

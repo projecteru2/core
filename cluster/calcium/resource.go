@@ -129,10 +129,5 @@ func (c *Calcium) doGetDeployStrategy(ctx context.Context, nodenames []string, o
 		})
 	}
 
-	deployMap, err := strategy.Deploy(ctx, opts.DeployStrategy, opts.Count, opts.NodesLimit, strategyInfos, total)
-	if err != nil {
-		return nil, err
-	}
-
-	return deployMap, nil
+	return strategy.Deploy(ctx, opts.DeployStrategy, opts.Count, opts.NodesLimit, strategyInfos, total)
 }

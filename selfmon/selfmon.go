@@ -184,7 +184,7 @@ func (n *NodeStatusWatcher) dealNodeStatusMessage(ctx context.Context, message *
 		logger.Errorf(ctx, message.Error, "deal with node status stream message failed %+v", message)
 		return
 	}
-	// the agent owns the transition back to alive
+	// The agent owns the transition back to alive
 	if message.Alive {
 		return
 	}

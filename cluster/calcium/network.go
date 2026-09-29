@@ -30,7 +30,7 @@ func (c *Calcium) ListNetworks(ctx context.Context, podname, driver string) ([]*
 		drivers = append(drivers, driver)
 	}
 
-	// every node of a pod reports the same networks
+	// Every node of a pod reports the same networks
 	node := nodes[0]
 
 	networks, err = node.Engine.NetworkList(ctx, drivers)

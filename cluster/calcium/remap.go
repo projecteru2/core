@@ -25,7 +25,7 @@ func (c *Calcium) RemapResourceAndLog(ctx context.Context, logger *log.Fields, n
 	}
 }
 
-// the caller must hold the node lock
+// The caller must hold the node lock
 func (c *Calcium) doRemapResource(ctx context.Context, logger *log.Fields, node *types.Node) error {
 	engineParamsMap, workloads, err := c.computeRemap(ctx, node)
 	if err != nil || len(engineParamsMap) == 0 {

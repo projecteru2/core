@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/cockroachdb/errors"
 	"github.com/docker/go-units"
 	"github.com/stretchr/testify/assert"
 
@@ -178,7 +177,7 @@ func TestCalculateRemap(t *testing.T) {
 	}
 
 	_, err = cm.CalculateRemap(ctx, "xxx", workloadsResource)
-	assert.True(t, errors.Is(err, coretypes.ErrKeyNotFound))
+	assert.ErrorIs(t, err, coretypes.ErrKeyNotFound)
 
 	r, err := cm.CalculateRemap(ctx, node, workloadsResource)
 	assert.Nil(t, err)

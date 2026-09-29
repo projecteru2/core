@@ -2,7 +2,7 @@ package meta
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"strconv"
 	"sync"
 	"testing"
@@ -19,8 +19,8 @@ import (
 )
 
 func TestGetOneError(t *testing.T) {
-	e := NewMockedETCD(t)
-	expErr := fmt.Errorf("exp")
+	e := newMockedETCD(t)
+	expErr := errors.New("exp")
 	e.cliv3.(*mocks.ETCDClientV3).On("Get", mock.Anything, mock.Anything).Return(nil, expErr)
 	kv, err := e.GetOne(t.Context(), "foo")
 	require.Equal(t, expErr, err)
@@ -28,7 +28,7 @@ func TestGetOneError(t *testing.T) {
 }
 
 func TestGetOneFailedAsRespondMore(t *testing.T) {
-	e := NewMockedETCD(t)
+	e := newMockedETCD(t)
 	expResp := &clientv3.GetResponse{Count: 2}
 	e.cliv3.(*mocks.ETCDClientV3).On("Get", mock.Anything, mock.Anything).Return(expResp, nil)
 	kv, err := e.GetOne(t.Context(), "foo")
@@ -37,7 +37,7 @@ func TestGetOneFailedAsRespondMore(t *testing.T) {
 }
 
 func TestGetOneMissingKeyIsNotFound(t *testing.T) {
-	e := NewEmbeddedETCD(t)
+	e := newEmbeddedETCD(t)
 	kv, err := e.GetOne(t.Context(), "/absent")
 	require.ErrorIs(t, err, types.ErrKeyNotFound)
 	require.NotErrorIs(t, err, types.ErrInvaildCount)
@@ -46,15 +46,15 @@ func TestGetOneMissingKeyIsNotFound(t *testing.T) {
 }
 
 func TestGetMultiWithNoKeys(t *testing.T) {
-	e := NewEmbeddedETCD(t)
+	e := newEmbeddedETCD(t)
 	kvs, err := e.GetMulti(t.Context(), []string{})
 	require.NoError(t, err)
 	require.Equal(t, 0, len(kvs))
 }
 
 func TestGetMultiFailedAsBatchGetError(t *testing.T) {
-	e := NewMockedETCD(t)
-	expErr := fmt.Errorf("exp")
+	e := newMockedETCD(t)
+	expErr := errors.New("exp")
 	expTxn := &mocks.Txn{}
 	expTxn.On("If", mock.Anything).Return(expTxn)
 	expTxn.On("Then", mock.Anything).Return(expTxn)
@@ -67,7 +67,7 @@ func TestGetMultiFailedAsBatchGetError(t *testing.T) {
 }
 
 func TestGetMultiMissingKeyIsNotFound(t *testing.T) {
-	e := NewEmbeddedETCD(t)
+	e := newEmbeddedETCD(t)
 	_, err := e.cliv3.Put(t.Context(), "/present", "v")
 	require.NoError(t, err)
 	kvs, err := e.GetMulti(t.Context(), []string{"/present", "/absent"})
@@ -76,19 +76,10 @@ func TestGetMultiMissingKeyIsNotFound(t *testing.T) {
 	require.Nil(t, kvs)
 }
 
-func TestGrant(t *testing.T) {
-	e := NewMockedETCD(t)
-	expErr := fmt.Errorf("exp")
-	e.cliv3.(*mocks.ETCDClientV3).On("Grant", mock.Anything, mock.Anything).Return(nil, expErr)
-	resp, err := e.cliv3.Grant(t.Context(), 1)
-	require.Equal(t, expErr, err)
-	require.Nil(t, resp)
-}
-
 func TestBindStatusFailedAsGrantError(t *testing.T) {
 	e, etcd, assert := testKeepAliveETCD(t)
 	defer assert()
-	expErr := fmt.Errorf("exp")
+	expErr := errors.New("exp")
 	txn := &mocks.Txn{}
 	defer txn.AssertExpectations(t)
 	txn.On("If", mock.Anything, mock.Anything).Return(txn)
@@ -104,7 +95,7 @@ func TestBindStatusFailedAsCommitError(t *testing.T) {
 	e, etcd, assert := testKeepAliveETCD(t)
 	defer assert()
 
-	expErr := fmt.Errorf("exp")
+	expErr := errors.New("exp")
 	txn := &mocks.Txn{}
 	defer txn.AssertExpectations(t)
 	txn.On("If", mock.Anything, mock.Anything).Return(txn).Once()
@@ -147,7 +138,7 @@ func TestBindStatusRenewsAnUnchangedStatus(t *testing.T) {
 
 	etcd.On("Txn", mock.Anything).Return(txn)
 	etcd.On("KeepAliveOnce", mock.Anything, clientv3.LeaseID(leaseID)).Return(&clientv3.LeaseKeepAliveResponse{TTL: 1}, nil)
-	require.Equal(t, nil, e.BindStatus(t.Context(), "/entity", "/status", "status", 1))
+	require.NoError(t, e.BindStatus(t.Context(), "/entity", "/status", "status", 1))
 	etcd.AssertNotCalled(t, "Grant", mock.Anything, mock.Anything)
 }
 
@@ -184,11 +175,11 @@ func TestBindStatusRebindsWhenTheTTLChanged(t *testing.T) {
 	etcd.On("Txn", mock.Anything).Return(txn)
 	etcd.On("KeepAliveOnce", mock.Anything, clientv3.LeaseID(leaseID)).Return(&clientv3.LeaseKeepAliveResponse{TTL: 5}, nil)
 	etcd.On("Grant", mock.Anything, mock.Anything).Return(&clientv3.LeaseGrantResponse{}, nil)
-	require.Equal(t, nil, e.BindStatus(t.Context(), "/entity", "/status", "status", 1))
+	require.NoError(t, e.BindStatus(t.Context(), "/entity", "/status", "status", 1))
 }
 
 func TestBindStatusWithoutEntityCarriesALease(t *testing.T) {
-	e := NewEmbeddedETCD(t)
+	e := newEmbeddedETCD(t)
 	ctx := t.Context()
 
 	require.NoError(t, e.BindStatus(ctx, "/entity", "/status", "gone", 0))
@@ -248,7 +239,7 @@ func TestBindStatusWithZeroTTL(t *testing.T) {
 
 	etcd.On("Txn", mock.Anything).Return(txn)
 
-	require.Equal(t, nil, e.BindStatus(t.Context(), "/entity", "/status", "status", 0))
+	require.NoError(t, e.BindStatus(t.Context(), "/entity", "/status", "status", 0))
 }
 
 func TestBindStatusRebindsAChangedValue(t *testing.T) {
@@ -265,12 +256,12 @@ func TestBindStatusRebindsAChangedValue(t *testing.T) {
 
 	etcd.On("Grant", mock.Anything, mock.Anything).Return(&clientv3.LeaseGrantResponse{}, nil)
 	etcd.On("Txn", mock.Anything).Return(txn)
-	require.Equal(t, nil, e.BindStatus(t.Context(), "/entity", "/status", "status", 1))
+	require.NoError(t, e.BindStatus(t.Context(), "/entity", "/status", "status", 1))
 	etcd.AssertNotCalled(t, "KeepAliveOnce", mock.Anything, mock.Anything)
 }
 
 func TestBindStatusKeepsOneLeaseAcrossRepeatedReports(t *testing.T) {
-	e := NewEmbeddedETCD(t)
+	e := newEmbeddedETCD(t)
 	ctx := t.Context()
 	_, err := e.Put(ctx, "/entity", "here")
 	require.NoError(t, err)
@@ -291,7 +282,7 @@ func TestBindStatusKeepsOneLeaseAcrossRepeatedReports(t *testing.T) {
 }
 
 func TestETCD(t *testing.T) {
-	m := NewEmbeddedETCD(t)
+	m := newEmbeddedETCD(t)
 	ctx := t.Context()
 
 	_, err := m.CreateLock("test", 5)
@@ -348,18 +339,14 @@ func TestETCD(t *testing.T) {
 	r, err = m.BatchUpdate(ctx, data)
 	require.EqualError(t, err, "key not exists")
 	require.False(t, r.Succeeded)
-	ctx2, cancel := context.WithCancel(ctx)
-	ch := m.Watch(ctx2, "watchkey", clientv3.WithPrefix())
-	go func() {
-		for r := range ch {
-			require.NotEmpty(t, r.Events)
-			require.Equal(t, len(r.Events), 1)
-			require.Equal(t, r.Events[0].Type, clientv3.EventTypePut)
-			require.Equal(t, string(r.Events[0].Kv.Value), "b")
-		}
-	}()
-	m.Create(ctx, "watchkey/1", "b")
+	created, err := m.Create(ctx, "watchkey/1", "b")
+	require.NoError(t, err)
+	watchCtx, cancel := context.WithCancel(ctx)
+	watched := <-m.Watch(watchCtx, "watchkey", clientv3.WithPrefix(), clientv3.WithRev(created.Header.Revision))
 	cancel()
+	require.Len(t, watched.Events, 1)
+	require.Equal(t, clientv3.EventTypePut, watched.Events[0].Type)
+	require.Equal(t, "b", string(watched.Events[0].Kv.Value))
 
 	data = map[string]string{
 		"bcad_k1": "v1",
@@ -449,7 +436,7 @@ func TestETCD(t *testing.T) {
 }
 
 func TestBatchCreateAndDecrWithTheCounterGoneMidRetry(t *testing.T) {
-	e := NewMockedETCD(t)
+	e := newMockedETCD(t)
 	cli := e.cliv3.(*mocks.ETCDClientV3)
 	cli.On("Get", mock.Anything, mock.Anything).Return(&clientv3.GetResponse{
 		Count: 1,
@@ -470,13 +457,13 @@ func TestBatchCreateAndDecrWithTheCounterGoneMidRetry(t *testing.T) {
 	require.ErrorIs(t, err, types.ErrKeyNotExists)
 }
 
-func NewMockedETCD(t *testing.T) *ETCD {
-	e := NewEmbeddedETCD(t)
+func newMockedETCD(t *testing.T) *ETCD {
+	e := newEmbeddedETCD(t)
 	e.cliv3 = &mocks.ETCDClientV3{}
 	return e
 }
 
-func NewEmbeddedETCD(t *testing.T) *ETCD {
+func newEmbeddedETCD(t *testing.T) *ETCD {
 	config := types.EtcdConfig{
 		Machines:   []string{"127.0.0.1:2379"},
 		Prefix:     "/eru-test",
@@ -491,7 +478,7 @@ func NewEmbeddedETCD(t *testing.T) *ETCD {
 }
 
 func testKeepAliveETCD(t *testing.T) (*ETCD, *mocks.ETCDClientV3, func()) {
-	e := NewMockedETCD(t)
+	e := newMockedETCD(t)
 	etcd, ok := e.cliv3.(*mocks.ETCDClientV3)
 	require.True(t, ok)
 	return e, etcd, func() { etcd.AssertExpectations(t) }

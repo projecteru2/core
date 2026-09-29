@@ -54,7 +54,7 @@ func Fatalf(ctx context.Context, err error, format string, args ...any) {
 func logWriter(cfg *types.ServerLogConfig) io.Writer {
 	switch {
 	case cfg.Filename != "":
-		// file log always uses json format
+		// File log always uses json format
 		return &lumberjack.Logger{
 			Filename:   cfg.Filename,
 			MaxBackups: cfg.MaxBackups,

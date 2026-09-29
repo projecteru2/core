@@ -72,7 +72,7 @@ func (s *Store) ListWorkloads(ctx context.Context, appname, entrypoint, nodename
 	if entrypoint == "" {
 		nodename = ""
 	}
-	// trailing slash keeps the prefix from matching a longer nodename
+	// Trailing slash keeps the prefix from matching a longer nodename
 	data, err := s.GetPrefix(ctx, filepath.Join(WorkloadDeployPrefix, appname, entrypoint, nodename)+"/", limit)
 	if err != nil {
 		return nil, err
@@ -95,7 +95,7 @@ func (s *Store) WorkloadStatusStream(ctx context.Context, appname, entrypoint, n
 	if entrypoint == "" {
 		nodename = ""
 	}
-	// trailing slash keeps the prefix from matching a longer nodename
+	// Trailing slash keeps the prefix from matching a longer nodename
 	statusKey := filepath.Join(WorkloadStatusPrefix, appname, entrypoint, nodename) + "/"
 	ch := make(chan *types.WorkloadStatus)
 	logger := log.WithFunc("store.common.WorkloadStatusStream")
@@ -120,10 +120,7 @@ func (s *Store) getWorkload(ctx context.Context, ID string, withEngine bool) (*t
 }
 
 func (s *Store) getWorkloads(ctx context.Context, IDs []string, withEngine bool) ([]*types.Workload, error) {
-	keys := make([]string, 0, len(IDs))
-	for _, ID := range IDs {
-		keys = append(keys, fmt.Sprintf(WorkloadInfoKey, ID))
-	}
+	keys := utils.Map(IDs, func(ID string) string { return fmt.Sprintf(WorkloadInfoKey, ID) })
 
 	data, err := s.GetMulti(ctx, keys)
 	if err != nil {
@@ -194,7 +191,7 @@ func (s *Store) bindWorkloadsAdditions(ctx context.Context, workloads []*types.W
 		if err != nil {
 			return nil, err
 		}
-		// trailing slash keeps the prefix from matching a longer nodename
+		// Trailing slash keeps the prefix from matching a longer nodename
 		prefix := filepath.Join(WorkloadStatusPrefix, appname, entrypoint, workload.Nodename) + "/"
 		groups[prefix] = append(groups[prefix], workload)
 		nodenames[workload.Nodename] = struct{}{}

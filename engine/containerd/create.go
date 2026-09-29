@@ -92,7 +92,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		}
 	}
 
-	// the container id is the workload name: containerd carries no name eru-agent could read
+	// The container id is the workload name: containerd carries no name eru-agent could read
 	ID := opts.Name
 	if err := identifiers.Validate(ID); err != nil {
 		return nil, errors.Wrapf(coretypes.ErrInvalidWorkloadName, "containerd cannot name %q", ID)

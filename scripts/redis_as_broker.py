@@ -36,7 +36,7 @@ def migrate(root, etcd_client, redis_client, dry_run):
             if not key.startswith(root + '/'):
                 continue
 
-            key = key.replace(root, '')
+            key = key[len(root):]
             value = kv.value.decode('utf-8')
 
             if dry_run:

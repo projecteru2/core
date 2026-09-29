@@ -14,7 +14,6 @@ import (
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
-	lockmocks "github.com/projecteru2/core/lock/mocks"
 	resourcemocks "github.com/projecteru2/core/resource/mocks"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	resourcetypes "github.com/projecteru2/core/resource/types"
@@ -336,10 +335,7 @@ func TestDoDeployWorkloadsOnNodeErrorPerWorkload(t *testing.T) {
 	store := c.store.(*storemocks.Store)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
-	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
-	lock.On("Unlock", mock.Anything).Return(nil)
-	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	mockLocks(t, store)
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
 	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(nil, types.ErrWorkloadNotExists)
 
@@ -495,10 +491,7 @@ func newCreateWorkloadCluster(t *testing.T, createProcessingErr, deleteProcessin
 	store.On("CreateProcessing", mock.Anything, mock.Anything, mock.Anything).Return(createProcessingErr)
 	store.On("DeleteProcessing", mock.Anything, mock.Anything, mock.Anything).Return(deleteProcessingErr)
 
-	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
-	lock.On("Unlock", mock.Anything).Return(nil)
-	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	mockLocks(t, store)
 
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(

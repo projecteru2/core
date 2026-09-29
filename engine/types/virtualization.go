@@ -28,7 +28,6 @@ type VirtualizationCreateOptions struct {
 	Networks map[string]string
 
 	RawArgs []byte
-	Lambda  bool
 }
 
 // VirtualizationCreated identifies a freshly created workload.

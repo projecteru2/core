@@ -1,6 +1,7 @@
 package types
 
 import (
+	"cmp"
 	"maps"
 	"strconv"
 	"strings"
@@ -125,7 +126,7 @@ func (n *NodeResourceInfo) Validate() error {
 		}
 	}
 
-	// the stored record always carries objects, never nulls
+	// The stored record always carries objects, never nulls
 	for _, r := range []*NodeResource{n.Capacity, n.Usage} {
 		if r.CPUMap == nil {
 			r.CPUMap = CPUMap{}
@@ -164,10 +165,7 @@ func (n *NodeResourceRequest) Parse(config coretypes.Config, rawParams resourcet
 	}
 
 	if cpu := rawParams.Int64("cpu"); cpu > 0 {
-		share := rawParams.Int64("share")
-		if share == 0 {
-			share = int64(config.Scheduler.ShareBase)
-		}
+		share := cmp.Or(rawParams.Int64("share"), int64(config.Scheduler.ShareBase))
 
 		for i := range cpu {
 			n.CPUMap[strconv.FormatInt(i, 10)] = int(share)

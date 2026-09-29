@@ -35,7 +35,7 @@ type Hydro struct {
 }
 
 func NewHydro(ctx context.Context, store Store, address string, config coretypes.Config) (*Hydro, error) {
-	// the journal outlives every request that writes to it, so it keeps a context of its own
+	// The journal outlives every request that writes to it, so it keeps a context of its own
 	hydro := &Hydro{handlers: map[string]EventHandler{}, store: store, ctx: context.WithoutCancel(ctx), config: config, address: address}
 	seq, err := hydro.lastSeq(ctx)
 	if err != nil {

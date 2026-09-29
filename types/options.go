@@ -4,7 +4,6 @@ import (
 	"cmp"
 	"fmt"
 	"io"
-	"slices"
 	"strings"
 
 	resourcetypes "github.com/projecteru2/core/resource/types"
@@ -71,7 +70,6 @@ type DeployOptions struct {
 	ExtraHosts     []string
 	Networks       map[string]string // network name to specified IP
 	User           string
-	Debug          bool // use syslog as log driver
 	OpenStdin      bool
 	Labels         map[string]string
 	DeployStrategy string
@@ -81,7 +79,6 @@ type DeployOptions struct {
 	IgnoreHook     bool
 	AfterCreate    []string
 	RawArgs        RawArgs
-	Lambda         bool
 	IgnorePull     bool
 }
 
@@ -136,17 +133,6 @@ type LinuxFile struct {
 	UID      int
 	GID      int
 	Mode     int64
-}
-
-// Clone deep-copies Content.
-func (f LinuxFile) Clone() LinuxFile {
-	return LinuxFile{
-		Content:  slices.Clone(f.Content),
-		Filename: f.Filename,
-		UID:      f.UID,
-		GID:      f.GID,
-		Mode:     f.Mode,
-	}
 }
 
 func (f LinuxFile) String() string {

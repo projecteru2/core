@@ -83,10 +83,7 @@ func (s *Store) GetNode(ctx context.Context, nodename string) (*types.Node, erro
 }
 
 func (s *Store) GetNodes(ctx context.Context, nodenames []string) ([]*types.Node, error) {
-	keys := make([]string, 0, len(nodenames))
-	for _, nodename := range nodenames {
-		keys = append(keys, fmt.Sprintf(NodeInfoKey, nodename))
-	}
+	keys := utils.Map(nodenames, func(nodename string) string { return fmt.Sprintf(NodeInfoKey, nodename) })
 
 	kvs, err := s.GetMulti(ctx, keys)
 	if err != nil {

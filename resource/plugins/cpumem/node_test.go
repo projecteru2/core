@@ -6,7 +6,6 @@ import (
 	"math"
 	"testing"
 
-	"github.com/cockroachdb/errors"
 	"github.com/docker/go-units"
 	"github.com/stretchr/testify/assert"
 
@@ -93,7 +92,7 @@ func TestGetNodesDeployCapacityWithCPUBind(t *testing.T) {
 	}
 
 	_, err := cm.GetNodesDeployCapacity(ctx, []string{"xxx"}, req)
-	assert.True(t, errors.Is(err, coretypes.ErrKeyNotFound))
+	assert.ErrorIs(t, err, coretypes.ErrKeyNotFound)
 
 	tests := []struct {
 		name       string
@@ -202,7 +201,7 @@ func TestGetNodesDeployCapacityWithMemory(t *testing.T) {
 	}
 
 	_, err := cm.GetNodesDeployCapacity(ctx, nodes, req)
-	assert.True(t, errors.Is(err, types.ErrInvalidMemory))
+	assert.ErrorIs(t, err, types.ErrInvalidMemory)
 
 	tests := []struct {
 		name string
@@ -351,7 +350,7 @@ func TestGetAndFixNodeResourceInfo(t *testing.T) {
 	node := nodes[0]
 
 	_, err := cm.GetNodeResourceInfo(ctx, "xxx", nil)
-	assert.True(t, errors.Is(err, coretypes.ErrKeyNotFound))
+	assert.ErrorIs(t, err, coretypes.ErrKeyNotFound)
 
 	r, err := cm.GetNodeResourceInfo(ctx, node, nil)
 	assert.Nil(t, err)
@@ -590,7 +589,6 @@ func BenchmarkGetNodesCapacityScaling(b *testing.B) {
 			cm := initCPUMEM(b)
 			nodes := generateNodes(ctx, b, cm, tc.nodes, tc.cores, 128*units.GB, 100, 0)
 			req := plugintypes.WorkloadResourceRequest{"cpu-bind": true, "cpu-request": 1.3, "memory-request": "1"}
-			b.ResetTimer()
 			for b.Loop() {
 				if _, err := cm.GetNodesDeployCapacity(ctx, nodes, req); err != nil {
 					b.Fatal(err)

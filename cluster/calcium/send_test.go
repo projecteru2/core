@@ -1,14 +1,12 @@
 package calcium
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
-	lockmocks "github.com/projecteru2/core/lock/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 )
@@ -32,10 +30,7 @@ func TestSend(t *testing.T) {
 		},
 	}
 	store := c.store.(*storemocks.Store)
-	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
-	lock.On("Unlock", mock.Anything).Return(nil)
-	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	mockLocks(t, store)
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch, err := c.Send(ctx, opts)

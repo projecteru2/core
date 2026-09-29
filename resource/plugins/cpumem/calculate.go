@@ -70,7 +70,7 @@ func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource 
 		return nil, err
 	}
 
-	// the origin usage returns to the pool before the new total is computed
+	// The origin usage returns to the pool before the new total is computed
 	nodeResourceInfo.Usage.Sub(&cpumemtypes.NodeResource{
 		CPU:        originResource.CPURequest,
 		CPUMap:     originResource.CPUMap,

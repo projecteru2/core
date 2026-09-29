@@ -144,7 +144,7 @@ func (e *EngineCache) checkNodeStatus(ctx context.Context) {
 			}
 
 			if !ns.Alive {
-				// one node may back several engines
+				// One node may back several engines
 				e.cache.Range(func(_, v any) bool {
 					ep := v.(engine.API).GetParams()
 					if ep.Nodename == ns.Nodename {
@@ -232,26 +232,22 @@ func validateEngine(ctx context.Context, engine engine.API, timeout time.Duratio
 	return err
 }
 
-func getEnginePrefix(endpoint string) (string, error) {
-	for prefix := range engines {
+func engineFactory(endpoint string) (factory, error) {
+	for prefix, newClient := range engines {
 		if strings.HasPrefix(endpoint, prefix) {
-			return prefix, nil
+			return newClient, nil
 		}
 	}
-	return "", errors.Wrapf(types.ErrInvaildNodeEndpoint, "endpoint invalid %+v", endpoint)
+	return nil, errors.Wrapf(types.ErrInvaildNodeEndpoint, "endpoint invalid %+v", endpoint)
 }
 
 func newEngine(ctx context.Context, config types.Config, params *enginetypes.Params) (client engine.API, err error) {
-	prefix, err := getEnginePrefix(params.Endpoint)
+	newClient, err := engineFactory(params.Endpoint)
 	if err != nil {
 		return nil, err
 	}
-	e, ok := engines[prefix]
-	if !ok {
-		return nil, types.ErrInvaildEngineEndpoint
-	}
 	utils.WithTimeout(ctx, config.ConnectionTimeout, func(ctx context.Context) {
-		client, err = e(ctx, config, params.Nodename, params.Endpoint)
+		client, err = newClient(ctx, config, params.Nodename, params.Endpoint)
 	})
 	if err != nil {
 		return nil, err

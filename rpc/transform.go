@@ -297,7 +297,6 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		ExtraHosts:     d.ExtraHosts,
 		Networks:       d.Networks,
 		User:           d.User,
-		Debug:          d.Debug,
 		OpenStdin:      d.OpenStdin,
 		Labels:         d.Labels,
 		DeployStrategy: d.DeployStrategy.String(),

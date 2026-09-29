@@ -14,7 +14,7 @@ func (s *Store) GetDeployStatus(ctx context.Context, appname, entryname string) 
 	var processingCount map[string]int
 	g, gctx := errgroup.WithContext(ctx)
 	g.Go(func() (err error) {
-		// trailing slash keeps the prefix from matching a longer entrypoint
+		// Trailing slash keeps the prefix from matching a longer entrypoint
 		keys, err = s.ListPrefix(gctx, filepath.Join(WorkloadDeployPrefix, appname, entryname)+"/")
 		return err
 	})

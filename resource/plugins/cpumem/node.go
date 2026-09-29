@@ -368,10 +368,7 @@ func (p Plugin) getKnown(ctx context.Context, keys []string) (map[string]string,
 }
 
 func (p Plugin) doGetNodesResourceInfo(ctx context.Context, nodenames []string) (map[string]*cpumemtypes.NodeResourceInfo, error) {
-	keys := make([]string, 0, len(nodenames))
-	for _, nodename := range nodenames {
-		keys = append(keys, fmt.Sprintf(nodeResourceInfoKey, nodename))
-	}
+	keys := utils.Map(nodenames, func(nodename string) string { return fmt.Sprintf(nodeResourceInfoKey, nodename) })
 	data, err := p.store.GetMulti(ctx, keys)
 	if err != nil {
 		return nil, err
@@ -433,7 +430,7 @@ func (p Plugin) calculateNodeResource(req *cpumemtypes.NodeResourceRequest, node
 	var resp *cpumemtypes.NodeResource
 	if origin == nil || !delta { // no delta means node resource rewrite with whole new data
 		resp = &cpumemtypes.NodeResource{CPUMap: cpumemtypes.CPUMap{}, NUMAMemory: cpumemtypes.NUMAMemory{}, NUMA: cpumemtypes.NUMA{}}
-		// a full rewrite must add onto the zero value; subtracting would store negative amounts
+		// A full rewrite must add onto the zero value; subtracting would store negative amounts
 		incr = true
 	} else {
 		resp = origin.DeepCopy()

@@ -202,7 +202,7 @@ func (e *ETCD) BindStatus(ctx context.Context, entityKey, statusKey, statusValue
 	return e.bindStatusWithTTL(ctx, entityKey, statusKey, statusValue, ttl)
 }
 
-func (e *ETCD) BatchCreateAndDecr(ctx context.Context, data map[string]string, decrKey string) (err error) {
+func (e *ETCD) BatchCreateAndDecr(ctx context.Context, data map[string]string, decrKey string) error {
 	resp, err := e.Get(ctx, decrKey)
 	if err != nil {
 		return err
@@ -423,7 +423,7 @@ func (e *ETCD) doBatchOp(ctx context.Context, transactions []ETCDTxn) (*clientv3
 	}
 	spans = append(spans, span{lastIdx, len(txnes)})
 
-	// indexed slots keep the merged responses in request order, which GetMulti pairs with its keys
+	// Indexed slots keep the merged responses in request order, which GetMulti pairs with its keys
 	resps := make([]*clientv3.TxnResponse, len(spans))
 	g, ctx := errgroup.WithContext(ctx)
 	g.SetLimit(runtime.GOMAXPROCS(0))

@@ -97,7 +97,7 @@ func (w *WorkloadResourceRequest) Validate() error {
 	if w.CPURequest > 0 && w.CPULimit > 0 && w.CPULimit < w.CPURequest {
 		w.CPULimit = w.CPURequest
 	}
-	// a cpu-bound workload gets request raised to limit, never the other way round
+	// A cpu-bound workload gets request raised to limit, never the other way round
 	if w.CPUBind && w.CPURequest > 0 && w.CPULimit > 0 && w.CPULimit > w.CPURequest {
 		w.CPURequest = w.CPULimit
 	}

@@ -27,7 +27,7 @@ func (m *Manager) AddNode(ctx context.Context, nodename string, opts resourcetyp
 		func(ctx context.Context) error {
 			resps, err := call(ctx, m.plugins, func(plugin plugins.Plugin) (*plugintypes.AddNodeResponse, error) {
 				r := opts[plugin.Name()]
-				// plugins run even for a nil request: they read config from engine info and seed an empty etcd entry
+				// Plugins run even for a nil request: they read config from engine info and seed an empty etcd entry
 				logger.WithField("plugin", plugin.Name()).Debugf(ctx, "add node request %+v", r)
 				return plugin.AddNode(ctx, nodename, r, nodeInfo)
 			})
@@ -262,9 +262,6 @@ func (m *Manager) getNodeResourceInfo(ctx context.Context, nodename string, ps [
 	resourceDiffs := []string{}
 
 	resps, err := call(ctx, ps, func(plugin plugins.Plugin) (*plugintypes.GetNodeResourceInfoResponse, error) {
-		var resp *plugintypes.GetNodeResourceInfoResponse
-		var err error
-
 		name := plugin.Name()
 		wrks := make([]plugintypes.WorkloadResource, 0, len(workloads))
 		for _, wrk := range workloads {
@@ -272,11 +269,9 @@ func (m *Manager) getNodeResourceInfo(ctx context.Context, nodename string, ps [
 		}
 
 		if fix {
-			resp, err = plugin.FixNodeResource(ctx, nodename, wrks)
-		} else {
-			resp, err = plugin.GetNodeResourceInfo(ctx, nodename, wrks)
+			return plugin.FixNodeResource(ctx, nodename, wrks)
 		}
-		return resp, err
+		return plugin.GetNodeResourceInfo(ctx, nodename, wrks)
 	})
 	if err != nil {
 		return nil, nil, nil, err

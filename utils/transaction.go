@@ -47,7 +47,7 @@ func Txn(ctx context.Context, cond, then contextFunc, rollback rollbackFunc, ttl
 		condErr = cond(txnCtx)
 	}
 	if condErr == nil && then != nil {
-		// with no rollback, then must not be interruptible
+		// With no rollback, then must not be interruptible
 		thenCtx := txnCtx
 		var thenCancel context.CancelFunc
 		if rollback == nil {

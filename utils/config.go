@@ -33,7 +33,7 @@ func LoadConfig(configPath string) (types.Config, error) {
 	return config, checkRequired(value)
 }
 
-// defaults land before the file is read so an explicit zero in the file still wins
+// Defaults land before the file is read so an explicit zero in the file still wins
 func applyDefaults(value reflect.Value) error {
 	return walkFields(value, func(field reflect.Value, structField reflect.StructField) error {
 		if tag := structField.Tag.Get("default"); tag != "" && field.IsZero() {

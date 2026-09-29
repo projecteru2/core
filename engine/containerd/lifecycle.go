@@ -38,7 +38,7 @@ func (e *Engine) VirtualizationStart(ctx context.Context, ID string) (err error)
 	if err != nil {
 		return err
 	}
-	// a task has fifos or a log uri, never both: an interactive workload takes the node fifos
+	// A task has fifos or a log uri, never both: an interactive workload takes the node fifos
 	creator := cio.LogURI(logShimURL)
 	var relay *attach
 	if _, stdin := info.Labels[stdinLabel]; stdin {
@@ -231,7 +231,7 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, en
 		return err
 	}
 	limits := resourceSpec(resource, &RawArgs{}, devices)
-	// live first, stored spec second: a failure then persists nothing, and a restart replays the new limits only after both held
+	// Live first, stored spec second: a failure then persists nothing, and a restart replays the new limits only after both held
 	task, err := optionalTask(ctx, found)
 	if err != nil {
 		return err
