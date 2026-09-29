@@ -115,7 +115,7 @@ func (e *ETCD) GetOne(ctx context.Context, key string, opts ...clientv3.OpOption
 		return nil, err
 	}
 	if resp.Count == 0 {
-		return nil, errors.Wrapf(errors.Mark(types.ErrKeyNotFound, types.ErrInvaildCount), "key: %s", key)
+		return nil, errors.Wrapf(types.ErrKeyNotFound, "key: %s", key)
 	}
 	if resp.Count != 1 {
 		return nil, errors.Wrapf(types.ErrInvaildCount, "key: %s", key)
@@ -135,7 +135,7 @@ func (e *ETCD) GetMulti(ctx context.Context, keys []string) ([]*mvccpb.KeyValue,
 	for idx, responseOp := range txnResponse.Responses {
 		resp := responseOp.GetResponseRange()
 		if resp.Count == 0 {
-			return nil, errors.Wrapf(errors.Mark(types.ErrKeyNotFound, types.ErrInvaildCount), "key: %s", keys[idx])
+			return nil, errors.Wrapf(types.ErrKeyNotFound, "key: %s", keys[idx])
 		}
 		if resp.Count != 1 {
 			return nil, errors.Wrapf(types.ErrInvaildCount, "key: %s", keys[idx])
