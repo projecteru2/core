@@ -67,7 +67,13 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		return nil, err
 	}
 	ID := utils.RandomID()
-	argv, err := createArgv(e.cocoon.Binary, ID, opts, resource, rArgs.OS == osWindows, network)
+	var argv []string
+	if snapshot, ok := strings.CutPrefix(opts.Image, snapshotScheme); ok {
+		logger.Debugf(ctx, "vm %s takes its cpu, memory and storage from snapshot %s", opts.Name, snapshot)
+		argv, err = cloneArgv(e.cocoon.Binary, ID, snapshot, resource.Volumes, rArgs.OS == osWindows, network)
+	} else {
+		argv, err = createArgv(e.cocoon.Binary, ID, opts, resource, rArgs.OS == osWindows, network)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -137,6 +143,28 @@ func createArgv(binary, ID string, opts *enginetypes.VirtualizationCreateOptions
 		argv = append(argv, "--user", opts.User)
 	}
 	return append(argv, "--name", ID, opts.Image), nil
+}
+
+// cloneArgv boots the vm from a snapshot, which fixes its cpu, memory, storage and guest os.
+func cloneArgv(binary, ID, snapshot string, volumes []string, windows bool, network string) ([]string, error) {
+	if windows {
+		return nil, errors.Wrap(coretypes.ErrInvalidEngineArgs, "a windows guest cannot be cloned from a snapshot")
+	}
+	if err := checkSnapshotName(snapshot); err != nil {
+		return nil, err
+	}
+	argv := []string{binary, "vm", "clone", "--output", formatJSON, "--name", ID}
+	if network != "" {
+		argv = append(argv, "--network", network)
+	}
+	disks, err := dataDisks(volumes, false)
+	if err != nil {
+		return nil, err
+	}
+	for _, disk := range disks {
+		argv = append(argv, "--data-disk", disk)
+	}
+	return append(argv, snapshot), nil
 }
 
 // dataDisks turns the storage plugin's `src:dst:mode:size` volumes into cocoon data disks.

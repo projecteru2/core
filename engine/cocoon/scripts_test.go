@@ -50,6 +50,11 @@ exit "${code:-0}"
 ;;
 "vm status") printf '%s\n' "$STUB_EVENTS";;
 "snapshot rm") exit "${STUB_SNAPSHOT:-0}";;
+"snapshot save")
+printf 'snapshot saved\n'
+exit "${STUB_SAVE:-0}"
+;;
+"snapshot inspect") printf '%s\n' "$STUB_SNAPSHOT_JSON";;
 "image inspect") exit "${STUB_IMAGE:-1}";;
 "image import") exit "${STUB_IMPORT:-0}";;
 esac
@@ -532,6 +537,48 @@ func TestWaitScriptRefusesToWaitOnAVMCocoonDoesNotHave(t *testing.T) {
 		t.Fatalf("got exit %d, want 1: the event stream stays silent for a vm that is not there", got.code)
 	}
 	node.assertCalls(t, "cocoon vm inspect "+scriptVM)
+}
+
+func TestSaveScriptPrintsOnlyTheSavedSnapshot(t *testing.T) {
+	tests := []struct {
+		name       string
+		save       string
+		wantCode   int
+		wantStdout string
+		wantCalls  []string
+	}{
+		{
+			name:       "a snapshot cocoon saved",
+			wantStdout: testSnapshotJSON + "\n",
+			wantCalls: []string{
+				"cocoon snapshot save --name " + testSnap + " " + scriptVM,
+				"cocoon snapshot inspect " + testSnap,
+			},
+		},
+		{
+			name:      "a save cocoon refused",
+			save:      "2",
+			wantCode:  2,
+			wantCalls: []string{"cocoon snapshot save --name " + testSnap + " " + scriptVM},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			node := newScriptNode(t)
+			node.env["STUB_SAVE"] = tt.save
+			node.env["STUB_SNAPSHOT_JSON"] = testSnapshotJSON
+
+			got := node.run(t, saveScript, node.binary, testSnap, scriptVM)
+
+			if got.code != tt.wantCode {
+				t.Fatalf("got exit %d, want %d: %s", got.code, tt.wantCode, got.stderr)
+			}
+			if got.stdout != tt.wantStdout {
+				t.Errorf("got %q, want %q", got.stdout, tt.wantStdout)
+			}
+			node.assertCalls(t, tt.wantCalls...)
+		})
+	}
 }
 
 func TestImportScriptReassemblesAPartsArtifactOnce(t *testing.T) {
