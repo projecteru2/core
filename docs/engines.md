@@ -254,7 +254,7 @@ the cocoon daemon's events on it. The eru name stays in the meta file and in cor
 
 | `engine.API` | cocoon |
 | --- | --- |
-| `VirtualizationCreate` | `vm create --output json --name <id> [--cpu N] [--memory B] [--storage B] [--data-disk …] [--network <name>] [--windows \| --user U] <image>` — no boot; then the meta record is written. A failure after the create removes the VM again. cocoon has no way to apply the deploy's `env`, `dns`, `extra_hosts` or the entrypoint's `commands` and `dir` to a guest, so any of them set draws a warning; core's own `APP_NAME`/`ERU_*` env does not |
+| `VirtualizationCreate` | `vm create --output json --name <id> [--cpu N] [--memory B] [--storage B] [--data-disk …] [--network <name>] [--windows \| --user U] <image>` — no boot; then the meta record is written. A failure after the create removes the VM again. cocoon has no way to apply the deploy's `env`, `dns`, `extra_hosts` or the entrypoint's `commands` and `dir` to a guest, so any of them set draws a warning; core's own `APP_NAME`/`ERU_*` env does not. A `snapshot://<name>` image is a clone instead (see [Snapshots](#snapshots)) |
 | `VirtualizationStart` | `vm inspect`, `vm start` and `vm inspect` again in one script; the second inspect reports this boot's `console_path`, and both copies of the meta record are rewritten with it and with the VMM pid. An inspect that reports no console keeps the serial socket path. A Windows guest on its first boot gets its address programmed through `vm exec` in the background, after the start has already returned |
 | `VirtualizationStop` | `vm stop`, `--force` for a forced stop, `--timeout` when a grace period is given; a workload with no record on the node is `ErrWorkloadNotExists`, as for the other verbs. cocoon's stop is idempotent, so stopping a created or already-stopped guest succeeds |
 | `VirtualizationRemove` | `vm rm [--force]`, then the hibernate snapshot and both copies of the meta record; a running guest is refused unless forced |
@@ -266,12 +266,13 @@ the cocoon daemon's events on it. The eru name stays in the meta file and in cor
 | `Execute` / `ExecExitCode` | `vm exec [-i] [-e K=V …] <id> -- <cmd>` through cocoon-agent in pipe mode, stdio on the SSH session, the exit code the guest command's. `ExecResize` is `ErrEngineNotImplemented` (core#660). A `user` and a `working_dir` are applied inside a Linux guest by wrapping the command — `runuser -u U -- env --chdir=D <cmd>` for a bare user name, `setpriv --reuid=U --regid=G --clear-groups -- env --chdir=D <cmd>` when the id is numeric or a group is named — so the directory is entered as the target user; on a Windows guest both are `ErrEngineNotImplemented` |
 | `VirtualizationCopyTo` / `CopyFrom` | a one-entry tar through `vm exec … tar -x -P -f -` / `tar -c -P -f -`: the absolute entry name makes tar create the parents, and `tar.exe` ships with Windows 10+. A copy into a guest that is not running is `ErrInvaildWorkloadOps` — the state is checked first, one round trip per file |
 | `VirtualizationUpdateResource` | a remap (the cpumem binding refresh core runs after every deploy) is a no-op without a round trip; a realloc is `ErrEngineNotImplemented`, CPU and memory hot-plug wait on cocoon (core#661) |
-| `ImagePull` | `image pull <ref>` for OCI VM images and cloud-image URLs, registry auth left to cocoon's own config; a split-qcow2 artifact (the Windows images) is `oras pull`ed and `image import`ed under the same ref, once |
+| `ImagePull` | `image pull <ref>` for OCI VM images and cloud-image URLs, registry auth left to cocoon's own config; a split-qcow2 artifact (the Windows images) is `oras pull`ed and `image import`ed under the same ref, once. A `snapshot://<name>` ref is only looked up with `snapshot inspect`, so a missing snapshot fails the pull |
 | `ImageList` / `ImageRemove` | `image list --format json` filtered by name prefix / `image rm`. An empty store answers `No images found.` in prose rather than `[]`, and reads as an empty list, not a failed node |
-| `ImageLocalDigests` / `ImageRemoteDigest` | `image inspect` / `oras manifest fetch --descriptor`; a cloud-image URL is its own digest, so it is pulled once. A node without `oras` (probed with `command -v`) reports no remote digest, so every deploy runs `image pull`, which cocoon answers from its cache. Only a node that answered yes is remembered — a probe an ssh failure lost is asked again, instead of pinning the node as oras-less for the engine's life |
+| `ImageLocalDigests` / `ImageRemoteDigest` | `image inspect` / `oras manifest fetch --descriptor`; a cloud-image URL is its own digest, so it is pulled once, and so is a `snapshot://<name>` ref while `snapshot inspect` finds the snapshot. A node without `oras` (probed with `command -v`) reports no remote digest, so every deploy runs `image pull`, which cocoon answers from its cache. Only a node that answered yes is remembered — a probe an ssh failure lost is asked again, instead of pinning the node as oras-less for the engine's life |
 | `ImageBuildFromExist` | `ErrEngineNotImplemented`, and so is `ImagePush`: cocoon has no registry push, so a build from an existing workload can never finish. Saving a snapshot first only left node state behind — core's build always goes on to push the refs and then runs `ImageRemove` over them — so the engine refuses before anything is written |
 | `NetworkList` | the CNI conf dir (`/etc/cni/net.d`); `NetworkConnect` / `Disconnect` are `ErrEngineNotImplemented` |
-| `ImageBuild`, `ImagesPrune`, `RawEngine` | `ErrEngineNotImplemented` |
+| `RawEngine` | the snapshot ops, see [Snapshots](#snapshots) |
+| `ImageBuild`, `ImagesPrune` | `ErrEngineNotImplemented` |
 
 ### Resources and networks
 
@@ -334,6 +335,40 @@ cloudimg entry whose id is a content sum, while `ImageRemoteDigest` reports the 
 digest, so the two never match and every deploy runs `ImagePull` again. That is not a re-download —
 the import script exits at once when `image inspect <ref>` already answers — but it does mean a
 Windows deploy always pays one extra round trip.
+
+### Snapshots
+
+A deploy whose image is `snapshot://<name>` clones the VM from that cocoon snapshot on the node
+instead of booting an image:
+
+| `image` | cocoon |
+| --- | --- |
+| `snapshot://<name>` | `vm clone --output json --name <id> [--network <name>] [--data-disk …] <name>` — the snapshot name or id, checked against cocoon's grammar (`^[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,62}$`) before any round trip |
+
+The clone takes its CPU, memory, storage, guest OS and login from the snapshot, so the deploy's
+cpumem and storage quotas are not applied (logged at debug) and `user` reaches only the meta record,
+where exec reads it. No network in the deploy keeps the snapshot's conflist. The guest resumes with the source VM's NIC files and hostname, so after the
+record the engine rewrites them through `vm exec`: one systemd-networkd file per static NIC, matched
+by the clone's new MAC, the workload name as hostname, then `systemctl restart systemd-networkd`,
+retried for 30 s until cocoon-agent answers. A clone that will not take its address is removed. The meta record is
+written from the clone's JSON exactly as after a create, and a failure after the clone removes the
+VM again. The clone is already running when `VirtualizationStart` runs: cocoon answers `vm start`
+on a running VM with success, so the start only refreshes the record. The volumes become data disks
+hot-added to the running guest; cloud-init has already run, so nothing mounts them, and cocoon
+refuses to snapshot or hibernate a VM with a hot-added disk. A Windows deploy (`os: windows`) with a
+snapshot image is refused with `ErrInvalidEngineArgs`. The image verbs never reach a registry for
+such a ref.
+
+`RawEngine` serves the snapshot ops on the workload's node, `Params` a JSON object, the name checked
+as above and refused with `ErrInvalidEngineArgs` before any round trip; any other op is
+`ErrEngineNotImplemented`:
+
+| `Op` | `Params` | cocoon | `Data` |
+| --- | --- | --- | --- |
+| `snapshot.save` | `{"name": N}` | `snapshot save --name N <id>`, then `snapshot inspect N`, in one round trip; the guest keeps running | the snapshot JSON |
+| `snapshot.list` | — | `snapshot list --format json`; the prose empty banner reads as `[]` | the JSON list |
+| `snapshot.inspect` | `{"name": N}` | `snapshot inspect N` | the snapshot JSON |
+| `snapshot.remove` | `{"name": N}` | `snapshot rm N` | empty |
 
 ### The meta file
 

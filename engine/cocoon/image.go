@@ -86,10 +86,17 @@ func (e *Engine) ImagesPrune(context.Context) error {
 	return coretypes.ErrEngineNotImplemented
 }
 
-// ImagePull hands a registry ref or a cloud-image url to cocoon; a parts artifact goes through oras and import.
+// ImagePull hands a registry ref or a cloud-image url to cocoon; a parts artifact goes through oras and import, a snapshot is only looked up.
 func (e *Engine) ImagePull(ctx context.Context, ref string, _ bool) (io.ReadCloser, error) {
 	argv := []string{e.cocoon.Binary, "image", "pull", ref}
-	if !enginetypes.IsURL(ref) && e.partsArtifact(ctx, ref) {
+	name, snapshot := strings.CutPrefix(ref, snapshotScheme)
+	switch {
+	case snapshot:
+		if err := checkSnapshotName(name); err != nil {
+			return nil, err
+		}
+		argv = e.snapshot("inspect", name)
+	case !enginetypes.IsURL(ref) && e.partsArtifact(ctx, ref):
 		argv = sshrunner.Shell(importScript, e.cocoon.Binary, ref)
 	}
 	res, err := e.run(ctx, argv...)
@@ -112,6 +119,9 @@ func (e *Engine) ImageBuildCachePrune(context.Context, bool) (uint64, error) {
 }
 
 func (e *Engine) ImageLocalDigests(ctx context.Context, image string) ([]string, error) {
+	if name, ok := strings.CutPrefix(image, snapshotScheme); ok {
+		return e.snapshotDigests(ctx, image, name)
+	}
 	res, err := e.call(ctx, e.cocoon.Binary, "image", "inspect", image)
 	if err != nil {
 		return nil, err
@@ -126,9 +136,9 @@ func (e *Engine) ImageLocalDigests(ctx context.Context, image string) ([]string,
 	return []string{enginetypes.ImageDigest(image, stored.ID)}, nil
 }
 
-// ImageRemoteDigest asks the registry through oras; a cloud image url is its own digest.
+// ImageRemoteDigest asks the registry through oras; a cloud image url and a snapshot are their own digest.
 func (e *Engine) ImageRemoteDigest(ctx context.Context, image string) (string, error) {
-	if enginetypes.IsURL(image) {
+	if enginetypes.IsURL(image) || strings.HasPrefix(image, snapshotScheme) {
 		return image, nil
 	}
 	if !e.orasPresent(ctx) {

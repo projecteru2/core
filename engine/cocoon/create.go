@@ -29,6 +29,28 @@ const (
 
 	discardTimeout = 30 * time.Second
 
+	// reseedScript rewrites a clone's static NICs by MAC and its hostname; the guest still carries the source's.
+	reseedScript = `bin=$1; vm=$2; shift 2
+guest='rm -f /etc/systemd/network/10-*.network
+hostnamectl set-hostname "$1" 2>/dev/null || hostname "$1"
+sed -i "/^127\.0\.1\.1[[:space:]]/d" /etc/hosts
+printf "127.0.1.1 %s\n" "$(hostname)" >> /etc/hosts
+shift
+while [ $# -ge 3 ]; do
+f="/etc/systemd/network/10-$(printf %s "$1" | tr -d :).network"
+printf "[Match]\nMACAddress=%s\n\n[Network]\nAddress=%s\n" "$1" "$2" > "$f"
+if [ -n "$3" ]; then printf "Gateway=%s\n" "$3" >> "$f"; fi
+shift 3
+done
+systemctl restart systemd-networkd'
+tries=0
+until "$bin" vm exec "$vm" -- sh -c "$guest" sh "$@"; do
+tries=$((tries+1))
+[ "$tries" -lt 30 ] || exit 1
+sleep 1
+done
+`
+
 	publishRecord = `mkdir -p "$(dirname "$record")"
 cp -f "$durable" "$record.tmp"
 mv "$record.tmp" "$record"
@@ -67,7 +89,13 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		return nil, err
 	}
 	ID := utils.RandomID()
-	argv, err := createArgv(e.cocoon.Binary, ID, opts, resource, rArgs.OS == osWindows, network)
+	var argv []string
+	if snapshot, ok := strings.CutPrefix(opts.Image, snapshotScheme); ok {
+		logger.Debugf(ctx, "vm %s takes its cpu, memory and storage from snapshot %s", opts.Name, snapshot)
+		argv, err = cloneArgv(e.cocoon.Binary, ID, snapshot, resource.Volumes, rArgs.OS == osWindows, network)
+	} else {
+		argv, err = createArgv(e.cocoon.Binary, ID, opts, resource, rArgs.OS == osWindows, network)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -82,6 +110,9 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	vm, err := parseVM(res.Stdout)
 	if err == nil {
 		err = e.record(ctx, ID, opts, vm)
+	}
+	if err == nil && strings.HasPrefix(opts.Image, snapshotScheme) {
+		_, err = e.run(ctx, reseedArgv(e.cocoon.Binary, ID, opts.Name, vm)...)
 	}
 	if err != nil {
 		e.discard(ctx, ID)
@@ -139,7 +170,39 @@ func createArgv(binary, ID string, opts *enginetypes.VirtualizationCreateOptions
 	return append(argv, "--name", ID, opts.Image), nil
 }
 
+// cloneArgv boots the vm from a snapshot, which fixes its cpu, memory, storage and guest os.
+func cloneArgv(binary, ID, snapshot string, volumes []string, windows bool, network string) ([]string, error) {
+	if windows {
+		return nil, errors.Wrap(coretypes.ErrInvalidEngineArgs, "a windows guest cannot be cloned from a snapshot")
+	}
+	if err := checkSnapshotName(snapshot); err != nil {
+		return nil, err
+	}
+	argv := []string{binary, "vm", "clone", "--output", formatJSON, "--name", ID}
+	if network != "" {
+		argv = append(argv, "--network", network)
+	}
+	disks, err := dataDisks(volumes, false)
+	if err != nil {
+		return nil, err
+	}
+	for _, disk := range disks {
+		argv = append(argv, "--data-disk", disk)
+	}
+	return append(argv, snapshot), nil
+}
+
 // dataDisks turns the storage plugin's `src:dst:mode:size` volumes into cocoon data disks.
+func reseedArgv(binary, ID, hostname string, vm *vmRecord) []string {
+	args := []string{binary, ID, hostname}
+	for _, n := range vm.NICs {
+		if n.MAC != "" && n.Network != nil && n.Network.IP != "" {
+			args = append(args, n.MAC, n.Network.IP+"/"+strconv.Itoa(n.Network.Prefix), n.Network.Gateway)
+		}
+	}
+	return sshrunner.Shell(reseedScript, args...)
+}
+
 func dataDisks(volumes []string, windows bool) ([]string, error) {
 	disks := make([]string, 0, len(volumes))
 	for _, volume := range volumes {

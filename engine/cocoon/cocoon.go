@@ -92,10 +92,6 @@ func (e *Engine) GetParams() *enginetypes.Params {
 	return e.ep
 }
 
-func (e *Engine) RawEngine(context.Context, *enginetypes.RawEngineOptions) (*enginetypes.RawEngineResult, error) {
-	return nil, coretypes.ErrEngineNotImplemented
-}
-
 func (e *Engine) call(ctx context.Context, argv ...string) (*sshrunner.Result, error) {
 	return sshrunner.Call(ctx, e.runner, argv...)
 }

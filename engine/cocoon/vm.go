@@ -24,6 +24,7 @@ type vmConfig struct {
 
 type nic struct {
 	TAP     string        `json:"tap"`
+	MAC     string        `json:"mac"`
 	Network *guestAddress `json:"network"`
 }
 

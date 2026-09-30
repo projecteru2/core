@@ -20,6 +20,7 @@ const (
 	testUser   = "eru"
 	testIDLen  = 32
 	testPty    = "/dev/pts/3"
+	testSnap   = "offload-v3"
 
 	storedRecord = `{"id":"w1","kind":"vm","name":"app_web_xyz","user":"` + testUser + `","nodename":"node1"}`
 
@@ -33,6 +34,9 @@ const (
 		`"network_configs":[{"tap":"tap01ARZ3ND-0","network":{"ip":"10.22.0.5","gateway":"10.22.0.1","prefix":16}}]}`
 	ptyVM = `{"id":"` + testVMID + `","hypervisor":"cloud-hypervisor","state":"running","first_booted":true,"pid":4242,` +
 		`"console_path":"` + testPty + `","config":{"image":"` + testImage + `"}}`
+	clonedVM = `{"id":"` + testVMID + `","hypervisor":"cloud-hypervisor","state":"running","first_booted":true,"pid":4242,` +
+		`"config":{"cpu":4,"memory":8589934592,"image":"` + testImage + `","network":"eru-cni"},` +
+		`"network_configs":[{"tap":"tap01ARZ3ND-0","mac":"02:00:00:00:00:07","network":{"ip":"10.22.0.7","gateway":"10.22.0.1","prefix":16}}],"hints":["x"]}`
 	stoppedVM       = `{"id":"` + testVMID + `","state":"stopped","first_booted":true,"config":{"image":"` + testImage + `"}}`
 	bootedWindowsVM = `{"id":"` + testVMID + `","hypervisor":"cloud-hypervisor","state":"running","first_booted":true,"pid":4242,` +
 		`"config":{"image":"win11","windows":true},` +
@@ -67,4 +71,20 @@ func createdVMThenCanceled(cancel context.CancelFunc) func(string) *sshrunner.Re
 		}
 		return createdVM(line)
 	}
+}
+
+func clonedFrom(line string) *sshrunner.Result {
+	if strings.Contains(line, "'clone'") {
+		return &sshrunner.Result{Stdout: clonedVM}
+	}
+	return &sshrunner.Result{}
+}
+
+func mustParseVM(t *testing.T, out string) *vmRecord {
+	t.Helper()
+	vm, err := parseVM(out)
+	if err != nil {
+		t.Fatalf("parse vm: %v", err)
+	}
+	return vm
 }
