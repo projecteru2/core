@@ -115,17 +115,7 @@ func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw any) error {
 		return h.calcium.doRemoveWorkloadSync(ctx, []string{storedID})
 	}
 
-	node, err := h.calcium.GetNode(ctx, wrk.Nodename)
-	if err != nil {
-		if h.calcium.store.NotFound(err) {
-			logger.Info(ctx, "node is gone, nothing to remove")
-			return nil
-		}
-		logger.Error(ctx, err)
-		return err
-	}
-
-	if err = h.removeFromEngine(ctx, node, wrk); err != nil {
+	if err = removeEngineWorkload(ctx, h.calcium, wrk); err != nil {
 		logger.Error(ctx, err)
 		return err
 	}
@@ -154,19 +144,10 @@ func (h *CreateWorkloadHandler) storedWorkloadID(ctx context.Context, wrk *types
 	return workloads[index].ID, nil
 }
 
-func (h *CreateWorkloadHandler) removeFromEngine(ctx context.Context, node *types.Node, wrk *types.Workload) error {
-	if wrk.ID == "" {
-		return removeWorkloadByName(ctx, node, wrk.Name)
-	}
-	if err := node.Engine.VirtualizationRemove(ctx, wrk.ID, true, true); err != nil && !errors.Is(err, types.ErrWorkloadNotExists) {
-		return err
-	}
-	return nil
-}
-
 type workloadReplacement struct {
-	OldID string `json:"old_id"`
-	NewID string `json:"new_id"`
+	OldID    string `json:"old_id"`
+	NewID    string `json:"new_id"`
+	Nodename string `json:"nodename,omitempty"`
 }
 
 // ReplaceWorkloadHandler removes the workload an interrupted replace left behind.
@@ -187,17 +168,22 @@ func (h *ReplaceWorkloadHandler) Handle(ctx context.Context, raw any) error {
 	ctx, cancel := getReplayContext(ctx)
 	defer cancel()
 
+	oldWorkload, err := getWorkloadIfExists(ctx, h.calcium, replacement.OldID)
+	if err != nil {
+		return err
+	}
+	if oldWorkload == nil {
+		if replacement.Nodename == "" {
+			return nil
+		}
+		return removeEngineWorkload(ctx, h.calcium, &types.Workload{ID: replacement.OldID, Nodename: replacement.Nodename})
+	}
 	newWorkload, err := getWorkloadIfExists(ctx, h.calcium, replacement.NewID)
 	if err != nil || newWorkload == nil {
 		return err
 	}
 
-	oldWorkload, err := getWorkloadIfExists(ctx, h.calcium, replacement.OldID)
-	if err != nil || oldWorkload == nil {
-		return err
-	}
-
-	if err = h.calcium.doRemoveWorkload(ctx, oldWorkload, true); err != nil {
+	if _, err = h.calcium.doRemoveWorkload(ctx, oldWorkload, true); err != nil {
 		logger.Error(ctx, err)
 		return err
 	}
@@ -367,6 +353,23 @@ func enableWAL(ctx context.Context, config types.Config, calcium *Calcium, store
 	hydro.Register(&WorkloadResourceAllocatedHandler{calcium: calcium})
 	hydro.Register(&ProcessingCreatedHandler{store: store})
 	return hydro, nil
+}
+
+func removeEngineWorkload(ctx context.Context, c *Calcium, wrk *types.Workload) error {
+	node, err := c.GetNode(ctx, wrk.Nodename)
+	if err != nil {
+		if c.store.NotFound(err) {
+			return nil
+		}
+		return err
+	}
+	if wrk.ID == "" {
+		return removeWorkloadByName(ctx, node, wrk.Name)
+	}
+	if err = node.Engine.VirtualizationRemove(ctx, wrk.ID, true, true); err != nil && !errors.Is(err, types.ErrWorkloadNotExists) {
+		return err
+	}
+	return nil
 }
 
 func getReplayContext(ctx context.Context) (context.Context, context.CancelFunc) {

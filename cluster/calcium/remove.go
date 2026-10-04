@@ -41,12 +41,15 @@ func (c *Calcium) doRemoveOneWorkload(ctx context.Context, workload *types.Workl
 	if err != nil {
 		return err
 	}
-	defer workloadCommit()
-	return c.doRemoveWorkload(ctx, workload, force)
+	settled, err := c.doRemoveWorkload(ctx, workload, force)
+	if settled {
+		workloadCommit()
+	}
+	return err
 }
 
-func (c *Calcium) doRemoveWorkload(ctx context.Context, workload *types.Workload, force bool) error {
-	_, err := utils.Txn(
+func (c *Calcium) doRemoveWorkload(ctx context.Context, workload *types.Workload, force bool) (bool, error) {
+	return utils.Txn(
 		ctx,
 		func(ctx context.Context) error {
 			return c.store.RemoveWorkload(ctx, workload)
@@ -56,13 +59,15 @@ func (c *Calcium) doRemoveWorkload(ctx context.Context, workload *types.Workload
 		},
 		func(ctx context.Context, failedByCond bool) error {
 			if failedByCond {
-				return nil
+				stored, err := getWorkloadIfExists(ctx, c, workload.ID)
+				if err != nil || stored != nil {
+					return err
+				}
 			}
 			return c.store.AddWorkload(ctx, workload, nil)
 		},
 		c.config.GlobalTimeout,
 	)
-	return err
 }
 
 func (c *Calcium) doRemoveWorkloadSync(ctx context.Context, IDs []string) error {
