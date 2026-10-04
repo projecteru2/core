@@ -104,7 +104,6 @@ func TestVirtualizationReportsAMissingWorkload(t *testing.T) {
 	}{
 		{"start", func(e *Engine) error { return e.VirtualizationStart(t.Context(), "w1") }},
 		{"stop", func(e *Engine) error { return e.VirtualizationStop(t.Context(), "w1", 0) }},
-		{"remove", func(e *Engine) error { return e.VirtualizationRemove(t.Context(), "w1", true, false) }},
 		{"inspect", func(e *Engine) error { _, err := e.VirtualizationInspect(t.Context(), "w1"); return err }},
 	}
 	for _, tt := range tests {
@@ -179,6 +178,50 @@ func TestVirtualizationLifecycleCommandSequence(t *testing.T) {
 	}
 	if !strings.Contains(resumeScript, `"$bin" snapshot rm "$snap" >/dev/null 2>&1 || true`) {
 		t.Error("a snapshot the resume cannot delete must not abort it with the guest already running and the record stale")
+	}
+}
+
+func TestVirtualizationRemoveCommitsOnlyConfirmedCleanup(t *testing.T) {
+	tests := []struct {
+		name        string
+		result      sshrunner.Result
+		cleanupCode int
+		wantError   bool
+		wantCalls   int
+	}{
+		{name: "removed", wantCalls: 1},
+		{name: "already absent", result: sshrunner.Result{Code: reconciledCode, Stdout: `{ "outcome": "not-found" }`}, wantCalls: 2},
+		{name: "stale create collected", result: sshrunner.Result{Code: reconciledCode, Stdout: `{ "outcome": "collected" }`}, wantCalls: 2},
+		{name: "active create", result: sshrunner.Result{Code: reconciledCode, Stdout: `{"outcome":"busy"}`}, wantError: true, wantCalls: 1},
+		{name: "created vm remains", result: sshrunner.Result{Code: reconciledCode, Stdout: `{"outcome":"not-creating"}`}, wantError: true, wantCalls: 1},
+		{name: "unknown outcome", result: sshrunner.Result{Code: reconciledCode, Stdout: `{"outcome":"future"}`}, wantError: true, wantCalls: 1},
+		{name: "invalid JSON", result: sshrunner.Result{Code: reconciledCode, Stdout: `broken`}, wantError: true, wantCalls: 1},
+		{name: "reconciliation unsupported or failed", result: sshrunner.Result{Code: 1}, wantError: true, wantCalls: 1},
+		{name: "records could not be removed", result: sshrunner.Result{Code: reconciledCode, Stdout: `{"outcome":"not-found"}`}, cleanupCode: 1, wantError: true, wantCalls: 2},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			runner := &sshrunnertest.Fake{Respond: func(line string) *sshrunner.Result {
+				if strings.Contains(line, "reconcile-stale-create") {
+					return &tt.result
+				}
+				return &sshrunner.Result{Code: tt.cleanupCode}
+			}}
+			e := testEngine(t, runner)
+			err := e.VirtualizationRemove(t.Context(), "w1", true, true)
+			if (err != nil) != tt.wantError {
+				t.Fatalf("got %v, want error %v", err, tt.wantError)
+			}
+			if len(runner.Lines()) != tt.wantCalls {
+				t.Fatalf("got %d calls, want %d", len(runner.Lines()), tt.wantCalls)
+			}
+			if tt.wantCalls == 2 {
+				want := sshrunner.Quote(sshrunner.Shell(removeArgs+removeRecords, testBinary, "w1", testRoot+"/w1.json", "/run/eru/workloads/w1.json", "eru-w1", "1"))
+				if runner.Lines()[1] != want {
+					t.Errorf("got cleanup %q, want %q", runner.Lines()[1], want)
+				}
+			}
+		})
 	}
 }
 

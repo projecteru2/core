@@ -2011,6 +2011,53 @@ func (_c *API_VirtualizationCreate_Call) RunAndReturn(run func(ctx context.Conte
 	return _c
 }
 
+func (_mock *API) VirtualizationCreateID(name string) string {
+	ret := _mock.Called(name)
+
+	if len(ret) == 0 {
+		panic("no return value specified for VirtualizationCreateID")
+	}
+
+	var r0 string
+	if returnFunc, ok := ret.Get(0).(func(string) string); ok {
+		r0 = returnFunc(name)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+	return r0
+}
+
+type API_VirtualizationCreateID_Call struct {
+	*mock.Call
+}
+
+func (_e *API_Expecter) VirtualizationCreateID(name any) *API_VirtualizationCreateID_Call {
+	return &API_VirtualizationCreateID_Call{Call: _e.mock.On("VirtualizationCreateID", name)}
+}
+
+func (_c *API_VirtualizationCreateID_Call) Run(run func(name string)) *API_VirtualizationCreateID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *API_VirtualizationCreateID_Call) Return(s string) *API_VirtualizationCreateID_Call {
+	_c.Call.Return(s)
+	return _c
+}
+
+func (_c *API_VirtualizationCreateID_Call) RunAndReturn(run func(name string) string) *API_VirtualizationCreateID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // VirtualizationInspect provides a mock function for the type API
 func (_mock *API) VirtualizationInspect(ctx context.Context, ID string) (*types.VirtualizationInfo, error) {
 	ret := _mock.Called(ctx, ID)

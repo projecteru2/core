@@ -246,18 +246,20 @@ root), `cocoon.root` holds the durable copy of each workload record, and `cocoon
 `cocoon.cgroup_parent` mirror cocoon's own `run_dir` and `cgroup_parent`, which is where the engine
 finds a guest's console and cgroup scope. Every verb is one SSH session and one round trip; create is
 two, and is dominated by cocoon's own work; start and resume add a second round trip for the meta
-rewrite.
+rewrite. A failed remove that reconciliation confirms as absent adds a second round trip to
+remove the metadata.
 
 The VM's cocoon name is the workload id — a 32-hex id core generates, exactly as for a process
-workload — so every later verb runs `cocoon vm <verb> <id>` without a lookup, and eru-agent keys
+workload, reserved before the create intent is journalled — so every later verb runs
+`cocoon vm <verb> <id>` without a lookup, and eru-agent keys
 the cocoon daemon's events on it. The eru name stays in the meta file and in core's store.
 
 | `engine.API` | cocoon |
 | --- | --- |
 | `VirtualizationCreate` | `vm create --output json --name <id> [--cpu N] [--memory B] [--storage B] [--data-disk …] [--network <name>] [--windows \| --user U] <image>` — no boot; then the meta record is written. A failure after the create removes the VM again. cocoon has no way to apply the deploy's `env`, `dns`, `extra_hosts` or the entrypoint's `commands` and `dir` to a guest, so any of them set draws a warning; core's own `APP_NAME`/`ERU_*` env does not |
 | `VirtualizationStart` | `vm inspect`, `vm start` and `vm inspect` again in one script; the second inspect reports this boot's `console_path`, and both copies of the meta record are rewritten with it and with the VMM pid. An inspect that reports no console keeps the serial socket path. A Windows guest on its first boot gets its address programmed through `vm exec` in the background, after the start has already returned |
-| `VirtualizationStop` | `vm stop`, `--force` for a forced stop, `--timeout` when a grace period is given; a workload with no record on the node is `ErrWorkloadNotExists`, as for the other verbs. cocoon's stop is idempotent, so stopping a created or already-stopped guest succeeds |
-| `VirtualizationRemove` | `vm rm [--force]`, then the hibernate snapshot and both copies of the meta record; a running guest is refused unless forced |
+| `VirtualizationStop` | `vm stop`, `--force` for a forced stop, `--timeout` when a grace period is given; a workload with no record on the node is `ErrWorkloadNotExists`, as for start and inspect. cocoon's stop is idempotent, so stopping a created or already-stopped guest succeeds |
+| `VirtualizationRemove` | `vm rm [--force]`, then the hibernate snapshot and both copies of the meta record, even when creation never wrote a record; a failed remove uses `vm reconcile-stale-create --output json`, accepting only `not-found` or `collected` as complete |
 | `VirtualizationSuspend` / `Resume` | `vm hibernate --name eru-<id>` / `vm restore --restore-mode copy` followed by `snapshot rm` and `vm inspect`, then the record rewrite as at start. The restore copies, so the delete is best-effort: a snapshot that will not go leaves garbage on the node rather than aborting a resume whose guest is already running |
 | `VirtualizationInspect` | the stored record then `vm inspect`: running when the state is `running`, the image, the CNI address under the network's name, and the deploy's `user` — cocoon's own JSON has no eru user, and returning an empty one made core overwrite the stored value after every start |
 | `VirtualizationWait` | `vm status --event --format json` until the guest leaves `running`; a VM has no exit code, so the result is 0 |
@@ -358,8 +360,11 @@ until its next start; in between, only a direct-boot guest's console logs are mi
 
 ### Node prerequisites
 
-cocoon — `AddNode` runs `cocoon version` once and refuses a node without it — with `cocoon daemon`
-as a systemd service (the engine does not need it, eru-agent uses it for events), the cocoonstack
+cocoon v0.6.2 or later for typed stale-create reconciliation. An older CLI can still remove
+a VM normally, but an unsupported reconciliation command leaves the removal intent pending
+instead of treating the VM as absent. `AddNode` runs `cocoon version` once and refuses a node
+without it. Run `cocoon daemon` as a systemd service for eru-agent events; the engine itself
+does not need the daemon. The node also needs the cocoonstack
 `dev` builds of Cloud Hypervisor, Firecracker and
 rust-hypervisor-firmware (the Windows fixes live there), the CNI plugin binaries in `/opt/cni/bin`
 with conf in `/etc/cni/net.d`, cocoon-agent inside the guest images (with `runuser`, `setpriv` and

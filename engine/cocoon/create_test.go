@@ -17,11 +17,13 @@ import (
 	coretypes "github.com/projecteru2/core/types"
 )
 
-func TestVirtualizationCreateRendersTheVMAndRecordsIt(t *testing.T) {
+func TestVirtualizationCreateRendersTheReservedIDAndRecordsIt(t *testing.T) {
 	runner := &sshrunnertest.Fake{Respond: createdVM}
 	e := testEngine(t, runner)
+	ID := e.VirtualizationCreateID("app_web_xyz")
 
 	created, err := e.VirtualizationCreate(t.Context(), &enginetypes.VirtualizationCreateOptions{
+		ID:           ID,
 		Name:         "app_web_xyz",
 		Image:        testImage,
 		User:         testUser,
@@ -32,6 +34,9 @@ func TestVirtualizationCreateRendersTheVMAndRecordsIt(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatalf("create: %v", err)
+	}
+	if created.ID != ID {
+		t.Fatalf("got id %q, want reserved id %q", created.ID, ID)
 	}
 	if len(created.ID) != testIDLen {
 		t.Fatalf("got id %q, want a %d-hex id", created.ID, testIDLen)

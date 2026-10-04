@@ -36,6 +36,10 @@ case "$1 $2" in
 [ "${STUB_INSPECT:-0}" = 0 ] || exit "$STUB_INSPECT"
 pop "$STUB_VM_FILE"
 ;;
+"vm reconcile-stale-create")
+printf '%s\n' "$STUB_RECONCILE_JSON"
+exit "${STUB_RECONCILE:-0}"
+;;
 "vm start") exit "${STUB_START:-0}";;
 "vm stop") exit "${STUB_STOP:-0}";;
 "vm rm")
@@ -270,7 +274,7 @@ func TestRemoveScriptDropsTheVMAndBothRecords(t *testing.T) {
 		keepDurable bool
 		force       string
 		rm          string
-		inspect     string
+		reconcile   string
 		wantCode    int
 		wantCalls   []string
 		wantGone    bool
@@ -296,40 +300,44 @@ func TestRemoveScriptDropsTheVMAndBothRecords(t *testing.T) {
 			wantGone: true,
 		},
 		{
-			name:        "a vm cocoon had already dropped",
+			name:        "a failed remove returns the reconciliation result",
 			keepDurable: true,
 			force:       "0",
 			rm:          "1",
-			inspect:     "1",
+			wantCode:    reconciledCode,
 			wantCalls: []string{
 				"cocoon vm rm " + scriptVM,
-				"cocoon vm inspect " + scriptVM,
-				"cocoon snapshot rm " + scriptSnap,
+				"cocoon vm reconcile-stale-create --output json " + scriptVM,
 			},
-			wantGone: true,
 		},
 		{
-			name:        "a vm that refused to go",
+			name:        "a reconciliation command that fails",
+			reconcile:   "2",
 			keepDurable: true,
 			force:       "0",
 			rm:          "1",
 			wantCode:    1,
 			wantCalls: []string{
 				"cocoon vm rm " + scriptVM,
-				"cocoon vm inspect " + scriptVM,
+				"cocoon vm reconcile-stale-create --output json " + scriptVM,
 			},
 		},
 		{
-			name:     "a vm the node lost",
-			force:    "1",
-			wantCode: workloadmeta.NotExistsCode,
+			name:  "a vm created before its eru record was written",
+			force: "1",
+			wantCalls: []string{
+				"cocoon vm rm --force " + scriptVM,
+				"cocoon snapshot rm " + scriptSnap,
+			},
+			wantGone: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			node := newScriptNode(t)
 			node.env["STUB_RM"] = tt.rm
-			node.env["STUB_INSPECT"] = tt.inspect
+			node.env["STUB_RECONCILE"] = tt.reconcile
+			node.env["STUB_RECONCILE_JSON"] = `{ "outcome": "not-found" }`
 			node.env["STUB_RM_STDERR"] = "vm is running"
 			node.records(t, runningVM)
 			node.write(t, node.record, storedRecord)
@@ -343,6 +351,9 @@ func TestRemoveScriptDropsTheVMAndBothRecords(t *testing.T) {
 				t.Fatalf("got exit %d, want %d: %s", got.code, tt.wantCode, got.stderr)
 			}
 			node.assertCalls(t, tt.wantCalls...)
+			if tt.wantCode == reconciledCode && got.stdout != node.env["STUB_RECONCILE_JSON"]+"\n" {
+				t.Errorf("got %q, want the reconciliation JSON", got.stdout)
+			}
 			if tt.wantCode == 1 && !strings.Contains(got.stderr, "vm is running") {
 				t.Errorf("got %q, want the cocoon failure reported", got.stderr)
 			}

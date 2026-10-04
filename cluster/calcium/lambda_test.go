@@ -308,6 +308,8 @@ func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {
 	engine.On("ImageLocalDigests", mock.Anything, mock.Anything).Return([]string{""}, nil)
 	engine.On("ImageRemoteDigest", mock.Anything, mock.Anything).Return("", nil)
 
+	engine.On("VirtualizationCreateID", mock.Anything).Unset()
+	engine.On("VirtualizationCreateID", mock.Anything).Return("workloadfortonictest").Maybe()
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationCreated{ID: "workloadfortonictest"}, nil)
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
 	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)

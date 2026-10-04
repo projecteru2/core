@@ -283,7 +283,9 @@ func (c *Calcium) doGetAndPrepareNode(ctx context.Context, nodename, image strin
 
 func (c *Calcium) doDeployOneWorkload(ctx context.Context, node *types.Node, opts *types.DeployOptions, msg *types.CreateWorkloadMessage, createOpts *enginetypes.VirtualizationCreateOptions, decrProcessing bool) (err error) {
 	logger := log.WithFunc("calcium.doDeployOneWorkload").WithField("node", node.Name).WithField("ident", opts.ProcessIdent).WithField("msg", msg)
+	createOpts.ID = node.Engine.VirtualizationCreateID(createOpts.Name)
 	workload := &types.Workload{
+		ID:           createOpts.ID,
 		Resources:    msg.Resources,
 		EngineParams: msg.EngineParams,
 		Name:         createOpts.Name,
@@ -300,6 +302,7 @@ func (c *Calcium) doDeployOneWorkload(ctx context.Context, node *types.Node, opt
 	}
 
 	commit, err := c.journal(ctx, logger, eventWorkloadCreated, &types.Workload{
+		ID:       workload.ID,
 		Name:     workload.Name,
 		Nodename: workload.Nodename,
 	})
@@ -314,8 +317,6 @@ func (c *Calcium) doDeployOneWorkload(ctx context.Context, node *types.Node, opt
 			if err != nil {
 				return err
 			}
-			workload.ID = created.ID
-
 			maps.Copy(workload.Labels, created.Labels)
 			return nil
 		},
@@ -385,10 +386,6 @@ func (c *Calcium) doDeployOneWorkload(ctx context.Context, node *types.Node, opt
 
 		func(ctx context.Context, _ bool) (rollbackErr error) {
 			logger.Warnf(ctx, "failed to deploy workload %s, rollback", cmp.Or(workload.ID, workload.Name))
-			if workload.ID == "" {
-				return removeWorkloadByName(ctx, node, workload.Name)
-			}
-
 			if removeErr := c.store.RemoveWorkload(ctx, workload); removeErr != nil {
 				logger.Errorf(ctx, removeErr, "failed to remove workload %s", workload.ID)
 				rollbackErr = errors.Join(rollbackErr, removeErr)

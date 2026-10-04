@@ -54,8 +54,10 @@ exit 0
 func TestVirtualizationCreateRecordsTheUnitAndTheMetaFile(t *testing.T) {
 	runner := &sshrunnertest.Fake{}
 	e := testEngine(t, runner)
+	ID := e.VirtualizationCreateID("app_web_xyz")
 
 	created, err := e.VirtualizationCreate(t.Context(), &enginetypes.VirtualizationCreateOptions{
+		ID:    ID,
 		Name:  "app_web_xyz",
 		Image: "hub.io/ns/app:v1",
 		Env:   []string{"ERU_POD=prod"},
@@ -63,6 +65,9 @@ func TestVirtualizationCreateRecordsTheUnitAndTheMetaFile(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatalf("create: %v", err)
+	}
+	if created.ID != ID {
+		t.Fatalf("got id %q, want reserved id %q", created.ID, ID)
 	}
 	if len(runner.Lines()) != 1 {
 		t.Fatalf("got %d commands, want 1", len(runner.Lines()))

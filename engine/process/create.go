@@ -54,6 +54,10 @@ type RawArgs struct {
 	TasksMax int  `json:"tasks_max"` // cgroup v2 pids.max
 }
 
+func (e *Engine) VirtualizationCreateID(string) string {
+	return utils.RandomID()
+}
+
 func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error) {
 	logger := log.WithFunc("engine.process.VirtualizationCreate")
 	resource := &engine.VirtualizationResource{}
@@ -73,7 +77,10 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		return nil, errors.Wrapf(coretypes.ErrInvalidEngineArgs, "pod %q cannot name a systemd slice", podname)
 	}
 
-	ID := utils.RandomID()
+	ID := opts.ID
+	if ID == "" {
+		ID = e.VirtualizationCreateID(opts.Name)
+	}
 	dir := workloadDir(e.root, ID)
 	u := &unit{
 		ID:          ID,
