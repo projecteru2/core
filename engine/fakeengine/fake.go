@@ -121,11 +121,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		logger.Error(ctx, err, "decode engine params")
 	}
 	logger.Debugf(ctx, "resources %+v", resourceOpts)
-	ID := opts.ID
-	if ID == "" {
-		ID = e.VirtualizationCreateID(opts.Name)
-	}
-	return &enginetypes.VirtualizationCreated{ID: ID, Name: "mock-test-cvm" + utils.RandomString(6)}, nil
+	return &enginetypes.VirtualizationCreated{ID: opts.ID, Name: "mock-test-cvm" + utils.RandomString(6)}, nil
 }
 
 func (e *Engine) VirtualizationCopyChunkTo(context.Context, string, string, int64, io.Reader, int, int, int64) error {

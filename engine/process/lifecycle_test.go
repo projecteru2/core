@@ -97,6 +97,7 @@ func TestVirtualizationCreateSkipsTheOverlayForARawWorkload(t *testing.T) {
 	e := testEngine(t, runner)
 
 	created, err := e.VirtualizationCreate(t.Context(), &enginetypes.VirtualizationCreateOptions{
+		ID:      e.VirtualizationCreateID("app_web_xyz"),
 		Name:    "app_web_xyz",
 		Image:   "hub.io/ns/app:v1",
 		Env:     []string{"ERU_POD=prod"},
@@ -123,6 +124,7 @@ func TestVirtualizationCreateRejectsAnUnusablePodname(t *testing.T) {
 	e := testEngine(t, &sshrunnertest.Fake{})
 
 	_, err := e.VirtualizationCreate(t.Context(), &enginetypes.VirtualizationCreateOptions{
+		ID:    e.VirtualizationCreateID("app_web_xyz"),
 		Name:  "app_web_xyz",
 		Image: "hub.io/ns/app:v1",
 		Env:   []string{"ERU_POD=bad/pod"},

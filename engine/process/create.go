@@ -78,9 +78,6 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	}
 
 	ID := opts.ID
-	if ID == "" {
-		ID = e.VirtualizationCreateID(opts.Name)
-	}
 	dir := workloadDir(e.root, ID)
 	u := &unit{
 		ID:          ID,

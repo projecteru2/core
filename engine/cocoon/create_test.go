@@ -86,7 +86,7 @@ func TestVirtualizationCreateDiscardsAVMWhoseRecordFailed(t *testing.T) {
 	}}
 	e := testEngine(t, runner)
 
-	if _, err := e.VirtualizationCreate(t.Context(), &enginetypes.VirtualizationCreateOptions{Name: "app_web_xyz", Image: testImage}); err == nil {
+	if _, err := e.VirtualizationCreate(t.Context(), &enginetypes.VirtualizationCreateOptions{ID: e.VirtualizationCreateID("app_web_xyz"), Name: "app_web_xyz", Image: testImage}); err == nil {
 		t.Fatal("a failed record must fail the create")
 	}
 	lines := runner.Lines()
@@ -101,7 +101,7 @@ func TestVirtualizationCreateDiscardsAVMWhoseDeadlineExpired(t *testing.T) {
 	runner := &sshrunnertest.Fake{Respond: createdVMThenCanceled(cancel)}
 	e := testEngine(t, runner)
 
-	if _, err := e.VirtualizationCreate(ctx, &enginetypes.VirtualizationCreateOptions{Name: "app_web_xyz", Image: testImage}); err == nil {
+	if _, err := e.VirtualizationCreate(ctx, &enginetypes.VirtualizationCreateOptions{ID: e.VirtualizationCreateID("app_web_xyz"), Name: "app_web_xyz", Image: testImage}); err == nil {
 		t.Fatal("a record core could not write must fail the create")
 	}
 	lines := runner.Lines()
@@ -115,6 +115,7 @@ func TestVirtualizationCreateKeepsTheConflistOfAnInheritedNetwork(t *testing.T) 
 	e := testEngine(t, runner)
 
 	if _, err := e.VirtualizationCreate(t.Context(), &enginetypes.VirtualizationCreateOptions{
+		ID:       e.VirtualizationCreateID("app_web_xyz"),
 		Name:     "app_web_xyz",
 		Image:    testImage,
 		Networks: map[string]string{"eru-cni": "10.22.0.9"},

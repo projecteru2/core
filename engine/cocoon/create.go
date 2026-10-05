@@ -71,9 +71,6 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		return nil, err
 	}
 	ID := opts.ID
-	if ID == "" {
-		ID = e.VirtualizationCreateID(opts.Name)
-	}
 	argv, err := createArgv(e.cocoon.Binary, ID, opts, resource, rArgs.OS == osWindows, network)
 	if err != nil {
 		return nil, err
