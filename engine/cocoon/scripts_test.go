@@ -320,9 +320,13 @@ func TestRemoveScriptDropsTheVMAndBothRecords(t *testing.T) {
 			},
 		},
 		{
-			name:     "a vm the node lost",
-			force:    "1",
-			wantCode: workloadmeta.NotExistsCode,
+			name:  "a vm created before its eru record was written",
+			force: "1",
+			wantCalls: []string{
+				"cocoon vm rm --force " + scriptVM,
+				"cocoon snapshot rm " + scriptSnap,
+			},
+			wantGone: true,
 		},
 	}
 	for _, tt := range tests {

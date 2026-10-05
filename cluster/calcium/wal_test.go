@@ -268,6 +268,7 @@ func TestHandleReplaceWorkloadKeepsTheOldOneWhenTheNewOneIsGone(t *testing.T) {
 	require.NoError(t, err)
 
 	store := c.store.(*storemocks.Store)
+	store.On("GetWorkload", mock.Anything, "old").Return(&types.Workload{ID: "old"}, nil).Once()
 	store.On("GetWorkload", mock.Anything, "new").Return(nil, types.ErrMockError).Once()
 	store.On("NotFound", types.ErrMockError).Return(true).Once()
 

@@ -193,7 +193,6 @@ func TestCreateWorkloadTxn(t *testing.T) {
 			}
 
 			engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(nil, errors.Wrap(context.DeadlineExceeded, "VirtualizationCreate")).Twice()
-			engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(nil, types.ErrWorkloadNotExists).Twice()
 			engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
 			walCommitted.Store(false)
@@ -330,6 +329,7 @@ func TestDoDeployWorkloadsOnNodeErrorPerWorkload(t *testing.T) {
 	c := NewTestCluster()
 	ctx := t.Context()
 	engine := &enginemocks.API{}
+	engine.On("VirtualizationCreateID", mock.Anything).Return("wrkid").Maybe()
 	node := &types.Node{NodeMeta: types.NodeMeta{Name: "n1"}, Engine: engine}
 
 	store := c.store.(*storemocks.Store)
@@ -337,7 +337,8 @@ func TestDoDeployWorkloadsOnNodeErrorPerWorkload(t *testing.T) {
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
 	mockLocks(t, store)
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
-	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(nil, types.ErrWorkloadNotExists)
+	engine.On("VirtualizationRemove", mock.Anything, "wrkid", true, true).Return(types.ErrWorkloadNotExists)
+	c.store.(*storemocks.Store).On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
 
 	const deploy = 4
 	opts := &types.DeployOptions{
@@ -360,7 +361,7 @@ func TestDoDeployWorkloadsOnNodeErrorPerWorkload(t *testing.T) {
 	}
 }
 
-func TestDoDeployOneWorkloadJournalsTheNameBeforeTheEngineCreate(t *testing.T) {
+func TestDoDeployOneWorkloadJournalsTheIDBeforeTheEngineCreate(t *testing.T) {
 	c := NewTestCluster()
 	ctx := t.Context()
 
@@ -375,10 +376,12 @@ func TestDoDeployOneWorkloadJournalsTheNameBeforeTheEngineCreate(t *testing.T) {
 	c.wal = mwal
 
 	engine := &enginemocks.API{}
+	engine.On("VirtualizationCreateID", mock.Anything).Return("wrkid").Maybe()
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).
 		Run(func(mock.Arguments) { engineCalled = true }).
 		Return(nil, types.ErrMockError)
-	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(nil, types.ErrWorkloadNotExists)
+	engine.On("VirtualizationRemove", mock.Anything, "wrkid", true, true).Return(types.ErrWorkloadNotExists)
+	c.store.(*storemocks.Store).On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
 	node := &types.Node{NodeMeta: types.NodeMeta{Name: "n1"}, Engine: engine}
 
 	opts := &types.DeployOptions{Name: "app", Podname: "pod", Entrypoint: &types.Entrypoint{Name: "entry"}}
@@ -389,7 +392,8 @@ func TestDoDeployOneWorkloadJournalsTheNameBeforeTheEngineCreate(t *testing.T) {
 	assert.False(t, loggedAfterEngine)
 	assert.Equal(t, createOpts.Name, logged.Name)
 	assert.Equal(t, node.Name, logged.Nodename)
-	assert.Empty(t, logged.ID)
+	assert.Equal(t, "wrkid", logged.ID)
+	assert.Equal(t, logged.ID, createOpts.ID)
 }
 
 func TestDoDeployOneWorkloadRollbackRemovesTheContainerTheEngineKept(t *testing.T) {
@@ -398,8 +402,9 @@ func TestDoDeployOneWorkloadRollbackRemovesTheContainerTheEngineKept(t *testing.
 
 	name := "app_entry_abcdef"
 	engine := &enginemocks.API{}
+	engine.On("VirtualizationCreateID", mock.Anything).Return("wrkid").Maybe()
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
-	engine.On("VirtualizationInspect", mock.Anything, name).Return(&enginetypes.VirtualizationInfo{ID: "wrkid"}, nil).Once()
+	c.store.(*storemocks.Store).On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil).Once()
 	engine.On("VirtualizationRemove", mock.Anything, "wrkid", true, true).Return(nil).Once()
 	node := &types.Node{NodeMeta: types.NodeMeta{Name: "n1"}, Engine: engine}
 
@@ -425,6 +430,7 @@ func TestDoDeployOneWorkloadKeepsJournalWhenRollbackFails(t *testing.T) {
 	store.On("AddWorkload", mock.Anything, mock.Anything, mock.Anything).Return(types.ErrMockError).Once()
 	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil).Once()
 	engine := &enginemocks.API{}
+	engine.On("VirtualizationCreateID", mock.Anything).Return("wrkid").Maybe()
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationCreated{ID: "wrkid"}, nil).Once()
 	engine.On("VirtualizationRemove", mock.Anything, "wrkid", true, true).Return(types.ErrMockError).Once()
 	node := &types.Node{NodeMeta: types.NodeMeta{Name: "n1"}, Engine: engine}
@@ -435,6 +441,39 @@ func TestDoDeployOneWorkloadKeepsJournalWhenRollbackFails(t *testing.T) {
 	assert.Error(t, c.doDeployOneWorkload(ctx, node, opts, &types.CreateWorkloadMessage{}, createOpts, false))
 	assert.False(t, committed.Load())
 	mwal.AssertExpectations(t)
+	store.AssertExpectations(t)
+	engine.AssertExpectations(t)
+}
+
+func TestDoDeployOneWorkloadReplaysTheReservedIDAfterCreateReplyLoss(t *testing.T) {
+	c := NewTestCluster()
+	t.Cleanup(c.Finalizer)
+	enableTestWAL(t, c)
+	ctx := t.Context()
+	c.rmgr.(*resourcemocks.Manager).On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(resourcetypes.Resources{}, resourcetypes.Resources{}, []string{}, nil)
+	engine := &enginemocks.API{}
+	engine.On("VirtualizationCreateID", mock.Anything).Return("reserved-id").Once()
+	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(nil, context.DeadlineExceeded).Once()
+	engine.On("VirtualizationRemove", mock.Anything, "reserved-id", true, true).Return(types.ErrMockError).Once()
+	engine.On("VirtualizationRemove", mock.Anything, "reserved-id", true, true).Return(nil).Once()
+	node := &types.Node{Name: "n1", Engine: engine}
+	store := c.store.(*storemocks.Store)
+	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil).Once()
+	store.On("GetWorkload", mock.Anything, "reserved-id").Return(nil, types.ErrKeyNotFound).Once()
+	store.On("NotFound", types.ErrKeyNotFound).Return(true).Once()
+	store.On("GetNode", mock.Anything, node.Name).Return(node, nil).Once()
+	opts := &types.DeployOptions{Name: "app", Podname: "pod", Entrypoint: &types.Entrypoint{Name: "entry"}}
+	createOpts := &enginetypes.VirtualizationCreateOptions{Name: "app_entry_abcdef"}
+
+	require.ErrorIs(t, c.doDeployOneWorkload(ctx, node, opts, &types.CreateWorkloadMessage{}, createOpts, false), context.DeadlineExceeded)
+	entries, err := c.store.GetPrefix(ctx, "/wal/", 0)
+	require.NoError(t, err)
+	require.Len(t, entries, 1)
+	c.wal.Recover(ctx)
+	entries, err = c.store.GetPrefix(ctx, "/wal/", 0)
+	require.NoError(t, err)
+	require.Empty(t, entries)
+	c.wal.Recover(ctx)
 	store.AssertExpectations(t)
 	engine.AssertExpectations(t)
 }
@@ -473,6 +512,7 @@ func newCreateWorkloadCluster(t *testing.T, createProcessingErr, deleteProcessin
 	c := NewTestCluster()
 
 	engine := &enginemocks.API{}
+	engine.On("VirtualizationCreateID", mock.Anything).Return("c1").Maybe()
 	node1 := &types.Node{
 		NodeMeta: types.NodeMeta{
 			Name: "n1",

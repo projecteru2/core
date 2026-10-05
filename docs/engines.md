@@ -249,15 +249,16 @@ two, and is dominated by cocoon's own work; start and resume add a second round 
 rewrite.
 
 The VM's cocoon name is the workload id — a 32-hex id core generates, exactly as for a process
-workload — so every later verb runs `cocoon vm <verb> <id>` without a lookup, and eru-agent keys
+workload, reserved before the create intent is journalled — so every later verb runs
+`cocoon vm <verb> <id>` without a lookup, and eru-agent keys
 the cocoon daemon's events on it. The eru name stays in the meta file and in core's store.
 
 | `engine.API` | cocoon |
 | --- | --- |
 | `VirtualizationCreate` | `vm create --output json --name <id> [--cpu N] [--memory B] [--storage B] [--data-disk …] [--network <name>] [--windows \| --user U] <image>` — no boot; then the meta record is written. A failure after the create removes the VM again. cocoon has no way to apply the deploy's `env`, `dns`, `extra_hosts` or the entrypoint's `commands` and `dir` to a guest, so any of them set draws a warning; core's own `APP_NAME`/`ERU_*` env does not |
 | `VirtualizationStart` | `vm inspect`, `vm start` and `vm inspect` again in one script; the second inspect reports this boot's `console_path`, and both copies of the meta record are rewritten with it and with the VMM pid. An inspect that reports no console keeps the serial socket path. A Windows guest on its first boot gets its address programmed through `vm exec` in the background, after the start has already returned |
-| `VirtualizationStop` | `vm stop`, `--force` for a forced stop, `--timeout` when a grace period is given; a workload with no record on the node is `ErrWorkloadNotExists`, as for the other verbs. cocoon's stop is idempotent, so stopping a created or already-stopped guest succeeds |
-| `VirtualizationRemove` | `vm rm [--force]`, then the hibernate snapshot and both copies of the meta record; a running guest is refused unless forced |
+| `VirtualizationStop` | `vm stop`, `--force` for a forced stop, `--timeout` when a grace period is given; a workload with no record on the node is `ErrWorkloadNotExists`, as for start and inspect. cocoon's stop is idempotent, so stopping a created or already-stopped guest succeeds |
+| `VirtualizationRemove` | `vm rm [--force]`, then the hibernate snapshot and both copies of the meta record, even when creation never wrote a record; a running guest is refused unless forced |
 | `VirtualizationSuspend` / `Resume` | `vm hibernate --name eru-<id>` / `vm restore --restore-mode copy` followed by `snapshot rm` and `vm inspect`, then the record rewrite as at start. The restore copies, so the delete is best-effort: a snapshot that will not go leaves garbage on the node rather than aborting a resume whose guest is already running |
 | `VirtualizationInspect` | the stored record then `vm inspect`: running when the state is `running`, the image, the CNI address under the network's name, and the deploy's `user` — cocoon's own JSON has no eru user, and returning an empty one made core overwrite the stored value after every start |
 | `VirtualizationWait` | `vm status --event --format json` until the guest leaves `running`; a VM has no exit code, so the result is 0 |

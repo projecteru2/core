@@ -133,11 +133,11 @@ func (c *Calcium) doReplaceWorkload(ctx context.Context, workload *types.Workloa
 					return c.doDeployOneWorkload(ctx, node, &opts.DeployOptions, createMessage, vco, false)
 				},
 				func(ctx context.Context) (err error) {
-					commit, err := c.journal(ctx, logger, eventWorkloadReplaced, &workloadReplacement{OldID: workload.ID, NewID: createMessage.WorkloadID})
+					commit, err := c.journal(ctx, logger, eventWorkloadReplaced, &workloadReplacement{OldID: workload.ID, NewID: createMessage.WorkloadID, Nodename: workload.Nodename})
 					if err != nil {
 						return err
 					}
-					if err = c.doRemoveWorkload(ctx, workload, true); err != nil {
+					if _, err = c.doRemoveWorkload(ctx, workload, true); err != nil {
 						logger.Error(ctx, err, "the new started but the old failed to stop")
 						return err
 					}

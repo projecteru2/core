@@ -110,6 +110,10 @@ func (e *Engine) BuildContent(context.Context, coresource.Source, *enginetypes.B
 	return "BuildContent", stream("this is content"), nil
 }
 
+func (e *Engine) VirtualizationCreateID(string) string {
+	return utils.RandomString(64)
+}
+
 func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error) {
 	logger := log.WithFunc("engine.fakeengine.VirtualizationCreate")
 	resourceOpts := &engine.VirtualizationResource{}
@@ -117,7 +121,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		logger.Error(ctx, err, "decode engine params")
 	}
 	logger.Debugf(ctx, "resources %+v", resourceOpts)
-	return &enginetypes.VirtualizationCreated{ID: utils.RandomString(64), Name: "mock-test-cvm" + utils.RandomString(6)}, nil
+	return &enginetypes.VirtualizationCreated{ID: opts.ID, Name: "mock-test-cvm" + utils.RandomString(6)}, nil
 }
 
 func (e *Engine) VirtualizationCopyChunkTo(context.Context, string, string, int64, io.Reader, int, int, int64) error {

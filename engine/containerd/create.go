@@ -75,6 +75,10 @@ type containerUpdater interface {
 	Update(ctx context.Context, opts ...client.UpdateContainerOpts) error
 }
 
+func (e *Engine) VirtualizationCreateID(name string) string {
+	return name
+}
+
 func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error) {
 	logger := log.WithFunc("engine.containerd.VirtualizationCreate")
 	resource := &engine.VirtualizationResource{}
@@ -93,7 +97,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	}
 
 	// The container id is the workload name: containerd carries no name eru-agent could read
-	ID := opts.Name
+	ID := opts.ID
 	if err := identifiers.Validate(ID); err != nil {
 		return nil, errors.Wrapf(coretypes.ErrInvalidWorkloadName, "containerd cannot name %q", ID)
 	}

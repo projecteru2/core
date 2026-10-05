@@ -104,7 +104,6 @@ func TestVirtualizationReportsAMissingWorkload(t *testing.T) {
 	}{
 		{"start", func(e *Engine) error { return e.VirtualizationStart(t.Context(), "w1") }},
 		{"stop", func(e *Engine) error { return e.VirtualizationStop(t.Context(), "w1", 0) }},
-		{"remove", func(e *Engine) error { return e.VirtualizationRemove(t.Context(), "w1", true, false) }},
 		{"inspect", func(e *Engine) error { _, err := e.VirtualizationInspect(t.Context(), "w1"); return err }},
 	}
 	for _, tt := range tests {

@@ -15,12 +15,19 @@ zero-padded, so replaying the keys in order replays the entries in order.
 | Event | Written before | Replay does |
 | --- | --- | --- |
 | `allocate-workload` | resources are allocated on a set of nodes, a workload is removed, or a realloc starts | re-derives each node's usage from its actual workloads (`NodeResource` with `fix`); a repair whose write fails keeps the entry for the next replay |
-| `create-workload` | the engine is asked to create a workload, and before one is removed | removes the workload — from the store if it is there, otherwise off the engine, found by name when the entry has no ID yet |
-| `replace-workload` | the old workload of a replace is removed | removes the old workload if the new one reached the store, releasing nothing, because the new one inherited its resources |
+| `create-workload` | the engine is asked to create a workload, and before one is removed | removes the workload — from the store if it is there, otherwise off the engine by its reserved ID; legacy entries without an ID retain name lookup |
+| `replace-workload` | the old workload of a replace is removed | removes the old workload if the new one reached the store; when old metadata is already absent, uses the recorded node to finish engine cleanup independently of the new workload; releases nothing because resources were inherited |
 | `realloc-workload` | a realloc mutates plugin usage, metadata and engine limits | re-applies the stored engine params under the node-operation lock — the same step a failed realloc runs inline as its repair, committing the entry only when the reapply holds |
 | `remap-node` | a node's engine params are reapplied to its workloads | recomputes the remap and reapplies it under the node-operation lock |
 | `create-processing` | an in-flight deploy counter is written | deletes the stale counter, so it stops inflating deploy counts forever |
 | `create-lambda` | a `RunAndWait` workload starts | waits for it to exit, then removes it |
+
+Create reserves the engine ID before writing its intent, so recovery can remove a process or VM
+even when the create reply or the engine's metadata write never arrives. This does not identify
+orphans left by older name-only entries whose randomly generated engine IDs were never stored,
+or older replacement entries that lost the old metadata without recording its node.
+A failed store deletion is read back and, if needed, restored before its removal intent is
+committed; failed read-back or restoration leaves that intent for replay.
 
 Each replayed handler gets a 32-second deadline. Entries whose handler is unknown are logged and
 skipped; entries that fail are logged and left in place for the next start.

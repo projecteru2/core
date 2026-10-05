@@ -51,7 +51,6 @@ done
 `
 
 	removeScript = `bin=$1; vm=$2; durable=$3; record=$4; snap=$5; force=$6
-test -f "$durable" || exit 64
 set --
 if [ "$force" = 1 ]; then set -- --force; fi
 if ! out=$("$bin" vm rm "$@" "$vm" 2>&1) && "$bin" vm inspect "$vm" >/dev/null 2>&1; then
@@ -125,8 +124,7 @@ func (e *Engine) VirtualizationStop(ctx context.Context, ID string, gracefulTime
 }
 
 func (e *Engine) VirtualizationRemove(ctx context.Context, ID string, _, force bool) error {
-	argv := sshrunner.Shell(removeScript, e.cocoon.Binary, ID, durablePath(e.cocoon.Root, ID), workloadmeta.Path(ID), snapshotName(ID), strconv.Itoa(utils.Bool2Int(force)))
-	_, err := e.runRecorded(ctx, argv, ID)
+	_, err := e.run(ctx, sshrunner.Shell(removeScript, e.cocoon.Binary, ID, durablePath(e.cocoon.Root, ID), workloadmeta.Path(ID), snapshotName(ID), strconv.Itoa(utils.Bool2Int(force)))...)
 	return err
 }
 

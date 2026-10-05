@@ -49,6 +49,10 @@ type RawArgs struct {
 	OS string `json:"os"` // "windows" boots a Windows guest
 }
 
+func (e *Engine) VirtualizationCreateID(string) string {
+	return utils.RandomID()
+}
+
 func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error) {
 	logger := log.WithFunc("engine.cocoon.VirtualizationCreate")
 	resource := &engine.VirtualizationResource{}
@@ -66,7 +70,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	if err != nil {
 		return nil, err
 	}
-	ID := utils.RandomID()
+	ID := opts.ID
 	argv, err := createArgv(e.cocoon.Binary, ID, opts, resource, rArgs.OS == osWindows, network)
 	if err != nil {
 		return nil, err
@@ -100,7 +104,6 @@ func (e *Engine) record(ctx context.Context, ID string, opts *enginetypes.Virtua
 	return err
 }
 
-// discard removes a VM whose eru record never landed; core only knows the ones that did.
 func (e *Engine) discard(ctx context.Context, ID string) {
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), discardTimeout)
 	defer cancel()

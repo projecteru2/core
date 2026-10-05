@@ -10,6 +10,7 @@ const CPUPeriodBase = 100000
 // VirtualizationCreateOptions describes a workload to create.
 type VirtualizationCreateOptions struct {
 	EngineParams resourcetypes.Resources
+	ID           string
 	Name         string
 	User         string
 	Image        string

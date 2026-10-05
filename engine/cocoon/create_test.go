@@ -17,11 +17,13 @@ import (
 	coretypes "github.com/projecteru2/core/types"
 )
 
-func TestVirtualizationCreateRendersTheVMAndRecordsIt(t *testing.T) {
+func TestVirtualizationCreateRendersTheReservedIDAndRecordsIt(t *testing.T) {
 	runner := &sshrunnertest.Fake{Respond: createdVM}
 	e := testEngine(t, runner)
+	ID := e.VirtualizationCreateID("app_web_xyz")
 
 	created, err := e.VirtualizationCreate(t.Context(), &enginetypes.VirtualizationCreateOptions{
+		ID:           ID,
 		Name:         "app_web_xyz",
 		Image:        testImage,
 		User:         testUser,
@@ -32,6 +34,9 @@ func TestVirtualizationCreateRendersTheVMAndRecordsIt(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatalf("create: %v", err)
+	}
+	if created.ID != ID {
+		t.Fatalf("got id %q, want reserved id %q", created.ID, ID)
 	}
 	if len(created.ID) != testIDLen {
 		t.Fatalf("got id %q, want a %d-hex id", created.ID, testIDLen)
@@ -81,7 +86,7 @@ func TestVirtualizationCreateDiscardsAVMWhoseRecordFailed(t *testing.T) {
 	}}
 	e := testEngine(t, runner)
 
-	if _, err := e.VirtualizationCreate(t.Context(), &enginetypes.VirtualizationCreateOptions{Name: "app_web_xyz", Image: testImage}); err == nil {
+	if _, err := e.VirtualizationCreate(t.Context(), &enginetypes.VirtualizationCreateOptions{ID: e.VirtualizationCreateID("app_web_xyz"), Name: "app_web_xyz", Image: testImage}); err == nil {
 		t.Fatal("a failed record must fail the create")
 	}
 	lines := runner.Lines()
@@ -96,7 +101,7 @@ func TestVirtualizationCreateDiscardsAVMWhoseDeadlineExpired(t *testing.T) {
 	runner := &sshrunnertest.Fake{Respond: createdVMThenCanceled(cancel)}
 	e := testEngine(t, runner)
 
-	if _, err := e.VirtualizationCreate(ctx, &enginetypes.VirtualizationCreateOptions{Name: "app_web_xyz", Image: testImage}); err == nil {
+	if _, err := e.VirtualizationCreate(ctx, &enginetypes.VirtualizationCreateOptions{ID: e.VirtualizationCreateID("app_web_xyz"), Name: "app_web_xyz", Image: testImage}); err == nil {
 		t.Fatal("a record core could not write must fail the create")
 	}
 	lines := runner.Lines()
@@ -110,6 +115,7 @@ func TestVirtualizationCreateKeepsTheConflistOfAnInheritedNetwork(t *testing.T) 
 	e := testEngine(t, runner)
 
 	if _, err := e.VirtualizationCreate(t.Context(), &enginetypes.VirtualizationCreateOptions{
+		ID:       e.VirtualizationCreateID("app_web_xyz"),
 		Name:     "app_web_xyz",
 		Image:    testImage,
 		Networks: map[string]string{"eru-cni": "10.22.0.9"},

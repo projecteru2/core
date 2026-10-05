@@ -108,6 +108,10 @@ func (f *EngineWithErr) BuildContent(context.Context, coresource.Source, *engine
 	return "", nil, f.DefaultErr
 }
 
+func (f *EngineWithErr) VirtualizationCreateID(name string) string {
+	return name
+}
+
 func (f *EngineWithErr) VirtualizationCreate(context.Context, *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error) {
 	return nil, f.DefaultErr
 }
