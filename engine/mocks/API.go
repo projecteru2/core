@@ -2011,6 +2011,7 @@ func (_c *API_VirtualizationCreate_Call) RunAndReturn(run func(ctx context.Conte
 	return _c
 }
 
+// VirtualizationCreateID provides a mock function for the type API
 func (_mock *API) VirtualizationCreateID(name string) string {
 	ret := _mock.Called(name)
 
@@ -2027,10 +2028,13 @@ func (_mock *API) VirtualizationCreateID(name string) string {
 	return r0
 }
 
+// API_VirtualizationCreateID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'VirtualizationCreateID'
 type API_VirtualizationCreateID_Call struct {
 	*mock.Call
 }
 
+// VirtualizationCreateID is a helper method to define mock.On call
+//   - name string
 func (_e *API_Expecter) VirtualizationCreateID(name any) *API_VirtualizationCreateID_Call {
 	return &API_VirtualizationCreateID_Call{Call: _e.mock.On("VirtualizationCreateID", name)}
 }
